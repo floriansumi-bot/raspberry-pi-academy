@@ -142,6 +142,25 @@ html[data-theme="night"] .prose code{ color:var(--warm); }
 .complete-bar{ margin-top:2.4rem; display:flex; align-items:center; justify-content:center; }
 .complete-bar .btn.done{ background:var(--success); border-color:var(--success); color:#fff; }
 
+/* ---------- shared tool-view + form primitives ---------- */
+.toolpage{ width:min(100% - 2.4rem, 900px); margin-inline:auto; padding-block:2.5rem 5rem; }
+.tool-h1{ font-size:var(--step-3); margin:.3rem 0 .4rem; }
+.field{ width:100%; padding:.8rem 1rem; border-radius:12px; border:1px solid var(--line); background:var(--surface); font-size:1rem; color:var(--ink); }
+.tool-search{ margin:1.4rem 0; }
+.tool-search.sticky{ position:sticky; top:calc(var(--topbar-h) + 8px); z-index:10; }
+.tool-empty{ text-align:center; padding:2rem; }
+.sheet-link{ display:block; padding:.8rem 0; border-bottom:1px solid var(--line); font-weight:600; color:var(--ink); }
+.sheet-link:hover{ text-decoration:none; color:var(--accent); }
+.btn-row{ display:flex; gap:.5rem; flex-wrap:wrap; }
+.btn-danger{ color:var(--danger); }
+
+/* glossary entries */
+.gloss-letter{ font-family:var(--font-mono); color:var(--accent2); font-size:1rem; margin:1.6rem 0 .6rem; border-bottom:1px solid var(--line); padding-bottom:.3rem; }
+.gloss-entry{ padding:.9rem 1rem; border-radius:12px; border:1px solid var(--line); background:var(--surface); margin-bottom:.6rem; box-shadow:var(--shadow); transition:border-color var(--t-fast), box-shadow var(--t-fast); }
+.gloss-entry > strong{ color:var(--accent); font-family:var(--font-display); font-size:1.05rem; }
+.gloss-entry.target{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.gloss-def{ margin-top:.3rem; font-size:.92rem; line-height:1.55; }
+
 /* badge component (parts tray) */
 .badge{ display:flex; flex-direction:column; align-items:center; gap:.5rem; text-align:center; padding:1rem; border-radius:var(--radius);
   border:1px solid var(--line); background:var(--surface); opacity:.45; filter:grayscale(.8); transition:all var(--t) var(--ease-spring); }

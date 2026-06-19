@@ -1,5 +1,5 @@
 /* views/tools.js — standalone hub for the interactive sandboxes */
-import { el, icon } from '../ui.js';
+import { el, icon, toolHeader } from '../ui.js';
 import { openTerminalOverlay } from '../overlays.js';
 import { onCleanup } from '../router.js';
 
@@ -11,11 +11,8 @@ function mountWidget(name, container, ctx) {
 
 export async function renderTools(params, view) {
   const wrap = el('div', { class: 'wrap', style: { paddingBlock: '2.5rem 5rem' } });
-  wrap.append(
-    el('span', { class: 'eyebrow', text: 'Sandboxes' }),
-    el('h1', { style: { fontSize: 'var(--step-3)', margin: '.3rem 0 .4rem' }, text: 'Tools' }),
-    el('p', { class: 'muted', text: 'Play with a real Raspberry Pi terminal, a wireable GPIO board, an LED resistor calculator, and a project finder — no hardware required, nothing can break.' })
-  );
+  wrap.append(...toolHeader('Sandboxes', 'Tools',
+    'Play with a real Raspberry Pi terminal, a wireable GPIO board, an LED resistor calculator, and a project finder — no hardware required, nothing can break.'));
 
   const grid = el('div', { style: { display: 'grid', gap: '1.4rem', marginTop: '2rem' } });
 

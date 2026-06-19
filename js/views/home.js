@@ -1,7 +1,7 @@
 /* views/home.js — landing hero + the winding learning Path (the spine) */
 import { el, ring, icon } from '../ui.js';
 import { store } from '../store.js';
-import { parts, getChapter, order, stats } from '../content.js';
+import { parts, getChapter, order, stats, routeFor } from '../content.js';
 import { onCleanup } from '../router.js';
 
 let _io = null;        // path connector observer, disconnected on re-render
@@ -154,11 +154,7 @@ export async function renderHome(params, view) {
   onCleanup(() => { removeEventListener('resize', onResize); clearTimeout(t); clearTimeout(rt); if (_io) { _io.disconnect(); _io = null; } });
 }
 
-function linkFor(ch) {
-  if (ch.id === 'glos') return '#/glossary';
-  if (ch.id === 'apxA') return '#/reference';
-  return '#/chapter/' + ch.id;
-}
+const linkFor = (ch) => routeFor(ch.id);
 
 /* draw circuit-trace connectors between node badges; etch in on scroll, and
    replay a copper trace-fill toward the just-completed lesson's next node. */

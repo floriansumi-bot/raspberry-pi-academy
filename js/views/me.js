@@ -1,16 +1,8 @@
 /* views/me.js — "My Pi" dashboard: progress, badges, export/import, certificate */
 import { el, ring, icon, toast } from '../ui.js';
 import { store } from '../store.js';
-import { parts, getChapter, order, stats } from '../content.js';
-
-const BADGES = [
-  { id: 'first-boot', name: 'First Boot', ch: 'ch04', svg: '<rect x="14" y="8" width="20" height="32" rx="3" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="32" r="3" fill="currentColor"/><path d="M24 14v10" stroke="currentColor" stroke-width="3"/>' },
-  { id: 'terminal-tamer', name: 'Terminal Tamer', ch: 'ch06', svg: '<rect x="6" y="10" width="36" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="3"/><path d="M14 20l5 4-5 4M26 28h8" stroke="currentColor" stroke-width="3" fill="none"/>' },
-  { id: 'it-blinks', name: 'It Blinks!', ch: 'ch12', svg: '<circle cx="24" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="3"/><path d="M20 29h8l-1 8h-6z" fill="currentColor"/><path d="M24 4v4M11 9l3 3M37 9l-3 3" stroke="currentColor" stroke-width="3"/>' },
-  { id: 'adblock-up', name: 'Ad-Blocker Up', ch: 'ch15', svg: '<path d="M24 6l14 5v9c0 9-6 15-14 18-8-3-14-9-14-18v-9z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M16 24l5 5 11-11" stroke="currentColor" stroke-width="3" fill="none"/>' },
-  { id: 'server-online', name: 'Home Server', ch: 'ch16', svg: '<rect x="8" y="10" width="32" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="3"/><rect x="8" y="26" width="32" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="14" cy="16" r="2" fill="currentColor"/><circle cx="14" cy="32" r="2" fill="currentColor"/>' },
-  { id: 'ai-on-pi', name: 'AI on the Pi', ch: 'ch19', svg: '<rect x="12" y="12" width="24" height="24" rx="4" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="20" cy="22" r="2.5" fill="currentColor"/><circle cx="28" cy="22" r="2.5" fill="currentColor"/><path d="M19 30h10M24 4v8M24 36v8M4 24h8M36 24h8" stroke="currentColor" stroke-width="3"/>' },
-];
+import { parts, getChapter, order, stats, routeFor } from '../content.js';
+import { BADGES } from '../badges.js';
 
 export async function renderMe(params, view) {
   const s = stats(store.get());
@@ -25,9 +17,9 @@ export async function renderMe(params, view) {
       el('span', { class: 'eyebrow', text: 'My Pi' }),
       el('h1', { text: s.done === s.total ? 'Course complete — congratulations!' : `You're ${Math.round(s.pct * 100)}% of the way there` }),
       el('p', { class: 'muted', text: `${s.done} of ${s.total} lessons done · ${Object.values(st.badges).filter(Boolean).length}/${BADGES.length} badges earned` }),
-      store.streak() > 1 ? el('div', { style: { marginTop: '.5rem' } }, el('span', { class: 'tag', style: { background: 'var(--warm-soft)', color: 'var(--warm-ink)' }, text: `🔥 ${store.streak()}-day streak` })) : '',
-      el('div', { style: { marginTop: '1rem', display: 'flex', gap: '.6rem', flexWrap: 'wrap' } },
-        cont ? el('a', { class: 'btn btn-primary', href: '#/chapter/' + cont }, 'Continue', el('span', { html: icon('arrow', 16) })) : el('a', { class: 'btn btn-primary', href: '#/' }, 'Review the path'),
+      store.streak() > 1 ? el('div', { style: { marginTop: '.5rem' } }, el('span', { class: 'tag streak-chip', text: `🔥 ${store.streak()}-day streak` })) : '',
+      el('div', { class: 'dash-actions' },
+        cont ? el('a', { class: 'btn btn-primary', href: routeFor(cont) }, 'Continue', el('span', { html: icon('arrow', 16) })) : el('a', { class: 'btn btn-primary', href: '#/' }, 'Review the path'),
         el('a', { class: 'btn btn-ghost', href: './assets/Raspberry-Pi-5-Handbook.pdf', target: '_blank' }, icon('download', 16), 'Get the PDF')
       )
     )
@@ -48,9 +40,9 @@ export async function renderMe(params, view) {
   parts().forEach((p) => {
     const done = p.chapters.filter((c) => store.isComplete(c)).length;
     const r = ring(28, 4); r.set(p.chapters.length ? done / p.chapters.length : 0);
-    partList.append(el('div', { style: { display: 'flex', alignItems: 'center', gap: '.8rem', padding: '.6rem 0', borderBottom: '1px solid var(--line)' } },
+    partList.append(el('div', { class: 'part-row' },
       r.node,
-      el('div', { style: { flex: '1' } }, el('div', { style: { fontWeight: '600' }, text: p.label }), el('div', { class: 'muted', style: { fontSize: '.8rem' }, text: `${done}/${p.chapters.length} lessons` }))
+      el('div', { style: { flex: '1' } }, el('div', { class: 'pr-name', text: p.label }), el('div', { class: 'muted pr-sub', text: `${done}/${p.chapters.length} lessons` }))
     ));
   });
 
@@ -69,7 +61,7 @@ export async function renderMe(params, view) {
 
 function dataCard() {
   const box = el('div');
-  box.append(el('p', { class: 'muted', style: { fontSize: '.85rem', marginBottom: '.8rem' }, text: 'Progress is saved on this device. Export it to keep a backup or move to another browser.' }));
+  box.append(el('p', { class: 'muted dash-note', text: 'Progress is saved on this device. Export it to keep a backup or move to another browser.' }));
   const exportBtn = el('button', { class: 'btn btn-ghost btn-sm', html: icon('download', 14) + ' Export' });
   exportBtn.addEventListener('click', () => {
     const blob = new Blob([store.exportJSON()], { type: 'application/json' });
@@ -87,9 +79,9 @@ function dataCard() {
   });
   const importBtn = el('button', { class: 'btn btn-ghost btn-sm', html: '⤒ Import' });
   importBtn.addEventListener('click', () => importInput.click());
-  const resetBtn = el('button', { class: 'btn btn-sm', style: { color: 'var(--danger)' }, text: 'Reset' });
+  const resetBtn = el('button', { class: 'btn btn-sm btn-danger', text: 'Reset' });
   resetBtn.addEventListener('click', () => { if (confirm('Reset all progress on this device?')) { store.reset(); location.reload(); } });
-  box.append(el('div', { style: { display: 'flex', gap: '.5rem', flexWrap: 'wrap' } }, exportBtn, importBtn, importInput, resetBtn));
+  box.append(el('div', { class: 'btn-row' }, exportBtn, importBtn, importInput, resetBtn));
   return box;
 }
 
@@ -105,10 +97,7 @@ function certificate() {
     el('p', { class: 'cert-body', text: 'for finishing all 24 lessons — from first boot to building real things on a Raspberry Pi 5.' }),
     el('div', { class: 'cert-date', text: date })
   );
-  const nameInput = el('input', {
-    type: 'text', placeholder: 'Your name (for the certificate)', value: store.name || '', 'aria-label': 'Your name',
-    style: { padding: '.7rem 1rem', borderRadius: '10px', border: '1px solid var(--line)', background: 'var(--surface)', width: 'min(320px, 100%)' }
-  });
+  const nameInput = el('input', { class: 'field', type: 'text', placeholder: 'Your name (for the certificate)', value: store.name || '', 'aria-label': 'Your name', style: { width: 'min(320px, 100%)' } });
   nameInput.addEventListener('input', () => { store.name = nameInput.value; sheet.querySelector('.cert-name').textContent = nameInput.value || 'A curious learner'; });
   const print = el('button', { class: 'btn btn-primary', text: 'Print / save as PDF' });
   print.addEventListener('click', () => {
@@ -118,6 +107,6 @@ function certificate() {
     window.print();
     setTimeout(after, 1500);
   });
-  c.append(sheet, el('div', { style: { display: 'flex', gap: '.7rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1.2rem' } }, nameInput, print));
+  c.append(sheet, el('div', { class: 'cert-actions' }, nameInput, print));
   return c;
 }

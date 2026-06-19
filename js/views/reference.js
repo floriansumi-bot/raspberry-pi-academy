@@ -1,20 +1,14 @@
 /* views/reference.js — Appendix A as a filterable, copyable command cheat-sheet */
-import { el, toast } from '../ui.js';
+import { el, toast, toolHeader } from '../ui.js';
 import { loadChapterHTML } from '../content.js';
 import { enhanceCode } from '../enhance.js';
 
 export async function renderReference(params, view) {
   const html = await loadChapterHTML('apxA');
-  const wrap = el('div', { class: 'wrap', style: { paddingBlock: '2.5rem 5rem', maxWidth: '920px' } });
-  wrap.append(
-    el('span', { class: 'eyebrow', text: 'Reference' }),
-    el('h1', { style: { fontSize: 'var(--step-3)', margin: '.3rem 0 .4rem' }, text: 'Command quick-reference' }),
-    el('p', { class: 'muted', text: 'The most useful commands from the whole course. Filter, then click any command to copy it.' })
-  );
-  const search = el('input', {
-    type: 'search', placeholder: 'Filter commands… (e.g. apt, network, ssh)', 'aria-label': 'Filter commands',
-    style: { width: '100%', padding: '.8rem 1rem', margin: '1.4rem 0', borderRadius: '12px', border: '1px solid var(--line)', background: 'var(--surface)', fontSize: '1rem', position: 'sticky', top: 'calc(var(--topbar-h) + 8px)', zIndex: '10' }
-  });
+  const wrap = el('div', { class: 'toolpage' });
+  wrap.append(...toolHeader('Reference', 'Command quick-reference',
+    'The most useful commands from the whole course. Filter, then click any command to copy it.'));
+  const search = el('input', { class: 'field tool-search sticky', type: 'search', placeholder: 'Filter commands… (e.g. apt, network, ssh)', 'aria-label': 'Filter commands' });
   const prose = el('div', { class: 'prose' });
   prose.innerHTML = html;
   wrap.append(search, prose);

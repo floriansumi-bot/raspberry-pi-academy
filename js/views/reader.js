@@ -1,24 +1,13 @@
 /* views/reader.js — the focused chapter reader */
 import { el, ring, icon, toast, bloom, trapFocus } from '../ui.js';
 import { store } from '../store.js';
-import { getChapter, loadChapterHTML, neighbours, loadQuiz } from '../content.js';
+import { getChapter, loadChapterHTML, neighbours, loadQuiz, routeFor } from '../content.js';
+import { badgeForChapter } from '../badges.js';
 import { enhanceCode } from '../enhance.js';
 import { linkGlossary } from '../glossary-link.js';
 import { renderQuiz } from '../quiz.js';
 import { openTerminalOverlay } from '../overlays.js';
 import { onCleanup } from '../router.js';
-
-const BADGES = {
-  ch04: ['first-boot', 'First Boot'], ch06: ['terminal-tamer', 'Terminal Tamer'],
-  ch12: ['it-blinks', 'It Blinks!'], ch15: ['adblock-up', 'Ad-Blocker Up'],
-  ch16: ['server-online', 'Home Server Online'], ch19: ['ai-on-pi', 'AI on the Pi'],
-};
-
-function linkTo(id) {
-  if (id === 'glos') return '#/glossary';
-  if (id === 'apxA') return '#/reference';
-  return id ? '#/chapter/' + id : null;
-}
 
 export async function renderReader(params, view) {
   const id = params[0];
@@ -104,7 +93,8 @@ export async function renderReader(params, view) {
     if (now) {
       const r = btn.getBoundingClientRect();
       bloom(r.left + r.width / 2, r.top + r.height / 2);
-      if (BADGES[id] && store.award(BADGES[id][0])) toast('🏅 Badge earned: <strong>' + BADGES[id][1] + '</strong>');
+      const badge = badgeForChapter(id);
+      if (badge && store.award(badge.id)) toast('🏅 Badge earned: <strong>' + badge.name + '</strong>');
       else toast('Lesson complete!');
     }
   });
@@ -114,8 +104,8 @@ export async function renderReader(params, view) {
   // ---- prev / next ----
   const { prev, next } = neighbours(id);
   const nav = el('div', { class: 'reader-nav' });
-  if (prev) { const c = getChapter(prev); nav.append(el('a', { class: 'prev', href: linkTo(prev) }, el('span', { class: 'dir', text: '← Previous' }), el('span', { class: 'ttl', text: c.title }))); }
-  if (next) { const c = getChapter(next); nav.append(el('a', { class: 'next', href: linkTo(next) }, el('span', { class: 'dir', text: 'Next →' }), el('span', { class: 'ttl', text: c.title }))); }
+  if (prev) { const c = getChapter(prev); nav.append(el('a', { class: 'prev', href: routeFor(prev) }, el('span', { class: 'dir', text: '← Previous' }), el('span', { class: 'ttl', text: c.title }))); }
+  if (next) { const c = getChapter(next); nav.append(el('a', { class: 'next', href: routeFor(next) }, el('span', { class: 'dir', text: 'Next →' }), el('span', { class: 'ttl', text: c.title }))); }
   main.append(nav);
 
   // mobile jump-to
@@ -184,7 +174,7 @@ function openJumpSheet(ch) {
   function close() { release(); back.remove(); }
   back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
   sheet.append(el('div', { class: 'rail-title', text: 'Jump to section' }));
-  ch.sections.forEach((s) => sheet.append(el('a', { href: '#' + s.id, style: { display: 'block', padding: '.7rem 0', borderBottom: '1px solid var(--line)' }, text: s.title, onClick: () => close() })));
+  ch.sections.forEach((s) => sheet.append(el('a', { class: 'sheet-link', href: '#' + s.id, text: s.title, onClick: () => close() })));
   back.append(sheet); host.append(back);
   sheet.querySelector('a')?.focus();
 }

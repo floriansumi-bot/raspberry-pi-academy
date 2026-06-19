@@ -19,6 +19,15 @@ export function el(tag, props = {}, ...kids) {
   return n;
 }
 
+/* standard tool/page header: eyebrow + title + subtitle (spread into a container) */
+export function toolHeader(eyebrow, title, sub) {
+  return [
+    el('span', { class: 'eyebrow', text: eyebrow }),
+    el('h1', { class: 'tool-h1', text: title }),
+    sub ? el('p', { class: 'muted', text: sub }) : null,
+  ].filter(Boolean);
+}
+
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 

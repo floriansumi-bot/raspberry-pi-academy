@@ -102,7 +102,7 @@ function openMobileNav() {
   function close() { release(); back.remove(); }
   back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
   [['#/', 'Path'], ['#/tools', 'Tools'], ['#/glossary', 'Glossary'], ['#/reference', 'Commands'], ['#/me', 'My Pi'], ['./assets/Raspberry-Pi-5-Handbook.pdf', 'Download PDF']]
-    .forEach(([h, t]) => sheet.append(el('a', { href: h, style: { display: 'block', padding: '.85rem 0', borderBottom: '1px solid var(--line)', fontWeight: '600' }, text: t, onClick: () => close() })));
+    .forEach(([h, t]) => sheet.append(el('a', { class: 'sheet-link', href: h, text: t, onClick: () => close() })));
   back.append(sheet); host.append(back);
   sheet.querySelector('a')?.focus();
 }

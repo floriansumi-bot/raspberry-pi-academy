@@ -5,7 +5,7 @@
  */
 
 import { el, icon, toast } from '../ui.js';
-import { loadGlossary, manifest, getChapter, order } from '../content.js';
+import { loadGlossary, manifest, getChapter, order, routeFor } from '../content.js';
 import { query } from '../search.js';
 
 /* ───────────────────────────── one-time CSS ───────────────────────────── */
@@ -697,11 +697,7 @@ export function mount(container, ctx = {}) {
     }
   };
 
-  function idToHash(id) {
-    if (id === 'glos') return '#/glossary';
-    if (id === 'apxA') return '#/reference';
-    return '#/chapter/' + id;
-  }
+  const idToHash = routeFor;
 
   // ---- content-aware: lessons → chapter list
   COMMANDS.lessons = () => {

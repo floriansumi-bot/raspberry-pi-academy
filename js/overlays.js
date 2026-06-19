@@ -1,7 +1,7 @@
 /* overlays.js — ⌘K command palette + terminal overlay launcher */
 import { el, icon, trapFocus } from './ui.js';
 import { query as searchQuery } from './search.js';
-import { loadGlossary, getChapter } from './content.js';
+import { loadGlossary, getChapter, routeFor } from './content.js';
 
 let paletteOpen = false;
 
@@ -55,7 +55,7 @@ export function openPalette() {
       const hits = await searchQuery(q, 12);
       if (hits.length) groups.push(['Lessons', hits.map((h) => ({
         title: h.title, sub: (h.where ? h.where + ' · ' : '') + h.snippet, icon: h.kind === 'project' ? '⚒' : String(h.n),
-        go: linkFor(h.id), _type: 'lesson'
+        go: routeFor(h.id), _type: 'lesson'
       }))]);
       if (glossary) {
         const gl = glossary.filter((e) => e.term.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
@@ -100,7 +100,6 @@ export function openPalette() {
   run('');
 }
 
-function linkFor(id) { if (id === 'glos') return '#/glossary'; if (id === 'apxA') return '#/reference'; return '#/chapter/' + id; }
 function stripTags(s) { return s.replace(/<[^>]+>/g, ''); }
 
 /* ---- terminal overlay ---- */

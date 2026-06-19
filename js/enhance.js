@@ -1,5 +1,4 @@
 /* enhance.js — upgrade rendered chapter HTML: copyable code blocks + "Try it" */
-import { icon, toast } from './ui.js';
 
 export function enhanceCode(root, ctx = {}) {
   root.querySelectorAll('pre.code, .code').forEach((block) => {

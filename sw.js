@@ -1,24 +1,32 @@
 /* Pi Academy service worker — offline-first runtime caching (no build step) */
 const VERSION = 'pi-academy-v3';
 const FONTS = VERSION + '-fonts';
-const CH_IDS = ['ch01','ch02','ch03','ch04','ch05','ch06','ch07','ch08','ch09','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22','apxA','glos'];
-const QUIZ_IDS = ['ch01','ch02','ch03','ch04','ch05','ch06','ch07','ch08','ch09','ch10','ch11','ch12','ch13','ch14','ch15','ch16','ch17','ch18','ch19','ch20','ch21','ch22'];
 const CORE = [
   './', './index.html',
   './css/base.css', './css/layout.css', './css/components.css', './css/home.css',
-  './js/app.js', './js/router.js', './js/store.js', './js/content.js', './js/search.js',
+  './js/app.js', './js/router.js', './js/store.js', './js/content.js', './js/search.js', './js/badges.js',
   './js/enhance.js', './js/glossary-link.js', './js/quiz.js', './js/overlays.js', './js/ui.js',
   './js/views/home.js', './js/views/reader.js', './js/views/glossary.js', './js/views/reference.js', './js/views/tools.js', './js/views/me.js',
   './js/widgets/board.js', './js/widgets/terminal.js', './js/widgets/gpio.js', './js/widgets/resistor.js', './js/widgets/picker.js', './js/widgets/poweron.js',
   './content/manifest.json', './content/glossary.json',
-  ...CH_IDS.map((id) => `./content/chapters/${id}.html`),
-  ...QUIZ_IDS.map((id) => `./content/quizzes/${id}.json`),
 ];
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
-  // cache each URL independently so a single 404 doesn't abort the whole precache
-  e.waitUntil(caches.open(VERSION).then((c) => Promise.allSettled(CORE.map((u) => c.add(u)))));
+  // cache each URL independently so a single 404 doesn't abort the whole precache,
+  // and derive the chapter/quiz lists from the manifest (single source of truth).
+  e.waitUntil(caches.open(VERSION).then(async (c) => {
+    await Promise.allSettled(CORE.map((u) => c.add(u)));
+    try {
+      const m = await fetch('./content/manifest.json').then((r) => r.json());
+      const extra = [];
+      (m.order || []).forEach((id) => {
+        extra.push(`./content/chapters/${id}.html`);
+        if (/^ch\d+$/.test(id)) extra.push(`./content/quizzes/${id}.json`);
+      });
+      await Promise.allSettled(extra.map((u) => c.add(u)));
+    } catch (e) { /* offline first install still works from CORE */ }
+  }));
 });
 
 self.addEventListener('activate', (e) => {

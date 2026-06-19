@@ -21,6 +21,14 @@ export function neighbours(id) {
   return { prev: i > 0 ? o[i - 1] : null, next: i >= 0 && i < o.length - 1 ? o[i + 1] : null };
 }
 
+/* the canonical hash route for a chapter id (the two reference sections get their
+   own tool routes; everything else opens in the reader). */
+export function routeFor(id) {
+  if (id === 'glos') return '#/glossary';
+  if (id === 'apxA') return '#/reference';
+  return '#/chapter/' + id;
+}
+
 export async function loadChapterHTML(id) {
   if (_chapterCache.has(id)) return _chapterCache.get(id);
   const res = await fetch(`./content/chapters/${id}.html`);
