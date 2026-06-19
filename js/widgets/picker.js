@@ -33,16 +33,18 @@ const PROJECT_META = {
   ch19: { why: 'Running AI locally means complete privacy — no data leaves your home.', difficulty: 'Intermediate–advanced', time: 'a weekend' },
 };
 
+// Time note keyed by chosenTime — what the user answered in Q2.
 const TIME_NOTE = {
-  evening: { evening: 'Perfect — this one is doable in a single sitting.', weekend: 'You could tackle it in an evening, but a weekend gives comfortable breathing room.', ongoing: 'This project grows with you over time — great if you enjoy tinkering.' },
-  weekend: { evening: 'This fits your weekend well — you\'ll finish with time to spare.', weekend: 'A weekend is exactly the right amount of time for this build.', ongoing: 'You can get it running in a weekend and keep refining it from there.' },
-  ongoing: { evening: 'You can have this running in an evening, then customise it indefinitely.', weekend: 'This scales from weekend project to long-term hobby, whichever suits you.', ongoing: 'This one truly never stops — there\'s always another integration to add.' },
+  evening: 'You have just enough time to get this running in a single sitting — no need to spread it across multiple sessions.',
+  weekend: 'A weekend gives you comfortable breathing room: set it up on Saturday and spend Sunday fine-tuning it.',
+  ongoing: 'Perfect for a long-term tinkerer — you can get the basics running quickly and keep layering on improvements indefinitely.',
 };
 
+// Skill note keyed by chosenSkill — what the user answered in Q3.
 const SKILL_NOTE = {
-  new: 'Even if the terminal feels unfamiliar right now, this guide walks you through every command step by step.',
-  getting: 'You\'re at the ideal skill level for this — you\'ll stretch a little but won\'t get lost.',
-  confident: 'You\'ll fly through the basics and have plenty of headroom to go further.',
+  new: 'Even if the terminal feels unfamiliar right now, this guide walks you through every command step by step — no prior experience needed.',
+  getting: 'You\'re at the ideal skill level for this: you\'ll stretch a little but won\'t get lost, and you\'ll come out noticeably more confident.',
+  confident: 'You\'ll fly through the guided steps and have plenty of headroom to customise things beyond what the chapter covers.',
 };
 
 function iconSvg(path) {
@@ -75,15 +77,15 @@ export function mount(container, ctx = {}) {
 .w-picker .step-label { font-size: 13px; font-weight: 500; color: var(--ink-soft, var(--color-text-secondary)); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 10px; }
 .w-picker .question { font-size: 20px; font-weight: 500; color: var(--ink, var(--color-text-primary)); margin: 0 0 18px; line-height: 1.35; }
 .w-picker .opts { display: flex; flex-direction: column; gap: 10px; }
-.w-picker .opt-btn { display: flex; align-items: center; gap: 12px; background: var(--surface, var(--color-background-primary)); border: 0.5px solid var(--line, var(--color-border-tertiary)); border-radius: var(--radius, var(--border-radius-lg, 12px)); padding: 12px 16px; cursor: pointer; text-align: left; transition: border-color 0.15s, background 0.15s; font-family: inherit; }
+.w-picker .opt-btn { display: flex; align-items: center; gap: 12px; background: var(--surface, var(--color-background-primary)); border: 0.5px solid var(--line, var(--color-border-tertiary)); border-radius: var(--radius, var(--border-radius-lg, 12px)); padding: 12px 16px; cursor: pointer; text-align: left; transition: border-color 0.15s, background 0.15s; font-family: inherit; min-height: 52px; }
 .w-picker .opt-btn:hover { border-color: var(--accent, var(--color-border-secondary)); background: var(--surface2, var(--color-background-secondary)); }
 .w-picker .opt-btn:focus-visible { outline: 2px solid var(--accent, #C7152A); outline-offset: 2px; }
 .w-picker .opt-icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 .w-picker .opt-text { display: flex; flex-direction: column; gap: 2px; }
 .w-picker .opt-label { font-size: 15px; font-weight: 500; color: var(--ink, var(--color-text-primary)); }
 .w-picker .opt-sub { font-size: 13px; color: var(--ink-soft, var(--color-text-secondary)); }
-.w-picker .row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
-.w-picker .row2 .opt-btn { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px; }
+.w-picker .row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.w-picker .row2 .opt-btn { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px; min-height: 72px; }
 .w-picker .result-card { background: var(--surface, var(--color-background-primary)); border: 0.5px solid var(--line, var(--color-border-tertiary)); border-radius: var(--radius, var(--border-radius-lg, 12px)); padding: 20px 20px 18px; }
 .w-picker .result-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
 .w-picker .result-icon { flex-shrink: 0; width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
@@ -92,13 +94,21 @@ export function mount(container, ctx = {}) {
 .w-picker .result-meta { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
 .w-picker .meta-pill { font-size: 13px; padding: 4px 10px; border-radius: 20px; background: var(--surface2, var(--color-background-secondary)); border: 0.5px solid var(--line, var(--color-border-tertiary)); color: var(--ink-soft, var(--color-text-secondary)); display: flex; align-items: center; gap: 6px; }
 .w-picker .result-note { font-size: 13px; color: var(--ink-soft, var(--color-text-secondary)); background: var(--surface2, var(--color-background-secondary)); border-radius: 8px; padding: 10px 12px; margin: 14px 0 18px; line-height: 1.5; }
+.w-picker .result-note-time { display: block; margin-bottom: 6px; }
+.w-picker .result-note-skill { display: block; }
 .w-picker .btn-primary { display: inline-flex; align-items: center; gap: 8px; background: var(--accent, #C7152A); color: var(--accent-ink, #fff); border: none; border-radius: 8px; padding: 10px 18px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
 .w-picker .btn-primary:hover { opacity: 0.88; }
 .w-picker .btn-primary:focus-visible { outline: 2px solid var(--accent, #C7152A); outline-offset: 3px; }
-.w-picker .btn-ghost { background: none; border: 0.5px solid var(--line, var(--color-border-tertiary)); color: var(--ink-soft, var(--color-text-secondary)); border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit; margin-top: 12px; transition: background 0.15s; }
+.w-picker .btn-ghost { background: none; border: 0.5px solid var(--line, var(--color-border-tertiary)); color: var(--ink-soft, var(--color-text-secondary)); border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit; margin-top: 12px; transition: background 0.15s; min-height: 36px; }
 .w-picker .btn-ghost:hover { background: var(--surface2, var(--color-background-secondary)); }
 .w-picker .btn-ghost:focus-visible { outline: 2px solid var(--accent, #C7152A); outline-offset: 2px; }
 .w-picker .result-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+@media (max-width: 420px) {
+  .w-picker .question { font-size: 17px; }
+  .w-picker .row2 { grid-template-columns: 1fr; }
+  .w-picker .result-header { flex-direction: column; gap: 10px; }
+  .w-picker .btn-primary { width: 100%; justify-content: center; }
+}
     `;
     document.head.append(s);
   }
@@ -114,16 +124,6 @@ export function mount(container, ctx = {}) {
   let chosenProject = null;
   let chosenTime = null;
   let chosenSkill = null;
-
-  function showStep(html) {
-    const div = document.createElement('div');
-    div.className = 'step';
-    container.innerHTML = '';
-    container.append(h2);
-    container.append(div);
-    div.innerHTML = html;
-    return div;
-  }
 
   function step1() {
     const div = document.createElement('div');
@@ -213,24 +213,12 @@ export function mount(container, ctx = {}) {
   function showResult() {
     const chapter = getChapter(chosenProject);
     const meta = PROJECT_META[chosenProject];
-    const col = BG_COLORS[PROJECT_MAP.find(p => p.id === chosenProject).iconBg];
-    const projIcon = PROJECT_MAP.find(p => p.id === chosenProject).icon;
+    const proj = PROJECT_MAP.find(p => p.id === chosenProject);
+    const col = BG_COLORS[proj.iconBg];
 
-    const timeKey = chosenProject ? (TIME_NOTE[chosenTime] || {}) : {};
-    const projectMeta = PROJECT_META[chosenProject];
-
-    const metaLookup = TIME_NOTE[chosenTime] || {};
-    const timeMatchKey = Object.keys(metaLookup).find(k => {
-      if (chosenProject === 'ch13' || chosenProject === 'ch14') return k === 'evening';
-      if (chosenProject === 'ch15') return k === 'evening';
-      if (chosenProject === 'ch16' || chosenProject === 'ch18') return k === 'weekend';
-      if (chosenProject === 'ch17') return k === 'weekend';
-      if (chosenProject === 'ch19') return k === 'weekend';
-      return k === 'weekend';
-    });
-    const timeNote = (TIME_NOTE[chosenTime] || {})[timeMatchKey] || '';
+    // Build a two-part note: one sentence driven by Q2 (time), one by Q3 (skill).
+    const timeNote = TIME_NOTE[chosenTime] || '';
     const skillNote = SKILL_NOTE[chosenSkill] || '';
-    const combinedNote = [timeNote, skillNote].filter(Boolean).join(' ');
 
     const div = document.createElement('div');
     div.className = 'step';
@@ -243,7 +231,7 @@ export function mount(container, ctx = {}) {
     const card = el('div', { class: 'result-card' });
 
     const iconWrap = el('span', { class: 'result-icon', style: { background: col.bg, color: col.ink } });
-    iconWrap.innerHTML = iconSvg(projIcon);
+    iconWrap.innerHTML = iconSvg(proj.icon);
 
     const titleBlock = el('div');
     titleBlock.append(
@@ -266,7 +254,17 @@ export function mount(container, ctx = {}) {
 
     metaBar.append(diffPill, timePill);
 
-    const noteEl = el('p', { class: 'result-note', text: combinedNote });
+    // Two visually distinct sentences in the note box so different Q2/Q3 answers
+    // produce visibly different text.
+    const noteEl = el('p', { class: 'result-note' });
+    if (timeNote) {
+      const timeSpan = el('span', { class: 'result-note-time', text: timeNote });
+      noteEl.append(timeSpan);
+    }
+    if (skillNote) {
+      const skillSpan = el('span', { class: 'result-note-skill', text: skillNote });
+      noteEl.append(skillSpan);
+    }
 
     const actions = el('div', { class: 'result-actions' });
 

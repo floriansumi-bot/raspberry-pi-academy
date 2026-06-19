@@ -20,9 +20,9 @@ export function renderQuiz(quiz, chapterId, onComplete) {
 
   quiz.questions.forEach((q, qi) => {
     const item = el('div', { class: 'q-item' });
-    item.append(el('div', { class: 'q-text', text: `${qi + 1}. ${q.q}` }));
-    const choices = el('div', { class: 'q-choices' });
-    const fb = el('div', { class: 'q-feedback' });
+    item.append(el('div', { class: 'q-text', id: 'q-' + chapterId + '-' + qi, text: `${qi + 1}. ${q.q}` }));
+    const choices = el('div', { class: 'q-choices', role: 'group', 'aria-labelledby': 'q-' + chapterId + '-' + qi });
+    const fb = el('div', { class: 'q-feedback', role: 'status', 'aria-live': 'polite' });
     let locked = false;
 
     q.choices.forEach((c, ci) => {
@@ -48,7 +48,7 @@ export function renderQuiz(quiz, chapterId, onComplete) {
       choices.append(btn);
     });
 
-    const peek = el('span', { class: 'peek', text: 'Reveal answer' });
+    const peek = el('button', { class: 'peek', type: 'button', text: 'Reveal answer' });
     peek.addEventListener('click', () => {
       if (locked) return;
       locked = true; answered++;

@@ -42,16 +42,30 @@ function injectCSS() {
     font-family:var(--font-body); font-size:.72rem; cursor:pointer;
     background:transparent; border:1px solid var(--line); color:var(--ink-soft);
     border-radius:var(--radius-sm); padding:.22rem .55rem; line-height:1;
+    min-height:28px; display:inline-flex; align-items:center; justify-content:center;
     transition:background .15s,color .15s,border-color .15s;
   }
   .w-piterm .pt-btn:hover{ background:var(--surface); color:var(--ink); }
   .w-piterm .pt-btn:focus-visible{ outline:2px solid var(--accent2); outline-offset:1px; }
+  .w-piterm .pt-busy{
+    margin-left:auto; flex:0 0 auto; display:none; align-items:center; gap:.35rem;
+    font-family:var(--font-body); font-size:.7rem; color:var(--accent2);
+  }
+  .w-piterm.is-busy .pt-busy{ display:inline-flex; }
+  .w-piterm .pt-busy i{
+    width:8px; height:8px; border-radius:50%; background:var(--accent2);
+    animation:pt-pulse 1s ease-in-out infinite;
+  }
+  @keyframes pt-pulse{ 0%,100%{ opacity:.25; } 50%{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){
+    .w-piterm .pt-busy i{ animation:none; opacity:.8; }
+  }
 
   .w-piterm .pt-screen{
     flex:1 1 auto; overflow-y:auto; overflow-x:hidden; padding:.85rem 1rem 1rem;
     color:var(--term-ink); font-size:.86rem; line-height:1.5;
     cursor:text; background:var(--term-bg);
-    min-height:0;
+    min-height:0; overscroll-behavior:contain;
   }
   .w-piterm:not(.is-overlay) .pt-screen{ max-height:440px; }
   .w-piterm .pt-screen::-webkit-scrollbar{ width:10px; }
@@ -95,6 +109,12 @@ function injectCSS() {
     .w-piterm .pt-cursor{ animation:none; }
   }
   .w-piterm .pt-screen:focus-within .pt-cursor{ display:block; }
+  /* On touch / coarse pointers, show the real native caret and hide the fake one,
+     so tapping to place the cursor behaves as the user expects. */
+  @media (pointer: coarse){
+    .w-piterm .pt-input{ caret-color:var(--term-ink); }
+    .w-piterm .pt-cursor{ display:none !important; }
+  }
   `;
   document.head.append(s);
 }
@@ -178,6 +198,7 @@ export function mount(container, ctx = {}) {
   const history = [];                 // command strings
   let histIdx = -1;                   // navigation pointer
   let draft = '';                     // stashed in-progress line while browsing history
+  let busy = false;                   // true while an async command (man/find) is pending
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -234,12 +255,16 @@ export function mount(container, ctx = {}) {
       class: 'pt-btn', type: 'button', 'aria-label': 'Show available commands',
       onClick: () => { runLine('help'); }
     }, 'help'),
+    el('span', {
+      class: 'pt-busy', role: 'status', 'aria-live': 'polite',
+      html: '<i></i>working…'
+    }),
   );
   container.append(bar, screen);
 
   /* ---- input line ---- */
   const input = el('input', {
-    class: 'pt-input', type: 'text', spellcheck: 'false', autocomplete: 'off',
+    class: 'pt-input', type: 'text', inputmode: 'text', spellcheck: 'false', autocomplete: 'off',
     autocapitalize: 'off', autocorrect: 'off', 'aria-label': 'Terminal command input',
   });
   const cursor = el('span', { class: 'pt-cursor' });
@@ -738,8 +763,18 @@ export function mount(container, ctx = {}) {
   };
   COMMANDS['--help'] = COMMANDS.help;
 
+  /* Toggle the pending/busy state. While busy, Enter is ignored (see keydown
+     handler) so async output can't race ahead of a freshly-typed prompt. */
+  function setBusy(on) {
+    busy = on;
+    container.classList.toggle('is-busy', on);
+    input.setAttribute('aria-busy', on ? 'true' : 'false');
+  }
+
   /* ──────────────────────── run a single line ──────────────────────── */
   async function runLine(raw) {
+    // Guard against re-entrancy while an async command is still pending.
+    if (busy) return;
     const trimmed = raw.replace(/\s+$/, '');
     echoCommand(raw);
     const cmdText = trimmed.trim();
@@ -759,7 +794,13 @@ export function mount(container, ctx = {}) {
         try {
           const after = cmdText.slice(name.length).trim();
           const r = COMMANDS[name](args, after);
-          if (r && typeof r.then === 'function') await r;
+          if (r && typeof r.then === 'function') {
+            // Async command (man/find/…): mark busy until it settles so the
+            // prompt can't be reused mid-flight and output can't interleave.
+            setBusy(true);
+            try { await r; }
+            finally { setBusy(false); }
+          }
         } catch (err) {
           out('<span class="pt-err">Hmm, something went sideways in the sandbox. Type `help` to see what works.</span>');
         }
@@ -855,8 +896,15 @@ export function mount(container, ctx = {}) {
 
   /* ──────────────────────── events ──────────────────────── */
   input.addEventListener('keydown', (e) => {
+    // While an async command is pending, swallow Enter / Tab / history keys so
+    // nothing races the prompt. Allow plain typing & navigation to feel alive.
+    if (busy && (e.key === 'Enter' || e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
+      if (busy) return;
       const raw = input.value;
       input.value = '';
       syncCursor();
@@ -893,6 +941,20 @@ export function mount(container, ctx = {}) {
   input.addEventListener('keyup', syncCursor);
   input.addEventListener('click', syncCursor);
 
+  // On focus (esp. mobile, where the soft keyboard reflows the page), keep the
+  // prompt in view: scroll the scrollback to the bottom and the input into view.
+  input.addEventListener('focus', () => {
+    syncCursor();
+    scrollDown();
+    // Defer past the keyboard animation / layout settle, then nudge into view.
+    setTimeout(() => {
+      scrollDown();
+      if (typeof input.scrollIntoView === 'function') {
+        input.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    }, 250);
+  });
+
   // click anywhere on the screen → focus input (unless selecting text or clicking a link)
   screen.addEventListener('mousedown', (e) => {
     if (e.target.closest('a')) return;          // let links work
@@ -926,9 +988,19 @@ export function mount(container, ctx = {}) {
   }
 
   // focus shortly after mount (don't steal focus on the very first paint if overlay)
-  setTimeout(() => { if (!ctx.compact) focusInput(); else syncCursor(); }, 60);
+  const bootTimer = setTimeout(() => { if (!ctx.compact) focusInput(); else syncCursor(); }, 60);
 
-  return {
-    destroy() { /* nothing persistent to tear down */ },
-  };
+  /* ──────────────────────── teardown ──────────────────────── */
+  // The terminal adds no document/window listeners (all are scoped to elements
+  // inside `container`, which the app removes on teardown), but it does schedule
+  // timers. Clear any that may still be pending so nothing fires after unmount.
+  function cleanup() {
+    clearTimeout(bootTimer);
+    setBusy(false);
+  }
+
+  // Return a cleanup function (new contract). Keep the legacy { destroy } shape
+  // accessible too, in case any caller still reaches for it.
+  cleanup.destroy = cleanup;
+  return cleanup;
 }

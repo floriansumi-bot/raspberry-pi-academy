@@ -1,11 +1,12 @@
 /* views/reader.js — the focused chapter reader */
-import { el, ring, icon, toast, bloom } from '../ui.js';
+import { el, ring, icon, toast, bloom, trapFocus } from '../ui.js';
 import { store } from '../store.js';
 import { getChapter, loadChapterHTML, neighbours, loadQuiz } from '../content.js';
 import { enhanceCode } from '../enhance.js';
 import { linkGlossary } from '../glossary-link.js';
 import { renderQuiz } from '../quiz.js';
 import { openTerminalOverlay } from '../overlays.js';
+import { onCleanup } from '../router.js';
 
 const BADGES = {
   ch04: ['first-boot', 'First Boot'], ch06: ['terminal-tamer', 'Terminal Tamer'],
@@ -25,7 +26,21 @@ export async function renderReader(params, view) {
   if (!ch) { view.innerHTML = '<div class="wrap" style="padding:4rem 0;text-align:center"><h2>Lesson not found</h2><a class="btn btn-ghost" href="#/">Back to the path</a></div>'; return; }
 
   store.visit(id);
-  const html = await loadChapterHTML(id);
+  let html;
+  try {
+    html = await loadChapterHTML(id);
+  } catch (e) {
+    view.innerHTML = `<div class="wrap" style="padding:4rem 0;text-align:center;max-width:560px">
+      <div style="font-size:2.4rem">📡</div>
+      <h2>This lesson isn't downloaded yet</h2>
+      <p class="muted">It looks like you're offline and haven't opened “${getChapter(id)?.title || 'this lesson'}” before. Reconnect to read it, or grab the full handbook PDF for offline reading.</p>
+      <p style="margin-top:1.2rem;display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="location.reload()">Try again</button>
+        <a class="btn btn-ghost" href="./assets/Raspberry-Pi-5-Handbook.pdf">Get the PDF</a>
+        <a class="btn btn-soft" href="#/">Back to the path</a>
+      </p></div>`;
+    return;
+  }
 
   // progress bar
   const prog = el('div', { class: 'reader-progress' }, el('div', { class: 'bar' }));
@@ -116,7 +131,11 @@ function hydrateWidgets(root, ctx) {
   root.querySelectorAll('.widget-mount[data-widget]').forEach((mountEl) => {
     const name = mountEl.dataset.widget;
     import(`../widgets/${name}.js`)
-      .then((m) => m.mount(mountEl, { ...ctx, dataset: { ...mountEl.dataset } }))
+      .then((m) => {
+        const d = m.mount(mountEl, { ...ctx, dataset: { ...mountEl.dataset } });
+        if (typeof d === 'function') onCleanup(d);
+        else if (d && typeof d.destroy === 'function') onCleanup(() => d.destroy());
+      })
       .catch((e) => {
         console.warn('widget missing:', name, e);
         mountEl.innerHTML = `<div class="widget-shell"><div class="widget-body muted" style="text-align:center;padding:1.4rem">Interactive ${name} loads here.</div></div>`;
@@ -127,7 +146,10 @@ function hydrateWidgets(root, ctx) {
 function setupScroll(prose, bar, rail, id) {
   const headings = [...prose.querySelectorAll('h2[id]')];
   const links = new Map([...rail.querySelectorAll('a[data-sec]')].map((a) => [a.dataset.sec, a]));
-  let ticking = false;
+  let offsets = [];
+  const measure = () => { offsets = headings.map((h) => ({ id: h.id, top: h.getBoundingClientRect().top + scrollY })); };
+  measure();
+  let ticking = false, lastActive = null;
   function onScroll() {
     if (ticking) return; ticking = true;
     requestAnimationFrame(() => {
@@ -136,26 +158,33 @@ function setupScroll(prose, bar, rail, id) {
       const passed = Math.min(1, Math.max(0, (-rect.top + 120) / Math.max(1, total)));
       bar.style.width = (passed * 100) + '%';
       store.setScroll(id, passed);
-      // scroll spy
-      let active = headings[0]?.id;
-      for (const h of headings) { if (h.getBoundingClientRect().top < 140) active = h.id; }
-      links.forEach((a) => a.classList.remove('active'));
-      if (active && links.get(active)) links.get(active).classList.add('active');
+      let active = offsets[0]?.id;
+      for (const o of offsets) { if (o.top - scrollY < 140) active = o.id; }
+      if (active !== lastActive) {
+        links.forEach((a) => { a.classList.remove('active'); a.removeAttribute('aria-current'); });
+        if (active && links.get(active)) { links.get(active).classList.add('active'); links.get(active).setAttribute('aria-current', 'true'); }
+        lastActive = active;
+      }
       ticking = false;
     });
   }
+  const onResize = () => measure();
   addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onResize, { passive: true });
   onScroll();
-  // cleanup on route change
-  const cleanup = () => { removeEventListener('scroll', onScroll); store.flush(); removeEventListener('hashchange', cleanup); };
-  addEventListener('hashchange', cleanup);
+  onCleanup(() => { removeEventListener('scroll', onScroll); removeEventListener('resize', onResize); store.flush(); });
 }
 
 function openJumpSheet(ch) {
   const host = document.getElementById('overlay-host');
-  const back = el('div', { class: 'sheet-backdrop', onClick: (e) => { if (e.target === back) back.remove(); } });
-  const sheet = el('div', { class: 'sheet' });
+  const back = el('div', { class: 'sheet-backdrop' });
+  const sheet = el('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Jump to section' });
+  sheet.append(el('div', { class: 'sheet-handle' }));
+  const release = trapFocus(sheet, () => close());
+  function close() { release(); back.remove(); }
+  back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
   sheet.append(el('div', { class: 'rail-title', text: 'Jump to section' }));
-  ch.sections.forEach((s) => sheet.append(el('a', { href: '#' + s.id, style: { display: 'block', padding: '.6rem 0', borderBottom: '1px solid var(--line)' }, text: s.title, onClick: () => back.remove() })));
+  ch.sections.forEach((s) => sheet.append(el('a', { href: '#' + s.id, style: { display: 'block', padding: '.7rem 0', borderBottom: '1px solid var(--line)' }, text: s.title, onClick: () => close() })));
   back.append(sheet); host.append(back);
+  sheet.querySelector('a')?.focus();
 }

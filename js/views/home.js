@@ -2,6 +2,10 @@
 import { el, ring, icon } from '../ui.js';
 import { store } from '../store.js';
 import { parts, getChapter, order, stats } from '../content.js';
+import { onCleanup } from '../router.js';
+
+let _io = null;        // path connector observer, disconnected on re-render
+let _justDone = null;  // chapter just completed, for the one-shot reward
 
 const PART_NUM = ['I', 'II', 'III', 'IV', 'V', '—'];
 
@@ -39,7 +43,7 @@ export async function renderHome(params, view) {
     el('div', { class: 'board-frame' },
       el('div', { class: 'bf-head' }, el('span', { class: 'eyebrow', text: 'Your board' }), el('span', { class: 'muted', style: { fontSize: '.74rem' }, text: 'tap a part →' })),
       el('div', { class: 'board-mount', id: 'hero-board-mount', style: { minHeight: '230px', display: 'grid', placeItems: 'center' } },
-        el('span', { class: 'muted spin', html: icon('chip', 28) })),
+        el('div', { class: 'board-skeleton', 'aria-hidden': 'true' })),
       el('div', { class: 'board-hint', text: 'Click any component to learn what it does.' })
     )
   );
@@ -53,9 +57,10 @@ export async function renderHome(params, view) {
   view.append(hero);
 
   // mount interactive board (graceful if module not yet present)
-  import('../widgets/board.js').then((m) => m.mount(document.getElementById('hero-board-mount'), {
-    navigate: (h) => (location.hash = h), compact: true
-  })).catch(() => {
+  import('../widgets/board.js').then((m) => {
+    const dispose = m.mount(document.getElementById('hero-board-mount'), { navigate: (h) => (location.hash = h), compact: true });
+    if (typeof dispose === 'function') onCleanup(dispose);
+  }).catch(() => {
     const mnt = document.getElementById('hero-board-mount');
     if (mnt) mnt.innerHTML = '<div style="text-align:center;color:var(--ink-soft)"><div style="font-size:3rem">🍓</div>The interactive board loads here.</div>';
   });
@@ -66,6 +71,23 @@ export async function renderHome(params, view) {
     el('h2', { text: 'Your learning path' }),
     el('p', { text: `Twenty-four lessons, grouped into six parts. ${s.done}/${s.total} complete — go in order, or jump to whatever you want to build.` })
   ));
+
+  // "continue where you left off" nudge — gentle, dismissible per session
+  let dismissed = false;
+  try { dismissed = sessionStorage.getItem('pilot.nudge.dismissed') === '1'; } catch {}
+  if (s.done > 0 && cont && !dismissed) {
+    const ch = getChapter(cont);
+    const r = ring(40, 5); r.set(s.pct);
+    const nudge = el('div', { class: 'continue-nudge' },
+      r.node,
+      el('div', { class: 'cn-main' },
+        el('div', { class: 'cn-kicker', text: 'Pick up where you left off' }),
+        el('a', { class: 'cn-title', href: linkFor(ch) }, ch.title, el('span', { html: ' ' + icon('arrow', 16) }))
+      ),
+      el('button', { class: 'cn-dismiss', 'aria-label': 'Dismiss', html: icon('close', 16), onClick: (e) => { e.currentTarget.closest('.continue-nudge').remove(); try { sessionStorage.setItem('pilot.nudge.dismissed', '1'); } catch {} } })
+    );
+    section.append(nudge);
+  }
 
   for (const part of parts()) {
     const pIdx = parts().indexOf(part);
@@ -89,8 +111,8 @@ export async function renderHome(params, view) {
       const r = ring(34, 4);
       r.set(done ? 1 : (st.quizScores[cid] ? st.quizScores[cid].score / st.quizScores[cid].total * 0.9 : (visited ? 0.12 : 0)));
       const badgeLabel = ch.kind === 'appendix' ? 'A' : ch.kind === 'glossary' ? '§' : String(ch.n);
-      const node = el('div', { class: cls },
-        el('span', { class: 'here', text: 'you are here' }),
+      const node = el('div', { class: cls, id: cid },
+        el('span', { class: 'here', text: s.done === 0 ? 'Begin here' : 'you are here' }),
         el('a', { class: 'node-link', href: linkFor(ch) },
           el('span', { class: 'node-badge' }, el('span', { class: 'nb-num', text: badgeLabel })),
           el('span', { class: 'node-main' },
@@ -110,13 +132,26 @@ export async function renderHome(params, view) {
   }
   view.append(section);
 
-  const redraw = () => drawConnectors(section);
-  requestAnimationFrame(redraw);
-  setTimeout(redraw, 160);
+  // lesson-complete reward (works on mobile + desktop): power-on the next node
+  _justDone = store.consumeJustCompleted();
+  if (_justDone) {
+    const o = order(); const ni = o.indexOf(_justDone);
+    const nextId = ni >= 0 ? o[ni + 1] : null;
+    const target = document.getElementById(nextId) || document.getElementById(_justDone);
+    if (target) {
+      requestAnimationFrame(() => target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }));
+      const nextNode = document.getElementById(nextId);
+      if (nextNode) { nextNode.classList.add('powering'); setTimeout(() => nextNode.classList.remove('powering'), 1700); }
+    }
+  }
+
+  requestAnimationFrame(() => drawConnectors(section, true));
+  // settle-retry only if the first measure happened before layout was ready
+  const t = setTimeout(() => { if (!section.querySelector('.trail-seg')) drawConnectors(section, true); }, 180);
   let rt;
-  const onResize = () => { clearTimeout(rt); rt = setTimeout(redraw, 180); };
+  const onResize = () => { clearTimeout(rt); rt = setTimeout(() => drawConnectors(section, false), 180); };
   addEventListener('resize', onResize);
-  addEventListener('hashchange', function off() { removeEventListener('resize', onResize); removeEventListener('hashchange', off); });
+  onCleanup(() => { removeEventListener('resize', onResize); clearTimeout(t); clearTimeout(rt); if (_io) { _io.disconnect(); _io = null; } });
 }
 
 function linkFor(ch) {
@@ -125,9 +160,25 @@ function linkFor(ch) {
   return '#/chapter/' + ch.id;
 }
 
-/* draw dotted circuit-trace connectors between node badges, animate on scroll */
-function drawConnectors(scope) {
+/* draw circuit-trace connectors between node badges; etch in on scroll, and
+   replay a copper trace-fill toward the just-completed lesson's next node. */
+function drawConnectors(scope, animate) {
   if (matchMedia('(max-width:880px)').matches) return;
+  if (_io) { _io.disconnect(); _io = null; }
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const justDone = _justDone;
+
+  if (animate && !reduce) _io = new IntersectionObserver((entries, obs) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      const p = e.target, len = +p.dataset.len;
+      p.style.transition = 'stroke-dashoffset .7s var(--ease-out), opacity .5s ease';
+      p.style.strokeDashoffset = p.classList.contains('lit') ? '0' : (len + ' ');  // lit: draw solid; dotted: just reveal
+      p.style.opacity = '1';
+      obs.unobserve(p);
+    });
+  }, { threshold: .15 });
+
   scope.querySelectorAll('.trail').forEach((trail) => {
     const svg = trail.querySelector('.trail-svg');
     if (!svg) return;
@@ -143,26 +194,39 @@ function drawConnectors(scope) {
       const bx = b.left + b.width / 2 - tb.left, by = b.top + b.height / 2 - tb.top;
       const my = (ay + by) / 2;
       const lit = nodes[i].classList.contains('done');
-      html += `<path class="trail-seg ${lit ? 'lit' : ''}" d="M${ax} ${ay} C ${ax} ${my}, ${bx} ${my}, ${bx} ${by}"/>`;
+      const from = nodes[i].id || '';
+      html += `<path class="trail-seg ${lit ? 'lit' : ''}" data-from="${from}" d="M${ax} ${ay} C ${ax} ${my}, ${bx} ${my}, ${bx} ${by}"/>`;
     }
     svg.innerHTML = html;
-    // animate draw
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      svg.querySelectorAll('.trail-seg').forEach((p) => {
-        const len = p.getTotalLength();
-        p.style.strokeDasharray = p.classList.contains('lit') ? `${len}` : '2 9';
-        if (p.classList.contains('lit')) { p.style.strokeDashoffset = len; }
-      });
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting && e.target.classList.contains('lit')) {
-            e.target.style.transition = 'stroke-dashoffset .8s ease';
-            e.target.style.strokeDashoffset = '0';
-            io.unobserve(e.target);
-          }
-        });
-      }, { threshold: .2 });
-      svg.querySelectorAll('.trail-seg.lit').forEach((p) => io.observe(p));
+
+    svg.querySelectorAll('.trail-seg').forEach((p) => {
+      const len = p.getTotalLength();
+      p.dataset.len = len;
+      if (justDone && p.getAttribute('data-from') === justDone) return; // reward block owns this one
+      const lit = p.classList.contains('lit');
+      p.style.strokeDasharray = lit ? `${len}` : '2 9';
+      if (animate && !reduce && _io) {
+        p.style.strokeDashoffset = len;
+        p.style.opacity = lit ? '1' : '0';
+        _io.observe(p);
+      } else {
+        p.style.strokeDashoffset = '0'; p.style.opacity = '1';
+      }
+    });
+
+    // lesson-complete reward: copper pulse along the connector to the next node (desktop)
+    if (justDone) {
+      const seg = svg.querySelector(`.trail-seg[data-from="${justDone}"]`);
+      if (seg) {
+        const len = +seg.dataset.len;
+        seg.classList.add('lit', 'copper');
+        seg.style.strokeDasharray = `${len}`;
+        seg.style.opacity = '1';
+        seg.style.strokeDashoffset = '0';
+        if (animate && !reduce && seg.animate) {
+          seg.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 1000, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' });
+        }
+      }
     }
   });
 }

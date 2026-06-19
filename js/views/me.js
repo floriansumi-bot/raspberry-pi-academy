@@ -25,6 +25,7 @@ export async function renderMe(params, view) {
       el('span', { class: 'eyebrow', text: 'My Pi' }),
       el('h1', { text: s.done === s.total ? 'Course complete — congratulations!' : `You're ${Math.round(s.pct * 100)}% of the way there` }),
       el('p', { class: 'muted', text: `${s.done} of ${s.total} lessons done · ${Object.values(st.badges).filter(Boolean).length}/${BADGES.length} badges earned` }),
+      store.streak() > 1 ? el('div', { style: { marginTop: '.5rem' } }, el('span', { class: 'tag', style: { background: 'var(--warm-soft)', color: 'var(--warm-ink)' }, text: `🔥 ${store.streak()}-day streak` })) : '',
       el('div', { style: { marginTop: '1rem', display: 'flex', gap: '.6rem', flexWrap: 'wrap' } },
         cont ? el('a', { class: 'btn btn-primary', href: '#/chapter/' + cont }, 'Continue', el('span', { html: icon('arrow', 16) })) : el('a', { class: 'btn btn-primary', href: '#/' }, 'Review the path'),
         el('a', { class: 'btn btn-ghost', href: './assets/Raspberry-Pi-5-Handbook.pdf', target: '_blank' }, icon('download', 16), 'Get the PDF')
@@ -53,9 +54,10 @@ export async function renderMe(params, view) {
     ));
   });
 
+  const earnedCount = BADGES.filter((b) => store.hasBadge(b.id)).length;
   const grid = el('div', { class: 'dash-grid' });
   grid.append(
-    el('div', { class: 'dash-card', style: { gridColumn: '1/-1' } }, el('h3', { text: '🏅 Badge tray' }), tray),
+    el('div', { class: 'dash-card', style: { gridColumn: '1/-1' } }, el('h3', { text: `🏅 Parts tray — ${earnedCount}/${BADGES.length} collected` }), tray),
     el('div', { class: 'dash-card' }, el('h3', { text: 'Progress by part' }), partList),
     el('div', { class: 'dash-card' }, el('h3', { text: 'Your data' }), dataCard())
   );
@@ -71,7 +73,9 @@ function dataCard() {
   const exportBtn = el('button', { class: 'btn btn-ghost btn-sm', html: icon('download', 14) + ' Export' });
   exportBtn.addEventListener('click', () => {
     const blob = new Blob([store.exportJSON()], { type: 'application/json' });
-    const a = el('a', { href: URL.createObjectURL(blob), download: 'pilot-progress.json' }); a.click();
+    const url = URL.createObjectURL(blob);
+    const a = el('a', { href: url, download: 'pilot-progress.json' }); a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast('Progress exported');
   });
   const importInput = el('input', { type: 'file', accept: 'application/json', class: 'hidden' });
@@ -90,11 +94,30 @@ function dataCard() {
 }
 
 function certificate() {
-  const c = el('div', { class: 'dash-card cert', style: { marginTop: '1rem', border: '2px solid var(--accent)' } });
-  c.innerHTML = `<div style="font-size:3rem">🎓</div><h2 style="font-family:var(--font-display);margin:.4rem 0">Certificate of Completion</h2>
-    <p class="muted">You finished all 24 lessons of the Raspberry Pi 5 course.</p>`;
-  const print = el('button', { class: 'btn btn-primary', style: { marginTop: '1rem' }, text: 'Print certificate' });
-  print.addEventListener('click', () => window.print());
-  c.append(print);
+  const date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const c = el('div', { class: 'dash-card cert', style: { marginTop: '1rem' } });
+  const sheet = el('div', { class: 'cert-sheet' },
+    el('div', { class: 'cert-seal', text: '🍓' }),
+    el('div', { class: 'cert-eyebrow', text: 'Pilot · The Raspberry Pi 5 Course' }),
+    el('h2', { text: 'Certificate of Completion' }),
+    el('p', { class: 'cert-awarded', text: 'awarded to' }),
+    el('div', { class: 'cert-name', text: store.name || 'A curious learner' }),
+    el('p', { class: 'cert-body', text: 'for finishing all 24 lessons — from first boot to building real things on a Raspberry Pi 5.' }),
+    el('div', { class: 'cert-date', text: date })
+  );
+  const nameInput = el('input', {
+    type: 'text', placeholder: 'Your name (for the certificate)', value: store.name || '', 'aria-label': 'Your name',
+    style: { padding: '.7rem 1rem', borderRadius: '10px', border: '1px solid var(--line)', background: 'var(--surface)', width: 'min(320px, 100%)' }
+  });
+  nameInput.addEventListener('input', () => { store.name = nameInput.value; sheet.querySelector('.cert-name').textContent = nameInput.value || 'A curious learner'; });
+  const print = el('button', { class: 'btn btn-primary', text: 'Print / save as PDF' });
+  print.addEventListener('click', () => {
+    document.body.classList.add('printing-cert');
+    const after = () => { document.body.classList.remove('printing-cert'); removeEventListener('afterprint', after); };
+    addEventListener('afterprint', after);
+    window.print();
+    setTimeout(after, 1500);
+  });
+  c.append(sheet, el('div', { style: { display: 'flex', gap: '.7rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1.2rem' } }, nameInput, print));
   return c;
 }

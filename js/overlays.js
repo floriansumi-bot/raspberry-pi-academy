@@ -1,5 +1,5 @@
 /* overlays.js — ⌘K command palette + terminal overlay launcher */
-import { el, icon } from './ui.js';
+import { el, icon, trapFocus } from './ui.js';
 import { query as searchQuery } from './search.js';
 import { loadGlossary, getChapter } from './content.js';
 
@@ -21,9 +21,9 @@ export function openPalette() {
   paletteOpen = true;
   const host = document.getElementById('overlay-host');
   const back = el('div', { class: 'palette-backdrop' });
-  const box = el('div', { class: 'palette', role: 'dialog', 'aria-modal': 'true' });
-  const input = el('input', { type: 'text', placeholder: 'Search lessons, terms, commands…', 'aria-label': 'Search', autocomplete: 'off', spellcheck: 'false' });
-  const results = el('div', { class: 'palette-results' });
+  const box = el('div', { class: 'palette', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Search lessons, terms and commands' });
+  const input = el('input', { type: 'text', placeholder: 'Search lessons, terms, commands…', 'aria-label': 'Search', role: 'combobox', 'aria-expanded': 'true', 'aria-controls': 'palette-results', autocomplete: 'off', spellcheck: 'false' });
+  const results = el('div', { class: 'palette-results', id: 'palette-results', role: 'listbox', 'aria-label': 'Results' });
   box.append(
     el('div', { class: 'palette-input' }, el('span', { html: icon('search', 20) }), input),
     results,
@@ -31,13 +31,14 @@ export function openPalette() {
   );
   back.append(box); host.append(back);
   input.focus();
+  const release = trapFocus(box, () => close());
 
   let items = [];   // flat selectable list
   let sel = 0;
   let glossary = null;
   loadGlossary().then((g) => (glossary = g));
 
-  function close() { paletteOpen = false; back.remove(); }
+  function close() { paletteOpen = false; release(); back.remove(); }
   back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
 
   async function run(q) {
@@ -70,7 +71,7 @@ export function openPalette() {
       results.append(el('div', { class: 'palette-group-label', text: label }));
       list.forEach((it) => {
         const idx = items.length;
-        const row = el('div', { class: 'palette-item', 'data-idx': idx },
+        const row = el('div', { class: 'palette-item', role: 'option', 'data-idx': idx },
           el('span', { class: 'pi-ic', text: it.icon }),
           el('span', { class: 'pi-main' }, el('div', { class: 'pi-title', text: it.title }), el('div', { class: 'pi-sub', text: it.sub || '' }))
         );
@@ -95,7 +96,6 @@ export function openPalette() {
     if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(items.length - 1, sel + 1); paint(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, sel - 1); paint(); }
     else if (e.key === 'Enter') { e.preventDefault(); if (items[sel]) activate(items[sel].it); }
-    else if (e.key === 'Escape') { e.preventDefault(); close(); }
   });
   run('');
 }
@@ -106,20 +106,29 @@ function stripTags(s) { return s.replace(/<[^>]+>/g, ''); }
 /* ---- terminal overlay ---- */
 export function openTerminalOverlay(cmd = '') {
   const host = document.getElementById('overlay-host');
-  const back = el('div', { class: 'palette-backdrop', style: { alignItems: 'center', paddingTop: '0' } });
-  const shell = el('div', { class: 'widget-shell', style: { width: 'min(100% - 2rem, 760px)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' } });
+  const back = el('div', { class: 'palette-backdrop term-overlay' });
+  const shell = el('div', { class: 'widget-shell term-shell', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Pi terminal sandbox' });
   const headClose = el('button', { class: 'iconbtn', html: icon('close', 18), 'aria-label': 'Close terminal' });
   shell.append(el('div', { class: 'widget-head' },
     el('span', { class: 'wtag', text: 'Sandbox' }), el('h4', { text: 'Pi Terminal' }),
     el('span', { style: { flex: '1' } }), headClose));
   const mount = el('div', { class: 'widget-body', style: { flex: '1', overflow: 'hidden', display: 'flex' } });
   shell.append(mount); back.append(shell); host.append(back);
-  const close = () => back.remove();
+
+  let termCleanup = null;
+  const release = trapFocus(shell, () => close());
+  function close() {
+    release();
+    if (typeof termCleanup === 'function') { try { termCleanup(); } catch {} }
+    back.remove();
+  }
   headClose.addEventListener('click', close);
   back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
-  document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
 
   import('./widgets/terminal.js')
-    .then((m) => m.mount(mount, { overlay: true, initialCommand: cmd, navigate: (h) => { close(); location.hash = h; } }))
+    .then((m) => {
+      const d = m.mount(mount, { overlay: true, initialCommand: cmd, navigate: (h) => { close(); location.hash = h; } });
+      if (typeof d === 'function') termCleanup = d; else if (d && d.destroy) termCleanup = () => d.destroy();
+    })
     .catch(() => { mount.innerHTML = '<div class="muted" style="padding:2rem;text-align:center">The terminal sandbox is loading…</div>'; });
 }

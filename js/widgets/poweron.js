@@ -784,12 +784,8 @@ export function mount(container, ctx = {}) {
   /* run the mock renderer */
   mockFn(screen);
 
-  /* cleanup on disconnect */
-  const obs = new MutationObserver(() => {
-    if (!document.contains(container)) {
-      if (screen._cleanup) screen._cleanup();
-      obs.disconnect();
-    }
-  });
-  obs.observe(document.body, { childList: true, subtree: true });
+  /* return a cleanup function so the app can stop timers on teardown */
+  return () => {
+    if (screen._cleanup) screen._cleanup();
+  };
 }

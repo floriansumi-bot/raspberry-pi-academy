@@ -1,5 +1,5 @@
 /* app.js — boot: theme, router, top bar, ⌘K, service worker */
-import { el, ring, icon } from './ui.js';
+import { el, ring, icon, trapFocus } from './ui.js';
 import { store } from './store.js';
 import { loadManifest, stats } from './content.js';
 import * as router from './router.js';
@@ -8,15 +8,18 @@ import { initGlossaryHover } from './glossary-link.js';
 import { renderHome } from './views/home.js';
 import { renderReader } from './views/reader.js';
 
-const META_THEME = { day: '#FBF8F4', night: '#100E18' };
-
 /* ---------- THEME ---------- */
 function applyTheme(t, animate) {
   const root = document.documentElement;
   if (animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) themeSweep(t);
   root.setAttribute('data-theme', t);
   store.theme = t;
-  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => { /* keep both for scheme */ });
+  const tgl = document.getElementById('theme-toggle');
+  if (tgl) {
+    tgl.setAttribute('aria-pressed', t === 'night' ? 'true' : 'false');
+    tgl.setAttribute('aria-label', t === 'night' ? 'Switch to the light Daylight theme' : 'Switch to the dark Workbench theme');
+    tgl.title = t === 'night' ? 'Daylight theme' : 'Workbench theme';
+  }
   const icn = document.getElementById('theme-icon');
   if (icn) icn.innerHTML = t === 'night'
     ? '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'   // moon
@@ -92,17 +95,56 @@ function wireTopbar() {
 }
 function openMobileNav() {
   const host = document.getElementById('overlay-host');
-  const back = el('div', { class: 'sheet-backdrop', onClick: (e) => { if (e.target === back) back.remove(); } });
-  const sheet = el('div', { class: 'sheet' });
+  const back = el('div', { class: 'sheet-backdrop' });
+  const sheet = el('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Menu' });
+  sheet.append(el('div', { class: 'sheet-handle' }));
+  const release = trapFocus(sheet, () => close());
+  function close() { release(); back.remove(); }
+  back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
   [['#/', 'Path'], ['#/tools', 'Tools'], ['#/glossary', 'Glossary'], ['#/reference', 'Commands'], ['#/me', 'My Pi'], ['./assets/Raspberry-Pi-5-Handbook.pdf', 'Download PDF']]
-    .forEach(([h, t]) => sheet.append(el('a', { href: h, style: { display: 'block', padding: '.8rem 0', borderBottom: '1px solid var(--line)', fontWeight: '600' }, text: t, onClick: () => back.remove() })));
+    .forEach(([h, t]) => sheet.append(el('a', { href: h, style: { display: 'block', padding: '.85rem 0', borderBottom: '1px solid var(--line)', fontWeight: '600' }, text: t, onClick: () => close() })));
   back.append(sheet); host.append(back);
+  sheet.querySelector('a')?.focus();
 }
 function highlightNav(name) {
   document.querySelectorAll('.navlink').forEach((a) => {
     const r = a.dataset.route;
-    a.classList.toggle('active', (name === 'home' && r === 'home') || name === r);
+    const on = (name === 'home' && r === 'home') || name === r;
+    a.classList.toggle('active', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
+}
+const ROUTE_TITLES = { home: 'Learning path', chapter: 'Lesson', glossary: 'Glossary', reference: 'Command reference', tools: 'Tools', me: 'My Pi' };
+function announceRoute(name, params) {
+  const view = document.getElementById('view');
+  const h1 = view.querySelector('h1, .ctitle, .reader-head h1');
+  const title = (h1 && h1.textContent.trim()) || ROUTE_TITLES[name] || 'Pilot';
+  document.title = (name === 'home' ? 'Pilot — Learn your Raspberry Pi 5' : title + ' · Pilot');
+  const sr = document.getElementById('sr-announce'); if (sr) sr.textContent = title + ' loaded';
+  // move keyboard focus to the new content region (standard SPA a11y), unless a dialog is open
+  if (!document.querySelector('.palette-backdrop, .sheet-backdrop')) {
+    requestAnimationFrame(() => { try { view.focus({ preventScroll: true }); } catch {} });
+  }
+}
+
+/* ---------- PWA install ---------- */
+let deferredPrompt = null;
+function setupInstall() {
+  addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferredPrompt = e;
+    if (document.getElementById('install-chip')) return;
+    const chip = el('button', { id: 'install-chip', class: 'install-chip desktop-only', html: icon('download', 14) + ' Install' });
+    chip.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null; chip.remove();
+      if (outcome === 'accepted') { import('./ui.js').then((m) => m.toast('Installing Pilot…')); }
+    });
+    const tgl = document.getElementById('theme-toggle');
+    tgl?.parentNode.insertBefore(chip, tgl);
+  });
+  addEventListener('appinstalled', () => { document.getElementById('install-chip')?.remove(); });
 }
 
 /* ---------- INIT ---------- */
@@ -111,8 +153,13 @@ function highlightNav(name) {
   wireTopbar();
   initGlossaryHover();
 
-  if ('serviceWorker' in navigator) {
+  // Register the offline service worker in production only — skip on localhost
+  // so the dev server always serves fresh modules.
+  const isLocal = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+  if ('serviceWorker' in navigator && !isLocal) {
     addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  } else if ('serviceWorker' in navigator && isLocal) {
+    navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()));
   }
 
   try { await loadManifest(); } catch (e) { console.error('manifest failed', e); }
@@ -120,12 +167,20 @@ function highlightNav(name) {
 
   router.register('home', renderHome);
   router.register('chapter', renderReader);
+  router.register('notfound', (params, view) => {
+    view.innerHTML = `<div class="wrap" style="padding:5rem 0;text-align:center;max-width:520px">
+      <div style="font-size:2.6rem">🧭</div>
+      <h2 style="font-size:var(--step-2)">This page took a wrong turn</h2>
+      <p class="muted">That address isn't part of the course. Let's get you back on the path.</p>
+      <p style="margin-top:1.2rem"><a class="btn btn-primary" href="#/">Back to the path</a></p></div>`;
+  });
   router.register('glossary', lazyView('./views/glossary.js', 'renderGlossary'));
   router.register('reference', lazyView('./views/reference.js', 'renderReference'));
   router.register('tools', lazyView('./views/tools.js', 'renderTools'));
   router.register('me', lazyView('./views/me.js', 'renderMe'));
-  router.onChange((name) => { highlightNav(name); document.getElementById('view').classList.toggle('reader', false); });
+  router.onChange((name, params) => { highlightNav(name); announceRoute(name, params); });
 
+  setupInstall();
   router.start();
   maybeBoot();
 })();

@@ -10,12 +10,13 @@
  */
 import { el, icon, toast } from '../ui.js';
 
-/* ── Verbatim 3.3 V damage warning, quoted from ch12.html (the "Careful" warn box) ── */
+/* ── Verbatim 3.3 V damage warning, quoted CHARACTER-FOR-CHARACTER from the handbook
+ *    (content/chapters/ch12.html "Careful" warn box). This string is the GUARD QUOTE and
+ *    MUST NOT be altered — any friendly gloss lives in a separate element, never woven in. ── */
 const WARN_33V =
-  'The GPIO pins on the Raspberry Pi 5 operate at 3.3 V logic. If you connect anything ' +
-  'that pushes 5 V into a GPIO input pin, you will permanently damage the Pi 5 — there is ' +
-  'no fuse to protect it. Always use 3.3 V-compatible components on GPIO pins, or use a ' +
-  'level-shifter circuit when you must interface with 5 V devices.';
+  'The GPIO pins on the Raspberry Pi 5 operate at 3.3 V logic. If you connect anything ' +
+  'that pushes 5 V into a GPIO input pin, you will permanently damage the Pi 5 — there is ' +
+  'no fuse to protect it.';
 
 /* Legend colours — taken straight from the chapter's pinout SVG. */
 const C = {
@@ -83,11 +84,19 @@ const LEGEND = [
 const isGnd  = (p) => p && PIN_BY(p) && PIN_BY(p).kind === 'gnd';
 const is5V   = (p) => p && PIN_BY(p) && PIN_BY(p).kind === 'pwr5';
 const isGpio = (p) => p && PIN_BY(p) && PIN_BY(p).kind === 'gpio';
+void isGpio;
 
 export function mount(container, ctx = {}) {
   injectCSS();
   container.classList.add('w-gpio');
   container.innerHTML = '';
+
+  /* unique-per-mount id stem so multiple instances keep distinct tab/panel ids */
+  const uid = 'gp' + Math.random().toString(36).slice(2, 8);
+
+  /* timers we must clear on teardown (LED blink, etc.) */
+  const timers = new Set();
+  const trackTimeout = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
 
   /* ── circuit state ── */
   const S = {
@@ -112,8 +121,8 @@ export function mount(container, ctx = {}) {
     ),
   );
 
-  /* tabs */
-  const tabs = el('div', { class: 'gp-tabs', role: 'tablist' });
+  /* tabs (proper ARIA tablist with roving tabindex + arrow-key navigation) */
+  const tabs = el('div', { class: 'gp-tabs', role: 'tablist', 'aria-label': 'GPIO playground sections' });
   const panels = el('div', { class: 'gp-panels' });
   const TABS = [
     ['pinout', 'Pinout', 'chip'],
@@ -121,28 +130,68 @@ export function mount(container, ctx = {}) {
     ['button', 'Button demo', 'terminal'],
   ];
   const panelEls = {};
+  const tabBtns = [];
   TABS.forEach(([id, label, ic], i) => {
+    const tabId = `${uid}-tab-${id}`;
+    const panelId = `${uid}-panel-${id}`;
     const b = el('button', {
       class: 'gp-tab' + (i === 0 ? ' on' : ''), role: 'tab', type: 'button',
-      'aria-selected': i === 0 ? 'true' : 'false', dataset: { tab: id },
+      id: tabId,
+      'aria-selected': i === 0 ? 'true' : 'false',
+      'aria-controls': panelId,
+      tabindex: i === 0 ? '0' : '-1',
+      dataset: { tab: id },
       html: icon(ic, 16) + `<span>${label}</span>`,
       onClick: () => selectTab(id),
+      onKeydown: (e) => onTabKey(e, i),
     });
     tabs.append(b);
-    const pane = el('div', { class: 'gp-pane' + (i === 0 ? ' on' : ''), role: 'tabpanel', dataset: { pane: id } });
+    tabBtns.push(b);
+    const pane = el('div', {
+      class: 'gp-pane' + (i === 0 ? ' on' : ''), role: 'tabpanel',
+      id: panelId, tabindex: '0',
+      'aria-labelledby': tabId,
+      dataset: { pane: id },
+    });
+    if (i !== 0) pane.hidden = true;
     panelEls[id] = pane;
     panels.append(pane);
   });
   wrap.append(tabs, panels);
   container.append(wrap);
 
-  function selectTab(id) {
-    tabs.querySelectorAll('.gp-tab').forEach((t) => {
+  function selectTab(id, focusTab = false) {
+    let activeIdx = 0;
+    tabBtns.forEach((t, i) => {
       const on = t.dataset.tab === id;
+      if (on) activeIdx = i;
       t.classList.toggle('on', on);
       t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.setAttribute('tabindex', on ? '0' : '-1');
     });
-    panels.querySelectorAll('.gp-pane').forEach((p) => p.classList.toggle('on', p.dataset.pane === id));
+    panels.querySelectorAll('.gp-pane').forEach((p) => {
+      const on = p.dataset.pane === id;
+      p.classList.toggle('on', on);
+      p.hidden = !on;
+    });
+    if (focusTab && tabBtns[activeIdx]) tabBtns[activeIdx].focus();
+  }
+
+  /* Arrow Left/Right wrap; Home/End jump to first/last. Roving tabindex follows focus. */
+  function onTabKey(e, i) {
+    const last = TABS.length - 1;
+    let next = null;
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown': next = i >= last ? 0 : i + 1; break;
+      case 'ArrowLeft':
+      case 'ArrowUp':   next = i <= 0 ? last : i - 1; break;
+      case 'Home':      next = 0; break;
+      case 'End':       next = last; break;
+      default: return;
+    }
+    e.preventDefault();
+    selectTab(TABS[next][0], true);
   }
 
   /* shared tooltip element (used by both pinout grids) */
@@ -166,11 +215,16 @@ export function mount(container, ctx = {}) {
   }
   function hideTip() { tip.classList.remove('on'); tipPin = null; }
 
+  /* selection lookup so the pin grids can reflect aria-pressed for chosen pins */
+  const isPinSelected = (p) => S.sourcePin === p || S.gndPin === p;
+  const pinRefresh = [];   // callbacks that re-sync pin pressed states
+  function refreshPins() { pinRefresh.forEach((fn) => fn()); }
+
   /* ───────────────────────── (1) PINOUT ───────────────────────── */
-  buildPinout(panelEls.pinout, { showTip, hideTip, onPick });
+  buildPinout(panelEls.pinout, { showTip, hideTip, onPick, isPinSelected, pinRefresh });
 
   /* ───────────────────────── (2) BUILD ───────────────────────── */
-  const buildUI = buildPlayground(panelEls.build, S, { showTip, hideTip, onPick, render });
+  const buildUI = buildPlayground(panelEls.build, S, { showTip, hideTip, onPick, render, isPinSelected, pinRefresh, trackTimeout });
 
   /* ───────────────────────── (3) BUTTON ───────────────────────── */
   buildButtonDemo(panelEls.button, S);
@@ -186,14 +240,17 @@ export function mount(container, ctx = {}) {
         S.sourcePin = pin;
         buildUI.flare5V();
         buildUI.render();
+        refreshPins();
         return;
       }
       S.sourcePin = pin;
       buildUI.render();
+      refreshPins();
       toast(`Source set to ${d.name} (pin ${d.p})`);
     } else if (!S.gndPin && isGnd(pin)) {
       S.gndPin = pin;
       buildUI.render();
+      refreshPins();
       toast(`Return leg connected to GND (pin ${d.p})`);
     } else if (is5V(pin)) {
       buildUI.flare5V();
@@ -201,17 +258,25 @@ export function mount(container, ctx = {}) {
       // re-pick the source
       S.sourcePin = pin;
       buildUI.render();
+      refreshPins();
     }
   }
 
-  function render() { buildUI.render(); }
+  function render() { buildUI.render(); refreshPins(); }
 
   // expose the active tooltip pin so keyboard users get parity (handled inside grids)
   void tipPin;
+
+  /* ── cleanup: clear the LED blink interval + any tracked timers/observers ── */
+  return function cleanup() {
+    if (buildUI && buildUI.stopBlink) buildUI.stopBlink();
+    timers.forEach((t) => clearTimeout(t));
+    timers.clear();
+  };
 }
 
 /* ════════════════ PINOUT GRID (reused by build pane too) ════════════════ */
-function pinGrid({ showTip, hideTip, onPick, compact }) {
+function pinGrid({ showTip, hideTip, onPick, compact, isPinSelected, pinRefresh }) {
   const grid = el('div', { class: 'gp-grid' + (compact ? ' compact' : '') });
   // header strip illustration
   grid.append(el('div', { class: 'gp-board-edge', html: '◤ pin 1 nearest the board corner' }));
@@ -220,15 +285,16 @@ function pinGrid({ showTip, hideTip, onPick, compact }) {
     const left = PIN_BY(r * 2 + 1);
     const right = PIN_BY(r * 2 + 2);
     const row = el('div', { class: 'gp-row' });
-    row.append(pinBtn(left, 'L', { showTip, hideTip, onPick }));
-    row.append(pinBtn(right, 'R', { showTip, hideTip, onPick }));
+    row.append(pinBtn(left, 'L', { showTip, hideTip, onPick, isPinSelected, pinRefresh }));
+    row.append(pinBtn(right, 'R', { showTip, hideTip, onPick, isPinSelected, pinRefresh }));
     rows.append(row);
   }
   grid.append(rows);
   return grid;
 }
 
-function pinBtn(d, side, { showTip, hideTip, onPick }) {
+function pinBtn(d, side, { showTip, hideTip, onPick, isPinSelected, pinRefresh }) {
+  const selectable = !!isPinSelected;
   const b = el('button', {
     type: 'button',
     class: `gp-pin k-${d.kind} side-${side}` + (d.star ? ' star' : ''),
@@ -241,6 +307,16 @@ function pinBtn(d, side, { showTip, hideTip, onPick }) {
     onBlur: hideTip,
     onClick: () => onPick && onPick(d.p),
   });
+  // reflect selection state for assistive tech (only meaningful where pins are pickable)
+  if (selectable) {
+    const sync = () => {
+      const on = isPinSelected(d.p);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.classList.toggle('picked', on);
+    };
+    sync();
+    if (pinRefresh) pinRefresh.push(sync);
+  }
   const num = el('span', { class: 'gp-pin-num', text: String(d.p) });
   const lab = el('span', { class: 'gp-pin-lab', text: d.name });
   const hole = el('span', { class: 'gp-pin-hole', 'aria-hidden': 'true' });
@@ -270,8 +346,9 @@ function legendRow() {
 
 /* ════════════════════════ PLAYGROUND (wire it up) ════════════════════════ */
 function buildPlayground(pane, S, h) {
+  const trackTimeout = h.trackTimeout || ((fn, ms) => setTimeout(fn, ms));
   /* layout: left = mini pin column + parts bin; right = breadboard + run */
-  pane.append(el('p', { class: 'gp-lead', text: 'Build the LED circuit by clicking. Follow the hint at each step: pick a signal pin, drop the 330 Ω resistor in series, set the LED the right way round, then run the wire’s other leg to a GND pin.' }));
+  pane.append(el('p', { class: 'gp-lead', text: 'Build the LED circuit by clicking. Follow the hint at each step: pick a signal pin, drop the 330 Ω resistor in series, set the LED the right way round, then run the wire’s other leg to a GND pin.' }));
 
   const cols = el('div', { class: 'gp-cols' });
 
@@ -295,7 +372,7 @@ function buildPlayground(pane, S, h) {
   const partResistor = el('button', {
     type: 'button', class: 'gp-part', dataset: { part: 'res' },
     'aria-pressed': 'false',
-    html: partSVG('res') + '<span>330 Ω resistor</span><em>series — required</em>',
+    html: partSVG('res') + '<span>330 Ω resistor</span><em>series — required</em>',
     onClick: () => { S.resistor = !S.resistor; render(); toast(S.resistor ? 'Resistor placed in series' : 'Resistor removed'); },
   });
   const partLed = el('button', {
@@ -342,6 +419,9 @@ function buildPlayground(pane, S, h) {
   cols.append(rightCol);
   pane.append(cols);
 
+  /* track the active blink so cleanup can stop it (CSS-driven, but we flag state) */
+  let blinkActive = false;
+
   /* ── helpers that read S and repaint ── */
   function stageRefs() {
     return {
@@ -362,20 +442,20 @@ function buildPlayground(pane, S, h) {
   function diagnose() {
     // returns {ok, msg, level} — level: 'ok'|'warn'|'danger'|'info'
     if (S.sourcePin && is5V(S.sourcePin))
-      return { ok: false, level: 'danger', msg: 'A 5 V pin is wired into the signal path — that is exactly the move the book warns about. See the red warning below.' };
+      return { ok: false, level: 'danger', msg: 'A 5 V pin is wired into the signal path — that is exactly the move the book warns about. See the red warning below.' };
     if (!S.sourcePin)
       return { ok: false, level: 'info', msg: 'Step 1 — click a signal pin on the header. GPIO 17 (pin 11, starred) is the one the book uses.' };
     if (isGnd(S.sourcePin))
       return { ok: false, level: 'warn', msg: 'That is a GND pin. The current has to start from a GPIO signal pin — try GPIO 17 (pin 11).' };
     if (!S.resistor)
-      return { ok: false, level: 'warn', msg: 'An LED needs a series resistor or it will burn out — click the 330 Ω resistor in the parts bin.' };
+      return { ok: false, level: 'warn', msg: 'An LED needs a series resistor or it will burn out — click the 330 Ω resistor in the parts bin.' };
     if (!S.ledPlaced)
       return { ok: false, level: 'info', msg: 'Step 3 — click the LED in the parts bin to drop it in after the resistor.' };
     if (!S.ledForward)
       return { ok: false, level: 'warn', msg: 'The LED looks backwards — its long leg (anode) must face the signal side. Try flipping it.' };
     if (!S.gndPin)
       return { ok: false, level: 'info', msg: 'Last step — connect the LED’s other leg to a GND pin (the grey ones, e.g. pin 6).' };
-    return { ok: true, level: 'ok', msg: 'Circuit complete: ' + PIN_BY(S.sourcePin).name + ' → 330 Ω → LED → GND. Hit Run.' };
+    return { ok: true, level: 'ok', msg: 'Circuit complete: ' + PIN_BY(S.sourcePin).name + ' → 330 Ω → LED → GND. Hit Run.' };
   }
 
   function render() {
@@ -425,8 +505,6 @@ function buildPlayground(pane, S, h) {
 
     // safety guard visibility (only via 5 V path; explicit flare also calls it)
     if (short5) showGuard(); else hideGuard();
-
-    // sync the button-demo LED if it mirrors
   }
 
   function doRun() {
@@ -435,6 +513,7 @@ function buildPlayground(pane, S, h) {
     code.innerHTML = codeBlock(true);
     const r = stageRefs();
     S.blinking = true;
+    blinkActive = true;
     if (r.led) r.led.classList.add('blink');
     if (r.glow) r.glow.classList.add('blink');
     result.className = 'gp-result ok show';
@@ -444,24 +523,31 @@ function buildPlayground(pane, S, h) {
     }
   }
 
-  function doReset() {
-    S.sourcePin = null; S.resistor = false; S.ledPlaced = false; S.ledForward = true; S.gndPin = null; S.blinking = false;
+  function stopBlink() {
+    blinkActive = false;
+    S.blinking = false;
     const r = stageRefs();
     if (r.led) r.led.classList.remove('blink');
     if (r.glow) r.glow.classList.remove('blink');
+  }
+
+  function doReset() {
+    S.sourcePin = null; S.resistor = false; S.ledPlaced = false; S.ledForward = true; S.gndPin = null;
+    stopBlink();
     code.innerHTML = codeBlock(false);
     result.className = 'gp-result';
     result.innerHTML = '';
     hideGuard();
-    render();
+    if (h.render) h.render(); else render();
   }
 
   function showGuard() {
     guard.hidden = false;
+    // The blockquote is the EXACT handbook sentence; the gloss is a separate <p>, never woven in.
     guard.innerHTML =
       `<div class="gp-guard-head">${icon('spark', 18)} 5 V into a signal pin — STOP</div>` +
-      `<blockquote class="gp-guard-quote">“${escapeH(WARN_33V)}”</blockquote>` +
-      `<div class="gp-guard-foot">Good news: here it is just a lesson. On a real Pi this is the one mistake there is no undo for — that is why the wire flared <strong>red</strong>. Pick GPIO 17 (pin 11) instead.</div>`;
+      `<blockquote class="gp-guard-quote">${escapeH(WARN_33V)}</blockquote>` +
+      `<p class="gp-guard-foot">Good news: here it is just a lesson. On a real Pi this is the one mistake there is no undo for — that is why the wire flared <strong>red</strong>. Pick GPIO 17 (pin 11) instead.</p>`;
     guard.classList.add('show');
   }
   function hideGuard() { guard.classList.remove('show'); guard.hidden = true; }
@@ -475,12 +561,12 @@ function buildPlayground(pane, S, h) {
   }
 
   render();
-  return { render, flare5V };
+  return { render, flare5V, stopBlink };
 }
 
 /* ════════════════════════ BUTTON DEMO ════════════════════════ */
 function buildButtonDemo(pane, S) {
-  pane.append(el('p', { class: 'gp-lead', html: 'Project 2 mirrored: a <strong>Button(27)</strong> wired to GPIO 27 (pin 13). Press and hold it — the LED lights while held and goes off when released, just like <code>button.when_pressed</code> / <code>when_released</code> in the book.' }));
+  pane.append(el('p', { class: 'gp-lead', html: 'Project 2 mirrored: a <strong>Button(27)</strong> wired to GPIO 27 (pin 13). Press and hold it — the LED lights while held and goes off when released, just like <code>button.when_pressed</code> / <code>when_released</code> in the book.' }));
 
   const stage = el('div', { class: 'gp-btn-stage' });
   stage.innerHTML = btnStageSVG();
@@ -650,7 +736,7 @@ function injectCSS() {
   .w-gpio .gp-sub{color:var(--ink-soft);font-size:.92rem;margin:0;max-width:60ch}
 
   .w-gpio .gp-tabs{display:flex;gap:.3rem;padding:0 1rem;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .w-gpio .gp-tab{appearance:none;border:0;background:transparent;color:var(--ink-soft);font:inherit;font-size:.9rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem;padding:.7rem .85rem;cursor:pointer;border-bottom:2px solid transparent;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+  .w-gpio .gp-tab{appearance:none;border:0;background:transparent;color:var(--ink-soft);font:inherit;font-size:.9rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem;padding:.7rem .85rem;cursor:pointer;border-bottom:2px solid transparent;border-radius:var(--radius-sm) var(--radius-sm) 0 0;min-height:44px}
   .w-gpio .gp-tab svg{width:16px;height:16px;opacity:.8}
   .w-gpio .gp-tab:hover{color:var(--ink);background:var(--surface2)}
   .w-gpio .gp-tab.on{color:var(--accent);border-bottom-color:var(--accent)}
@@ -658,6 +744,8 @@ function injectCSS() {
 
   .w-gpio .gp-pane{display:none;padding:1.1rem 1.2rem 1.3rem}
   .w-gpio .gp-pane.on{display:block;animation:gp-fade .25s ease}
+  .w-gpio .gp-pane[hidden]{display:none}
+  .w-gpio .gp-pane:focus{outline:none}
   @keyframes gp-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.w-gpio .gp-pane.on{animation:none}}
 
@@ -681,16 +769,39 @@ function injectCSS() {
   .w-gpio .gp-pin.side-L{flex-direction:row-reverse;text-align:right}
   .w-gpio .gp-pin-num{font-family:var(--font-mono);font-size:.7rem;font-weight:700;width:20px;text-align:center;color:#fff;background:rgba(255,255,255,.12);border-radius:4px;padding:1px 0;flex:0 0 auto}
   .w-gpio .gp-pin-hole{width:11px;height:11px;border-radius:50%;background:var(--pc);box-shadow:0 0 0 2px rgba(0,0,0,.35),0 0 6px var(--pc);flex:0 0 auto}
-  .w-gpio .gp-pin-lab{font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto}
+  .w-gpio .gp-pin-lab{font-size:.74rem;white-space:nowrap;flex:1 1 auto;min-width:0}
   .w-gpio .gp-pin:hover,.w-gpio .gp-pin:focus-visible{background:rgba(255,255,255,.13);transform:translateY(-1px);outline:none}
   .w-gpio .gp-pin:focus-visible{box-shadow:0 0 0 2px var(--accent)}
   .w-gpio .gp-pin.star{box-shadow:0 0 0 1px var(--pc) inset}
-  .w-gpio .gp-pin-star{font-size:.7rem;color:var(--pc);margin-left:auto}
+  /* selected (picked into the circuit) — clear ring + tint */
+  .w-gpio .gp-pin.picked{background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent) inset}
+  .w-gpio .gp-pin.picked.star{box-shadow:0 0 0 2px var(--accent) inset,0 0 0 1px var(--pc)}
+  .w-gpio .gp-pin-star{font-size:.7rem;color:var(--pc);margin-left:auto;flex:0 0 auto}
   .w-gpio .gp-pin.side-L .gp-pin-star{margin-left:0;margin-right:auto;order:-1}
   /* compact (build column) */
   .w-gpio .gp-grid.compact .gp-rows{padding:7px;gap:3px}
   .w-gpio .gp-grid.compact .gp-pin{min-height:26px;padding:2px 5px}
   .w-gpio .gp-grid.compact .gp-pin-lab{font-size:.68rem}
+
+  /* touch devices: bigger tap targets + roomier labels */
+  @media (pointer:coarse){
+    .w-gpio .gp-pin{min-height:40px;padding:5px 9px}
+    .w-gpio .gp-grid.compact .gp-pin{min-height:40px;padding:4px 7px}
+    .w-gpio .gp-pin-hole{width:13px;height:13px}
+    .w-gpio .gp-pin-num{width:22px}
+  }
+
+  /* never truncate "GPIO 21" etc.: at narrow widths let labels shrink, then go single-column */
+  @media (max-width:480px){
+    .w-gpio .gp-pin-lab{font-size:.7rem}
+    .w-gpio .gp-grid.compact .gp-pin-lab{font-size:.66rem}
+  }
+  @media (max-width:420px){
+    .w-gpio .gp-row{grid-template-columns:1fr}
+    .w-gpio .gp-pin.side-L{flex-direction:row;text-align:left}
+    .w-gpio .gp-pin.side-L .gp-pin-star{margin-left:auto;margin-right:0;order:0}
+    .w-gpio .gp-pin-lab{white-space:normal;overflow-wrap:anywhere}
+  }
 
   /* build columns */
   .w-gpio .gp-cols{display:grid;grid-template-columns:minmax(220px,1fr) minmax(280px,1.25fr);gap:1.1rem;align-items:start}
@@ -722,7 +833,7 @@ function injectCSS() {
   /* parts bin */
   .w-gpio .gp-bin{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.8rem}
   @media (max-width:420px){.w-gpio .gp-bin{grid-template-columns:1fr}}
-  .w-gpio .gp-part{appearance:none;font:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;gap:.55rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);transition:border-color .15s,background .15s,transform .1s;flex-wrap:wrap}
+  .w-gpio .gp-part{appearance:none;font:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;gap:.55rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);transition:border-color .15s,background .15s,transform .1s;flex-wrap:wrap;min-height:44px}
   .w-gpio .gp-part span{font-size:.8rem;font-weight:600}
   .w-gpio .gp-part em{font-size:.66rem;color:var(--ink-soft);font-style:normal;flex-basis:100%;margin-left:calc(40px + .55rem)}
   .w-gpio .gp-part-svg{width:40px;height:28px;flex:0 0 auto;color:var(--ink-soft)}
@@ -742,14 +853,14 @@ function injectCSS() {
   .w-gpio .gp-hint.lv-info{}
 
   /* run row */
-  .w-gpio .gp-runrow{display:flex;gap:.5rem;align-items:center;margin-bottom:.7rem}
-  .w-gpio .gp-run{appearance:none;font:inherit;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.45rem;padding:.55rem 1rem;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--surface2);color:var(--ink-soft);transition:all .15s}
+  .w-gpio .gp-runrow{display:flex;gap:.5rem;align-items:center;margin-bottom:.7rem;flex-wrap:wrap}
+  .w-gpio .gp-run{appearance:none;font:inherit;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.45rem;padding:.55rem 1rem;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--surface2);color:var(--ink-soft);transition:all .15s;min-height:44px}
   .w-gpio .gp-run .gp-run-ic{font-size:.8em}
   .w-gpio .gp-run.ready{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:var(--shadow-lift)}
   .w-gpio .gp-run.ready:hover{transform:translateY(-1px)}
   .w-gpio .gp-run:disabled{cursor:not-allowed;opacity:.65}
   .w-gpio .gp-run:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .w-gpio .gp-reset{appearance:none;font:inherit;cursor:pointer;padding:.55rem .8rem;border-radius:var(--radius-sm);border:1px solid var(--line);background:transparent;color:var(--ink-soft)}
+  .w-gpio .gp-reset{appearance:none;font:inherit;cursor:pointer;padding:.55rem .8rem;border-radius:var(--radius-sm);border:1px solid var(--line);background:transparent;color:var(--ink-soft);min-height:44px}
   .w-gpio .gp-reset:hover{color:var(--ink);border-color:var(--ink-soft)}
   .w-gpio .gp-reset:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
@@ -777,7 +888,7 @@ function injectCSS() {
   .w-gpio .gp-guard-head{display:flex;align-items:center;gap:.45rem;font-weight:800;color:var(--danger);font-size:.92rem;margin-bottom:.5rem;letter-spacing:.02em}
   .w-gpio .gp-guard-head svg{color:var(--danger)}
   .w-gpio .gp-guard-quote{margin:0 0 .55rem;padding:.55rem .75rem;border-left:3px solid var(--danger);background:var(--surface);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:.85rem;line-height:1.55;color:var(--ink)}
-  .w-gpio .gp-guard-foot{font-size:.8rem;color:var(--ink-soft)}
+  .w-gpio .gp-guard-foot{font-size:.8rem;color:var(--ink-soft);margin:0}
 
   /* button demo */
   .w-gpio .gp-btn-stage{background:var(--surface2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:.5rem;margin-bottom:.9rem}

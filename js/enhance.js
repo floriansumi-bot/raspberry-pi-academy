@@ -12,8 +12,8 @@ export function enhanceCode(root, ctx = {}) {
 
     const copy = document.createElement('button');
     copy.className = 'copy-btn'; copy.type = 'button';
-    copy.innerHTML = icon('book', 13).replace('book', '') + 'Copy';
-    copy.innerHTML = 'Copy';
+    copy.textContent = 'Copy';
+    copy.setAttribute('aria-label', 'Copy code to clipboard');
     copy.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(text); }
       catch { const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); }

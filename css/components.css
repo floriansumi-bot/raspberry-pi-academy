@@ -8,6 +8,8 @@
 .prose h2::before{ content:""; position:absolute; left:-1rem; top:.15em; bottom:.15em; width:4px; border-radius:3px;
   background:linear-gradient(var(--accent),var(--accent2)); opacity:.0; transition:opacity var(--t); }
 .prose h2:hover::before{ opacity:1; }
+@media (hover:none){ .prose h2::before{ opacity:.85; left:-.6rem; } }
+@media (max-width:880px){ .prose h2::before{ left:-.6rem; } }
 .prose h3{ font-size:var(--step-1); margin-top:1.8rem; color:var(--accent); }
 .prose h4{ font-size:1.05rem; margin-top:1.2rem; }
 .prose p{ line-height:1.7; }
@@ -79,7 +81,7 @@ html[data-theme="night"] .prose code{ color:var(--warm); }
 .tbl-wrap{ overflow-x:auto; border-radius:12px; border:1px solid var(--line); }
 .tbl{ width:100%; border-collapse:collapse; font-size:.92rem; background:var(--surface); }
 .tbl th{ background:var(--surface2); text-align:left; padding:.7rem .9rem; font-weight:700; font-size:.82rem; color:var(--ink);
-  position:sticky; top:0; border-bottom:2px solid var(--line); }
+  border-bottom:2px solid var(--line); }
 .tbl td{ padding:.7rem .9rem; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
 .tbl tr:last-child td{ border-bottom:none; }
 .tbl code{ white-space:normal; }

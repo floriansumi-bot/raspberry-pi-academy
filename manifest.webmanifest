@@ -1,4 +1,5 @@
 {
+  "id": "/raspberry-pi-academy/",
   "name": "Pilot — Learn your Raspberry Pi 5",
   "short_name": "Pilot",
   "description": "A friendly, interactive course built from the complete Raspberry Pi 5 handbook. Real terminal, wireable GPIO board, offline.",
@@ -6,9 +7,20 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
+  "lang": "en",
+  "dir": "ltr",
   "background_color": "#FBF8F4",
   "theme_color": "#C7152A",
   "categories": ["education", "productivity"],
+  "shortcuts": [
+    { "name": "Learning path", "url": "./#/", "description": "Your 24-lesson trail" },
+    { "name": "Pi terminal", "url": "./#/tools", "description": "Try real commands" },
+    { "name": "Glossary", "url": "./#/glossary", "description": "Every term, plain English" }
+  ],
+  "screenshots": [
+    { "src": "./assets/screenshots/home-wide.png", "sizes": "1280x800", "type": "image/png", "form_factor": "wide", "label": "The learning path and hero board" },
+    { "src": "./assets/og-image.png", "sizes": "1200x630", "type": "image/png", "form_factor": "wide", "label": "Pilot" }
+  ],
   "icons": [
     { "src": "./assets/icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

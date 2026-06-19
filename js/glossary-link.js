@@ -3,8 +3,9 @@
 import { loadGlossary } from './content.js';
 import { store } from './store.js';
 
-let TERMS = null;     // [{term, def, re}]
+let TERMS = null;     // [{term, def}]
 let MAP = null;       // lower(term) -> def
+let REGEX = null;     // compiled once, reused for every chapter
 let pop = null;
 
 const SKIP = new Set(['THIS', 'WITH', 'YOUR', 'THAT', 'HAVE']);
@@ -18,6 +19,9 @@ async function prep() {
     .filter((e) => e.term.length >= 3 && !SKIP.has(e.term.toUpperCase()))
     .sort((a, b) => b.term.length - a.term.length);
   for (const e of TERMS) MAP[e.term.toLowerCase()] = e.def;
+  // tolerant boundaries so punctuated terms (Wi-Fi, .local, scp/SFTP, I2C) still match
+  try { REGEX = new RegExp('(?<![\\w-])(' + TERMS.map((t) => esc(t.term)).join('|') + ')(?![\\w-])'); }
+  catch { REGEX = new RegExp('\\b(' + TERMS.map((t) => esc(t.term)).join('|') + ')\\b'); }
 }
 
 function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
@@ -27,9 +31,7 @@ export async function linkGlossary(root) {
   const used = new Set();
   let count = 0;
   const MAXLINKS = 60;
-
-  // build a single regex of all remaining terms (word-ish boundaries)
-  const pattern = new RegExp('\\b(' + TERMS.map((t) => esc(t.term)).join('|') + ')\\b');
+  const pattern = REGEX;
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
@@ -66,6 +68,9 @@ export async function linkGlossary(root) {
     span.className = 'gloss-term';
     span.dataset.term = term;
     span.tabIndex = 0;
+    span.setAttribute('role', 'button');
+    span.setAttribute('aria-expanded', 'false');
+    span.setAttribute('aria-label', term + ' — definition');
     span.textContent = term;
     const frag = document.createDocumentFragment();
     if (before) frag.append(document.createTextNode(before));
@@ -76,10 +81,13 @@ export async function linkGlossary(root) {
 }
 
 /* one delegated popover for the whole app */
+let activeTerm = null;
 function ensurePop() {
   if (pop) return pop;
   pop = document.createElement('div');
   pop.className = 'gloss-pop hidden';
+  pop.id = 'gloss-pop';
+  pop.setAttribute('role', 'tooltip');
   document.getElementById('overlay-host')?.append(pop) || document.body.append(pop);
   return pop;
 }
@@ -87,6 +95,10 @@ function show(span) {
   const term = span.dataset.term;
   const def = MAP?.[term.toLowerCase()];
   if (!def) return;
+  if (activeTerm && activeTerm !== span) { activeTerm.setAttribute('aria-expanded', 'false'); activeTerm.removeAttribute('aria-describedby'); }
+  activeTerm = span;
+  span.setAttribute('aria-expanded', 'true');
+  span.setAttribute('aria-describedby', 'gloss-pop');
   const p = ensurePop();
   p.innerHTML = `<span class="gt">${term}</span>${def}`;
   p.classList.remove('hidden');
@@ -101,7 +113,10 @@ function show(span) {
   p.style.top = top + 'px';
   store.addTerm(term);
 }
-function hide() { pop?.classList.add('hidden'); }
+function hide() {
+  pop?.classList.add('hidden');
+  if (activeTerm) { activeTerm.setAttribute('aria-expanded', 'false'); activeTerm.removeAttribute('aria-describedby'); activeTerm = null; }
+}
 
 let bound = false;
 export function initGlossaryHover() {
@@ -109,10 +124,15 @@ export function initGlossaryHover() {
   document.addEventListener('mouseover', (e) => { const t = e.target.closest?.('.gloss-term'); if (t) show(t); });
   document.addEventListener('mouseout', (e) => { if (e.target.closest?.('.gloss-term')) hide(); });
   document.addEventListener('focusin', (e) => { const t = e.target.closest?.('.gloss-term'); if (t) show(t); });
-  document.addEventListener('focusout', hide);
+  document.addEventListener('focusout', (e) => { if (e.target.closest?.('.gloss-term')) hide(); });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target.closest?.('.gloss-term');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); (pop && !pop.classList.contains('hidden') && activeTerm === t) ? hide() : show(t); }
+    else if (e.key === 'Escape' && activeTerm) { const a = activeTerm; hide(); a.focus(); }
+  });
   document.addEventListener('click', (e) => {
     const t = e.target.closest?.('.gloss-term');
-    if (t && matchMedia('(hover: none)').matches) { e.preventDefault(); pop && !pop.classList.contains('hidden') ? hide() : show(t); }
+    if (t && matchMedia('(hover: none)').matches) { e.preventDefault(); (pop && !pop.classList.contains('hidden') && activeTerm === t) ? hide() : show(t); }
     else if (!e.target.closest?.('.gloss-pop')) hide();
   });
   addEventListener('scroll', hide, { passive: true });

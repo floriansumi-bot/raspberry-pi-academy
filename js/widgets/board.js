@@ -1,5 +1,5 @@
 /* widgets/board.js — Hero Board Inspector: interactive Raspberry Pi 5 top-down SVG
-   Exports: mount(container, ctx = {}) */
+   Exports: mount(container, ctx = {}) → cleanup fn */
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -129,9 +129,11 @@ function injectCSS() {
   border-radius: 4px;
   outline: none;
   transition: none;
+  /* keep the visible hotspot exactly over the SVG shape... */
 }
 .w-board .hs-btn:focus-visible .hs-ring,
-.w-board .hs-btn:hover .hs-ring {
+.w-board .hs-btn:hover .hs-ring,
+.w-board .hs-btn.is-active .hs-ring {
   opacity: 1 !important;
 }
 .w-board .hs-ring {
@@ -149,6 +151,21 @@ function injectCSS() {
 .w-board .hs-btn.circle-btn .hs-ring {
   border-radius: 50%;
 }
+/* ...but on coarse (touch) pointers, grow the invisible hit area so taps are easy.
+   A transparent ::after pad extends the touch target without moving the ring. */
+@media (pointer: coarse) {
+  .w-board .hs-btn::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: inherit;
+    /* minimum comfortable touch target ~44px */
+    min-width: 44px;
+    min-height: 44px;
+    transform: translate(0, 0);
+  }
+  .w-board .hs-btn.circle-btn::after { border-radius: 50%; }
+}
 
 /* ---- Tooltip ---- */
 .w-board-tooltip {
@@ -160,7 +177,7 @@ function injectCSS() {
   box-shadow: var(--shadow-lift);
   padding: .65rem .85rem;
   max-width: 240px;
-  pointer-events: none;
+  pointer-events: auto;
   transition: opacity 120ms ease, transform 120ms ease;
   font-family: var(--font-body);
 }
@@ -186,14 +203,15 @@ function injectCSS() {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: .73rem;
+  font-size: .8rem;
   font-weight: 600;
   color: var(--accent2);
   text-decoration: none;
   cursor: pointer;
   background: none;
   border: none;
-  padding: 0;
+  padding: .25rem 0;
+  min-height: 32px;
   font-family: var(--font-body);
 }
 .w-board-tooltip .tt-link:hover { text-decoration: underline; }
@@ -209,9 +227,13 @@ function injectCSS() {
   color: var(--ink-soft);
   font-family: var(--font-body);
   letter-spacing: .02em;
+  text-align: center;
+  max-width: 28ch;
+  line-height: 1.4;
 }
 .w-board .board-hint .hint-dot {
   display: inline-block;
+  flex: 0 0 auto;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -219,27 +241,91 @@ function injectCSS() {
   opacity: .7;
 }
 
-/* ---- GPIO pulse animation ---- */
+/* ---- GPIO ambient pulse (steady-state, after wake) ---- */
 @keyframes gpio-pulse {
   0%,100% { opacity:.22; }
   50%      { opacity:.55; }
 }
-.gpio-pin-glow {
+.w-board .gpio-pin-glow {
   animation: gpio-pulse 2.4s ease-in-out infinite;
 }
 
-/* ---- Activity LED blink ---- */
-@keyframes led-blink {
-  0%,100%  { opacity: 1; }
-  48%,52%  { opacity: .18; }
+/* ---- BOARD WAKE: per-pin left-to-right ripple (one-shot) ---- */
+@keyframes gpio-wake {
+  0%   { opacity: .25; transform: translateY(0); }
+  35%  { opacity: 1;   transform: translateY(-0.4px); }
+  100% { opacity: .85; transform: translateY(0); }
 }
-.act-led-glow {
-  animation: led-blink 1.7s ease-in-out infinite;
+.w-board .gpio-pin.waking {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: gpio-wake 620ms cubic-bezier(.2,.7,.3,1) both;
 }
 
-/* compact mode adjustments */
+/* ---- Activity LED: boot (two quick blinks) then slow breathing ---- */
+@keyframes led-boot {
+  0%   { opacity: .15; }
+  12%  { opacity: 1; }
+  24%  { opacity: .15; }
+  40%  { opacity: 1; }
+  52%  { opacity: .15; }
+  100% { opacity: .15; }
+}
+@keyframes led-breathe {
+  0%,100% { opacity: .45; }
+  50%     { opacity: 1; }
+}
+.w-board .act-led-glow.booting {
+  animation: led-boot 1.05s steps(1, end) 1 both;
+}
+.w-board .act-led-glow.breathing {
+  animation: led-breathe 3.2s ease-in-out infinite;
+}
+
+/* ---- Compact / hero mode ---- */
 .w-board.compact .board-svg-wrap {
   max-width: 280px;
+}
+
+/* tiny breadboard preview (compact mode) */
+.w-board .gpio-preview {
+  margin-top: .55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem .6rem .4rem .5rem;
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 10px);
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: .72rem;
+  text-decoration: none;
+  transition: border-color 160ms ease, transform 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.w-board .gpio-preview:hover,
+.w-board .gpio-preview:focus-visible {
+  border-color: var(--success, #1F8A4C);
+  transform: translateY(-1px);
+  outline: none;
+}
+.w-board .gpio-preview svg { display: block; flex: 0 0 auto; }
+.w-board .gpio-preview .gp-text { line-height: 1.3; }
+.w-board .gpio-preview .gp-text strong {
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: .74rem;
+  font-weight: 700;
+}
+@keyframes gp-led-breathe {
+  0%,100% { opacity: .5; r: 3.1; }
+  50%     { opacity: 1;  r: 3.7; }
+}
+.w-board .gp-led.breathe {
+  animation: gp-led-breathe 2.6s ease-in-out infinite;
 }
 `;
   document.head.appendChild(s);
@@ -247,22 +333,17 @@ function injectCSS() {
 
 /* ── SVG Board ───────────────────────────────────────────────────────────── */
 // viewBox: 212 wide × 212 tall (portrait Pi 5, rotated to typical top-down view)
-// Board is 212×212 with real-estate mapping:
-//   Top edge (y≈14):  GPIO header
-//   Right edge (x≈195): USB stack + Ethernet (stacked USB-A + ETH on one short edge)
-//   Bottom edge (y≈200): micro-HDMI pair + USB-C power + microSD
-//   Left: mostly free, PCIe FPC ribbon connector inside
-//   Centre-ish: SoC+RAM (large square under Active Cooler shield)
-//   Top corner: power button + activity LED
-
 function buildSVG(compact) {
   const VW = 212, VH = 212;
-  // GPIO pin rows (visual dots along top)
+  // GPIO pin rows (visual dots along top). 20 columns × 2 rows = 40 pins.
+  // Each column gets a left-to-right wake delay so the header "lights up".
   let gpioPins = '';
   for (let i = 0; i < 20; i++) {
     const x = 26 + i * 5.9 + 1.5;
-    gpioPins += `<circle class="gpio-pin" cx="${x}" cy="17" r="1.6" fill="#d4a017"/>`;
-    gpioPins += `<circle class="gpio-pin" cx="${x}" cy="22" r="1.6" fill="#d4a017"/>`;
+    const delay = (i * 26).toFixed(0); // ms, left → right
+    const style = REDUCED ? '' : ` style="animation-delay:${delay}ms"`;
+    gpioPins += `<circle class="gpio-pin" cx="${x}" cy="17" r="1.6" fill="#d4a017"${style}/>`;
+    gpioPins += `<circle class="gpio-pin" cx="${x}" cy="22" r="1.6" fill="#d4a017"${style}/>`;
   }
 
   // PCIe ribbon connector teeth
@@ -270,6 +351,13 @@ function buildSVG(compact) {
   for (let i = 0; i < 12; i++) {
     pciePins += `<rect x="${22 + i * 5}" y="144" width="3" height="5" rx="0.5" fill="#555"/>`;
   }
+
+  // Activity LED end-state class wiring:
+  //  - reduced motion → static lit dot (no animation)
+  //  - motion → start in boot/breathe via classes added on mount
+  const ledGlow = REDUCED
+    ? `<circle class="act-led-glow" cx="29" cy="23" r="3.5" fill="#22cc66" opacity=".9"/>`
+    : `<circle class="act-led-glow" cx="29" cy="23" r="3.5" fill="#22cc66" opacity=".45"/>`;
 
   const svg = `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Raspberry Pi 5 board diagram">
   <title>Raspberry Pi 5 — interactive board diagram</title>
@@ -368,12 +456,39 @@ function buildSVG(compact) {
 
   <!-- === Activity LED === -->
   <circle cx="29" cy="23" r="5" fill="#0a2a0a" stroke="#1F8A4C" stroke-width="1"/>
-  ${REDUCED ? '' : '<circle class="act-led-glow" cx="29" cy="23" r="3.5" fill="#22cc66" opacity=".9"/>'}
-  ${REDUCED ? '<circle cx="29" cy="23" r="3.5" fill="#22cc66" opacity=".9"/>' : ''}
-  <!-- GPIO glow strip (ambient) -->
+  ${ledGlow}
+
+  <!-- GPIO glow strip (ambient, added after wake) -->
   ${REDUCED ? '' : `<rect class="gpio-pin-glow" x="26" y="14" width="118" height="13" rx="2" fill="#d4a017" opacity=".0"/>`}
 </svg>`;
   return svg;
+}
+
+/* ── Tiny breadboard motif (compact hero mode) ───────────────────────────── */
+function buildPreviewSVG() {
+  // small breadboard slab + one green LED that softly pulses
+  const ledAnim = REDUCED ? '' : ' breathe';
+  return `<svg width="48" height="38" viewBox="0 0 48 38" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true" focusable="false">
+    <!-- breadboard body -->
+    <rect x="2" y="6" width="44" height="26" rx="3" fill="#e8e3d6" stroke="#c9c2b0" stroke-width="1"/>
+    <!-- centre channel -->
+    <rect x="2" y="18" width="44" height="2" fill="#cfc8b6"/>
+    <!-- tie-point dots -->
+    <g fill="#bdb6a3">
+      <circle cx="8" cy="11" r="1"/><circle cx="14" cy="11" r="1"/><circle cx="20" cy="11" r="1"/>
+      <circle cx="34" cy="11" r="1"/><circle cx="40" cy="11" r="1"/>
+      <circle cx="8" cy="27" r="1"/><circle cx="14" cy="27" r="1"/><circle cx="20" cy="27" r="1"/>
+      <circle cx="34" cy="27" r="1"/><circle cx="40" cy="27" r="1"/>
+    </g>
+    <!-- LED legs -->
+    <line x1="27" y1="14" x2="27" y2="24" stroke="#9a9a9a" stroke-width="1"/>
+    <line x1="31" y1="14" x2="31" y2="24" stroke="#9a9a9a" stroke-width="1"/>
+    <!-- LED glow halo -->
+    <circle cx="29" cy="13" r="6" fill="#3bd16a" opacity=".18"/>
+    <!-- LED body -->
+    <circle class="gp-led${ledAnim}" cx="29" cy="13" r="3.4" fill="#2fcf63" opacity="${REDUCED ? '1' : '.85'}"/>
+    <circle cx="28" cy="12" r="1.1" fill="#d6ffe2" opacity=".85"/>
+  </svg>`;
 }
 
 /* ── Tooltip singleton ───────────────────────────────────────────────────── */
@@ -438,7 +553,6 @@ export function mount(container, ctx = {}) {
   container.appendChild(wrap);
 
   /* Overlay hotspot buttons — positioned over the SVG using percentage coords */
-  // We'll overlay absolute-positioned buttons that track the SVG viewBox
   const VW = 212, VH = 212;
 
   function pct(v, total) { return (v / total * 100).toFixed(3) + '%'; }
@@ -448,12 +562,26 @@ export function mount(container, ctx = {}) {
   wrap.style.position = 'relative';
   wrap.appendChild(overlay);
 
+  // Track the hotspot whose tooltip is currently open (for tap-toggle + outside dismiss)
+  let activeBtn = null;
+
+  function setActive(btn) {
+    if (activeBtn && activeBtn !== btn) activeBtn.classList.remove('is-active');
+    activeBtn = btn || null;
+    if (activeBtn) activeBtn.classList.add('is-active');
+  }
+  function closeTooltip() {
+    hideTooltip();
+    if (activeBtn) activeBtn.classList.remove('is-active');
+    activeBtn = null;
+  }
+
   COMPONENTS.forEach((comp) => {
     const btn = document.createElement('button');
     btn.className = 'hs-btn';
+    btn.type = 'button';
     btn.setAttribute('aria-label', comp.label + ' — ' + comp.tip);
     btn.setAttribute('title', comp.label);
-    btn.setAttribute('tabindex', '0');
     btn.style.setProperty('--hs-color', comp.color);
     btn.style.pointerEvents = 'auto';
 
@@ -478,47 +606,65 @@ export function mount(container, ctx = {}) {
     }
 
     /* show / hide tooltip */
-    function onEnter() {
+    function openFor() {
       const rect = btn.getBoundingClientRect();
       showTooltip(comp, rect, go);
+      setActive(btn);
     }
     function onLeave(e) {
       // don't hide if we moved into the tooltip
       if (ttEl && ttEl.contains(e.relatedTarget)) return;
+      // keep open on touch (no hover) — only collapse hover-opened tooltips
+      if (activeBtn === btn) return;
       hideTooltip();
     }
 
-    btn.addEventListener('mouseenter', onEnter);
+    btn.addEventListener('mouseenter', openFor);
     btn.addEventListener('mouseleave', onLeave);
-    btn.addEventListener('focus', onEnter);
+    btn.addEventListener('focus', openFor);
     btn.addEventListener('blur', (e) => {
-      if (!btn.contains(e.relatedTarget)) hideTooltip();
+      if (btn.contains(e.relatedTarget)) return;
+      if (ttEl && ttEl.contains(e.relatedTarget)) return;
+      closeTooltip();
     });
-    btn.addEventListener('click', () => {
-      // On touch: toggle tooltip; second tap navigates
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Tap/click: toggle tooltip; a second tap on the SAME hotspot navigates.
       const tt = getTooltip();
-      if (tt.classList.contains('hidden')) {
-        onEnter();
+      if (tt.classList.contains('hidden') || activeBtn !== btn) {
+        openFor();
       } else {
-        hideTooltip();
+        go(comp.chapter);
+        closeTooltip();
       }
     });
     btn.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         const tt = getTooltip();
-        if (tt.classList.contains('hidden')) {
-          onEnter();
+        if (tt.classList.contains('hidden') || activeBtn !== btn) {
+          openFor();
         } else {
           go(comp.chapter);
-          hideTooltip();
+          closeTooltip();
         }
       }
-      if (e.key === 'Escape') hideTooltip();
+      if (e.key === 'Escape') {
+        closeTooltip();
+        btn.blur();
+      }
     });
 
     overlay.appendChild(btn);
   });
+
+  /* Dismiss tooltip when tapping/clicking anywhere outside a hotspot or the tooltip */
+  function onDocPointerDown(e) {
+    if (!activeBtn) return;
+    if (e.target.closest && (e.target.closest('.hs-btn') || e.target.closest('.w-board-tooltip'))) return;
+    closeTooltip();
+  }
+  document.addEventListener('pointerdown', onDocPointerDown, true);
 
   /* Hint legend */
   const hint = document.createElement('div');
@@ -526,12 +672,69 @@ export function mount(container, ctx = {}) {
   hint.innerHTML = '<span class="hint-dot"></span><span>Tap any component to learn what it does</span>';
   container.appendChild(hint);
 
-  /* Cleanup: hide tooltip when container leaves DOM */
-  const obs = new MutationObserver(() => {
-    if (!document.contains(container)) {
-      hideTooltip();
-      obs.disconnect();
+  /* Compact hero mode: tiny breadboard preview linking to the GPIO sim (ch12) */
+  let previewEl = null;
+  if (compact) {
+    previewEl = document.createElement('a');
+    previewEl.className = 'gpio-preview';
+    previewEl.href = '#/chapter/ch12';
+    previewEl.setAttribute('role', 'link');
+    previewEl.setAttribute('aria-label', 'Open the GPIO simulator — light up an LED on a breadboard (Chapter 12)');
+    previewEl.innerHTML = `${buildPreviewSVG()}<span class="gp-text"><strong>GPIO sim</strong>Light an LED →</span>`;
+    const openSim = (e) => { if (e) e.preventDefault(); go('#/chapter/ch12'); };
+    previewEl.addEventListener('click', openSim);
+    previewEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSim(); }
+    });
+    container.appendChild(previewEl);
+  }
+
+  /* ── BOARD WAKE animation (one-shot, gated behind !prefers-reduced-motion) ── */
+  const timers = [];
+  const svgEl = wrap.querySelector('svg');
+
+  if (!REDUCED && svgEl) {
+    // 1) GPIO pins ripple left→right via staggered animation-delay (set in buildSVG)
+    svgEl.querySelectorAll('.gpio-pin').forEach((pin) => pin.classList.add('waking'));
+    // after the ripple finishes, hand the header over to the ambient glow strip
+    const glowStrip = svgEl.querySelector('.gpio-pin-glow');
+    const t1 = setTimeout(() => {
+      svgEl.querySelectorAll('.gpio-pin.waking').forEach((p) => p.classList.remove('waking'));
+    }, 620 + 20 * 26 + 80);
+    timers.push(t1);
+
+    // 2) Activity LED: two quick boot blinks → settle into slow breathing
+    const led = svgEl.querySelector('.act-led-glow');
+    if (led) {
+      led.classList.add('booting');
+      const onBootEnd = () => {
+        led.classList.remove('booting');
+        led.classList.add('breathing');
+      };
+      led.addEventListener('animationend', onBootEnd, { once: true });
+      // belt-and-braces fallback in case animationend doesn't fire
+      const t2 = setTimeout(() => {
+        if (!led.classList.contains('breathing')) onBootEnd();
+      }, 1200);
+      timers.push(t2);
     }
-  });
-  obs.observe(document.body, { childList: true, subtree: true });
+
+    // fade the ambient header glow in once the wake ripple is well underway
+    if (glowStrip) {
+      const t3 = setTimeout(() => { glowStrip.setAttribute('opacity', '.16'); }, 700);
+      timers.push(t3);
+    }
+  } else if (svgEl) {
+    // Reduced motion: render the lit/breathing END-STATE statically (no motion).
+    const glowStrip = svgEl.querySelector('.gpio-pin-glow');
+    if (glowStrip) glowStrip.setAttribute('opacity', '.16');
+    // LED already drawn fully lit in buildSVG under REDUCED.
+  }
+
+  /* ── Cleanup (called by the app on view teardown) ── */
+  return function cleanup() {
+    timers.forEach(clearTimeout);
+    document.removeEventListener('pointerdown', onDocPointerDown, true);
+    closeTooltip();
+  };
 }

@@ -4,8 +4,17 @@ const routes = {};   // name -> async (params, view) => void
 let _current = null;
 let _onChange = null;
 
+/* per-view teardown registry: views/widgets register cleanups; the router runs
+   and clears them before rendering the next view (or re-rendering the same one),
+   eliminating leaked scroll/resize/observer listeners. */
+let _disposers = [];
+export function onCleanup(fn) { if (typeof fn === 'function') _disposers.push(fn); }
+function runDisposers() { const d = _disposers; _disposers = []; d.forEach((fn) => { try { fn(); } catch (e) { /* ignore */ } }); }
+
 export function register(name, handler) { routes[name] = handler; }
 export function onChange(fn) { _onChange = fn; }
+
+export function isRoute(name) { return name === 'home' || name in routes; }
 
 export function parse(hash) {
   let h = (hash || location.hash || '#/').replace(/^#\/?/, '');
@@ -27,7 +36,9 @@ export function navigate(to) {
 async function render() {
   const { name, params } = parse();
   const view = document.getElementById('view');
-  const handler = routes[name] || routes['home'];
+  runDisposers();                       // tear down the previous view first
+  view.className = '';                  // drop reader/other view classes
+  const handler = routes[name] || routes['notfound'] || routes['home'];
   _current = name;
   view.classList.remove('view-enter');
   // force reflow to restart animation

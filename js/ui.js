@@ -53,6 +53,23 @@ export function ring(size = 34, stroke = 4, label = false) {
   };
 }
 
+/* focus trap for modal dialogs. Returns release() that detaches + restores focus. */
+export function trapFocus(container, onEscape) {
+  const prev = document.activeElement;
+  const sel = 'a[href],button:not([disabled]),input:not([disabled]),textarea,select,[tabindex]:not([tabindex="-1"])';
+  function focusable() { return [...container.querySelectorAll(sel)].filter((el) => el.offsetParent !== null || el === document.activeElement); }
+  function onKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); onEscape && onEscape(); return; }
+    if (e.key !== 'Tab') return;
+    const f = focusable(); if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+  container.addEventListener('keydown', onKey);
+  return function release() { container.removeEventListener('keydown', onKey); try { prev && prev.focus && prev.focus(); } catch {} };
+}
+
 const ICONS = {
   check: '<path d="M20 6L9 17l-5-5"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
