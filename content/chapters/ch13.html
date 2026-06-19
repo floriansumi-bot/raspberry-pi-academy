@@ -1,0 +1,563 @@
+<p class="lead">Your Raspberry Pi 5 is powerful enough to be a proper home media centre — one that plays films in crystal-clear 4K, streams your music collection to every room, and lets you control everything from your phone or TV remote. This chapter walks you through your options, gives you a clear recommendation, and then takes you step by step through a full working setup that any beginner can complete.</p>
+<div class="widget-mount" data-widget="picker"></div>
+
+
+<h2 id="what-are-your-options">What Are Your Options?</h2>
+
+<p>There are four main approaches to turning your Pi into a media box. They suit different situations, so read through them before picking one.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Option</th>
+      <th>What it is</th>
+      <th>Best for</th>
+      <th>Cost</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Kodi</strong></td>
+      <td>A media-player app you install on top of Raspberry Pi OS. Your Pi still runs a normal desktop.</td>
+      <td>People who want a general-purpose Pi that also plays media stored locally on a USB drive.</td>
+      <td>Free</td>
+    </tr>
+    <tr>
+      <td><strong>LibreELEC</strong></td>
+      <td>A tiny, stripped-down operating system that <em>is</em> just Kodi — nothing else. Very fast to boot and very simple.</td>
+      <td>A Pi that will only ever be a media box plugged into the TV.</td>
+      <td>Free</td>
+    </tr>
+    <tr>
+      <td><strong>Jellyfin</strong></td>
+      <td>A media <em>server</em> that runs on your Pi and streams your film/music library to phones, tablets, smart TVs, and browsers around the house.</td>
+      <td>People with a large collection of films or music who want to watch on multiple devices.</td>
+      <td>Free &amp; open source</td>
+    </tr>
+    <tr>
+      <td><strong>Plex</strong></td>
+      <td>Similar to Jellyfin but partly commercial. The free tier works well; some features (such as offline downloads and live TV) need a paid "Plex Pass".</td>
+      <td>People who want a polished interface and do not mind optional paid features.</td>
+      <td>Free (core); paid optional</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>media server</em> is software that sits on one computer (your Pi) and "serves" — sends — your films and music to other devices over your home Wi-Fi or network, just like a tiny Netflix running in your own house.</div>
+
+<h2 id="which-should-you-choose">Which Should You Choose?</h2>
+
+<p>Here is a plain-English recommendation:</p>
+
+<ul>
+  <li><strong>Use LibreELEC</strong> if you want a dedicated box that boots straight to a TV-friendly media player, with big remote-friendly menus. You flash it to your microSD card exactly like Raspberry Pi OS (using Raspberry Pi Imager), and the Pi becomes a media box. You lose the desktop, but everything is simpler. Visit <code>libreelec.tv</code> for the download.</li>
+  <li><strong>Use Jellyfin</strong> if you want to keep Raspberry Pi OS (so your Pi stays useful for everything else) <em>and</em> you have a library of films, TV episodes, or music you want to watch on any screen in the house. This chapter follows this path end to end.</li>
+  <li><strong>Use Kodi on Raspberry Pi OS</strong> if you want a local media player without a server — just install it with one command and point it at your USB drive. Quick instructions are at the end of this chapter if you prefer this lighter option.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> LibreELEC replaces Raspberry Pi OS entirely on the microSD card. If you flash LibreELEC, you will need a second microSD card if you ever want to go back to your normal Pi desktop. Keep that in mind before flashing.</div>
+
+<h2 id="a-word-on-media-you-can-play">A Word on Media You Can Play</h2>
+
+<div class="warn"><strong>Careful:</strong> Only use Jellyfin, Kodi, or any media software with films, music, and TV shows that you own or have the legal right to play. Downloading copyrighted content without paying for it is illegal in most countries, including the UK and EU. This guide assumes you have your own DVD/Blu-ray rips, home videos, or legally downloaded files.</div>
+
+<h2 id="full-worked-path-jellyfin-on-raspberry-pi-os">Full Worked Path: Jellyfin on Raspberry Pi OS</h2>
+
+<p>We will install Jellyfin on your Pi, point it at a USB drive full of films, and then watch from your phone or TV. This takes about 20–30 minutes, most of which is waiting for downloads.</p>
+
+<h3>What You Will Need</h3>
+
+<ul>
+  <li>Your Pi 5 running Raspberry Pi OS (Bookworm, 64-bit) and connected to your home network.</li>
+  <li>A USB drive (or USB hard drive) containing your media files — films, TV shows, music.</li>
+  <li>A phone, tablet, or smart TV on the same Wi-Fi network as your Pi.</li>
+  <li>An internet connection for the Pi to download Jellyfin.</li>
+</ul>
+
+<h3>Step 1 — Plug In Your USB Drive and Check It Is Recognised</h3>
+
+<p>Plug your USB drive into one of the blue USB 3.0 ports on the Pi (the blue-coloured connectors are USB 3.0 — faster than the black USB 2.0 ports, which matters for large video files).</p>
+
+<p>Open a Terminal on your Pi (click the black screen icon on the taskbar, or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>). Now check which devices are connected:</p>
+
+<pre class="code"><code>lsblk -o NAME,SIZE,MOUNTPOINT,LABEL,FSTYPE</code></pre>
+<div class="explain">
+  <p><code>lsblk</code> lists every storage device connected to your Pi. The flags after <code>-o</code> choose which columns to display: the device name, its size, where it is mounted (accessible), its human-readable label, and its filesystem type. Look for a line like <code>sda1</code> with a size matching your USB drive. The <code>MOUNTPOINT</code> column shows the path you use to reach its files — for example <code>/media/pi/MOVIES</code>. The <code>FSTYPE</code> column tells you whether the drive is formatted as <code>vfat</code> (FAT32), <code>exfat</code>, <code>ntfs</code>, or <code>ext4</code> — make a note of this, as you will need it later.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> If the MOUNTPOINT column is empty for your drive, Raspberry Pi OS has not yet mounted it automatically. Usually it does so within a few seconds of plugging in. Wait a moment and run the command again. You can also open the File Manager (the folder icon on the taskbar) — this often triggers the automatic mount.</div>
+
+<p>Make a note of the mountpoint path and the filesystem type. We will use both in later steps. For the rest of this chapter, examples use the path <code>/media/pi/MOVIES</code> — substitute your actual path wherever you see that.</p>
+
+<h3>Step 2 — Install Support for Windows-Formatted Drives (if needed)</h3>
+
+<p>Most USB drives bought in Europe come formatted as <strong>exFAT</strong> or <strong>NTFS</strong> — the formats Windows uses. Raspberry Pi OS Bookworm can read these, but only if the right support packages are installed. Check your filesystem type from Step 1 and install the right one:</p>
+
+<p><strong>If your drive is exFAT</strong> (most common for drives under 2 TB bought recently):</p>
+
+<pre class="code"><code>sudo apt install exfatprogs -y</code></pre>
+<div class="explain">
+  <p>Installs <code>exfatprogs</code>, the modern tool that lets Raspberry Pi OS read and write exFAT drives. Without this, an exFAT drive may fail to mount or Jellyfin may report errors. The <code>-y</code> flag confirms installation automatically.</p>
+</div>
+
+<p><strong>If your drive is NTFS</strong> (common for older drives or ones formatted by Windows 10/11):</p>
+
+<pre class="code"><code>sudo apt install ntfs-3g -y</code></pre>
+<div class="explain">
+  <p>Installs <code>ntfs-3g</code>, the driver that allows full read and write access to NTFS drives on Linux. Without this, NTFS drives mount in read-only mode or may not mount at all. <code>-y</code> confirms the installation.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> If your drive is already formatted as <code>ext4</code> (Linux's own format) or <code>vfat</code> (FAT32), no extra package is needed — both are supported out of the box.</div>
+
+<h3>Step 3 — Update Your Pi</h3>
+
+<p>Before installing anything new, bring your Pi up to date:</p>
+
+<pre class="code"><code>sudo apt update &amp;&amp; sudo apt upgrade -y</code></pre>
+<div class="explain">
+  <p><code>sudo apt update</code> refreshes the list of available software packages from the internet. <code>&amp;&amp;</code> means "only run the next command if the first one succeeded without errors". <code>sudo apt upgrade -y</code> then installs all available updates; the <code>-y</code> flag answers "yes" automatically so you do not have to confirm each update. This can take a few minutes.</p>
+</div>
+
+<h3>Step 4 — Install Jellyfin from Its Official Repository</h3>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>repository</em> (often shortened to "repo") is an online library of software packages. Adding Jellyfin's official repository means your Pi knows where to find the Jellyfin software and how to verify it is genuine. Future updates then happen automatically alongside your normal system updates — you do not have to re-download or re-install Jellyfin manually.</div>
+
+<p>First, make sure the <code>curl</code> download tool is installed:</p>
+
+<pre class="code"><code>sudo apt install curl -y</code></pre>
+<div class="explain">
+  <p>Installs <code>curl</code>, a small tool for downloading files from the internet. It is often already present on Raspberry Pi OS, but this command ensures it is there before the next step relies on it.</p>
+</div>
+
+<p>Now run the official Jellyfin installer script:</p>
+
+<pre class="code"><code>curl -fsSL https://repo.jellyfin.org/install-debuntu.sh | sudo bash</code></pre>
+<div class="explain">
+  <p>This single command does the entire Jellyfin setup for you. Breaking it down: <code>curl -fsSL</code> downloads a file from the internet silently and stops cleanly if there is an error. The URL points to the official Jellyfin installer script on <code>repo.jellyfin.org</code>. The <code>|</code> (pipe) symbol passes the downloaded script directly to <code>sudo bash</code>, which runs it with administrator permission. The script automatically detects that your Pi 5 is a 64-bit ARM device (arm64), adds Jellyfin's repository to your Pi, imports a security key so your Pi can verify the software is genuine, and then installs Jellyfin. A lot of text will scroll past — that is normal. Wait for the prompt to return before moving on.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> Running a script downloaded from the internet with <code>sudo</code> is worth doing thoughtfully. Here we are using the official URL published by the Jellyfin project itself (<code>repo.jellyfin.org</code>). If you prefer to review what the script does before running it, you can open that URL in a browser and read it first — it is a plain text file.</div>
+
+<h3>Step 5 — Start Jellyfin and Make It Start Automatically at Boot</h3>
+
+<pre class="code"><code>sudo systemctl enable --now jellyfin</code></pre>
+<div class="explain">
+  <p><code>systemctl</code> is the tool that manages background services on Raspberry Pi OS. <code>enable</code> registers Jellyfin to start automatically every time the Pi boots up. <code>--now</code> also starts it immediately right now, without needing a reboot. <code>jellyfin</code> is the name of the service. After this command, Jellyfin is running in the background.</p>
+</div>
+
+<p>Confirm that Jellyfin is running:</p>
+
+<pre class="code"><code>sudo systemctl status jellyfin</code></pre>
+<div class="explain">
+  <p>Shows the current status of the Jellyfin background service. Look for the words <strong>active (running)</strong> in green near the top. If you see that, everything is working correctly. Press <kbd>q</kbd> to exit the status view and return to the normal command prompt.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> If Jellyfin shows as "failed" rather than "active (running)", try rebooting the Pi (<code>sudo reboot</code>) and checking the status again. If it still fails, run <code>sudo journalctl -u jellyfin -n 50</code> to see the last 50 lines of error messages — copy them into a web search to find a solution.</div>
+
+<h3>Step 6 — Find Your Pi's IP Address</h3>
+
+<p>To reach Jellyfin from other devices on your home network, you need to know your Pi's address. Run:</p>
+
+<pre class="code"><code>hostname -I</code></pre>
+<div class="explain">
+  <p>Prints all network addresses assigned to your Pi. You will see one or two numbers such as <code>192.168.1.42</code>. The first number shown is your Pi's address on your home network (its Wi-Fi or Ethernet address). Write it down — you will type it into a browser on other devices shortly.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> An <em>IP address</em> is your Pi's "house number" on the home network. Any device on the same Wi-Fi (phone, laptop, tablet, smart TV) can reach your Pi by typing this number into a web browser, just like typing a web address.</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 660 320" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+    <!-- Outer home network box -->
+    <rect x="8" y="8" width="644" height="304" rx="16" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="330" y="32" text-anchor="middle" font-size="14" fill="#6d28d9" font-weight="bold">Your Home Network (Wi-Fi Router)</text>
+
+    <!-- Pi box -->
+    <rect x="30" y="55" width="148" height="80" rx="10" fill="#6d28d9"/>
+    <text x="104" y="82" text-anchor="middle" font-size="13" fill="white" font-weight="bold">Raspberry Pi 5</text>
+    <text x="104" y="100" text-anchor="middle" font-size="11" fill="#e9d5ff">Jellyfin server</text>
+    <text x="104" y="116" text-anchor="middle" font-size="11" fill="#e9d5ff">192.168.1.42:8096</text>
+
+    <!-- USB drive -->
+    <rect x="45" y="165" width="118" height="42" rx="8" fill="#0ea5a4"/>
+    <text x="104" y="183" text-anchor="middle" font-size="12" fill="white" font-weight="bold">USB Drive</text>
+    <text x="104" y="198" text-anchor="middle" font-size="11" fill="#d1faf9">Films / Music files</text>
+    <!-- USB to Pi connector -->
+    <line x1="104" y1="165" x2="104" y2="135" stroke="#0ea5a4" stroke-width="2.5" stroke-dasharray="5,3"/>
+    <text x="116" y="154" font-size="10" fill="#0ea5a4">USB 3.0</text>
+
+    <!-- Arrow definitions -->
+    <defs>
+      <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+        <path d="M0,0 L0,7 L9,3.5 z" fill="#6d28d9"/>
+      </marker>
+      <marker id="arr2" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+        <path d="M0,0 L0,7 L9,3.5 z" fill="#0ea5a4"/>
+      </marker>
+    </defs>
+
+    <!-- Arrows Pi → devices -->
+    <line x1="178" y1="80" x2="252" y2="80" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="178" y1="95" x2="252" y2="175" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="178" y1="95" x2="252" y2="258" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Labels on arrows -->
+    <text x="212" y="72" text-anchor="middle" font-size="10" fill="#6d28d9">streams</text>
+    <text x="222" y="152" text-anchor="middle" font-size="10" fill="#6d28d9">streams</text>
+    <text x="212" y="208" text-anchor="middle" font-size="10" fill="#6d28d9">streams</text>
+
+    <!-- Smart TV -->
+    <rect x="254" y="55" width="136" height="58" rx="8" fill="#1f2933"/>
+    <rect x="262" y="63" width="120" height="40" rx="4" fill="#374151"/>
+    <text x="322" y="87" text-anchor="middle" font-size="12" fill="white">Smart TV</text>
+    <text x="322" y="103" text-anchor="middle" font-size="10" fill="#9ca3af">Jellyfin app or browser</text>
+
+    <!-- Phone -->
+    <rect x="270" y="148" width="100" height="58" rx="8" fill="#1f2933"/>
+    <text x="320" y="175" text-anchor="middle" font-size="12" fill="white">Phone / Tablet</text>
+    <text x="320" y="192" text-anchor="middle" font-size="10" fill="#9ca3af">Jellyfin app</text>
+
+    <!-- Laptop -->
+    <rect x="254" y="232" width="136" height="52" rx="8" fill="#1f2933"/>
+    <text x="322" y="257" text-anchor="middle" font-size="12" fill="white">Laptop / Desktop</text>
+    <text x="322" y="274" text-anchor="middle" font-size="10" fill="#9ca3af">Any web browser</text>
+
+    <!-- Second TV in another room -->
+    <rect x="440" y="120" width="140" height="58" rx="8" fill="#0ea5a4"/>
+    <text x="510" y="147" text-anchor="middle" font-size="12" fill="white">TV in another room</text>
+    <text x="510" y="163" text-anchor="middle" font-size="10" fill="#d1faf9">Jellyfin app</text>
+    <line x1="390" y1="84" x2="440" y2="140" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr2)"/>
+    <text x="418" y="110" text-anchor="middle" font-size="10" fill="#0ea5a4">streams</text>
+  </svg>
+  <figcaption>Jellyfin running on your Pi reads films from a USB drive and streams them simultaneously to any device on your home network — TVs, phones, laptops, and tablets.</figcaption>
+</figure>
+
+<h3>Step 7 — Open the Jellyfin Setup Wizard</h3>
+
+<p>On your Pi (or on any device on the same network), open a web browser and type the following address into the address bar:</p>
+
+<pre class="code"><code>http://192.168.1.42:8096</code></pre>
+<div class="explain">
+  <p>Replace <code>192.168.1.42</code> with your Pi's actual IP address that you noted in Step 6. The <code>:8096</code> part is the <em>port number</em> — think of it as a door number within the Pi's address. Jellyfin listens on port 8096 by default. Because Raspberry Pi OS does not have a firewall enabled by default, this port is immediately reachable from any device on your home network.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>port number</em> is a number added after an IP address (like <code>:8096</code>) that tells your computer which specific service to connect to. Just as a building can have many flats, one computer can run many services — each listens on its own port number.</div>
+
+<p>You should see the Jellyfin welcome screen. Follow the on-screen wizard:</p>
+
+<ol class="steps">
+  <li>Choose your display language and click <strong>Next</strong>.</li>
+  <li>Create an admin username and password. Write these down somewhere safe — you will need them to log in and manage Jellyfin. Do not use a password you use anywhere else.</li>
+  <li>On the <strong>Set up your media libraries</strong> screen, click <strong>Add Media Library</strong>.</li>
+  <li>Choose a <strong>Content type</strong> from the drop-down: for films choose <strong>Movies</strong>; for TV series choose <strong>Shows</strong>; for music choose <strong>Music</strong>.</li>
+  <li>Click the <strong>+</strong> button next to <strong>Folders</strong> and type (or browse to) the path to your USB drive — for example <code>/media/pi/MOVIES</code>. Make sure the path matches exactly what you saw in Step 1.</li>
+  <li>Click <strong>OK</strong>, then <strong>Next</strong>. Jellyfin will scan the folder and download artwork, descriptions, and ratings for your films automatically. This may take several minutes for a large library — be patient.</li>
+  <li>Complete the rest of the wizard and click <strong>Finish</strong>. You will be taken to the Jellyfin home screen.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Jellyfin works best when your film files are named clearly — for example <code>Inception (2010).mkv</code> or <code>The Grand Budapest Hotel (2014).mp4</code>. Including the year in brackets helps Jellyfin identify the correct film and download the right artwork. For TV shows, use a folder structure like <code>Breaking Bad/Season 1/Breaking Bad S01E01.mkv</code>. If Jellyfin cannot match a file, rename it and trigger a library rescan from the Dashboard.</div>
+
+<h3>Step 8 — Watch Something</h3>
+
+<p>You can now watch from almost any device on your home network.</p>
+
+<h3>Watching from a web browser (any device)</h3>
+<p>Open a browser on your phone, laptop, or tablet and go to <code>http://192.168.1.42:8096</code>. Log in with the username and password you created. Click any film and press play. No app is needed — the web browser is enough.</p>
+
+<h3>Watching from a phone or tablet (Jellyfin app)</h3>
+<p>Search for <strong>Jellyfin</strong> in the App Store (iPhone/iPad) or Google Play Store (Android). Install the free official Jellyfin app, tap <strong>Add Server</strong>, and enter <code>http://192.168.1.42:8096</code>. Log in and your library appears. The app also lets you control playback on a TV and download films for offline viewing.</p>
+
+<h3>Watching on a Smart TV</h3>
+<p>Many smart TVs (Samsung, LG, Android TV, Amazon Fire TV, Chromecast with Google TV) have a Jellyfin app in their app store. Search for "Jellyfin" and install it, then enter your server address and login details. If your TV does not have a Jellyfin app, you can usually cast to it from the phone app, or use the TV's built-in web browser to access the Jellyfin web interface.</p>
+
+<h3>Step 9 — Keep Your USB Drive Always Mounted</h3>
+
+<p>By default, Raspberry Pi OS only mounts your USB drive after someone logs in at the desktop. If the Pi reboots overnight, Jellyfin may lose access to your files. To make the drive mount automatically at boot every time (even without anyone logged in), you need to add an entry to a file called <code>/etc/fstab</code>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>/etc/fstab</em> is a configuration file that tells Raspberry Pi OS exactly which drives to connect and where to put them every time it starts up. Think of it as a shopping list the Pi reads at boot time — "attach this drive, put it here".</div>
+
+<p>First, find the unique ID of your USB drive. This ID is called a <strong>UUID</strong> — a long string of letters and numbers that never changes even if you plug the drive into a different USB port:</p>
+
+<pre class="code"><code>sudo blkid</code></pre>
+<div class="explain">
+  <p><code>blkid</code> ("block ID") lists every storage device and shows its UUID and filesystem type. Find the line for your USB drive — match it by the label or size you noted earlier. Copy the <code>UUID="..."</code> value carefully. For FAT32/exFAT drives it looks something like <code>A1B2-C3D4</code>; for NTFS or ext4 drives it is a longer string like <code>a1b2c3d4-e5f6-7890-abcd-ef1234567890</code>.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>UUID</em> (Universally Unique Identifier) is a permanent serial number assigned to a storage drive when it is formatted. It never changes, so the Pi can identify your drive even if you plug it into a different USB socket.</div>
+
+<p>Now create a permanent folder where the drive will always appear:</p>
+
+<pre class="code"><code>sudo mkdir -p /mnt/media</code></pre>
+<div class="explain">
+  <p>Creates the folder <code>/mnt/media</code>. The <code>-p</code> flag means "also create any missing parent folders and do not complain if the folder already exists". This folder is the permanent location — the <em>mount point</em> — where your USB drive's files will be accessible after we set up automatic mounting.</p>
+</div>
+
+<p>Next, give Jellyfin permission to read the drive's contents. Jellyfin runs as a background service under its own system user called <code>jellyfin</code>. The <code>jellyfin</code> user needs to be able to read the files on your USB drive. The easiest way is to add the <code>jellyfin</code> user to the same group that owns the mount point:</p>
+
+<pre class="code"><code>sudo usermod -aG pi jellyfin</code></pre>
+<div class="explain">
+  <p><code>usermod</code> modifies a user account. <code>-aG pi</code> means "append (add without removing existing) the user to the group named <code>pi</code>". <code>jellyfin</code> is the user being modified. Adding the jellyfin service account to the <code>pi</code> group lets it read files owned by <code>pi</code>, which includes the default automatic mounts under <code>/media/pi/</code>. This change takes effect after Jellyfin is restarted in a moment.</p>
+</div>
+
+<p>Now open the fstab file to add your drive's entry:</p>
+
+<pre class="code"><code>sudo nano /etc/fstab</code></pre>
+<div class="explain">
+  <p>Opens the file <code>/etc/fstab</code> in the <code>nano</code> text editor with administrator permission. This is the file that controls automatic drive mounting. Be careful here — a mistake can prevent the Pi from booting. (If that happens, boot into recovery mode and edit the file to remove the incorrect line.)</p>
+</div>
+
+<p>Use the arrow keys to move to the very bottom of the file. Add one new line. Use the correct filesystem type for your drive:</p>
+
+<p><strong>For a FAT32 drive</strong> (<code>FSTYPE</code> was <code>vfat</code>):</p>
+<pre class="code"><code>UUID=YOUR-UUID-HERE  /mnt/media  vfat  defaults,uid=1000,gid=1000,umask=002,nofail,x-systemd.automount  0  0</code></pre>
+<div class="explain">
+  <p>Each part of this line explained: <code>UUID=YOUR-UUID-HERE</code> identifies the exact drive by its unique ID (paste the UUID you copied). <code>/mnt/media</code> is where to make the drive's contents available. <code>vfat</code> is the filesystem type (FAT32). <code>defaults</code> uses standard mount settings. <code>uid=1000,gid=1000</code> makes files on the drive appear to be owned by the default <code>pi</code> user (user ID 1000 on Raspberry Pi OS). <code>umask=002</code> makes files readable and writable by the owner and group, readable by everyone else. <code>nofail</code> means the Pi still boots normally even if the drive is absent. <code>x-systemd.automount</code> tells the system to wait until the drive is genuinely ready before mounting it (more reliable for USB drives that take a moment to spin up). The two <code>0</code>s at the end disable filesystem checking at boot, which is recommended for USB drives.</p>
+</div>
+
+<p><strong>For an exFAT drive</strong> (<code>FSTYPE</code> was <code>exfat</code>):</p>
+<pre class="code"><code>UUID=YOUR-UUID-HERE  /mnt/media  exfat  defaults,uid=1000,gid=1000,umask=002,nofail,x-systemd.automount  0  0</code></pre>
+<div class="explain">
+  <p>Identical to the FAT32 line above except <code>exfat</code> replaces <code>vfat</code> as the filesystem type. This requires the <code>exfatprogs</code> package installed in Step 2.</p>
+</div>
+
+<p><strong>For an NTFS drive</strong> (<code>FSTYPE</code> was <code>ntfs</code>):</p>
+<pre class="code"><code>UUID=YOUR-UUID-HERE  /mnt/media  ntfs-3g  defaults,uid=1000,gid=1000,umask=002,nofail,x-systemd.automount  0  0</code></pre>
+<div class="explain">
+  <p>Identical to the other lines except <code>ntfs-3g</code> is the filesystem type. This uses the <code>ntfs-3g</code> driver installed in Step 2 to provide full read and write access. Note the filesystem type here is <code>ntfs-3g</code> (with a hyphen), not just <code>ntfs</code>.</p>
+</div>
+
+<p><strong>For a Linux ext4 drive</strong> (<code>FSTYPE</code> was <code>ext4</code>):</p>
+<pre class="code"><code>UUID=YOUR-UUID-HERE  /mnt/media  ext4  defaults,nofail,x-systemd.automount  0  2</code></pre>
+<div class="explain">
+  <p>For ext4 Linux-formatted drives, no uid/gid/umask options are needed — Linux permissions on the drive itself control access. The last digit is <code>2</code> instead of <code>0</code>, which allows the filesystem integrity check to run at boot (recommended for ext4). You may still need to adjust permissions on the drive's folders so the <code>jellyfin</code> user can read them (see the Tip below).</p>
+</div>
+
+<p>Save and exit nano: press <kbd>Ctrl</kbd>+<kbd>O</kbd>, then <kbd>Enter</kbd> to confirm the filename, then <kbd>Ctrl</kbd>+<kbd>X</kbd> to exit.</p>
+
+<p>Test the new fstab entry without rebooting:</p>
+
+<pre class="code"><code>sudo mount -a</code></pre>
+<div class="explain">
+  <p>Tells the Pi to mount everything listed in <code>/etc/fstab</code> right now. If you see no error output, the line is correct and your drive is now accessible at <code>/mnt/media</code>. If you see an error message, open <code>/etc/fstab</code> again with <code>sudo nano /etc/fstab</code>, check the line carefully (UUID matches? filesystem type correct?), fix it, save, and run <code>sudo mount -a</code> again.</p>
+</div>
+
+<p>Restart Jellyfin so it picks up the group change and the new mount:</p>
+
+<pre class="code"><code>sudo systemctl restart jellyfin</code></pre>
+<div class="explain">
+  <p>Stops and restarts the Jellyfin service. This is needed so Jellyfin (running as the <code>jellyfin</code> user) picks up the group membership change made with <code>usermod</code> earlier, and also reconnects to the newly mounted drive path.</p>
+</div>
+
+<p>Now go back into the Jellyfin web interface at <code>http://192.168.1.42:8096</code>, log in, go to the menu icon (top-left) and choose <strong>Dashboard → Libraries</strong>. Edit your library and update the folder path to <code>/mnt/media</code> (or the subfolder within it where your films live). Jellyfin will re-scan and the library will work reliably after every reboot.</p>
+
+<div class="tip"><strong>Tip:</strong> If Jellyfin still reports it cannot access the folder after all the above steps, check the folder permissions by running <code>ls -la /mnt/media</code> in the terminal. If the folder shows as owned by <code>root</code> with no group or other read access, run <code>sudo chmod -R a+rX /mnt/media</code> to make it readable by all users including the Jellyfin service.</div>
+
+<h2 id="4k-and-hevc-what-the-pi-5-can-handle">4K and HEVC: What the Pi 5 Can Handle</h2>
+
+<div class="jargon"><strong>In plain words:</strong> <em>HEVC</em> (also called H.265) is a modern video compression format used for most 4K films — it makes huge 4K video files a manageable size. <em>Direct play</em> means a client device plays the file in its original format with no conversion needed. <em>Transcoding</em> means the server converts the video from one format to another on the fly so a device can play it — this requires much more processing power.</div>
+
+<p>The Pi 5's VideoCore VII graphics chip can <strong>hardware-decode</strong> HEVC (H.265) and H.264 video — the two most common formats for 4K and 1080p films. This means it can handle 4K direct play to a TV connected via HDMI with ease, barely breaking a sweat.</p>
+
+<p>If a client device (such as an older phone or a browser on a Windows PC) cannot play HEVC natively, Jellyfin will transcode the video on the fly. The Pi 5 can handle a single 1080p software transcode comfortably. Transcoding a 4K stream in real time is much heavier work and may cause stuttering; if this happens, lower the quality setting in the Jellyfin player.</p>
+
+<div class="tip"><strong>Tip:</strong> For the best experience, prefer client devices that support HEVC natively — most modern smartphones and smart TVs do. When HEVC is supported, Jellyfin uses direct play and the Pi barely works at all, leaving plenty of spare power for other tasks.</div>
+
+<h3>Enabling Hardware Transcoding in Jellyfin</h3>
+
+<p>If transcoding is necessary, you can enable hardware-accelerated transcoding to use the Pi 5's GPU rather than the main processor. This is optional but worthwhile if you regularly transcode:</p>
+
+<ol class="steps">
+  <li>In the Jellyfin web interface, log in as admin and click the menu icon, then choose <strong>Dashboard</strong>.</li>
+  <li>Under <strong>Server</strong>, click <strong>Playback</strong>.</li>
+  <li>Find the <strong>Hardware acceleration</strong> dropdown and select <strong>Video4Linux2 (V4L2)</strong>. This is the correct option for the Raspberry Pi 5's VideoCore VII GPU.</li>
+  <li>Scroll down and click <strong>Save</strong>.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Hardware transcoding on the Pi 5 via V4L2 works best with H.264 and HEVC content. For very unusual codecs (such as older AVI or WMV files), the Pi may fall back to software transcoding automatically.</div>
+
+<h2 id="controlling-playback">Controlling Playback</h2>
+
+<h3>HDMI-CEC: Use Your TV Remote</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <em>HDMI-CEC</em> (Consumer Electronics Control) is a hidden signalling channel built into the HDMI standard. It lets devices on your TV's HDMI ports talk to each other — for example, it lets your TV remote control your Pi, or lets the Pi automatically switch your TV on and select its input when the Pi starts playing something.</div>
+
+<p>The Pi 5 supports HDMI-CEC, and Raspberry Pi OS enables it by default. If you are using Kodi (or another media player app) directly on the Pi with its HDMI output connected to your TV:</p>
+
+<ul>
+  <li>Your TV remote's arrow keys and OK button will navigate the on-screen menus.</li>
+  <li>The volume buttons on your TV remote will adjust the audio level.</li>
+  <li>Starting a media player can automatically wake the TV and switch it to the Pi's HDMI input.</li>
+</ul>
+
+<p>CEC must also be enabled on your TV. Look in your TV's settings — brands use their own names for the same feature:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>TV Brand</th>
+      <th>Their name for HDMI-CEC</th>
+      <th>Where to find it</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Samsung</td>
+      <td>Anynet+</td>
+      <td>Settings → General → External Device Manager → Anynet+</td>
+    </tr>
+    <tr>
+      <td>LG</td>
+      <td>SimpLink</td>
+      <td>Settings → General → SIMPLINK (HDMI-CEC)</td>
+    </tr>
+    <tr>
+      <td>Sony</td>
+      <td>Bravia Sync</td>
+      <td>Settings → Watching TV → External inputs → Bravia Sync</td>
+    </tr>
+    <tr>
+      <td>Philips</td>
+      <td>EasyLink</td>
+      <td>Setup → TV settings → EasyLink</td>
+    </tr>
+    <tr>
+      <td>Panasonic</td>
+      <td>VIERA Link</td>
+      <td>Setup → VIERA Link settings</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> HDMI-CEC control works automatically for Kodi and LibreELEC once it is enabled on the TV. For Jellyfin (where you watch on a separate phone, tablet, or smart TV), your TV remote already controls that device natively — no extra setup is needed.</div>
+
+<h3>Phone Remote Apps</h3>
+
+<p>If you are using Kodi on your Pi, install the free <strong>Kodi Remote</strong> app (search for it in the App Store or Google Play Store) to control playback from your phone over Wi-Fi — pause, skip, browse your library, and adjust volume, all from the sofa.</p>
+
+<p>For Jellyfin, the Jellyfin mobile app doubles as a remote control — tap the cast icon in the app to control playback on a TV or another device on your network.</p>
+
+<h2 id="alternative-installing-kodi-on-raspberry-pi-os">Alternative: Installing Kodi on Raspberry Pi OS</h2>
+
+<p>If you would rather just have a local media player on your Pi without setting up a server, Kodi is a single command away. Kodi is the right choice if your films are on a USB drive plugged directly into the Pi and you only ever watch on the TV that the Pi is connected to.</p>
+
+<pre class="code"><code>sudo apt update
+sudo apt install kodi -y</code></pre>
+<div class="explain">
+  <p>The first line refreshes the list of available software packages from the internet, so the Pi knows about the latest version of Kodi. The second line installs Kodi from Raspberry Pi OS's built-in software repository. The <code>-y</code> flag answers "yes" to the confirmation prompt automatically. After this completes (it may take a few minutes to download), you will find Kodi in the application menu under <strong>Sound &amp; Video</strong>, or you can launch it by typing <code>kodi</code> in the terminal and pressing <kbd>Enter</kbd>.</p>
+</div>
+
+<p>Once Kodi opens, use the <strong>Videos → Files → Add videos...</strong> option from the home screen to point it at your USB drive. Kodi will scan the folder, download artwork, and build a library automatically — very similar to Jellyfin's setup wizard, but entirely local on the Pi.</p>
+
+<div class="tip"><strong>Tip:</strong> If you want Kodi to launch automatically when the Pi boots (so it behaves like a dedicated set-top box), you can create a small autostart file. In the terminal, run: <code>mkdir -p /home/pi/.config/autostart</code> and then create a file at <code>/home/pi/.config/autostart/kodi.desktop</code> containing:
+<pre>
+[Desktop Entry]
+Type=Application
+Name=Kodi
+Exec=kodi
+</pre>
+This makes Kodi launch automatically when your Pi desktop starts up. For most beginners, though, simply launching Kodi from the application menu when you want to watch something is perfectly fine.</div>
+
+<div class="warn"><strong>Careful:</strong> The autostart method above places a plain text file in your home folder. It is completely safe and easy to undo — simply delete the file (<code>rm /home/pi/.config/autostart/kodi.desktop</code>) and Kodi will stop auto-launching. It does not modify any system files.</div>
+
+<h2 id="troubleshooting-common-problems">Troubleshooting Common Problems</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Problem</th>
+      <th>Likely cause</th>
+      <th>What to do</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Cannot reach Jellyfin from another device</td>
+      <td>The other device is on a different network, or you have the wrong IP address</td>
+      <td>Make sure both devices are connected to the same Wi-Fi network (not one on 2.4 GHz and one on 5 GHz if your router keeps them separate). Re-run <code>hostname -I</code> on the Pi to confirm the current IP. Try accessing <code>http://localhost:8096</code> in a browser on the Pi itself first — if that works, Jellyfin is fine and the issue is network connectivity.</td>
+    </tr>
+    <tr>
+      <td>Jellyfin cannot see my USB drive files</td>
+      <td>The drive is not mounted, or Jellyfin does not have permission to read it</td>
+      <td>Run <code>lsblk</code> to confirm the drive is mounted. Check the library path in Jellyfin's Dashboard → Libraries matches the actual mount point exactly (paths are case-sensitive). Check permissions with <code>ls -la /mnt/media</code> and ensure the <code>jellyfin</code> user can read the folder.</td>
+    </tr>
+    <tr>
+      <td>Video stutters or buffers</td>
+      <td>Transcoding is happening and the Pi is under heavy load, or your Wi-Fi is slow</td>
+      <td>In the Jellyfin player, lower the quality setting to <strong>Auto</strong> or <strong>1080p</strong>. Connect the Pi to your router by Ethernet cable for maximum throughput. Enable hardware transcoding (V4L2) in Jellyfin's Dashboard → Playback settings. Prefer client devices that support HEVC natively so Jellyfin can use direct play.</td>
+    </tr>
+    <tr>
+      <td>No sound over HDMI</td>
+      <td>The wrong audio output is selected (the Pi 5 has no 3.5 mm headphone jack — audio goes via HDMI or USB only)</td>
+      <td>Right-click the speaker icon in the Pi taskbar and select the HDMI audio device. In Kodi, go to <strong>Settings → System → Audio</strong> and select the HDMI output device from the list.</td>
+    </tr>
+    <tr>
+      <td>TV remote does not control Kodi</td>
+      <td>HDMI-CEC is disabled on the TV</td>
+      <td>Find your TV brand's name for HDMI-CEC in the table above and enable it in your TV's settings. Then restart the Pi (or restart Kodi) for the Pi to detect the CEC connection.</td>
+    </tr>
+    <tr>
+      <td>Jellyfin library shows no artwork or wrong films</td>
+      <td>Jellyfin could not match the files because the filenames do not include the film title and year</td>
+      <td>Rename your files to include the film title and year in brackets — e.g. <code>Dune (2021).mkv</code> — then go to Dashboard → Libraries, select your library, and click <strong>Scan All Libraries</strong> to trigger a fresh scan.</td>
+    </tr>
+    <tr>
+      <td>Pi's IP address has changed (Jellyfin address stopped working)</td>
+      <td>Your router assigned a different IP to the Pi after a reboot</td>
+      <td>Re-run <code>hostname -I</code> to find the new address. To prevent this in future, log into your router's admin page and set a "DHCP reservation" for the Pi's MAC address so it always gets the same IP. See your router's manual for how to do this.</td>
+    </tr>
+    <tr>
+      <td>drive not mounting at boot despite fstab entry</td>
+      <td>The UUID is wrong or the filesystem type is incorrect in fstab</td>
+      <td>Run <code>sudo blkid</code> and compare the UUID with what is in <code>/etc/fstab</code>. Open fstab with <code>sudo nano /etc/fstab</code>, correct the UUID or filesystem type, save, then run <code>sudo mount -a</code> to test.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="keeping-jellyfin-updated">Keeping Jellyfin Updated</h2>
+
+<p>Because you installed Jellyfin via its official repository, updating it is the same as updating everything else on your Pi:</p>
+
+<pre class="code"><code>sudo apt update &amp;&amp; sudo apt upgrade -y</code></pre>
+<div class="explain">
+  <p>This is the same update command you use for all software on your Pi. Because Jellyfin was added as a proper repository, this single command will also fetch and install any new version of Jellyfin automatically. Running this once a month is a good habit — you get bug fixes, security patches, and new features in one go.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> After a Jellyfin update, the service restarts automatically. Check it is still running with <code>sudo systemctl status jellyfin</code> if you want to confirm.</div>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Kodi</strong> — a free, open-source media player application you install on top of Raspberry Pi OS; plays films, music, and TV shows stored on a local drive.</li>
+    <li><strong>LibreELEC</strong> — a tiny operating system built entirely around Kodi; it replaces Raspberry Pi OS and is ideal for a dedicated media box.</li>
+    <li><strong>Jellyfin</strong> — a free, open-source media server that runs on your Pi and streams your personal library to phones, tablets, TVs, and browsers over your home network.</li>
+    <li><strong>Media server</strong> — software that stores your media on one computer (the Pi) and sends it to other devices over the network, like a private Netflix in your home.</li>
+    <li><strong>Repository (repo)</strong> — an online library of trusted software packages that your Pi downloads and installs software from.</li>
+    <li><strong>IP address</strong> — a unique number (like <code>192.168.1.42</code>) that identifies a device on a network; your Pi's "house number" on your home Wi-Fi.</li>
+    <li><strong>Port number</strong> — a number appended to an IP address (like <code>:8096</code>) that identifies a specific service on a device; like a flat number within a building.</li>
+    <li><strong>HEVC / H.265</strong> — a modern video compression format used for most 4K content; the Pi 5 can decode it in hardware, making 4K playback smooth.</li>
+    <li><strong>Direct play</strong> — when a client device plays a video file in its original format without the server having to convert it; the most efficient and highest-quality mode.</li>
+    <li><strong>Transcoding</strong> — when the server converts a video from one format to another on the fly so a device can play it; more demanding on the Pi's processor.</li>
+    <li><strong>HDMI-CEC</strong> — a built-in feature of the HDMI standard that lets devices on HDMI ports talk to each other; allows a TV remote to control the Pi.</li>
+    <li><strong>UUID</strong> — a permanent unique identification code assigned to a storage drive; used in <code>/etc/fstab</code> to reliably identify a drive regardless of which USB port it is plugged into.</li>
+    <li><strong>/etc/fstab</strong> — a system configuration file that tells Raspberry Pi OS which drives to connect and where to put them every time it starts up.</li>
+    <li><strong>Mount / mount point</strong> — "mounting" a drive means making its contents accessible at a folder path on the system; the folder it appears at is called the mount point.</li>
+    <li><strong>exFAT</strong> — a filesystem format commonly used on larger USB drives sold ready-to-use; readable on Windows, macOS, and (with <code>exfatprogs</code>) Linux.</li>
+    <li><strong>NTFS</strong> — the filesystem format Windows uses on internal hard drives; readable on Linux with the <code>ntfs-3g</code> driver.</li>
+    <li><strong>V4L2</strong> — Video4Linux2; the interface that lets Jellyfin use the Pi 5's GPU for hardware-accelerated video transcoding, reducing the load on the main processor.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>The Pi 5 makes an excellent media centre — choose LibreELEC for a dedicated box, Jellyfin for streaming to multiple devices around the house, or Kodi on Raspberry Pi OS for a straightforward local player.</li>
+    <li>Jellyfin is installed from its official repository using a single installer command and streams films, TV, and music to any browser, phone app, or smart TV app on your home network.</li>
+    <li>Windows-formatted USB drives (exFAT or NTFS) need the <code>exfatprogs</code> or <code>ntfs-3g</code> package installed on Bookworm before they mount reliably.</li>
+    <li>Adding a correctly formatted line to <code>/etc/fstab</code> with the drive's UUID and the <code>nofail,x-systemd.automount</code> options ensures the USB media drive mounts automatically at every boot, so Jellyfin always has access to your files.</li>
+    <li>The Jellyfin service account (<code>jellyfin</code>) needs to be in the <code>pi</code> group, or the mount point needs to be world-readable, before Jellyfin can access files on the USB drive.</li>
+    <li>The Pi 5 decodes 4K HEVC video in hardware (VideoCore VII), making high-quality direct playback smooth and efficient without any special configuration.</li>
+    <li>Hardware-accelerated transcoding can be enabled in Jellyfin's Dashboard → Playback by selecting <strong>V4L2</strong>, which offloads conversion work to the GPU.</li>
+    <li>HDMI-CEC lets your existing TV remote control Kodi on the Pi; enable it in your TV's settings (Anynet+, SimpLink, Bravia Sync, EasyLink, or VIERA Link depending on your brand).</li>
+    <li>Update Jellyfin with <code>sudo apt update &amp;&amp; sudo apt upgrade -y</code> — the same command used for all software on your Pi.</li>
+    <li>Only use media software with content you legally own or have the right to play.</li>
+  </ul>
+</div>

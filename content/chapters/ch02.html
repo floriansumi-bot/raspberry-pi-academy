@@ -1,0 +1,625 @@
+<p class="lead">Your Raspberry Pi 5 starter kit contains everything you need to build a fully working desktop computer — and it arrived already assembled. In this chapter we take a slow, careful look at every single part: what it is, what it does, and exactly how to connect it all together for the very first time.</p>
+
+<h2 id="a-guided-tour-of-the-raspberry-pi-5-board">A Guided Tour of the Raspberry Pi 5 Board</h2>
+
+<p>Before you plug anything in, take the Pi out of its case if you can and lay it flat so you can see the top of the board. (Do not worry if it is already sealed inside the iRasptek aluminium case — we will describe every connector so you know where to find it through the case openings.) The board is a small green rectangle roughly the size of a credit card. Everything on it — the processor, the memory, the connectors — is mounted directly on that green card.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>board</em> (or <em>PCB</em> — printed circuit board) is the flat green card that holds all the electronic components. Think of it as the "motherboard" of a tiny computer.</div>
+
+<h3>The Brain and the Memory: SoC and RAM</h3>
+
+<p>The largest component on the top of the board is a shiny silver square topped with a metal lid. This is the <strong>SoC</strong> (System on a Chip). In the Pi 5 it is the Broadcom BCM2712, and it contains the entire processor — four Arm Cortex-A76 cores running at 2.4 GHz — plus the graphics chip (VideoCore VII), and all the internal wiring that ties everything together. Think of it as the brain of the computer.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>SoC</em> (System on a Chip) packs everything a computer needs to think and draw pictures into a single chip. The metal lid on top helps spread heat away from it.</div>
+
+<p>Stacked on top of the SoC, or placed right next to it, is a smaller chip: the <strong>RAM</strong>. Your kit has 16 GB of LPDDR4X RAM. RAM is the computer's short-term memory — it holds whatever the computer is doing right now. More RAM means you can have more browser tabs, more programs, or bigger files open at the same time without the computer slowing down. 16 GB is an unusually generous amount for a Pi and more than enough for anything a beginner will do.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>RAM</em> (Random Access Memory) is like a very fast notepad the computer writes its current work on. When you turn the power off, everything on that notepad is erased — that is why you save files to a storage card or drive.</div>
+
+<h3>Labelled Diagram of the Pi 5 Board</h3>
+
+<figure class="fig">
+<svg viewBox="0 0 820 520" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+
+  <!-- Board outline -->
+  <rect x="200" y="40" width="370" height="420" rx="12" ry="12" fill="#1a3a1a" stroke="#2d5a27" stroke-width="3"/>
+
+  <!-- GPIO Header - top left of board -->
+  <rect x="210" y="55" width="120" height="22" rx="2" fill="#b8860b"/>
+  <text x="270" y="70" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">40-pin GPIO</text>
+
+  <!-- SoC (big silver square, center) -->
+  <rect x="310" y="120" width="130" height="130" rx="4" fill="#888" stroke="#555" stroke-width="2"/>
+  <rect x="320" y="130" width="110" height="110" rx="3" fill="#aaa"/>
+  <text x="375" y="182" text-anchor="middle" fill="#222" font-size="12" font-weight="bold">BCM2712</text>
+  <text x="375" y="198" text-anchor="middle" fill="#222" font-size="11">SoC + RAM</text>
+  <text x="375" y="214" text-anchor="middle" fill="#333" font-size="10">16 GB LPDDR4X</text>
+
+  <!-- USB-C Power (bottom right of board, bottom edge) -->
+  <rect x="495" y="415" width="44" height="22" rx="3" fill="#444" stroke="#666" stroke-width="1.5"/>
+  <text x="517" y="430" text-anchor="middle" fill="#fff" font-size="10">USB-C</text>
+
+  <!-- microHDMI x2 (bottom edge, left of USB-C) -->
+  <rect x="350" y="415" width="32" height="22" rx="2" fill="#222" stroke="#555" stroke-width="1.5"/>
+  <text x="366" y="426" text-anchor="middle" fill="#fff" font-size="9">mHDMI</text>
+  <text x="366" y="436" text-anchor="middle" fill="#ccc" font-size="9">0</text>
+
+  <rect x="395" y="415" width="32" height="22" rx="2" fill="#222" stroke="#555" stroke-width="1.5"/>
+  <text x="411" y="426" text-anchor="middle" fill="#fff" font-size="9">mHDMI</text>
+  <text x="411" y="436" text-anchor="middle" fill="#ccc" font-size="9">1</text>
+
+  <!-- USB 3.0 x2 (right edge) -->
+  <rect x="540" y="150" width="28" height="50" rx="3" fill="#1a5fb4" stroke="#1244a0" stroke-width="1.5"/>
+  <text x="554" y="170" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">USB</text>
+  <text x="554" y="183" text-anchor="middle" fill="#fff" font-size="9">3.0</text>
+  <text x="554" y="196" text-anchor="middle" fill="#ccc" font-size="9">①</text>
+
+  <rect x="540" y="210" width="28" height="50" rx="3" fill="#1a5fb4" stroke="#1244a0" stroke-width="1.5"/>
+  <text x="554" y="230" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">USB</text>
+  <text x="554" y="243" text-anchor="middle" fill="#fff" font-size="9">3.0</text>
+  <text x="554" y="256" text-anchor="middle" fill="#ccc" font-size="9">②</text>
+
+  <!-- USB 2.0 x2 (right edge below) -->
+  <rect x="540" y="270" width="28" height="50" rx="3" fill="#333" stroke="#555" stroke-width="1.5"/>
+  <text x="554" y="290" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">USB</text>
+  <text x="554" y="303" text-anchor="middle" fill="#fff" font-size="9">2.0</text>
+  <text x="554" y="316" text-anchor="middle" fill="#ccc" font-size="9">①</text>
+
+  <rect x="540" y="330" width="28" height="50" rx="3" fill="#333" stroke="#555" stroke-width="1.5"/>
+  <text x="554" y="350" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">USB</text>
+  <text x="554" y="363" text-anchor="middle" fill="#fff" font-size="9">2.0</text>
+  <text x="554" y="376" text-anchor="middle" fill="#ccc" font-size="9">②</text>
+
+  <!-- Ethernet (top right edge) -->
+  <rect x="540" y="80" width="28" height="55" rx="3" fill="#c8a000" stroke="#9a7a00" stroke-width="1.5"/>
+  <text x="554" y="102" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">ETH</text>
+  <text x="554" y="116" text-anchor="middle" fill="#fff" font-size="9">GbE</text>
+  <text x="554" y="130" text-anchor="middle" fill="#fff" font-size="8">1 Gbps</text>
+
+  <!-- microSD slot (left edge, bottom) -->
+  <rect x="188" y="380" width="24" height="40" rx="2" fill="#888" stroke="#555" stroke-width="1.5"/>
+  <text x="200" y="398" text-anchor="middle" fill="#fff" font-size="9">μSD</text>
+  <text x="200" y="410" text-anchor="middle" fill="#eee" font-size="9">slot</text>
+
+  <!-- CSI / Camera connector -->
+  <rect x="215" y="310" width="50" height="14" rx="2" fill="#6d28d9" stroke="#4c1d95" stroke-width="1.5"/>
+  <text x="240" y="321" text-anchor="middle" fill="#fff" font-size="10">CAM/CSI</text>
+
+  <!-- DSI / Display connector -->
+  <rect x="215" y="340" width="50" height="14" rx="2" fill="#0ea5a4" stroke="#0c7a7a" stroke-width="1.5"/>
+  <text x="240" y="351" text-anchor="middle" fill="#fff" font-size="10">DISP/DSI</text>
+
+  <!-- PCIe / FPC connector -->
+  <rect x="215" y="270" width="70" height="14" rx="2" fill="#b45309" stroke="#92400e" stroke-width="1.5"/>
+  <text x="250" y="281" text-anchor="middle" fill="#fff" font-size="10">PCIe / FPC</text>
+
+  <!-- Fan connector -->
+  <rect x="280" y="58" width="40" height="14" rx="2" fill="#0ea5a4" stroke="#0c7a7a" stroke-width="1"/>
+  <text x="300" y="69" text-anchor="middle" fill="#fff" font-size="10">FAN</text>
+
+  <!-- RTC battery connector -->
+  <rect x="380" y="58" width="50" height="14" rx="2" fill="#555" stroke="#333" stroke-width="1"/>
+  <text x="405" y="69" text-anchor="middle" fill="#fff" font-size="10">RTC BATT</text>
+
+  <!-- Power button -->
+  <circle cx="490" cy="65" r="12" fill="#6d28d9" stroke="#4c1d95" stroke-width="2"/>
+  <text x="490" y="70" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">PWR</text>
+
+  <!-- Active Cooler placeholder -->
+  <rect x="290" y="100" width="175" height="175" rx="6" fill="none" stroke="#6d28d9" stroke-width="2" stroke-dasharray="6,4"/>
+  <text x="378" y="95" text-anchor="middle" fill="#6d28d9" font-size="11">Active Cooler sits here</text>
+
+  <!-- === CALLOUT LINES AND LABELS (outside board) === -->
+
+  <!-- GPIO -->
+  <line x1="210" y1="66" x2="110" y2="66" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="106" y="62" text-anchor="end" fill="#1f2933" font-size="12" font-weight="bold">40-pin GPIO</text>
+  <text x="106" y="75" text-anchor="end" fill="#555" font-size="11">Digital I/O pins</text>
+
+  <!-- Ethernet -->
+  <line x1="568" y1="107" x2="620" y2="90" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="624" y="86" fill="#1f2933" font-size="12" font-weight="bold">Gigabit Ethernet</text>
+  <text x="624" y="99" fill="#555" font-size="11">Wired network</text>
+
+  <!-- USB 3.0 -->
+  <line x1="568" y1="175" x2="620" y2="165" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="624" y="161" fill="#1f2933" font-size="12" font-weight="bold">USB 3.0 ×2 (blue)</text>
+  <text x="624" y="174" fill="#555" font-size="11">Fast drives, hubs</text>
+
+  <!-- USB 2.0 -->
+  <line x1="568" y1="320" x2="620" y2="305" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="624" y="301" fill="#1f2933" font-size="12" font-weight="bold">USB 2.0 ×2 (black)</text>
+  <text x="624" y="314" fill="#555" font-size="11">Keyboard, mouse</text>
+
+  <!-- microHDMI 0 -->
+  <line x1="366" y1="437" x2="300" y2="500" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="296" y="496" text-anchor="end" fill="#1f2933" font-size="12" font-weight="bold">micro-HDMI 0</text>
+  <text x="296" y="509" text-anchor="end" fill="#555" font-size="11">Primary monitor</text>
+
+  <!-- microHDMI 1 -->
+  <line x1="411" y1="437" x2="460" y2="500" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="464" y="496" fill="#1f2933" font-size="12" font-weight="bold">micro-HDMI 1</text>
+  <text x="464" y="509" fill="#555" font-size="11">Second monitor</text>
+
+  <!-- USB-C Power -->
+  <line x1="517" y1="437" x2="620" y2="460" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="624" y="456" fill="#1f2933" font-size="12" font-weight="bold">USB-C Power</text>
+  <text x="624" y="469" fill="#555" font-size="11">27 W supply only</text>
+
+  <!-- microSD -->
+  <line x1="188" y1="400" x2="90" y2="400" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="86" y="396" text-anchor="end" fill="#1f2933" font-size="12" font-weight="bold">microSD slot</text>
+  <text x="86" y="409" text-anchor="end" fill="#555" font-size="11">OS storage card</text>
+
+  <!-- PCIe -->
+  <line x1="215" y1="277" x2="110" y2="277" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="106" y="273" text-anchor="end" fill="#1f2933" font-size="12" font-weight="bold">PCIe / FPC</text>
+  <text x="106" y="286" text-anchor="end" fill="#555" font-size="11">NVMe SSD (HAT)</text>
+
+  <!-- CSI -->
+  <line x1="215" y1="317" x2="110" y2="330" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="106" y="326" text-anchor="end" fill="#1f2933" font-size="12" font-weight="bold">CAM / CSI</text>
+  <text x="106" y="339" text-anchor="end" fill="#555" font-size="11">Pi Camera ribbon</text>
+
+  <!-- DSI -->
+  <line x1="215" y1="347" x2="110" y2="360" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="106" y="356" text-anchor="end" fill="#1f2933" font-size="12" font-weight="bold">DISP / DSI</text>
+  <text x="106" y="369" text-anchor="end" fill="#555" font-size="11">Pi touchscreen</text>
+
+  <!-- Power button -->
+  <line x1="490" y1="53" x2="570" y2="30" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="574" y="26" fill="#1f2933" font-size="12" font-weight="bold">Power button</text>
+  <text x="574" y="39" fill="#555" font-size="11">Start / shutdown</text>
+
+  <!-- FAN label arrow -->
+  <line x1="300" y1="58" x2="300" y2="30" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="300" y="26" text-anchor="middle" fill="#1f2933" font-size="11">Fan connector</text>
+
+</svg>
+<figcaption>Top-down view of the Raspberry Pi 5 board with every connector labelled. The dashed purple border shows where the Active Cooler sits on top of the SoC.</figcaption>
+</figure>
+
+<h3>The Ports Along the Edges — One by One</h3>
+
+<p>Working around the board edge by edge, here is what every socket and connector does.</p>
+
+<h3>Right Edge: USB Ports</h3>
+
+<p>There are four USB sockets in a stacked pair of pairs. The two nearest the top of the board are <strong>blue on the inside</strong> — these are <strong>USB 3.0</strong> ports. The two below them are <strong>black on the inside</strong> — these are <strong>USB 2.0</strong> ports.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>USB</em> (Universal Serial Bus) is the standard plug used by keyboards, mice, memory sticks, and hundreds of other devices. The number (2.0 or 3.0) tells you the maximum speed. USB 3.0 is about ten times faster than USB 2.0 for transferring data. For a keyboard or mouse, the speed does not matter — either colour port works equally well.</div>
+
+<p>Use the <strong>blue USB 3.0 ports</strong> for things where speed matters: a USB memory stick you want to copy files to and from quickly, an external hard drive, or a USB hub (a device that turns one USB port into several). Use either port for your keyboard and mouse — it makes no difference.</p>
+
+<div class="tip"><strong>Tip:</strong> If you plug a USB 3.0 device into a USB 2.0 (black) port by accident, it will still work — just at the slower 2.0 speed. The blue ports are simply the better choice for fast devices.</div>
+
+<h3>Right Edge: Gigabit Ethernet</h3>
+
+<p>Above the USB ports, at the very top-right corner, is a slightly wider socket with a small plastic tab. This is the <strong>Ethernet port</strong> (also called the RJ-45 socket). It accepts a standard network cable and gives you a wired internet connection running at up to 1 Gigabit per second — far faster and more reliable than Wi-Fi for most home setups.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Ethernet</em> is the wired way of connecting a computer to a router. The cable looks like a very wide phone plug. <em>Gigabit</em> means the port can transfer up to 1,000 megabits of data every second.</div>
+
+<p>When you plug in a network cable, a small amber light on the socket flashes to show data is moving, and a green light shows the connection is live.</p>
+
+<h3>Bottom Edge: micro-HDMI Ports (×2)</h3>
+
+<p>Along the bottom short edge of the board there are two small sockets that look like a shrunken version of the HDMI port on your television. These are the <strong>micro-HDMI ports</strong>, numbered 0 (closer to the centre of the board) and 1 (closer to the USB-C socket). They carry both picture and sound to a monitor or television.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>HDMI</em> (High-Definition Multimedia Interface) is the standard that sends video and audio down a single cable to a screen. <em>Micro-HDMI</em> is simply a smaller version of that same plug, used because the Pi board is too small for a full-size one.</div>
+
+<p>The Pi 5 can drive <strong>two monitors simultaneously</strong>, each at up to 4K resolution at 60 frames per second — an impressive feat for such a small board. For a single monitor, always use port 0.</p>
+
+<div class="warn"><strong>Careful:</strong> Micro-HDMI and mini-HDMI look similar but are NOT the same size. Your iRasptek kit includes a micro-HDMI cable matched to the Pi 5. Do not try to force a mini-HDMI or full-size HDMI plug into this socket — you could damage the port.</div>
+
+<div class="note"><strong>Note:</strong> The Raspberry Pi 5 has <strong>no 3.5 mm headphone jack</strong>. Audio comes out through the HDMI cable to your monitor or TV speakers. If you need a headphone socket, you can add one via a small USB audio adapter (widely available for a few pounds or euros). Bluetooth headphones or speakers also work well — see Chapter 4 for Bluetooth setup.</div>
+
+<h3>Bottom Edge: USB-C Power Input</h3>
+
+<p>At the far right of the bottom edge is a <strong>USB-C socket</strong>. This is the <strong>power input only</strong> — it is where you plug in the 27 W power supply. Unlike the USB-C port on a laptop, this socket on the Pi 5 does not transfer data; it only receives power.</p>
+
+<div class="note"><strong>Note:</strong> The Pi 5 needs a proper USB-C Power Delivery supply that can provide at least 5 V at 5 A (= 25 W). A phone charger will not supply enough current and the Pi will show a low-voltage warning — a yellow lightning bolt icon — in the top-right corner of the screen. Always use the supplied 27 W adapter.</div>
+
+<h3>Left Edge (Underneath): microSD Card Slot</h3>
+
+<p>On the underside of the board, at the left edge, is a thin spring-loaded slot. This is the <strong>microSD card slot</strong>. The microSD card is the Pi's "hard drive" — it holds the operating system, all your files, and any programs you install. Unlike a laptop's internal drive, you can pop the card out, copy it to a PC for a backup, or swap it for a different card with a different operating system.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>microSD card</em> is a tiny storage chip, about the size of a fingernail, most commonly used in cameras and phones. In the Pi it acts as the computer's main storage disk.</div>
+
+<h3>Top Edge: The 40-Pin GPIO Header</h3>
+
+<p>Running along the full width of the top edge of the board is a double row of small metal pins. This is the <strong>40-pin GPIO header</strong>. GPIO stands for General-Purpose Input/Output. These pins let you connect the Pi to physical electronics: LEDs, buttons, sensors, motors, and much more. The Pi 5's GPIO pins operate at <strong>3.3 V</strong> — important to know if you ever connect external components, since applying a 5 V signal to these pins can permanently damage the board.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>GPIO</em> pins are like tiny programmable switches. Some can output a small electrical signal to light an LED; others can read whether a button is pressed. They are the gateway to physical computing and electronics projects.</div>
+
+<p>For this beginner guide we will leave the GPIO header alone for now — it is covered in detail in Chapter 10.</p>
+
+<h3>Top Edge: Fan Connector</h3>
+
+<p>Near the GPIO header, there is a tiny 4-pin socket. This is the <strong>fan connector</strong> (sometimes labelled J14 on the board). The Active Cooler's small fan plugs in here so the Pi can control the fan speed automatically — running it faster when the processor is hot and quieter when it is idle.</p>
+
+<h3>Top Edge: RTC Battery Connector</h3>
+
+<p>A small 2-pin socket near the centre-top is the <strong>RTC battery connector</strong>. RTC stands for Real-Time Clock. A tiny coin battery (not included in most kits) can be connected here so the Pi remembers the correct date and time even when it is unplugged. Without a battery, the Pi simply fetches the time from the internet when it connects. This is perfectly fine for most uses.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <em>RTC</em> (Real-Time Clock) is a tiny circuit that keeps ticking like a wristwatch even with the main power off — but only if a backup battery is attached. Without one, the Pi asks the internet "What time is it?" every time it starts.</div>
+
+<h3>Top Edge: Power Button</h3>
+
+<p>The Pi 5 has a small tactile button near the corner of the board, labelled "PWR_BTN". This is a genuine improvement over earlier Raspberry Pi models, which had no power button at all. It works as follows:</p>
+
+<ul>
+  <li><strong>Press once when the Pi is off</strong> — starts the Pi (same as plugging in the power).</li>
+  <li><strong>Short press while the Pi is running</strong> — sends a polite "please shut down" signal to the operating system. The Pi will save everything and power off cleanly within a few seconds. This is the recommended way to turn the Pi off.</li>
+  <li><strong>Press and hold for about 5 seconds</strong> — forces an immediate power cut (emergency only; equivalent to yanking the plug). Use this only if the Pi has frozen completely and will not respond.</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> Never simply pull out the power cable while the Pi is running. Because the operating system is writing to the microSD card almost continuously, cutting the power mid-write can corrupt the card and make the Pi unbootable. Always shut down properly first.</div>
+
+<h3>CSI and DSI Connectors (Camera and Display Ribbons)</h3>
+
+<p>On the left side of the board, between the GPIO header and the PCIe connector, are two flat ribbon-cable sockets. These are:</p>
+
+<ul>
+  <li><strong>CSI</strong> (Camera Serial Interface) — for attaching an official Raspberry Pi Camera Module using a flexible ribbon cable.</li>
+  <li><strong>DSI</strong> (Display Serial Interface) — for attaching the official Raspberry Pi Touchscreen Display.</li>
+</ul>
+
+<p>Both connectors have a small locking clip that you push down to lock a ribbon cable in place, or lift to release it. For initial setup you will not need either of these — they are for future projects.</p>
+
+<h3>PCIe / FPC Connector</h3>
+
+<p>Between the CSI/DSI connectors and the GPIO area, a long thin socket runs parallel to the top edge. This is the <strong>PCIe 2.0 x1 / FPC connector</strong>. With an optional add-on board called an M.2 HAT, you can attach a fast NVMe solid-state drive (SSD) here, giving the Pi storage that is many times faster than even the best microSD card. This is an advanced upgrade — your kit uses the microSD card, which works perfectly well to start with.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>PCIe</em> (Peripheral Component Interconnect Express) is a fast data lane originally designed for desktop PC graphics cards. In the Pi 5, a single lane is exposed on a flat ribbon connector so you can add a speedy SSD. <em>NVMe</em> is the type of very fast solid-state storage that uses this lane.</div>
+
+<h2 id="your-irasptek-kit-every-part-explained">Your iRasptek Kit — Every Part Explained</h2>
+
+<p>Now let's look at the individual items in the box and understand why each one matters.</p>
+
+<h3>The 27 W USB-C Power Supply</h3>
+
+<p>This looks like a phone charger but is significantly more capable. It outputs 5.1 V at up to 5 A, giving 27 W of power. The Pi 5 can draw more power than earlier Pi models — especially if you have multiple USB devices attached — so a proper supply is essential.</p>
+
+<p>Why does the exact supply matter? A cheap phone charger typically provides 5 V at 1 or 2 A (5–10 W). When the Pi 5 draws more current than the charger can supply, the voltage drops below 5 V and the Pi displays a <strong>yellow lightning bolt</strong> in the top-right corner of the screen. In this low-voltage state the processor throttles itself to use less power — meaning the Pi runs noticeably slower. Always use the supplied 27 W adapter.</p>
+
+<div class="warn"><strong>Careful:</strong> The plug on the iRasptek supply will match the sockets in your country. If you travel with the Pi, take the correct plug adapter — never force a foreign plug into a socket.</div>
+
+<h3>The Active Cooler</h3>
+
+<p>Attached to the top of the SoC, you will see (or feel through the case) a small heatsink with a tiny fan on top. This is the <strong>Active Cooler</strong>. It does two jobs at once: the metal heatsink draws heat away from the chip by conduction, and the fan blows that heat away into the surrounding air.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>heatsink</em> is a piece of metal (usually aluminium) with fins or ridges that absorbs heat from a chip and spreads it over a large surface area so air can carry it away. An <em>active cooler</em> adds a fan to speed that process up.</div>
+
+<p>Why does the Pi 5 need active cooling? The Arm Cortex-A76 processor in the Pi 5 is considerably more powerful than its predecessors. Under a heavy load — compiling software, running a 4K video, or playing a 3D game — it generates enough heat to throttle itself if left uncooled. The Active Cooler keeps the chip well below its 85 °C thermal limit even under sustained full load, so your Pi always runs at full speed. A heatsink alone (passive cooling) is insufficient for a Pi 5 under heavy use; the fan makes the difference.</p>
+
+<div class="note"><strong>Note:</strong> In your assembled iRasptek kit, the Active Cooler is already clipped on and the fan cable is plugged into the board's fan connector. You do not need to do anything — just appreciate that it is there keeping your Pi healthy.</div>
+
+<h3>The Case</h3>
+
+<p>The iRasptek case is made from aluminium (sometimes with a red-and-white design). It serves three purposes: physical protection, additional passive heat dissipation (aluminium conducts heat away from the board), and a tidy appearance. The case has cutouts for every port so all your cables can reach the board without opening the case.</p>
+
+<p>The microSD card slot is accessible through an opening on the left side of the case — you do not need to open the case to swap cards.</p>
+
+<h3>The microSD Card and USB Card Reader</h3>
+
+<p>Your kit includes a microSD card (64 GB, 128 GB, or 256 GB depending on the kit version) which may already have Raspberry Pi OS installed on it. The card reader allows you to plug the microSD card into a Windows 11 PC via a standard USB port — useful for writing a fresh OS image, making a backup, or recovering a broken system.</p>
+
+<div class="tip"><strong>Tip:</strong> Even if your card already has the OS on it, keep the USB card reader safe. It is your rescue tool if anything goes wrong with the software later.</div>
+
+<h3>The Micro-HDMI to HDMI Cable</h3>
+
+<p>This cable has a small micro-HDMI connector at one end (the Pi end) and a full-size HDMI connector at the other end (the monitor or TV end). It carries both video and audio. The cable supports HDMI 2.0, which is enough for 4K resolution at 60 frames per second.</p>
+
+<div class="note"><strong>Note:</strong> Most modern monitors and televisions have at least one full-size HDMI input. If your monitor only has DisplayPort or VGA inputs, you will need a separate active HDMI-to-DisplayPort or HDMI-to-VGA adapter (not included). Check your monitor's inputs before your first setup session.</div>
+
+<h2 id="a-quick-reference-table-ports-and-what-to-plug-i">A Quick-Reference Table: Ports and What to Plug In</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Port / Connector</th>
+      <th>Location on board</th>
+      <th>What you plug in</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>USB 3.0 × 2 (blue)</td>
+      <td>Right edge, upper pair</td>
+      <td>USB memory sticks, external drives, USB hubs</td>
+      <td>Up to 5 Gbps; also works for keyboard/mouse</td>
+    </tr>
+    <tr>
+      <td>USB 2.0 × 2 (black)</td>
+      <td>Right edge, lower pair</td>
+      <td>Keyboard, mouse, any USB device</td>
+      <td>Up to 480 Mbps; fine for input devices</td>
+    </tr>
+    <tr>
+      <td>Gigabit Ethernet</td>
+      <td>Right edge, top</td>
+      <td>RJ-45 network cable to router</td>
+      <td>Up to 1 Gbps; more reliable than Wi-Fi</td>
+    </tr>
+    <tr>
+      <td>micro-HDMI 0</td>
+      <td>Bottom edge, inner</td>
+      <td>Primary monitor or TV (via supplied cable)</td>
+      <td>Up to 4K @ 60 fps; use this one first</td>
+    </tr>
+    <tr>
+      <td>micro-HDMI 1</td>
+      <td>Bottom edge, outer</td>
+      <td>Second monitor (optional)</td>
+      <td>Up to 4K @ 60 fps; for dual-display setups</td>
+    </tr>
+    <tr>
+      <td>USB-C (power only)</td>
+      <td>Bottom edge, far right</td>
+      <td>27 W USB-C power supply</td>
+      <td>Data is NOT supported on this port</td>
+    </tr>
+    <tr>
+      <td>microSD slot</td>
+      <td>Underside, left edge</td>
+      <td>microSD card (your OS and storage)</td>
+      <td>Push to insert; push to eject (spring-loaded)</td>
+    </tr>
+    <tr>
+      <td>40-pin GPIO</td>
+      <td>Top edge</td>
+      <td>Electronics projects (LEDs, sensors, etc.)</td>
+      <td>3.3 V logic only; leave alone until Chapter 10</td>
+    </tr>
+    <tr>
+      <td>PCIe / FPC</td>
+      <td>Left area, horizontal</td>
+      <td>M.2 NVMe SSD (via M.2 HAT add-on board)</td>
+      <td>Advanced upgrade; not needed for beginners</td>
+    </tr>
+    <tr>
+      <td>CSI (camera)</td>
+      <td>Left side, ribbon slot</td>
+      <td>Raspberry Pi Camera Module ribbon cable</td>
+      <td>For future camera projects</td>
+    </tr>
+    <tr>
+      <td>DSI (display)</td>
+      <td>Left side, ribbon slot</td>
+      <td>Official Pi Touchscreen ribbon cable</td>
+      <td>For future touchscreen projects</td>
+    </tr>
+    <tr>
+      <td>Fan connector (J14)</td>
+      <td>Near top edge</td>
+      <td>Active Cooler fan cable (already connected)</td>
+      <td>Pi controls fan speed automatically</td>
+    </tr>
+    <tr>
+      <td>RTC battery</td>
+      <td>Near top edge</td>
+      <td>Small lithium coin battery (optional)</td>
+      <td>Keeps time when unplugged; not in kit</td>
+    </tr>
+    <tr>
+      <td>Power button (PWR_BTN)</td>
+      <td>Top edge, corner</td>
+      <td>Press to start; short-press to shut down</td>
+      <td>Hold 5 s for emergency power cut only</td>
+    </tr>
+    <tr>
+      <td>Audio output</td>
+      <td>None (no headphone jack)</td>
+      <td>Via HDMI cable or USB audio adapter</td>
+      <td>Bluetooth audio also supported</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="recognising-a-correct-assembly">Recognising a Correct Assembly</h2>
+
+<p>Because your kit arrived assembled, you want to confirm it is put together correctly before powering on for the first time. Here is what a good assembly looks like:</p>
+
+<ul>
+  <li>The Active Cooler sits flat and firm on the SoC. If you can see the board, the cooler should not wobble or feel loose. The fan cable should be plugged into the small 4-pin socket on the board.</li>
+  <li>The board sits snugly inside the case, with all the USB, Ethernet, HDMI, and power sockets lined up with the cutouts in the case. Nothing should be forced or misaligned.</li>
+  <li>The microSD card is inserted in the slot. From the underside of the board (or through the left-side opening in the case), you should see the edge of the card sitting flush — it should not be sticking out at an angle.</li>
+  <li>No loose screws, spare parts, or leftover components remain in the box. (It is normal if there are spare rubber feet or a thin instruction leaflet.)</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> Some iRasptek kit configurations include a second set of thermal pads or a small tube of thermal paste. If your kit arrived with these separate items and the Active Cooler is already installed, the extras are simply spares — you do not need to do anything with them.</div>
+
+<h2 id="the-microsd-card-inserting-and-removing">The microSD Card: Inserting and Removing</h2>
+
+<p>The microSD card slot is spring-loaded: push the card in until you feel a click, then release — the card locks in place. To remove it, push gently again until you feel a second click, then let go — the spring will pop the card out far enough to grip it with your fingers.</p>
+
+<div class="warn"><strong>Careful:</strong> Never remove the microSD card while the Pi is powered on and running. Doing so is like ripping a hard drive out of a running PC — it will almost certainly corrupt the card and you will have to reinstall the operating system. Always shut down the Pi fully before removing the card.</div>
+
+<p>If your iRasptek kit arrived with the card already inserted and Raspberry Pi OS pre-installed, <strong>leave it in place</strong> for now. Chapter 3 covers what to do if you ever need to re-write the card from scratch.</p>
+
+<h2 id="connecting-everything-for-the-first-time">Connecting Everything for the First Time</h2>
+
+<p>Order matters when connecting a Raspberry Pi for the first time. Follow the steps below in sequence — and always connect power <em>last</em>.</p>
+
+<div class="tip"><strong>Tip:</strong> Before you start, clear a flat, stable desk surface and have all your cables and peripherals to hand: monitor, keyboard, mouse, and your network cable (if using wired internet).</div>
+
+<figure class="fig">
+<svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+
+  <!-- Monitor -->
+  <rect x="30" y="20" width="110" height="75" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <rect x="45" y="28" width="80" height="52" rx="3" fill="#1f2933"/>
+  <text x="85" y="57" text-anchor="middle" fill="#fff" font-size="11">Monitor</text>
+  <rect x="70" y="95" width="30" height="10" rx="2" fill="#6d28d9"/>
+  <rect x="55" y="105" width="60" height="6" rx="2" fill="#6d28d9"/>
+
+  <!-- Keyboard -->
+  <rect x="30" y="145" width="110" height="40" rx="5" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="85" y="170" text-anchor="middle" fill="#1f2933" font-size="12">Keyboard</text>
+
+  <!-- Mouse -->
+  <rect x="30" y="210" width="60" height="80" rx="20" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <line x1="60" y1="210" x2="60" y2="250" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="60" y="305" text-anchor="middle" fill="#1f2933" font-size="12">Mouse</text>
+
+  <!-- Router -->
+  <rect x="30" y="315" width="110" height="0" rx="4" fill="#f3f0ff" stroke="#6d28d9" stroke-width="0"/>
+  <!-- simple router icon -->
+  <rect x="560" y="220" width="100" height="50" rx="6" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2"/>
+  <text x="610" y="240" text-anchor="middle" fill="#1f2933" font-size="12">Router</text>
+  <text x="610" y="256" text-anchor="middle" fill="#0ea5a4" font-size="11">(optional)</text>
+
+  <!-- Power supply -->
+  <rect x="560" y="140" width="100" height="50" rx="6" fill="#f3f0ff" stroke="#b45309" stroke-width="2"/>
+  <text x="610" y="161" text-anchor="middle" fill="#1f2933" font-size="12">27 W</text>
+  <text x="610" y="177" text-anchor="middle" fill="#b45309" font-size="11">Power Supply</text>
+
+  <!-- Pi (centre) -->
+  <rect x="280" y="120" width="140" height="110" rx="10" fill="#1a3a1a" stroke="#2d5a27" stroke-width="3"/>
+  <text x="350" y="175" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">Raspberry</text>
+  <text x="350" y="192" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">Pi 5</text>
+
+  <!-- Cable: Monitor to Pi (micro-HDMI) -->
+  <line x1="140" y1="57" x2="280" y2="155" stroke="#6d28d9" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="195" y="95" text-anchor="middle" fill="#6d28d9" font-size="11" transform="rotate(-28 195 95)">micro-HDMI cable</text>
+
+  <!-- Cable: Keyboard to Pi (USB) -->
+  <line x1="140" y1="165" x2="280" y2="165" stroke="#1a5fb4" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="215" y="158" text-anchor="middle" fill="#1a5fb4" font-size="11">USB</text>
+
+  <!-- Cable: Mouse to Pi (USB) -->
+  <line x1="90" y1="210" x2="290" y2="195" stroke="#1a5fb4" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="185" y="197" text-anchor="middle" fill="#1a5fb4" font-size="11">USB</text>
+
+  <!-- Cable: Router to Pi (Ethernet) -->
+  <line x1="560" y1="245" x2="420" y2="185" stroke="#0ea5a4" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="500" y="210" text-anchor="middle" fill="#0ea5a4" font-size="11">Ethernet</text>
+
+  <!-- Cable: Power supply to Pi (USB-C) LAST -->
+  <line x1="560" y1="165" x2="420" y2="200" stroke="#b45309" stroke-width="2.5"/>
+  <text x="500" y="170" text-anchor="middle" fill="#b45309" font-size="11" font-weight="bold">USB-C — LAST</text>
+
+  <!-- Step numbers -->
+  <circle cx="85" cy="57" r="12" fill="#6d28d9"/>
+  <text x="85" y="62" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">1</text>
+
+  <circle cx="85" cy="165" r="12" fill="#6d28d9"/>
+  <text x="85" y="170" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">2</text>
+
+  <circle cx="60" cy="248" r="12" fill="#6d28d9"/>
+  <text x="60" y="253" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">3</text>
+
+  <circle cx="610" cy="245" r="12" fill="#0ea5a4"/>
+  <text x="610" y="250" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">4</text>
+
+  <circle cx="610" cy="165" r="12" fill="#b45309"/>
+  <text x="610" y="170" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">6</text>
+
+  <!-- Step 5 - microSD reminder inside Pi -->
+  <text x="350" y="220" text-anchor="middle" fill="#aaa" font-size="10">⑤ Check SD card</text>
+
+</svg>
+<figcaption>Connection order for first setup. Connect devices 1–5 first, then plug in power (6) last. Dashed lines = plug in order shown; solid orange line = power, connected last.</figcaption>
+</figure>
+
+<ol class="steps">
+  <li>
+    <strong>Connect the monitor.</strong> Plug the <em>micro-HDMI end</em> of the supplied cable into <strong>micro-HDMI port 0</strong> on the Pi (the one nearer the centre of the board). Plug the full-size HDMI end into your monitor or TV. Switch the monitor on and set it to the correct HDMI input (usually labelled HDMI 1, HDMI 2, etc. — check your monitor's manual if unsure).
+  </li>
+  <li>
+    <strong>Connect a keyboard.</strong> Plug a USB keyboard into any of the four USB ports on the right edge of the Pi. For a beginner first-boot it does not matter which USB port — any of the four will work.
+  </li>
+  <li>
+    <strong>Connect a mouse.</strong> Plug a USB mouse into another USB port. If you have a wireless keyboard/mouse combo with a single USB dongle, plug the dongle in now.
+  </li>
+  <li>
+    <strong>Connect to the network (optional but recommended).</strong> If your router is nearby, plug a standard Ethernet cable from the router into the Pi's Ethernet port (top-right of the board). Wired internet is faster and more reliable for the initial setup and system update. You can set up Wi-Fi from within the operating system later if you prefer.
+  </li>
+  <li>
+    <strong>Check the microSD card is inserted.</strong> Confirm the card is seated in the slot — it should be flush and locked in place. If your kit came pre-installed, this is already done.
+  </li>
+  <li>
+    <strong>Connect the power supply — last.</strong> Plug the USB-C end of the 27 W supply into the USB-C power socket on the Pi's bottom edge, then plug the other end into a wall socket and switch the socket on. The Pi will start immediately. You will see a green LED on the board begin to flash, and within a few seconds the Raspberry Pi boot screen will appear on your monitor.
+  </li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Always connect peripheral devices (monitor, keyboard, mouse) BEFORE applying power. Plugging a monitor in after the Pi has booted can sometimes mean the display output is not detected correctly, and you may see a blank screen.</div>
+
+<div class="note"><strong>Note:</strong> The Pi 5 also has built-in dual-band Wi-Fi (2.4 GHz and 5 GHz) and Bluetooth 5.0 — no antenna or extra hardware needed. However, for the smoothest first-boot experience, a wired Ethernet connection is recommended. Wi-Fi setup is covered in Chapter 4.</div>
+
+<h2 id="what-you-will-see-when-the-pi-starts">What You Will See When the Pi Starts</h2>
+
+<p>After applying power you should see the following sequence on your monitor, which takes roughly 20–30 seconds on first boot:</p>
+
+<ol>
+  <li>A <strong>rainbow square</strong> flashes briefly in the corner — this is the Pi's bootloader testing the display connection. It disappears almost immediately.</li>
+  <li>A <strong>Raspberry Pi logo</strong> appears on a dark background, with four smaller Pi logos in a row — one for each processor core starting up.</li>
+  <li>A stream of white text scrolls past — this is the Linux kernel loading. Do not worry about reading it; it disappears quickly.</li>
+  <li>The <strong>Raspberry Pi OS desktop</strong> appears, typically with a Setup Wizard asking you to choose language, keyboard layout, username, password, and Wi-Fi network. Chapter 3 walks you through this wizard step by step.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> If the screen stays blank after 30 seconds, check that the monitor is switched on and set to the correct HDMI input, and that the micro-HDMI cable is securely plugged into port 0 (the inner socket) on the Pi's bottom edge.</div>
+
+<h2 id="how-to-turn-the-pi-off-properly">How to Turn the Pi Off Properly</h2>
+
+<p>When you are ready to stop for the day, do <em>not</em> pull the power cable out. Instead, use one of these two methods:</p>
+
+<ul>
+  <li><strong>From the desktop:</strong> Click the Raspberry Pi menu (the raspberry icon, top-left of the screen) &rarr; choose <em>Logout</em> or <em>Shutdown</em> &rarr; click <em>Shutdown</em>. The Pi will close all programs, save everything, and power off. The green LED will stop flashing when it is safe to unplug.</li>
+  <li><strong>With the power button:</strong> Give the power button a single short press. The Pi will do the same clean shutdown as above. Wait for the green LED to go dark before removing power.</li>
+</ul>
+
+<p>If the desktop has become unresponsive and you cannot click the menu, you can type a shutdown command into a <strong>terminal</strong> window (covered in Chapter 5). Open a terminal and type the following, then press Enter:</p>
+
+<pre class="code"><code>sudo shutdown -h now</code></pre>
+<div class="explain">
+  <p>This command tells the Pi to power off immediately. Here is what each word means:</p>
+  <ul>
+    <li><code>sudo</code> — "superuser do": runs the next command with full administrator privileges. The Pi may ask for your password the first time you use <code>sudo</code> in a session.</li>
+    <li><code>shutdown</code> — the built-in Linux program that safely powers off or reboots the computer, making sure all files are saved first.</li>
+    <li><code>-h</code> — short for "halt": tells shutdown to fully power off the machine rather than just restarting it.</li>
+    <li><code>now</code> — do it immediately, with no countdown or delay.</li>
+  </ul>
+</div>
+
+<div class="note"><strong>Note:</strong> An equally correct modern alternative is <code>sudo systemctl poweroff</code>, which does exactly the same thing. Both commands work on Raspberry Pi OS Bookworm. The <code>shutdown -h now</code> form is slightly more traditional and is used here because it is easy to remember.</div>
+
+<div class="tip"><strong>Tip:</strong> You can also restart (reboot) the Pi from the same desktop menu. A restart is useful after installing new software or changing system settings — it is faster than a full shutdown and power-on cycle.</div>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>SoC (System on a Chip)</strong> — a single chip containing the processor, graphics unit, and all internal connections; the "brain" of the Pi.</li>
+  <li><strong>RAM (Random Access Memory)</strong> — fast, temporary memory that holds whatever the computer is currently doing; cleared when power is removed.</li>
+  <li><strong>microSD card</strong> — a fingernail-sized storage card that acts as the Pi's hard drive, holding the operating system and all files.</li>
+  <li><strong>USB 3.0 / USB 2.0</strong> — two versions of the universal plug standard; 3.0 (blue) is about ten times faster than 2.0 (black) for data transfer.</li>
+  <li><strong>Ethernet</strong> — a wired network connection using an RJ-45 cable; faster and more reliable than Wi-Fi.</li>
+  <li><strong>micro-HDMI</strong> — a smaller version of the standard HDMI video and audio connector, used on the Pi 5 to save space on the board.</li>
+  <li><strong>GPIO (General-Purpose Input/Output)</strong> — 40 programmable pins that let the Pi communicate with external electronics; operates at 3.3 V only.</li>
+  <li><strong>Active Cooler</strong> — a heatsink combined with a fan that keeps the Pi's processor at a safe temperature so it never slows down due to overheating.</li>
+  <li><strong>Heatsink</strong> — a piece of metal that absorbs and spreads heat away from a chip so that air can carry the heat away.</li>
+  <li><strong>PCIe (Peripheral Component Interconnect Express)</strong> — a high-speed data connection; the Pi 5 exposes one lane for attaching a fast NVMe SSD via an add-on board.</li>
+  <li><strong>NVMe</strong> — a type of very fast solid-state storage that connects via the PCIe lane on the Pi 5.</li>
+  <li><strong>CSI / DSI</strong> — flat ribbon-cable connectors for attaching an official Pi Camera (CSI) or official Pi Touchscreen (DSI).</li>
+  <li><strong>RTC (Real-Time Clock)</strong> — a circuit that keeps track of the date and time; needs a backup battery to remember the time when the Pi is unplugged.</li>
+  <li><strong>USB-C (power)</strong> — the socket on the Pi 5 that accepts the 27 W power supply; it carries power only, not data.</li>
+  <li><strong>sudo</strong> — a Linux command prefix meaning "run as administrator"; required for tasks that affect the whole system.</li>
+  <li><strong>Thermal throttling</strong> — when a processor deliberately slows itself down to avoid overheating; prevented by the Active Cooler.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>The Raspberry Pi 5 packs a powerful quad-core Arm Cortex-A76 processor, VideoCore VII graphics, and 16 GB of RAM onto a credit-card-sized board.</li>
+  <li>The board has two fast blue USB 3.0 ports, two standard black USB 2.0 ports, a Gigabit Ethernet socket, two micro-HDMI video outputs, a USB-C power input, a microSD storage slot, and a 40-pin GPIO header for electronics projects.</li>
+  <li>Additional connectors include CSI (camera ribbon), DSI (display ribbon), PCIe/FPC (for a fast NVMe SSD), a fan socket, an RTC battery socket, and a physical power button.</li>
+  <li>The Pi 5 has no 3.5 mm headphone jack; audio is delivered through the HDMI cable, a USB audio adapter, or Bluetooth.</li>
+  <li>The 27 W USB-C power supply is essential — a weaker charger will cause the Pi to display a yellow lightning bolt warning and slow itself down.</li>
+  <li>The Active Cooler (heatsink and fan) keeps the Pi 5 running at full speed under heavy loads; it is already fitted in your iRasptek kit.</li>
+  <li>Always connect the monitor, keyboard, and mouse first, and plug in the power supply last.</li>
+  <li>Never pull the power cable out while the Pi is running — always shut down using the desktop menu, the power button, or the <code>sudo shutdown -h now</code> command, and wait for the green LED to go dark.</li>
+  <li>The microSD card is the Pi's main storage; never remove it while the Pi is switched on.</li>
+</ul>
+</div>

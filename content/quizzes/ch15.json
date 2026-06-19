@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch15",
+  "title": "Pi-hole Ad-Blocker",
+  "questions": [
+    {
+      "q": "How does Pi-hole block adverts and trackers on every device in your home without installing anything on those devices?",
+      "choices": [
+        "It installs a browser extension on each device automatically over the network.",
+        "It acts as your home network's DNS server and returns a 'not found' answer for known ad and tracker domains.",
+        "It filters web traffic by inspecting the content of every web page before it reaches your device.",
+        "It blocks incoming connections at your router's firewall using a list of banned IP addresses."
+      ],
+      "answer": 1,
+      "explain": "Pi-hole works at the DNS level: it intercepts look-up requests for domain names. When a device asks for an ad domain, Pi-hole responds with 'not found' so the ad never loads. Because every device on the network uses Pi-hole as its DNS server, they are all protected with no software installed on them. It does not inspect page content or use a firewall."
+    },
+    {
+      "q": "Why is it essential to give your Raspberry Pi a fixed (static) IP address before setting up Pi-hole?",
+      "choices": [
+        "A fixed IP address makes the Pi run faster and handle more DNS requests.",
+        "Pi-hole's installer refuses to run unless the Pi already has a static IP.",
+        "All devices on your network will be told to send DNS requests to your Pi's IP address, so if that address ever changes they will lose the ability to look up websites.",
+        "Your router requires a static IP on any device before it will allow DHCP reservations."
+      ],
+      "answer": 2,
+      "explain": "Every device on your network is configured to send DNS look-ups to a specific IP address — the Pi's. If the Pi's address changes (which can happen with a normal DHCP setup), those devices suddenly cannot resolve any domain names and lose internet access. The fixed address is about reliability, not speed or installer requirements."
+    },
+    {
+      "q": "After installing Pi-hole, what must you change in your router's settings for all home devices to automatically use Pi-hole?",
+      "choices": [
+        "Assign a DHCP reservation for every phone, laptop, and TV on the network.",
+        "Enable the Pi-hole browser extension on each device.",
+        "Change the router's gateway address to the Pi's fixed IP address.",
+        "Set the router's Primary DNS server to the Pi's fixed IP address."
+      ],
+      "answer": 3,
+      "explain": "The router tells every device that joins the network which DNS server to use. Changing the router's Primary DNS field to the Pi's IP means all devices are automatically directed to Pi-hole — no changes needed on individual phones or laptops. The gateway address is unrelated to DNS."
+    },
+    {
+      "q": "Which of the following is something Pi-hole genuinely CANNOT block?",
+      "choices": [
+        "Adverts on YouTube, because YouTube serves its ads from the same domain as its videos.",
+        "Tracking pixels loaded from dedicated third-party tracker domains.",
+        "Domains listed in community-maintained blocklists such as StevenBlack's unified list.",
+        "Requests to ad networks that have been added to Pi-hole's denylist."
+      ],
+      "answer": 0,
+      "explain": "YouTube serves both video content and adverts from the same domain, so blocking the ad domain would also block the videos. Pi-hole can only block an entire domain, not individual parts of it. For YouTube ads you need a browser extension like uBlock Origin. Pi-hole works well against third-party ad and tracker domains listed in blocklists."
+    },
+    {
+      "q": "A website suddenly stops loading images and buttons after you set up Pi-hole. What is the correct first step to diagnose the problem?",
+      "choices": [
+        "Uninstall Pi-hole and reinstall it from scratch.",
+        "Change the upstream DNS provider in Pi-hole settings from Cloudflare to Google.",
+        "Run 'pihole gravity' to refresh all blocklists, then try the website again.",
+        "Open the Pi-hole Query Log, reproduce the problem, and look for red (blocked) entries that appeared at the same moment."
+      ],
+      "answer": 3,
+      "explain": "The Query Log shows every DNS look-up in real time and colour-codes blocked entries in red. By triggering the broken behaviour and immediately checking the log, you can see exactly which domain Pi-hole is blocking that the site needs. You can then add that domain to the allowlist. Refreshing blocklists or reinstalling would not help identify or fix an over-aggressive block."
+    }
+  ]
+}

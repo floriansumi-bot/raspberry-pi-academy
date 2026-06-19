@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch05",
+  "title": "A Tour of the Desktop",
+  "questions": [
+    {
+      "q": "Where is the Raspberry Menu button located on the Raspberry Pi OS desktop?",
+      "choices": ["Bottom-left corner of the screen", "In the centre of the taskbar", "Far-left of the taskbar at the top of the screen", "Top-right corner of the taskbar"],
+      "answer": 2,
+      "explain": "The Raspberry Menu button (the raspberry icon) sits at the far left of the taskbar, which runs along the very top of the screen. The system tray and clock are on the right; the window list occupies the centre."
+    },
+    {
+      "q": "What is the correct and safe way to turn off a Raspberry Pi?",
+      "choices": ["Use Raspberry Menu → Shutdown, then wait for the activity light to stop before unplugging", "Hold the power button for 10 seconds to force an immediate power cut", "Close all open application windows, then unplug the power cable", "Unplug the power cable once the screen looks idle"],
+      "answer": 0,
+      "explain": "Raspberry Pi OS writes data to the microSD card continuously in the background. Using the Shutdown option (or a single short press of the physical button) tells the system to finish all writes safely before powering off. Unplugging mid-session can corrupt the microSD card."
+    },
+    {
+      "q": "Which Raspberry Pi Configuration tab controls SSH and VNC?",
+      "choices": ["System", "Localisation", "Interfaces", "Performance"],
+      "answer": 2,
+      "explain": "The Interfaces tab is where you enable or disable SSH (remote text access) and VNC (remote graphical desktop). Both are off by default for security. The System tab covers password and hostname; Localisation covers language and keyboard; Performance covers GPU memory and the fan."
+    },
+    {
+      "q": "In Raspberry Pi Configuration, which tab would you use to switch your keyboard layout from US to UK?",
+      "choices": ["Display", "Performance", "System", "Localisation"],
+      "answer": 3,
+      "explain": "The Localisation tab handles language, timezone, keyboard layout, and Wi-Fi country. The Display tab controls screen resolution and blanking; Performance covers GPU memory and the fan; System covers password and boot options."
+    },
+    {
+      "q": "What happens when you press Ctrl+H inside the File Manager?",
+      "choices": ["It opens a new File Manager window", "It copies the selected file to the home folder", "It shows hidden files and folders whose names start with a dot", "It opens the Help documentation"],
+      "answer": 2,
+      "explain": "Ctrl+H toggles the display of hidden files — those whose names begin with a dot (such as .config). These are system and settings files kept out of sight by default. Press Ctrl+H again to hide them."
+    }
+  ]
+}

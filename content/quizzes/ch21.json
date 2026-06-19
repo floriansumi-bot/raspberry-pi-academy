@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch21",
+  "title": "Maintenance & Troubleshooting",
+  "questions": [
+    {
+      "q": "You run 'sudo apt update' on your Raspberry Pi. What does this command actually do?",
+      "choices": [
+        "Downloads and installs all available software updates",
+        "Removes old packages that are no longer needed",
+        "Refreshes the list of available packages without installing anything",
+        "Restarts the Pi so new software can take effect"
+      ],
+      "answer": 2,
+      "explain": "'sudo apt update' only refreshes the package catalogue — it does not install anything. You need 'sudo apt full-upgrade -y' as a separate second step to actually download and install the updates."
+    },
+    {
+      "q": "You want to check whether your Raspberry Pi 5 has been throttling due to heat since the last reboot. Which command gives you this information?",
+      "choices": [
+        "vcgencmd measure_temp",
+        "htop",
+        "df -h",
+        "vcgencmd get_throttled"
+      ],
+      "answer": 3,
+      "explain": "'vcgencmd get_throttled' reads a status word from the hardware; a result of 0x0 means no throttling has occurred since the last reboot. 'vcgencmd measure_temp' shows the current temperature but not whether throttling happened."
+    },
+    {
+      "q": "During boot, the green ACT LED flashes in a steady repeating pattern of 4 flashes then a pause. What should you do?",
+      "choices": [
+        "Re-flash the microSD card using Raspberry Pi Imager",
+        "Wait longer — 4 flashes means the Pi is copying files and will finish soon",
+        "Replace the power supply with the included 27 W supply",
+        "Enable SSH using raspi-config so the Pi can finish booting"
+      ],
+      "answer": 0,
+      "explain": "A repeating 4-flash pattern means 'start.elf cannot be launched', which points to a card or image problem. Re-flashing the microSD card with Raspberry Pi Imager is the fix for all single-digit blink-code errors."
+    },
+    {
+      "q": "You try to install a Python library with 'pip install requests' on Raspberry Pi OS Bookworm and see an 'externally-managed-environment' error. What is the correct explanation?",
+      "choices": [
+        "Your internet connection is down and pip cannot reach the package server",
+        "Bookworm intentionally blocks pip from writing to the system Python to protect the OS",
+        "The 'requests' library does not exist for Python 3",
+        "You need to run 'sudo apt update' before pip will work"
+      ],
+      "answer": 1,
+      "explain": "This error is deliberate, not a bug. Raspberry Pi OS Bookworm protects the system Python from being broken by pip installs. The recommended solutions are to use 'sudo apt install python3-requests', create a virtual environment, or use Thonny's package manager."
+    },
+    {
+      "q": "Why is it important to always shut the Raspberry Pi down cleanly rather than simply unplugging the power?",
+      "choices": [
+        "The Active Cooler fan must spin down safely or it will overheat",
+        "The Pi needs time to close network connections before it can be used again",
+        "Unplugging power damages the USB-C socket on the board",
+        "Cutting power while the card is writing data can corrupt the microSD card"
+      ],
+      "answer": 3,
+      "explain": "The microSD card is the most fragile part of the Pi setup. If power is cut while the card is in the middle of a write operation, files can become garbled or the filesystem can become unreadable. Always use the desktop Shutdown menu, 'sudo shutdown -h now', or the physical power button to shut down cleanly."
+    }
+  ]
+}

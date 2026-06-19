@@ -1,0 +1,615 @@
+<p class="lead">This chapter tackles one of the most exciting things you can do with your 16 GB Raspberry Pi 5: run a genuine artificial-intelligence language model entirely on your own device, with no internet connection required, no cloud subscription, and nothing leaving your home. It is genuinely remarkable — and with honest expectations about speed, completely achievable.</p>
+
+<h2 id="what-is-an-ai-language-model-in-plain-english">What is an AI language model, in plain English?</h2>
+
+<p>You have probably heard of ChatGPT, Google Gemini, or similar tools that you type questions to and receive surprisingly thoughtful answers. Behind the scenes, each of those services runs a <strong>large language model</strong> — a piece of software that has been trained to understand and generate human language.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A "large language model" (LLM) is a program that has read an enormous amount of text — books, websites, articles — and learned the patterns of how words and ideas connect. When you ask it a question, it predicts, word by word, what a useful and sensible answer looks like. It does not truly "think" or "know" things the way a person does, but the results can be remarkably helpful for writing, answering questions, summarising text, and generating code.</div>
+
+<p>The difference between what you see on the internet and what you can run on your Pi comes down to <strong>model size</strong>. The biggest commercial models (the ones powering ChatGPT and Gemini) have hundreds of billions of <strong>parameters</strong> and require vast data centres filled with specialised hardware. The ones you can run at home are much smaller — but still impressively capable.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Parameters" are the millions or billions of internal numbers that a language model learned during training. Think of them like the settings on a very complicated machine. More parameters generally means a smarter model — but also one that needs more memory and runs more slowly. A model with 3 billion parameters is a small, efficient machine; a model with 70 billion parameters is a much larger one that needs far more RAM.</div>
+
+<h2 id="how-models-are-measured-and-what-fits-on-a-pi">How models are measured — and what fits on a Pi</h2>
+
+<p>Model sizes are described in billions of parameters, written as "B". Common sizes you will encounter include 1B, 3B, 7B, 8B, and 13B. As a rough guide, the bigger the number, the smarter the answers — but also the more RAM needed and the slower it runs.</p>
+
+<p>There is a clever technique called <strong>quantisation</strong> that makes models much more practical for home hardware.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Quantisation" is a form of compression applied to an AI model. The original model stores each parameter as a precise 32-bit or 16-bit number. Quantisation rounds those numbers down to 4 bits or 8 bits each — losing a tiny amount of accuracy but shrinking the model to roughly one quarter or one eighth of its original size. A 7B model that would normally need about 14 GB of RAM can, after 4-bit quantisation, fit in around 4–5 GB. The quality difference is usually small enough that you will not notice it for everyday tasks.</div>
+
+<p>Your Pi 5 has 16 GB of RAM — four times more than the standard 4 GB model, and twice as much as the 8 GB version. This genuinely matters, because it allows you to run models in the 7B–8B range comfortably, while leaving enough memory for the operating system to run smoothly alongside them. Most other Pis can only manage 1B–3B models without grinding to a halt.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Model size</th>
+      <th>Approx. RAM needed (4-bit quantised)</th>
+      <th>Fits on your 16 GB Pi?</th>
+      <th>Speed (tokens/second, approx.)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1B parameters</td>
+      <td>~1 GB</td>
+      <td>Yes, easily</td>
+      <td>15–30 tokens/sec (fast)</td>
+    </tr>
+    <tr>
+      <td>3B parameters</td>
+      <td>~2–3 GB</td>
+      <td>Yes, easily</td>
+      <td>8–15 tokens/sec (comfortable)</td>
+    </tr>
+    <tr>
+      <td>7B–8B parameters</td>
+      <td>~5–6 GB</td>
+      <td>Yes, with room to spare</td>
+      <td>3–7 tokens/sec (readable)</td>
+    </tr>
+    <tr>
+      <td>13B parameters</td>
+      <td>~9–10 GB</td>
+      <td>Yes, just fits</td>
+      <td>1–3 tokens/sec (slow but usable)</td>
+    </tr>
+    <tr>
+      <td>70B parameters</td>
+      <td>~45+ GB</td>
+      <td>No — not enough RAM</td>
+      <td>N/A</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> "Tokens per second" is how AI speed is measured. A token is roughly three quarters of a word on average — so 5 tokens per second is about 4 words per second. That is slower than a fast typist but perfectly readable as the text appears on screen, one word at a time.</div>
+
+<h2 id="setting-honest-expectations-before-you-start">Setting honest expectations before you start</h2>
+
+<p>Before installing anything, please read this section — it will save you frustration.</p>
+
+<ul>
+  <li><strong>Speed:</strong> Your Pi 5 runs AI on its main processor (CPU), not on a specialised AI chip. Expect text to appear at a readable pace — roughly like watching someone type — not instantly. A 7B model generating a paragraph may take 15–30 seconds. Smaller models are noticeably faster.</li>
+  <li><strong>No image generation:</strong> Generating photorealistic images (like Stable Diffusion does) requires a powerful graphics card. The Pi 5 cannot do this at any practical speed. What we cover here is text — asking questions and getting answers.</li>
+  <li><strong>Context length:</strong> Small models have a limited "memory" within a conversation. If you have a very long chat, the model may forget what was said at the beginning.</li>
+  <li><strong>Accuracy:</strong> Small local models can make mistakes or "hallucinate" (confidently state something false). Always verify important facts from other sources.</li>
+  <li><strong>Privacy:</strong> This is the genuine superpower. Everything stays on your device. No company sees your prompts, no data is sent anywhere, and it works with no internet connection at all. For sensitive documents, personal questions, or offline environments, this is a real advantage.</li>
+</ul>
+
+<figure class="fig">
+  <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#1f2933"/>
+      </marker>
+    </defs>
+    <!-- Left panel: Cloud AI -->
+    <rect x="20" y="30" width="270" height="240" rx="12" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="155" y="58" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="bold" fill="#6d28d9">Cloud AI (ChatGPT etc.)</text>
+    <!-- Your device box -->
+    <rect x="40" y="75" width="100" height="50" rx="6" fill="#6d28d9"/>
+    <text x="90" y="97" text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">Your device</text>
+    <text x="90" y="113" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#d8b4fe">(prompt typed here)</text>
+    <!-- Arrow right to cloud -->
+    <line x1="145" y1="100" x2="195" y2="100" stroke="#1f2933" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="170" y="90" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#1f2933">Internet</text>
+    <!-- Cloud server box -->
+    <rect x="200" y="75" width="70" height="50" rx="6" fill="#1f2933"/>
+    <text x="235" y="97" text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">Data</text>
+    <text x="235" y="112" text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">Centre</text>
+    <!-- Return arrow -->
+    <line x1="235" y1="130" x2="235" y2="165" stroke="#1f2933" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="235" y1="165" x2="90" y2="165" stroke="#1f2933" stroke-width="2"/>
+    <line x1="90" y1="165" x2="90" y2="150" stroke="#1f2933" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="165" y="183" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#1f2933">Answer returned</text>
+    <text x="155" y="215" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#1f2933">Your prompts travel over the internet</text>
+    <text x="155" y="232" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#1f2933">and are processed on remote servers.</text>
+    <text x="155" y="252" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6d28d9">Requires internet. Data leaves device.</text>
+    <!-- Right panel: Local AI -->
+    <rect x="350" y="30" width="270" height="240" rx="12" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2"/>
+    <text x="485" y="58" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="bold" fill="#0ea5a4">Local AI (your Pi 5)</text>
+    <!-- Pi box -->
+    <rect x="390" y="75" width="190" height="110" rx="8" fill="#0ea5a4"/>
+    <text x="485" y="102" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">Raspberry Pi 5</text>
+    <text x="485" y="122" text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">Prompt &#9658; Ollama &#9658; Model</text>
+    <text x="485" y="140" text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">All processing stays here</text>
+    <text x="485" y="158" text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">Answer &#9668;&#9668;&#9668;&#9668;&#9668;&#9668;&#9668;&#9668;</text>
+    <text x="485" y="215" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#1f2933">Everything happens inside your Pi.</text>
+    <text x="485" y="232" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#1f2933">Works offline. Nothing sent anywhere.</text>
+    <text x="485" y="252" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#0ea5a4">Private. No subscription needed.</text>
+  </svg>
+  <figcaption>Cloud AI sends your prompts across the internet to remote servers. Local AI on your Pi processes everything on your own device — privately, offline, and free.</figcaption>
+</figure>
+
+<h2 id="installing-ollama">Installing Ollama</h2>
+
+<p><strong>Ollama</strong> is a free, open-source tool that makes running AI models on your own computer as simple as typing one command. It handles downloading models, setting them up, and providing a straightforward way to chat with them. It also runs a small local web server in the background so that programs (like Python scripts) can send it questions and receive answers automatically.</p>
+
+<p>Open a Terminal window (click the black screen icon in the taskbar, or go to the Applications menu and look under Accessories). Then type the following command exactly and press Enter:</p>
+
+<pre class="code"><code>curl -fsSL https://ollama.com/install.sh | sh</code></pre>
+<div class="explain">
+  <p>This is a single command split into two parts connected by a pipe (<code>|</code>):</p>
+  <ul>
+    <li><strong><code>curl -fsSL https://ollama.com/install.sh</code></strong> — <code>curl</code> is a program that fetches content from the internet. The flags <code>-fsSL</code> tell it to fail silently if something goes wrong (<code>-f</code>), suppress the progress bar (<code>-s</code>), still show errors if they occur (<code>-S</code>), and follow any web redirects (<code>-L</code>). The result is the Ollama installation script, downloaded directly into memory.</li>
+    <li><strong><code>| sh</code></strong> — the pipe sends that downloaded script straight to <code>sh</code> (the shell, your command interpreter), which runs it immediately. This is a common one-line installation pattern in Linux.</li>
+  </ul>
+  <p>In plain English: download the official Ollama installer and run it. The script detects that you are on a Raspberry Pi (Linux, 64-bit ARM) and installs the correct version automatically. You will see progress messages scrolling past. When you see your terminal prompt (<code>pi@raspberrypi:~ $</code>) again, installation is complete.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> Running a script piped directly from the internet grants it full control over your system. Only do this for trusted, well-known projects. Ollama is a reputable open-source project at <code>ollama.com</code> — but as a general rule, always check the URL carefully before running such a command.</div>
+
+<p>Confirm the installation was successful by asking Ollama for its version number:</p>
+
+<pre class="code"><code>ollama --version</code></pre>
+<div class="explain">
+  <p><strong><code>ollama --version</code></strong> — runs the <code>ollama</code> program with the <code>--version</code> flag, which asks it to print which version is installed. If you see something like <code>ollama version 0.9.x</code>, everything worked. If you see "command not found", close the terminal window, open a fresh one, and try again — a new terminal session picks up the newly installed program.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> Ollama also installs itself as a background service that starts automatically every time your Pi boots. This means the AI server will always be ready when you want to use it, without any extra steps.</div>
+
+<h2 id="pulling-your-first-model">Pulling your first model</h2>
+
+<p>Ollama uses the word <strong>"pull"</strong> to mean "download a model from the internet and store it on your Pi". You only need to do this once per model — afterwards it lives on your microSD card and works completely offline.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Pulling" a model is similar to downloading an app. Once downloaded, you run it locally — no internet needed to use it, only to download it the first time.</div>
+
+<p>Start with a small, fast model to make sure everything works. <strong>Gemma 3 1B</strong> is Google's efficient 1-billion-parameter model, quantised to fit in about 800 MB. It downloads quickly and is a good first test:</p>
+
+<pre class="code"><code>ollama pull gemma3:1b</code></pre>
+<div class="explain">
+  <p><strong><code>ollama pull gemma3:1b</code></strong> — tells Ollama to download the Gemma 3 model at the "1b" (1 billion parameter) size. The part after the colon (<code>:1b</code>) is the <strong>tag</strong>, which selects which size or variant you want. Ollama will display a download progress bar. The file is about 815 MB, so on typical home broadband this takes one to three minutes.</p>
+</div>
+
+<p>Once that has downloaded, try a more capable model. <strong>Llama 3.2 3B</strong> is Meta's 3-billion-parameter model — noticeably smarter than Gemma 1B but still quick on your Pi:</p>
+
+<pre class="code"><code>ollama pull llama3.2:3b</code></pre>
+<div class="explain">
+  <p><strong><code>ollama pull llama3.2:3b</code></strong> — downloads Meta's Llama 3.2 model at the 3-billion-parameter size. This is around 2 GB and takes a few minutes. It gives clearly better answers than the 1B model for most everyday tasks, while still running at a comfortable speed.</p>
+</div>
+
+<p>If you want the best quality that fits comfortably in your 16 GB Pi, you can pull an 8-billion-parameter model. This takes longer to download (around 5 GB) and generates text more slowly, but produces impressively thorough answers. The recommended 8B model is <strong>Llama 3.1 8B</strong> (note: Meta's Llama 3.2 series only goes up to 3B; the 8B model belongs to the Llama 3.1 series):</p>
+
+<pre class="code"><code>ollama pull llama3.1:8b</code></pre>
+<div class="explain">
+  <p><strong><code>ollama pull llama3.1:8b</code></strong> — downloads the 8-billion-parameter Llama 3.1 model. At approximately 4.7 GB download size, it uses around 5–6 GB of RAM while running — well within your 16 GB Pi's capacity. Many users find this the best balance of quality and speed for a home device. Expect the download to take 15–30 minutes on typical home broadband.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> Model names and available tags change over time as new models are released. To see the full catalogue, visit <code>ollama.com/library</code> in your web browser. Popular choices for beginners include <code>gemma3</code>, <code>llama3.2</code>, <code>llama3.1</code>, <code>phi4</code> (Microsoft — very strong for its size), and <code>mistral</code> (excellent for summarisation). Each model has different strengths; feel free to experiment.</div>
+
+<p>To see all the models you have downloaded so far:</p>
+
+<pre class="code"><code>ollama list</code></pre>
+<div class="explain">
+  <p><strong><code>ollama list</code></strong> — displays a table of every AI model currently stored on your Pi, including its name, tag, file size, and when it was last used. Use this to keep track of what you have downloaded and how much space each model takes.</p>
+</div>
+
+<h2 id="chatting-with-a-model-in-the-terminal">Chatting with a model in the terminal</h2>
+
+<p>Now comes the rewarding part. To start a conversation with a model, use <code>ollama run</code> followed by the model name:</p>
+
+<pre class="code"><code>ollama run llama3.2:3b</code></pre>
+<div class="explain">
+  <p><strong><code>ollama run llama3.2:3b</code></strong> — loads the Llama 3.2 3B model into your Pi's RAM and starts an interactive chat session right in the terminal. The first time you run a model after a reboot, there may be a short pause of a few seconds while it is loaded into memory. Once you see the <code>&gt;&gt;&gt;</code> prompt appear, the model is ready and waiting for your message.</p>
+</div>
+
+<p>After a brief loading pause, you will see a prompt like this:</p>
+
+<pre class="code"><code>&gt;&gt;&gt; Send a message (/? for help)</code></pre>
+<div class="explain">
+  <p>The <code>&gt;&gt;&gt;</code> is Ollama's interactive chat prompt. Type your question or message and press Enter. The model will begin generating a response, word by word. When it finishes, the <code>&gt;&gt;&gt;</code> prompt returns and you can ask another question. The model remembers everything said earlier in the session, so you can have a natural back-and-forth conversation.</p>
+</div>
+
+<p>Try typing something like this at the prompt:</p>
+
+<pre class="code"><code>&gt;&gt;&gt; Explain what a Raspberry Pi is, in two sentences, for someone who has never heard of one.</code></pre>
+<div class="explain">
+  <p>Type this (or any question you like) after the <code>&gt;&gt;&gt;</code> prompt and press Enter. Words will appear one by one at a comfortable reading pace. On a 3B model, a two-sentence answer typically takes about 5–10 seconds. On the 8B model, expect 15–25 seconds for the same question.</p>
+</div>
+
+<p>When you want to end the conversation and return to the normal terminal, type:</p>
+
+<pre class="code"><code>/bye</code></pre>
+<div class="explain">
+  <p><strong><code>/bye</code></strong> — a special Ollama command (note the slash at the start, which distinguishes it from a question you would type to the model) that ends the chat session, unloads the model from memory, and returns you to the normal terminal prompt. You can also press <strong>Ctrl + D</strong> to exit.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Inside an Ollama chat session, type <code>/?</code> and press Enter to see all available slash commands. Useful ones include <code>/clear</code> (start a fresh conversation, making the model forget everything said so far), <code>/show info</code> (display technical details about the currently loaded model), and <code>/set system "..."</code> (give the model a persona or background instructions, for example <code>/set system "You are a friendly French tutor"</code>).</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6d28d9"/>
+      </marker>
+    </defs>
+    <!-- Title -->
+    <text x="300" y="24" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="bold" fill="#1f2933">How an Ollama chat session works</text>
+    <!-- Step boxes -->
+    <!-- Box 1: You type -->
+    <rect x="20" y="50" width="120" height="60" rx="8" fill="#6d28d9"/>
+    <text x="80" y="76" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">You type</text>
+    <text x="80" y="94" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#d8b4fe">a question</text>
+    <!-- Arrow 1 -->
+    <line x1="145" y1="80" x2="185" y2="80" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr2)"/>
+    <!-- Box 2: Ollama -->
+    <rect x="190" y="50" width="120" height="60" rx="8" fill="#0ea5a4"/>
+    <text x="250" y="76" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">Ollama</text>
+    <text x="250" y="94" text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">receives prompt</text>
+    <!-- Arrow 2 -->
+    <line x1="315" y1="80" x2="355" y2="80" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr2)"/>
+    <!-- Box 3: Model -->
+    <rect x="360" y="50" width="120" height="60" rx="8" fill="#1f2933"/>
+    <text x="420" y="76" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">AI Model</text>
+    <text x="420" y="94" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#9ca3af">generates reply</text>
+    <!-- Arrow down and back -->
+    <line x1="420" y1="115" x2="420" y2="165" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr2)"/>
+    <line x1="420" y1="165" x2="80" y2="165" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="80" y1="165" x2="80" y2="145" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr2)"/>
+    <!-- Return label -->
+    <text x="250" y="158" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6d28d9">answer returned, word by word</text>
+    <!-- Box 4: Answer appears -->
+    <rect x="20" y="115" width="120" height="30" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1"/>
+    <text x="80" y="135" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6d28d9">Answer appears</text>
+    <!-- Footer note -->
+    <text x="300" y="210" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#1f2933">Everything stays on your Pi. No internet required.</text>
+    <text x="300" y="230" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#1f2933">The model remembers your whole conversation until you type /bye.</text>
+  </svg>
+  <figcaption>How Ollama processes a chat: your question goes to the local model, which generates a reply word by word — all within your Pi.</figcaption>
+</figure>
+
+<h2 id="controlling-the-model-from-a-python-script">Controlling the model from a Python script</h2>
+
+<p>Chatting in the terminal is enjoyable, but the real power comes from writing Python programs that can talk to the AI model automatically. Ollama runs a small web server in the background at all times while it is installed — your programs can send it questions and receive answers using simple web requests.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A "web server" is a program that listens for requests and sends back responses — just like a website, but running locally on your own Pi. Ollama's built-in server listens at the address <code>http://localhost:11434</code>. "Localhost" means "this very machine" — the request never leaves your Pi. Your Python script sends a prompt to that address, and Ollama sends back the AI's answer.</div>
+
+<p>Open <strong>Thonny</strong> (the Python editor — find it in the Programming section of the Applications menu). Create a new file, paste in the script below, and save it as <code>ai_chat.py</code> in your home folder. This script uses only Python's built-in libraries, so no extra installation is needed.</p>
+
+<pre class="code"><code>import urllib.request
+import json
+
+MODEL = "llama3.2:3b"
+
+def ask(prompt):
+    url = "http://localhost:11434/api/generate"
+    data = {
+        "model": MODEL,
+        "prompt": prompt,
+        "stream": False
+    }
+    body = json.dumps(data).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+    with urllib.request.urlopen(req) as response:
+        result = json.loads(response.read().decode("utf-8"))
+    return result["response"]
+
+question = "What are three good reasons to learn Python programming?"
+print("Asking the AI:", question)
+print()
+answer = ask(question)
+print("AI says:")
+print(answer)</code></pre>
+<div class="explain">
+  <p>Here is what each part of this script does:</p>
+  <ul>
+    <li><strong><code>import urllib.request</code></strong> — loads Python's built-in tool for making web requests. We use this to talk to Ollama's local server. Using the built-in library means no extra packages need to be installed.</li>
+    <li><strong><code>import json</code></strong> — loads Python's built-in JSON tool. JSON (JavaScript Object Notation) is a simple text format used to package data — it looks like <code>{"key": "value"}</code>. Ollama communicates using JSON.</li>
+    <li><strong><code>MODEL = "llama3.2:3b"</code></strong> — stores the model name in a variable so it is easy to change in one place. To use a different model, just update this line.</li>
+    <li><strong><code>def ask(prompt):</code></strong> — defines a reusable function called <code>ask</code>. You give it a question (the <code>prompt</code>) and it returns the AI's answer. Everything indented below this line is part of the function.</li>
+    <li><strong><code>url = "http://localhost:11434/api/generate"</code></strong> — this is Ollama's local web address for text generation. <code>localhost</code> means "this Pi", <code>11434</code> is the port Ollama listens on (a port is like a numbered door on a server), and <code>/api/generate</code> is the specific endpoint that accepts prompts.</li>
+    <li><strong><code>data = {...}</code></strong> — creates a Python dictionary (a collection of labelled values) containing the request. <code>model</code> tells Ollama which model to use, <code>prompt</code> is the question, and <code>"stream": False</code> tells Ollama to wait until the full answer is ready before sending it back all at once (rather than word by word).</li>
+    <li><strong><code>body = json.dumps(data).encode("utf-8")</code></strong> — converts the Python dictionary into a JSON-formatted text string, then encodes it into bytes (the raw binary format needed for sending over a network).</li>
+    <li><strong><code>req = urllib.request.Request(...)</code></strong> — builds a web request object specifying the URL, the data to send, a header telling Ollama the data is in JSON format, and <code>POST</code> as the HTTP method (meaning "send data to this address and expect a response").</li>
+    <li><strong><code>with urllib.request.urlopen(req) as response:</code></strong> — sends the request to Ollama and opens the response. The <code>with</code> keyword ensures the network connection is cleanly closed when we are done reading.</li>
+    <li><strong><code>result = json.loads(response.read().decode("utf-8"))</code></strong> — reads the raw bytes of the response, decodes them into a text string, and parses the JSON into a Python dictionary we can work with.</li>
+    <li><strong><code>return result["response"]</code></strong> — extracts just the AI's text answer from the dictionary and returns it. Ollama's reply contains several fields; the actual generated text is under the key <code>"response"</code>.</li>
+    <li><strong><code>question = "What are three good reasons..."</code></strong> — stores the question we want to ask. Change this to anything you like.</li>
+    <li><strong><code>print("Asking the AI:", question)</code></strong> — prints the question to the screen so you can see what was sent.</li>
+    <li><strong><code>answer = ask(question)</code></strong> — calls our <code>ask</code> function, sending the question to Ollama and waiting for the answer. This may take 10–30 seconds depending on the model and question length.</li>
+    <li><strong><code>print("AI says:") / print(answer)</code></strong> — prints the AI's response to the output panel at the bottom of Thonny.</li>
+  </ul>
+</div>
+
+<div class="note"><strong>Note:</strong> Before running this script, make sure Ollama is running in the background. Because Ollama installs as a system service, it starts automatically when your Pi boots. You can verify it is running by opening a terminal and typing <code>ollama list</code> — if it shows your models without an error, the server is ready.</div>
+
+<p>To run the script in Thonny, click the green <strong>Run</strong> button (the triangle) in the toolbar, or press <strong>F5</strong>. After a wait of 10–30 seconds, you should see the AI's answer printed in the panel at the bottom of Thonny.</p>
+
+<div class="tip"><strong>Tip:</strong> Change the <code>question</code> variable to anything you like — ask it to summarise a paragraph of text you paste in, suggest a recipe, explain a concept, or help you draft an email. To use a smaller, faster model, change <code>MODEL</code> to <code>"gemma3:1b"</code>. For more thoughtful answers at the cost of extra waiting time, change it to <code>"llama3.1:8b"</code>.</div>
+
+<h2 id="using-the-official-ollama-python-library-optiona">Using the official Ollama Python library (optional)</h2>
+
+<p>The script above uses only Python's built-in libraries, which is great for learning. However, if you want a cleaner way to work with Ollama in Python, there is an official <code>ollama</code> library that simplifies the code considerably. Because Raspberry Pi OS Bookworm manages system Python packages carefully, the safest way to install it is inside a <strong>virtual environment</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A "virtual environment" is a self-contained folder that holds a private copy of Python and any extra libraries you install into it. It keeps your project's packages separate from the rest of the system, avoiding conflicts. Think of it as a clean, isolated workbench just for one project.</div>
+
+<ol class="steps">
+  <li>Open a terminal and create a folder for your AI project, then create a virtual environment inside it:
+    <pre class="code"><code>mkdir ~/ai-project
+cd ~/ai-project
+python3 -m venv venv</code></pre>
+    <div class="explain">
+      <ul>
+        <li><strong><code>mkdir ~/ai-project</code></strong> — creates a new folder called <code>ai-project</code> in your home directory (<code>~</code> is a shortcut for your home folder).</li>
+        <li><strong><code>cd ~/ai-project</code></strong> — moves into that new folder.</li>
+        <li><strong><code>python3 -m venv venv</code></strong> — creates a virtual environment in a subfolder called <code>venv</code>. The <code>-m venv</code> part tells Python to run its built-in virtual environment tool.</li>
+      </ul>
+    </div>
+  </li>
+  <li>Activate the virtual environment and install the Ollama library:
+    <pre class="code"><code>source venv/bin/activate
+pip install ollama</code></pre>
+    <div class="explain">
+      <ul>
+        <li><strong><code>source venv/bin/activate</code></strong> — activates the virtual environment. Your terminal prompt will change to show <code>(venv)</code> at the start, confirming it is active. While active, any <code>pip install</code> commands install packages only inside this private environment, not system-wide.</li>
+        <li><strong><code>pip install ollama</code></strong> — downloads and installs the official Ollama Python library from the Python Package Index (PyPI). This is safe inside a virtual environment.</li>
+      </ul>
+    </div>
+  </li>
+  <li>Create a new Python file called <code>ai_simple.py</code> in the same folder with the following content:
+    <pre class="code"><code>import ollama
+
+response = ollama.generate(
+    model="llama3.2:3b",
+    prompt="Explain in two sentences what the Raspberry Pi 5 is good for."
+)
+print(response["response"])</code></pre>
+    <div class="explain">
+      <ul>
+        <li><strong><code>import ollama</code></strong> — loads the Ollama library you just installed.</li>
+        <li><strong><code>response = ollama.generate(...)</code></strong> — sends a prompt to your locally running Ollama server and waits for the full answer. The <code>model</code> and <code>prompt</code> arguments work just like in the manual version earlier.</li>
+        <li><strong><code>print(response["response"])</code></strong> — prints the AI's text answer to the screen.</li>
+      </ul>
+    </div>
+  </li>
+  <li>Run the script from the terminal (make sure the virtual environment is still active):
+    <pre class="code"><code>python3 ai_simple.py</code></pre>
+    <div class="explain">
+      <p><strong><code>python3 ai_simple.py</code></strong> — runs your Python script. After 10–30 seconds, the AI's answer will be printed in the terminal. When you have finished working in the virtual environment, type <code>deactivate</code> and press Enter to return to the normal terminal.</p>
+    </div>
+  </li>
+</ol>
+
+<div class="note"><strong>Note:</strong> When you return to this project in the future, you will need to activate the virtual environment again before running your scripts: navigate to the folder (<code>cd ~/ai-project</code>) and then run <code>source venv/bin/activate</code>. Your prompt will show <code>(venv)</code> to confirm it is active.</div>
+
+<h2 id="managing-your-models-saving-space">Managing your models — saving space</h2>
+
+<p>Each AI model takes up significant space on your microSD card — anywhere from 800 MB to 5 GB or more. To see how much space is currently used, run:</p>
+
+<pre class="code"><code>ollama list</code></pre>
+<div class="explain">
+  <p><strong><code>ollama list</code></strong> — shows all downloaded models with their sizes. Use this to decide which models to keep and which to remove.</p>
+</div>
+
+<p>If you want to remove a model you no longer use, simply run:</p>
+
+<pre class="code"><code>ollama rm llama3.1:8b</code></pre>
+<div class="explain">
+  <p><strong><code>ollama rm llama3.1:8b</code></strong> — deletes the specified model from your Pi, freeing up the disk space it was using. Replace <code>llama3.1:8b</code> with whichever model name you want to remove. You can always re-download it later with <code>ollama pull</code>.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> If your microSD card is getting full, start by removing larger models you do not use regularly. The 8B model takes nearly 5 GB, while the 1B model is under 1 GB. Keep whichever model you use most, and re-download others as needed.</div>
+
+<h2 id="other-on-device-ai-speech-to-text-with-whisper">Other on-device AI: speech-to-text with Whisper</h2>
+
+<p>Language models are not the only AI you can run locally. <strong>Whisper</strong>, made by OpenAI and released as open-source software, is a speech-to-text system — it listens to an audio recording and converts it to written text. A fast compiled version called <strong>whisper.cpp</strong> runs well on the Pi 5 CPU without needing any cloud service.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Speech-to-text" means automatically turning spoken words into written ones — like live captions or a dictation tool. "Compiling from source code" means downloading the program as raw instructions and building it into a runnable application on your own computer. It takes a few minutes but is a one-time step.</div>
+
+<p>Installing whisper.cpp requires building it from source code. Here are the full steps:</p>
+
+<ol class="steps">
+  <li>Install the build tools needed to compile the program:
+    <pre class="code"><code>sudo apt install -y build-essential git</code></pre>
+    <div class="explain">
+      <ul>
+        <li><strong><code>sudo apt install -y build-essential git</code></strong> — installs two packages. <code>build-essential</code> provides the compiler (the tool that turns source code into a runnable program), and <code>git</code> is a tool for downloading source code from the internet. The <code>-y</code> flag automatically confirms all prompts.</li>
+      </ul>
+    </div>
+  </li>
+  <li>Download the whisper.cpp source code to your Pi:
+    <pre class="code"><code>git clone https://github.com/ggerganov/whisper.cpp</code></pre>
+    <div class="explain">
+      <ul>
+        <li><strong><code>git clone https://github.com/ggerganov/whisper.cpp</code></strong> — copies (clones) the entire whisper.cpp project from GitHub onto your Pi into a new folder called <code>whisper.cpp</code>. This is the source code you will compile in the next step.</li>
+      </ul>
+    </div>
+  </li>
+  <li>Enter the folder and compile the program:
+    <pre class="code"><code>cd whisper.cpp
+make -j4</code></pre>
+    <div class="explain">
+      <ul>
+        <li><strong><code>cd whisper.cpp</code></strong> — moves into the newly downloaded folder.</li>
+        <li><strong><code>make -j4</code></strong> — compiles the source code into a runnable program. The <code>-j4</code> flag tells <code>make</code> to use all four CPU cores of your Pi 5 simultaneously, which speeds up the build significantly. This step typically takes 2–5 minutes. You will see many lines of output scrolling past — this is normal.</li>
+      </ul>
+    </div>
+  </li>
+  <li>Download a small English speech model:
+    <pre class="code"><code>bash ./models/download-ggml-model.sh base.en</code></pre>
+    <div class="explain">
+      <ul>
+        <li><strong><code>bash ./models/download-ggml-model.sh base.en</code></strong> — runs the download script included with whisper.cpp to fetch the "base" English model. <code>base.en</code> is a fast, reasonably accurate model optimised for English speech. It is about 140 MB. Larger models (<code>small.en</code>, <code>medium.en</code>) are more accurate but slower.</li>
+      </ul>
+    </div>
+  </li>
+  <li>Transcribe an audio file (it must be in WAV format):
+    <pre class="code"><code>./build/bin/whisper-cli -m models/ggml-base.en.bin -f your_recording.wav</code></pre>
+    <div class="explain">
+      <ul>
+        <li><strong><code>./build/bin/whisper-cli</code></strong> — runs the whisper.cpp transcription program that was built in step 3. The <code>./</code> prefix means "in the current folder".</li>
+        <li><strong><code>-m models/ggml-base.en.bin</code></strong> — tells whisper.cpp which model file to use (the one downloaded in step 4).</li>
+        <li><strong><code>-f your_recording.wav</code></strong> — specifies the audio file to transcribe. Replace <code>your_recording.wav</code> with the actual filename of your audio file. The file must be in WAV format (you can convert MP3 or other formats using the <code>ffmpeg</code> tool: <code>sudo apt install -y ffmpeg</code>, then <code>ffmpeg -i input.mp3 output.wav</code>).</li>
+      </ul>
+    </div>
+  </li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Whisper can also transcribe other languages and even detect the language automatically, using larger multilingual models (remove the <code>.en</code> from the model name, e.g. <code>base</code> instead of <code>base.en</code>). It is useful for transcribing voice memos, meeting recordings, or interview audio — entirely on your own device, with no data sent anywhere.</div>
+
+<h2 id="simple-image-recognition-with-tensorflow-lite">Simple image recognition with TensorFlow Lite</h2>
+
+<p>For basic image recognition (identifying everyday objects in photographs), the Pi 5's VideoCore VII graphics processor can accelerate lightweight models using <strong>TensorFlow Lite</strong>, which is available directly through the <code>apt</code> package manager.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Image recognition" means teaching a computer to identify what is in a photograph — a cat, a car, a banana. TensorFlow Lite is a lightweight version of Google's machine-learning framework, designed specifically for small devices like the Raspberry Pi. It uses pre-trained models, meaning the AI has already been taught to recognise thousands of objects; you just need to give it a photo.</div>
+
+<pre class="code"><code>sudo apt install -y python3-tflite-runtime</code></pre>
+<div class="explain">
+  <p><strong><code>sudo apt install -y python3-tflite-runtime</code></strong> — installs TensorFlow Lite for Python 3 directly from the official Raspberry Pi OS software repository. This is the recommended method on Bookworm because it uses the system package manager rather than pip, avoiding any conflicts with the system Python. The <code>-y</code> flag automatically confirms the installation.</p>
+</div>
+
+<p>With TensorFlow Lite installed, you can run pre-trained image classification models to identify everyday objects in photos taken with a Raspberry Pi Camera or loaded from files. The Raspberry Pi Foundation's official documentation at <code>raspberrypi.com/documentation/computers/camera_software.html</code> contains complete step-by-step examples with sample code.</p>
+
+<div class="tip"><strong>Tip:</strong> A good beginner project combining TensorFlow Lite and the Pi Camera is a "bird feeder identifier" — a Pi with a camera pointed at a bird feeder that automatically logs which species visit, entirely without a cloud service.</div>
+
+<h2 id="the-raspberry-pi-ai-hat-optional-hardware-for-se">The Raspberry Pi AI HAT+ — optional hardware for serious speed</h2>
+
+<p>If you find that the Pi 5's CPU speed is too slow for your AI ambitions, there is an optional add-on board made by the Raspberry Pi Foundation called the <strong>AI HAT+</strong>. It contains a <strong>Hailo-8L</strong> neural network accelerator chip that connects to the Pi's PCIe slot.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A "neural network accelerator" is a chip specially designed to perform the mathematical operations that AI models need, far faster than a general-purpose CPU can. Think of it as adding a dedicated AI co-processor to your Pi. The PCIe slot (a small connector on the underside of the Pi 5 board) is a high-speed data connection; the AI HAT+ uses it to communicate at maximum speed.</div>
+
+<p>The AI HAT+ provides up to 13 TOPS (Tera Operations Per Second) of AI processing power, which is roughly 10–20 times faster than the Pi 5 CPU alone for vision tasks. It is designed particularly for <strong>real-time video analysis</strong> — detecting people, vehicles, faces, or objects in a live camera stream at full frame rates.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Task type</th>
+      <th>Best approach on Pi 5</th>
+      <th>Why</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Chat / text generation (LLMs)</td>
+      <td>Ollama on CPU</td>
+      <td>LLMs run on CPU RAM; AI HAT+ does not accelerate them significantly</td>
+    </tr>
+    <tr>
+      <td>Real-time object detection in video</td>
+      <td>AI HAT+ (optional)</td>
+      <td>HAT+ is 10–20× faster for vision models; CPU is too slow for real-time video</td>
+    </tr>
+    <tr>
+      <td>Speech-to-text (Whisper)</td>
+      <td>CPU (whisper.cpp)</td>
+      <td>Works well on Pi 5 CPU; HAT+ does not help here</td>
+    </tr>
+    <tr>
+      <td>Image classification (TensorFlow Lite)</td>
+      <td>CPU or AI HAT+</td>
+      <td>CPU fine for single images; HAT+ needed for live video classification</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> The AI HAT+ is available from official Raspberry Pi retailers for approximately £50–70 (around €55–80 in mainland Europe). Installation involves fitting it onto the 40-pin GPIO header and connecting a short ribbon cable to the PCIe slot — straightforward but it adds significant height, so check your case has room (an open-top or tall case works best).</div>
+
+<h2 id="privacy-why-running-ai-locally-matters">Privacy: why running AI locally matters</h2>
+
+<p>Cloud AI services — ChatGPT, Copilot, Gemini, and others — are powerful, but every question you type is sent to servers owned by a company, stored, potentially used to improve future models, and subject to that company's privacy policy, data protection laws, and any future policy changes.</p>
+
+<p>When you run AI on your Pi:</p>
+
+<ul>
+  <li>Your prompts never leave your home network.</li>
+  <li>Your questions are not stored or logged by any company.</li>
+  <li>It works with no internet connection at all — useful on a train, in a remote location, or anywhere connectivity is limited or expensive.</li>
+  <li>There is no subscription fee. Once downloaded, the model is yours to use indefinitely.</li>
+  <li>You are in complete control of what model is running and how it behaves.</li>
+</ul>
+
+<p>This makes local AI genuinely useful for tasks involving personal information — summarising private documents, asking questions about medical or financial topics you would rather keep private, or working with confidential text.</p>
+
+<div class="tip"><strong>Tip:</strong> If you would like a proper graphical chat interface (similar to the ChatGPT website, but talking to your local models), search for <strong>Open WebUI</strong> — a free, open-source web application that connects to Ollama and runs on your Pi. You access it by opening a browser on your Pi and going to <code>http://localhost:3000</code> after installation. Full instructions are at <code>openwebui.com</code>.</div>
+
+<h2 id="troubleshooting-common-problems">Troubleshooting common problems</h2>
+
+<h3>Ollama says "command not found" after installation</h3>
+<p>Close your terminal window and open a fresh one. The installation adds Ollama to your <code>PATH</code> (the list of locations the terminal searches for commands), and a new terminal session picks up the change automatically. If the problem persists, type the following and try again:</p>
+
+<pre class="code"><code>source ~/.bashrc
+ollama --version</code></pre>
+<div class="explain">
+  <ul>
+    <li><strong><code>source ~/.bashrc</code></strong> — reloads your shell configuration file without closing and reopening the terminal. This picks up any changes made to your PATH during installation.</li>
+    <li><strong><code>ollama --version</code></strong> — checks whether Ollama is now found and prints its version number. If this still fails, try restarting your Pi (<code>sudo reboot</code>) and trying again.</li>
+  </ul>
+</div>
+
+<h3>The model download is very slow</h3>
+<p>AI models are large files — 1–5 GB is normal. On a typical home broadband connection this takes anywhere from 5 minutes to half an hour. Connect your Pi via an Ethernet cable rather than Wi-Fi for a faster and more reliable download. Downloads can be resumed — if a download is interrupted, just run the same <code>ollama pull</code> command again and it will continue from where it left off.</p>
+
+<h3>Running a model makes the Pi very sluggish</h3>
+<p>While a large model is generating text, it uses most of the Pi's CPU. This is normal and expected — wait for the response to finish and the Pi will return to its normal responsiveness. If things are uncomfortably slow, switch to a smaller model (for example, <code>gemma3:1b</code> instead of <code>llama3.1:8b</code>). You can also close other applications while the model is generating.</p>
+
+<h3>The Python script says "Connection refused"</h3>
+<p>Ollama's background server may not be running. Check its status with:</p>
+
+<pre class="code"><code>sudo systemctl status ollama</code></pre>
+<div class="explain">
+  <p><strong><code>sudo systemctl status ollama</code></strong> — checks whether the Ollama background service is currently running. You will see either <code>Active: active (running)</code> highlighted in green, meaning all is well, or a stopped or failed status. If it is not running, start it with the next command.</p>
+</div>
+
+<p>If it is stopped, start it manually:</p>
+
+<pre class="code"><code>sudo systemctl start ollama</code></pre>
+<div class="explain">
+  <p><strong><code>sudo systemctl start ollama</code></strong> — starts the Ollama service immediately. To make it start automatically every time the Pi boots (which is the default after installation), run <code>sudo systemctl enable ollama</code>.</p>
+</div>
+
+<h3>The model gives wrong or strange answers</h3>
+<p>This is a known limitation of all current language models, especially smaller ones. It is called <strong>hallucination</strong> — the model confidently produces text that sounds plausible but is factually incorrect. Always verify important information from a reliable source. Smaller models hallucinate more often than larger ones. Providing more context in your prompt often helps: instead of "What is the boiling point of water?", try "You are a physics teacher. Please explain the boiling point of water at sea level."</p>
+
+<h3>Whisper.cpp build fails with an error</h3>
+<p>Make sure <code>build-essential</code> and <code>git</code> are installed (run <code>sudo apt install -y build-essential git</code> again). Also ensure you have enough free disk space — the build process temporarily needs several hundred megabytes. Run <code>df -h ~</code> to check how much free space you have on your microSD card.</p>
+
+<pre class="code"><code>df -h ~</code></pre>
+<div class="explain">
+  <p><strong><code>df -h ~</code></strong> — shows the disk usage of the filesystem where your home folder lives. The <code>-h</code> flag makes the sizes human-readable (showing GB or MB rather than raw bytes). The "Available" column tells you how much free space remains. You need at least 1 GB free for the build, plus space for model files.</p>
+</div>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Large Language Model (LLM)</strong> — a type of AI program trained on vast amounts of text, capable of understanding and generating human language.</li>
+    <li><strong>Parameters</strong> — the numerical values learned during AI training; measured in billions (e.g. 7B = 7 billion). More parameters generally means a more capable but larger, slower model.</li>
+    <li><strong>Quantisation</strong> — a compression technique that reduces a model's file size and RAM usage by storing its numbers at lower precision, with only a small loss of quality.</li>
+    <li><strong>Ollama</strong> — a free, open-source tool for downloading and running AI language models locally on your own device.</li>
+    <li><strong>Tag</strong> — the part after the colon in an Ollama model name (e.g. <code>:3b</code>, <code>:8b</code>) that specifies which size or variant of a model to download.</li>
+    <li><strong>Token</strong> — roughly three quarters of a word; the unit AI models use internally. "Tokens per second" measures how fast a model generates text.</li>
+    <li><strong>Localhost</strong> — a special network address meaning "this computer itself". Ollama's local server is accessed at <code>http://localhost:11434</code>, which never leaves your Pi.</li>
+    <li><strong>Port</strong> — a numbered "door" on a server that allows different services to listen on the same machine. Ollama uses port 11434.</li>
+    <li><strong>API</strong> — Application Programming Interface; a defined way for programs to talk to each other. Ollama provides an API so Python scripts can send prompts and receive answers automatically.</li>
+    <li><strong>Virtual environment</strong> — a self-contained folder holding a private copy of Python and its installed packages, keeping a project's dependencies separate from the rest of the system.</li>
+    <li><strong>Hallucination</strong> — when an AI model confidently generates text that is factually incorrect. A known limitation of all current language models, more common in smaller models.</li>
+    <li><strong>Whisper / whisper.cpp</strong> — an open-source speech-to-text AI made by OpenAI; whisper.cpp is a fast compiled version that runs efficiently on the Pi 5 CPU.</li>
+    <li><strong>TensorFlow Lite</strong> — a lightweight machine-learning framework for small devices, used for image classification and other AI tasks on the Pi without a cloud service.</li>
+    <li><strong>AI HAT+</strong> — an optional Raspberry Pi add-on board containing a Hailo neural network accelerator chip, dramatically speeding up real-time vision AI tasks.</li>
+    <li><strong>PCIe</strong> — a high-speed hardware connection on the Pi 5 used by add-on boards like the AI HAT+ to communicate at fast data rates.</li>
+    <li><strong>TOPS</strong> — Tera Operations Per Second; a measure of AI chip performance. The AI HAT+'s Hailo chip delivers up to 13 TOPS.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>A large language model (LLM) is an AI program trained on text; it generates answers word by word based on patterns it learned during training.</li>
+    <li>Model size is measured in billions of parameters (1B, 3B, 7B, 8B…); larger models give better answers but need more RAM and run more slowly.</li>
+    <li>Quantisation compresses models to roughly a quarter of their original size with minimal quality loss, making 7B–8B models practical on home hardware.</li>
+    <li>Your 16 GB Pi 5 can comfortably run 7B–8B quantised models — far more capable than what fits in the 4 GB or 8 GB versions.</li>
+    <li>Ollama installs with a single terminal command and handles downloading, storing, and running models automatically; it also starts as a background service on every boot.</li>
+    <li>Use <code>ollama pull &lt;name&gt;</code> to download a model, <code>ollama run &lt;name&gt;</code> to chat interactively, and <code>ollama list</code> to see what is stored.</li>
+    <li>Note that Llama 3.2 only comes in 1B and 3B sizes; the recommended 8B model is <code>llama3.1:8b</code>.</li>
+    <li>A Python script using only built-in libraries can send prompts to Ollama's local API and display the AI's answers; the optional <code>ollama</code> Python library simplifies this further when used inside a virtual environment.</li>
+    <li>Whisper.cpp provides offline speech-to-text; TensorFlow Lite enables image recognition — both run on the Pi CPU without any cloud service.</li>
+    <li>The optional Raspberry Pi AI HAT+ (Hailo accelerator) dramatically speeds up vision tasks like real-time object detection; it does not significantly help text generation.</li>
+    <li>Running AI locally means complete privacy — your prompts never leave your device, no subscription is needed, and it works with no internet connection.</li>
+    <li>Expect text to appear at a readable but modest pace; small models can hallucinate (state incorrect facts confidently), so always verify important information elsewhere.</li>
+  </ul>
+</div>

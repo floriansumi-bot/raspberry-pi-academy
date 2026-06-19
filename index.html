@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" data-theme="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pilot — Learn your Raspberry Pi 5</title>
+<meta name="description" content="The complete 447-page Raspberry Pi 5 handbook, reborn as a friendly course you can finish — with a real Pi terminal and a wireable circuit board you can try in your browser.">
+<meta name="theme-color" content="#FBF8F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#100E18" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Pilot — Learn your Raspberry Pi 5">
+<meta property="og:description" content="A friendly, interactive course built from the complete Raspberry Pi 5 handbook. Real terminal, wireable GPIO board, offline PWA.">
+<meta property="og:type" content="website">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/layout.css">
+<link rel="stylesheet" href="./css/components.css">
+<link rel="stylesheet" href="./css/home.css">
+<script>
+  /* anti-FOUC theme boot */
+  (function(){
+    try{
+      var t = localStorage.getItem('pilot.theme');
+      if(!t){ t = matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day'; }
+      document.documentElement.setAttribute('data-theme', t);
+    }catch(e){}
+  })();
+</script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/" aria-label="Pilot home">
+      <svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="3" y="3" width="26" height="26" rx="7" fill="var(--accent)"/>
+        <circle cx="16" cy="13" r="4.4" fill="var(--accent-ink)"/>
+        <path d="M16 17.4c-3.6 0-6.5 2.3-6.5 5.6h13c0-3.3-2.9-5.6-6.5-5.6z" fill="var(--accent-ink)"/>
+        <circle cx="22" cy="9" r="2.2" fill="var(--accent2)"/>
+      </svg>
+      <span>Pilot<span class="powerled" aria-hidden="true"></span></span>
+    </a>
+
+    <nav class="mainnav desktop-only" aria-label="Primary">
+      <a class="navlink" href="#/" data-route="home">Path</a>
+      <a class="navlink" href="#/tools" data-route="tools">Tools</a>
+      <a class="navlink" href="#/glossary" data-route="glossary">Glossary</a>
+      <a class="navlink" href="#/reference" data-route="reference">Commands</a>
+      <a class="navlink" href="#/me" data-route="me">My Pi</a>
+    </nav>
+
+    <div class="spacer"></div>
+
+    <button class="search-trigger" id="search-trigger" aria-label="Search (Ctrl K)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <span class="st-label">Search…</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+
+    <a class="progress-core" id="progress-core" href="#/me" aria-label="Your progress">
+      <span class="ring" id="core-ring"></span>
+      <span class="pc-label" id="core-label">0%</span>
+    </a>
+
+    <button class="iconbtn" id="theme-toggle" aria-label="Toggle theme" title="Toggle Daylight / Workbench">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    </button>
+
+    <button class="iconbtn mobile-only" id="mobile-menu" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </header>
+
+  <main id="view" aria-live="polite"></main>
+
+  <div id="toast-host"></div>
+  <div id="overlay-host"></div>
+
+  <script type="module" src="./js/app.js"></script>
+  <noscript style="display:block;padding:2rem;text-align:center">Pilot is an interactive course and needs JavaScript. You can also read the <a href="./assets/Raspberry-Pi-5-Handbook.pdf">full 447-page handbook PDF</a>.</noscript>
+</body>
+</html>

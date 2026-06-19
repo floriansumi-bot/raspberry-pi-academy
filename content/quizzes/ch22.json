@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch22",
+  "title": "Where to Go Next",
+  "questions": [
+    {
+      "q": "What software do you install on a Raspberry Pi to turn it into a network-wide advertisement and tracker blocker?",
+      "choices": ["Motion", "RetroPie", "Pi-hole", "CUPS"],
+      "answer": 2,
+      "explain": "Pi-hole is the free tool described in the chapter that blocks ads and trackers for every device on your home network at the network level. Motion is for security cameras, RetroPie is for retro gaming, and CUPS is a print server."
+    },
+    {
+      "q": "Why can you only use the M.2 HAT+ or the AI HAT+ — but not both at the same time — on a Raspberry Pi 5?",
+      "choices": ["They both require the same GPIO pins and would clash electrically.", "The Pi 5 only has one PCIe connector, which both boards share.", "The Pi 5 does not have enough RAM to run both boards at once.", "Both boards draw too much power for the Pi 5's USB-C supply."],
+      "answer": 1,
+      "explain": "The chapter explains that both the M.2 HAT+ and the AI HAT+ connect through the Pi 5's single PCIe connector, so only one can be attached at a time (unless you add a special PCIe expansion board)."
+    },
+    {
+      "q": "Which command does the chapter recommend running roughly once a month to keep your Raspberry Pi OS secure and up to date?",
+      "choices": ["sudo apt update && sudo apt full-upgrade -y", "sudo rpi-update", "pip install --upgrade raspberrypi", "sudo apt upgrade --fix-missing"],
+      "answer": 0,
+      "explain": "The chapter recommends 'sudo apt update && sudo apt full-upgrade -y' via the stable release channel. It specifically warns against 'sudo rpi-update', which installs development firmware and can cause instability."
+    },
+    {
+      "q": "When posting a help question on a forum or subreddit, which piece of information does the chapter say you should always include?",
+      "choices": ["A photo of your Raspberry Pi setup so helpers can see your wiring.", "Your full name and location so helpers can contact you directly.", "A list of every website you have visited while troubleshooting.", "The exact error message copied and pasted in full, not paraphrased."],
+      "answer": 3,
+      "explain": "The chapter stresses including the exact error message in full because the precise wording matters. Paraphrasing it can leave out the detail helpers need to diagnose the problem."
+    },
+    {
+      "q": "What is a DAC, and why does the chapter say it is needed for the Raspberry Pi 5?",
+      "choices": ["A cooling fan controller; needed because the Pi 5 runs hotter than older models.", "A network adapter; needed because the Pi 5's built-in Wi-Fi is too slow for music streaming.", "A Digital-to-Analogue Converter; needed because the Pi 5 has no built-in headphone jack.", "A type of HAT that adds extra USB ports; needed because the Pi 5 only has two USB ports."],
+      "answer": 2,
+      "explain": "A DAC (Digital-to-Analogue Converter) converts digital audio from the Pi into an analogue signal for speakers or headphones. The chapter notes the Pi 5 has no headphone jack of its own, making a USB DAC the standard way to get audio out."
+    }
+  ]
+}

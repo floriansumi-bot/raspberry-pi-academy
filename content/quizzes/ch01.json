@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch01",
+  "title": "Meet the Raspberry Pi",
+  "questions": [
+    {
+      "q": "What type of computer is the Raspberry Pi 5?",
+      "choices": [
+        "A desktop computer with separate internal components connected by cables",
+        "A single-board computer with all components on one small circuit board",
+        "A cloud computer that stores everything online",
+        "A laptop without a screen"
+      ],
+      "answer": 1,
+      "explain": "The Raspberry Pi is a single-board computer (SBC), meaning every component — processor, memory, USB ports, Wi-Fi and more — is soldered onto one flat circuit board roughly the size of a bank card. There is no separate tower or jumble of internal cables."
+    },
+    {
+      "q": "Why should you NOT use a phone charger to power the Raspberry Pi 5?",
+      "choices": [
+        "Phone chargers use a different plug shape and will not fit the USB-C port",
+        "Phone chargers supply too much power and could damage the board",
+        "The Pi 5 needs more power than a typical phone charger provides",
+        "Phone chargers only work with Android devices, not Linux"
+      ],
+      "answer": 2,
+      "explain": "The Pi 5 requires a 27 W (5.1 V / 5 A) supply. Phone chargers typically supply far less current, meaning the Pi will not have enough power to run properly. The kit includes the correct 27 W USB-C power supply for this reason. Many phone chargers do use USB-C, so the plug shape is not the issue."
+    },
+    {
+      "q": "Which organisation created the Raspberry Pi, and what was its original goal?",
+      "choices": [
+        "Microsoft, to compete with Apple's Mac computers in schools",
+        "A Silicon Valley startup, to sell cheap computers to developing countries",
+        "The BBC, to revive interest in home computing as it did with the BBC Micro",
+        "The Raspberry Pi Foundation, a British educational charity, to give children an affordable programmable computer and revive interest in coding"
+      ],
+      "answer": 3,
+      "explain": "The Raspberry Pi Foundation is a British educational charity based in Cambridge. They noticed that fewer students were arriving at university with programming experience and built an affordable, programmable computer to fix that. Every penny of profit goes back into the charity's educational mission. The BBC and Microsoft are plausible-sounding distractors but had no part in creating the Pi."
+    },
+    {
+      "q": "What is stored on the microSD card in the Raspberry Pi kit?",
+      "choices": [
+        "The operating system and all your files — it acts as the Pi's main storage",
+        "The processor firmware that controls the USB and HDMI ports",
+        "Backup copies of your files in case the board is damaged",
+        "Wi-Fi and Bluetooth drivers that are loaded at start-up"
+      ],
+      "answer": 0,
+      "explain": "The microSD card is the Raspberry Pi's main storage. It holds Raspberry Pi OS (the operating system) and all your files. This is why re-flashing the microSD card — which takes about ten minutes — gives you a completely fresh system if something goes wrong."
+    },
+    {
+      "q": "How do you safely shut down the Raspberry Pi 5 using its physical power button?",
+      "choices": [
+        "Press and hold the power button for 10 seconds to force it off immediately",
+        "Hold the power button for 2 seconds to trigger a clean shutdown",
+        "Press the power button briefly to shut down, and hold it for 2 seconds to restart",
+        "Pull the USB-C power cable out — the power button is only for waking from sleep"
+      ],
+      "answer": 1,
+      "explain": "Holding the power button for 2 seconds triggers a clean shutdown. A brief press wakes the Pi from sleep rather than shutting it down. Simply pulling the power cable while the Pi is running can corrupt the microSD card and should be avoided."
+    }
+  ]
+}

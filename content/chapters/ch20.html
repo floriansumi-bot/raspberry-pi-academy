@@ -1,0 +1,521 @@
+<p class="lead">Your Raspberry Pi 5 is a capable little computer — and like any computer connected to a network, it deserves a few sensible precautions. This chapter walks you through the most important habits: locking down access, keeping software fresh, adding a firewall, and protecting the hardware itself. None of it requires a security background — just a few minutes of your time and a willingness to follow the steps.</p>
+
+<h2 id="why-bother-with-security">Why Bother with Security?</h2>
+
+<p>A Raspberry Pi running on your home network is unlikely to be attacked within minutes of being switched on. But over time, a few real risks build up:</p>
+
+<ul>
+  <li>Anyone on your Wi-Fi — a guest, a compromised smart TV, or a neighbour who knows your password — could log in to the Pi if it still uses the default password.</li>
+  <li>If you ever open the Pi to the internet, even for a few minutes, automated scanners called "bots" will find it and try common passwords within hours.</li>
+  <li>An out-of-date system may have known security holes that are trivially exploited.</li>
+</ul>
+
+<p>The good news is that a handful of straightforward steps make the Pi extremely resistant to the vast majority of threats, without turning your life into a cybersecurity course.</p>
+
+<h2 id="step-one-change-the-default-password">Step One: Change the Default Password</h2>
+
+<p>When you first set up Raspberry Pi OS, the installer asked you to create a username and password. If you skipped that step or used something obvious like <code>raspberry</code>, now is the time to fix it.</p>
+
+<div class="warn"><strong>Careful:</strong> The old default username was <code>pi</code> and the old default password was <code>raspberry</code>. Many automated attack scripts try this combination first. If your Pi still uses them, change both immediately.</div>
+
+<h3>What makes a strong password?</h3>
+
+<p>A strong password is long, random, and unique — used nowhere else. You do not need to memorise a string of symbols; a <em>passphrase</em> made of four or five random words is both memorable and very secure. For example: <code>kettle-purple-moon-46-fence</code> is far stronger than <code>P@ssw0rd!</code>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>passphrase</em> is a password made of several words strung together. Length beats complexity — a 30-character passphrase of common words is harder to crack than an 8-character mix of symbols.</div>
+
+<p>To change your password, open a Terminal on the Pi (or connect via SSH) and run:</p>
+
+<pre class="code"><code>passwd</code></pre>
+<div class="explain">This command opens the "change password" tool for your own user account. It will ask you to type your current password, then ask you to type the new password twice to confirm it. The characters you type will not appear on screen — this is normal and deliberate.</div>
+
+<div class="tip"><strong>Tip:</strong> Use a password manager (such as Bitwarden, which is free) to generate and store a strong, unique password. You only need to remember one master password, and the manager handles everything else.</div>
+
+<h3>Checking for other user accounts</h3>
+
+<p>On a freshly set-up Pi 5 running Bookworm there should only be your own user account (plus the system <code>root</code> account that runs in the background). It is worth confirming no unexpected accounts exist:</p>
+
+<pre class="code"><code>awk -F: '$3 &gt;= 1000 &amp;&amp; $1 != "nobody" { print $1 }' /etc/passwd</code></pre>
+<div class="explain">This command reads the file <code>/etc/passwd</code> (which lists every user account on the system) and prints only the ones with a user ID of 1000 or above. Those are the "real" human user accounts. On a fresh Pi you should see just your own username. If you see names you do not recognise, investigate before continuing.</div>
+
+<div class="note"><strong>Note:</strong> The <code>root</code> account is a special all-powerful administrator account built into Linux. On Raspberry Pi OS, the <code>root</code> account does not have a password set and cannot be logged into directly — you use <code>sudo</code> instead. Do not set a root password unless you have a specific reason to.</div>
+
+<h2 id="step-two-keep-the-system-updated">Step Two: Keep the System Updated</h2>
+
+<p>Software updates fix security vulnerabilities — holes that attackers could use to take control. Running <code>apt</code> regularly is one of the single most effective things you can do.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>apt</em> is the Raspberry Pi OS package manager — the tool that downloads and installs software and updates from the official Raspberry Pi and Debian servers.</div>
+
+<p>We covered this in detail in Chapter 6. As a recap, run these two commands:</p>
+
+<pre class="code"><code>sudo apt update
+sudo apt full-upgrade -y</code></pre>
+<div class="explain">
+  <strong>Line 1 — <code>sudo apt update</code>:</strong> Downloads the latest list of available packages and versions from the internet. It does not change anything on your system yet — it only refreshes the catalogue.<br><br>
+  <strong>Line 2 — <code>sudo apt full-upgrade -y</code>:</strong> Installs every available update, including updates that require removing or replacing existing packages (which is what <code>full-upgrade</code> does that plain <code>upgrade</code> does not). The <code>-y</code> flag answers "yes" automatically to any confirmation prompts.
+</div>
+
+<div class="tip"><strong>Tip:</strong> Make this a habit — run it once a week, or at least once a month. It takes only a minute or two on a fast connection.</div>
+
+<h3>Automatic security updates</h3>
+
+<p>If you want the Pi to install security-related updates on its own in the background, you can install the <code>unattended-upgrades</code> package:</p>
+
+<pre class="code"><code>sudo apt install unattended-upgrades -y
+sudo dpkg-reconfigure --priority=low unattended-upgrades</code></pre>
+<div class="explain">
+  <strong>Line 1:</strong> Installs the unattended-upgrades tool, which can apply security updates automatically without you needing to run apt manually.<br><br>
+  <strong>Line 2:</strong> Opens a simple text-based configuration screen asking whether you want automatic updates enabled. Choose <strong>Yes</strong>. The tool will then download and apply official security patches in the background each day.
+</div>
+
+<div class="note"><strong>Note:</strong> Unattended-upgrades only installs <em>security</em> updates automatically. Major version upgrades and new software still require your manual approval.</div>
+
+<h2 id="step-three-ssh-keys-log-in-without-a-password">Step Three: SSH Keys — Log In Without a Password</h2>
+
+<p>In Chapter 11 you learned to connect to the Pi remotely using SSH (Secure Shell). By default, SSH asks for your password every time. There is a smarter, more secure method: <em>SSH keys</em>. Once set up, you never type a password to SSH in — and you can disable password login entirely, which blocks automated attackers completely.</p>
+
+<h3>What is an SSH key pair?</h3>
+
+<div class="jargon"><strong>In plain words:</strong> An <em>SSH key pair</em> is a pair of matching digital files — a <em>public key</em> (like a padlock) and a <em>private key</em> (like the only key that opens that padlock). You put the public key (the padlock) on the Pi. You keep the private key (the opening key) on your Windows PC. When you connect, your PC proves it holds the matching key — without ever sending the key itself over the network. No password is needed.</div>
+
+<p>The private key must stay on your Windows PC and never be shared. The public key can be placed on any number of servers — it is safe to share because it can only be used to verify the private key, never to impersonate it.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <!-- Windows PC box -->
+  <rect x="20" y="60" width="185" height="145" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="112" y="88" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2933">Windows PC</text>
+  <rect x="38" y="103" width="149" height="38" rx="6" fill="#6d28d9"/>
+  <text x="112" y="127" text-anchor="middle" font-size="13" fill="#ffffff">Private Key (secret)</text>
+  <text x="112" y="172" text-anchor="middle" font-size="12" fill="#6d28d9">Keep this file safe!</text>
+
+  <!-- Arrow -->
+  <line x1="215" y1="132" x2="310" y2="132" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr)"/>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#0ea5a4"/>
+    </marker>
+  </defs>
+  <text x="262" y="122" text-anchor="middle" font-size="11" fill="#0ea5a4">proves match</text>
+  <text x="262" y="148" text-anchor="middle" font-size="11" fill="#0ea5a4">(no password)</text>
+
+  <!-- Pi box -->
+  <rect x="320" y="60" width="260" height="145" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="450" y="88" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2933">Raspberry Pi</text>
+  <rect x="338" y="103" width="224" height="38" rx="6" fill="#0ea5a4"/>
+  <text x="450" y="127" text-anchor="middle" font-size="13" fill="#ffffff">Public Key (padlock)</text>
+  <text x="450" y="172" text-anchor="middle" font-size="12" fill="#0ea5a4">~/.ssh/authorized_keys</text>
+
+  <!-- Labels -->
+  <text x="112" y="228" text-anchor="middle" font-size="12" fill="#1f2933">You keep this</text>
+  <text x="450" y="228" text-anchor="middle" font-size="12" fill="#1f2933">Pi stores this</text>
+</svg>
+<figcaption>How SSH key authentication works: your PC holds the private key; the Pi holds the matching public key. A connection is granted only when the two match — no password is transmitted.</figcaption>
+</figure>
+
+<h3>Generating a key pair on Windows 11</h3>
+
+<p>Windows 11 comes with a built-in SSH client, so you do not need to install anything extra. Open a <strong>PowerShell</strong> window on your Windows PC (press <kbd>Win + X</kbd> and choose "Terminal" or "PowerShell").</p>
+
+<ol class="steps">
+  <li>In the PowerShell window, type the following and press Enter:
+    <pre class="code"><code>ssh-keygen -t ed25519 -C "my-pi-key"</code></pre>
+    <div class="explain">
+      <strong><code>ssh-keygen</code>:</strong> The key-generation program built into Windows 11.<br><br>
+      <strong><code>-t ed25519</code>:</strong> Tells it to use the Ed25519 algorithm — a modern, fast, secure algorithm that produces short keys. This is the recommended choice over the older RSA algorithm.<br><br>
+      <strong><code>-C "my-pi-key"</code>:</strong> Adds a comment label to the key so you can identify it later (you can use any text you like here).
+    </div>
+  </li>
+  <li>The program asks: <em>Enter file in which to save the key</em>. Press Enter to accept the default location (<code>C:\Users\YourName\.ssh\id_ed25519</code>). Two files will be created:
+    <ul>
+      <li><code>id_ed25519</code> — your private key. <strong>Never share this file.</strong></li>
+      <li><code>id_ed25519.pub</code> — your public key. This is the one you will copy to the Pi.</li>
+    </ul>
+  </li>
+  <li>The program then asks for a <em>passphrase</em>. This is an optional extra layer of protection: if someone steals the private key file, they still cannot use it without this passphrase. You can press Enter twice to skip it, but setting a passphrase is recommended — Windows will remember it for you via a feature called the SSH Agent, so you only type it once per Windows session.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> If you already have a key pair from a previous project (you see a message like "already exists"), you can reuse it — just press <strong>n</strong> when asked to overwrite, and skip to the next section.</div>
+
+<h3>Copying the public key to the Pi</h3>
+
+<p>Now you need to place the public key into a special file on the Pi called <code>~/.ssh/authorized_keys</code>. There are two ways to do this.</p>
+
+<div class="jargon"><strong>In plain words:</strong> The tilde (<code>~</code>) is a shortcut that means "your home folder". So <code>~/.ssh/authorized_keys</code> means the file named <code>authorized_keys</code> inside the hidden <code>.ssh</code> folder inside your home folder on the Pi.</div>
+
+<h3>Method A — using ssh-copy-id (easiest, from Git Bash on Windows)</h3>
+
+<p>Windows 11's built-in PowerShell does not include <code>ssh-copy-id</code>, but if you have <strong>Git for Windows</strong> installed (which gives you Git Bash), you can use:</p>
+
+<pre class="code"><code>ssh-copy-id -i ~/.ssh/id_ed25519.pub yourname@raspberrypi.local</code></pre>
+<div class="explain">
+  <strong><code>ssh-copy-id</code>:</strong> A helper tool that reads your public key and appends it to the <code>authorized_keys</code> file on the remote machine automatically.<br><br>
+  <strong><code>-i ~/.ssh/id_ed25519.pub</code>:</strong> Tells it which public key file to use.<br><br>
+  <strong><code>yourname@raspberrypi.local</code>:</strong> Replace <code>yourname</code> with the username you chose when you set up the Pi, and <code>raspberrypi.local</code> with the Pi's hostname or IP address. It will ask for your Pi's password one last time to authenticate and copy the key.
+</div>
+
+<h3>Method B — paste it manually (works from plain PowerShell on Windows)</h3>
+
+<ol class="steps">
+  <li>In PowerShell on your Windows PC, display the contents of your public key:
+    <pre class="code"><code>Get-Content "$env:USERPROFILE\.ssh\id_ed25519.pub"</code></pre>
+    <div class="explain">This PowerShell command reads and prints the contents of your public key file to the screen. The output is one long line starting with <code>ssh-ed25519</code>. Select it all and copy it to your clipboard (Ctrl+C).</div>
+  </li>
+  <li>Now SSH into the Pi using your password as normal:
+    <pre class="code"><code>ssh yourname@raspberrypi.local</code></pre>
+    <div class="explain">Opens an SSH session to the Pi, logging in with your password as before. Replace <code>yourname</code> and <code>raspberrypi.local</code> with your actual username and Pi address.</div>
+  </li>
+  <li>On the Pi, create the <code>.ssh</code> directory if it does not already exist, and open the authorized_keys file:
+    <pre class="code"><code>mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+nano ~/.ssh/authorized_keys</code></pre>
+    <div class="explain">
+      <strong>Line 1 — <code>mkdir -p ~/.ssh</code>:</strong> Creates the hidden <code>.ssh</code> folder in your home directory. The <code>-p</code> flag means "don't complain if it already exists".<br><br>
+      <strong>Line 2 — <code>chmod 700 ~/.ssh</code>:</strong> Sets the folder's permissions so that only your own user account can read or write it. SSH refuses to work if the folder permissions are too open.<br><br>
+      <strong>Line 3 — <code>nano ~/.ssh/authorized_keys</code>:</strong> Opens the nano text editor to create (or edit) the authorized_keys file.
+    </div>
+  </li>
+  <li>In the nano editor, paste the public key you copied from Windows (right-click in the terminal window to paste, or use Ctrl+Shift+V). It must be all on one single line. Press <kbd>Ctrl + X</kbd>, then <kbd>Y</kbd>, then <kbd>Enter</kbd> to save and exit.</li>
+  <li>Set correct permissions on the file:
+    <pre class="code"><code>chmod 600 ~/.ssh/authorized_keys</code></pre>
+    <div class="explain">Sets the authorized_keys file to be readable and writable only by your own user. SSH will refuse to use the file if anyone else can read it — this permission setting satisfies that requirement.</div>
+  </li>
+</ol>
+
+<h3>Testing the key login</h3>
+
+<p>Without closing your current SSH session (keep it open as a safety net in case something goes wrong), open a <strong>new</strong> PowerShell window and try connecting:</p>
+
+<pre class="code"><code>ssh yourname@raspberrypi.local</code></pre>
+<div class="explain">If the key is set up correctly, the Pi will log you in without asking for a password — it silently verified your private key against the stored public key. If it still asks for a password, re-check that you pasted the key correctly on a single line with no extra spaces, and that the file permissions on the Pi are exactly <code>700</code> for <code>~/.ssh</code> and <code>600</code> for <code>~/.ssh/authorized_keys</code>.</div>
+
+<h3>Optionally disabling password login (advanced — read carefully first)</h3>
+
+<p>Once key login is confirmed to be working, you can disable password authentication entirely. This means <em>only</em> computers that hold the correct private key can log in via SSH — brute-force password guessing becomes impossible.</p>
+
+<div class="warn"><strong>Careful:</strong> If you disable password login and then lose your private key (for example, your Windows PC fails and you had no backup), you will be permanently locked out of SSH. Before doing this, either back up your key files to a USB drive or cloud storage, or make sure you have a keyboard and monitor you can plug into the Pi so you can still log in locally. Confirm key login works perfectly before taking this step.</div>
+
+<ol class="steps">
+  <li>On the Pi, open the SSH server configuration file:
+    <pre class="code"><code>sudo nano /etc/ssh/sshd_config</code></pre>
+    <div class="explain">Opens the SSH server configuration file in the nano text editor with administrator (<code>sudo</code>) privileges. This file controls how the SSH server behaves.</div>
+  </li>
+  <li>Find the line that says <code>PasswordAuthentication</code>. If it starts with a <code>#</code>, that means it is commented out (ignored). Remove the <code>#</code> and change the line to read exactly:
+    <pre class="code"><code>PasswordAuthentication no</code></pre>
+    <div class="explain">This line tells the SSH server to refuse password-based login attempts. Only key-based authentication will be accepted. Make sure the line does <em>not</em> start with a <code>#</code> character — a <code>#</code> at the start means the setting is ignored.</div>
+  </li>
+  <li>Save the file (<kbd>Ctrl + X</kbd>, then <kbd>Y</kbd>, then <kbd>Enter</kbd>), then restart the SSH service:
+    <pre class="code"><code>sudo systemctl restart ssh</code></pre>
+    <div class="explain">Restarts the SSH server so it reads the new configuration. Your current SSH session stays open — the restart only affects <em>new</em> connections from this point onward.</div>
+  </li>
+  <li>Test immediately by opening a fresh PowerShell window and connecting again. If it works, you are done. If it does not, your existing session is still open so you can undo the change — re-open the file and set <code>PasswordAuthentication yes</code>, then restart <code>ssh</code> again.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> You can also change the default SSH port from 22 to a high, non-standard port number (for example 2222 or 51234). This does not stop a determined attacker but does dramatically reduce the number of automated probing attempts that reach the Pi. To do this, add a line <code>Port 2222</code> to <code>/etc/ssh/sshd_config</code>, then run <code>sudo ufw allow 2222/tcp</code> before restarting <code>ssh</code>. When connecting you would then use <code>ssh -p 2222 yourname@raspberrypi.local</code>.</div>
+
+<h2 id="step-four-a-simple-firewall-with-ufw">Step Four: A Simple Firewall with ufw</h2>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>firewall</em> is a gatekeeper that decides which network connections are allowed in and which are blocked. <em>ufw</em> stands for "Uncomplicated Firewall" — it is a beginner-friendly tool built on top of Linux's powerful but complex built-in firewall system.</div>
+
+<p>For a home Pi, the default Raspberry Pi OS setup is fairly safe already, but adding <code>ufw</code> gives you explicit control and an extra layer of defence if you ever install a new service by accident.</p>
+
+<ol class="steps">
+  <li>Install ufw:
+    <pre class="code"><code>sudo apt install ufw -y</code></pre>
+    <div class="explain">Downloads and installs ufw from the official Raspberry Pi OS software repository. The <code>-y</code> flag confirms the installation automatically.</div>
+  </li>
+  <li>Allow SSH connections — do this <strong>before</strong> enabling the firewall, otherwise you will lock yourself out of remote access:
+    <pre class="code"><code>sudo ufw allow ssh</code></pre>
+    <div class="explain">Tells ufw to always permit incoming connections on the SSH port (port 22). Without this rule, enabling the firewall would immediately cut off your remote access.</div>
+  </li>
+  <li>If you are running a web server on the Pi and want to allow normal web traffic, add these rules too — skip them if you have no web server:
+    <pre class="code"><code>sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp</code></pre>
+    <div class="explain">
+      <strong>Line 1:</strong> Allows unencrypted web traffic (HTTP) on port 80.<br><br>
+      <strong>Line 2:</strong> Allows encrypted web traffic (HTTPS) on port 443.
+    </div>
+  </li>
+  <li>Enable the firewall:
+    <pre class="code"><code>sudo ufw enable</code></pre>
+    <div class="explain">Turns on the firewall immediately and configures it to start automatically every time the Pi boots. It will warn you that existing SSH connections may be disrupted — type <strong>y</strong> to confirm. Because you added the SSH rule in step 2, SSH connections will continue to work fine.</div>
+  </li>
+  <li>Check the current status and active rules:
+    <pre class="code"><code>sudo ufw status verbose</code></pre>
+    <div class="explain">Prints a summary of whether ufw is active and lists all the rules currently in effect — which ports are allowed or blocked, and in which direction. You should see <code>Status: active</code> and a rule permitting SSH.</div>
+  </li>
+</ol>
+
+<p>Here is what a typical ufw status looks like for a Pi used for SSH access and a web server:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>To (port)</th>
+      <th>Action</th>
+      <th>From</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>22/tcp (SSH)</td><td>ALLOW IN</td><td>Anywhere</td></tr>
+    <tr><td>80/tcp</td><td>ALLOW IN</td><td>Anywhere</td></tr>
+    <tr><td>443/tcp</td><td>ALLOW IN</td><td>Anywhere</td></tr>
+    <tr><td>Everything else</td><td>DENY IN</td><td>Anywhere</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> ufw blocks <em>incoming</em> connections by default while allowing all <em>outgoing</em> connections. This means the Pi can freely browse the web, download updates, and contact external services — only unsolicited connections arriving from outside are filtered.</div>
+
+<h2 id="step-five-do-not-expose-the-pi-directly-to-the-i">Step Five: Do Not Expose the Pi Directly to the Internet</h2>
+
+<p>This is one of the most important rules in this chapter. <strong>Never open ports on your home router to forward traffic directly to your Pi</strong> unless you are an experienced network administrator who understands the implications. Here is why:</p>
+
+<ul>
+  <li>The moment a port is open to the internet, automated scanners will find it — usually within an hour.</li>
+  <li>Even with a strong password and SSH keys, a misconfigured service or an unpatched vulnerability can be exploited.</li>
+  <li>Home internet connections typically have a dynamic IP address that changes, making direct access unreliable anyway.</li>
+</ul>
+
+<p>Instead, use one of these safer approaches:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Tool</th>
+      <th>What it does</th>
+      <th>Best for</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Tailscale</strong></td>
+      <td>Creates a private, encrypted virtual network between your devices. Only your approved devices can reach the Pi.</td>
+      <td>SSH access from anywhere; connecting Pi to your laptop and phone securely.</td>
+    </tr>
+    <tr>
+      <td><strong>Raspberry Pi Connect</strong></td>
+      <td>Official Raspberry Pi remote desktop and shell service. Free, easy, no router configuration needed.</td>
+      <td>Beginners who want to see the Pi's desktop from another computer.</td>
+    </tr>
+    <tr>
+      <td><strong>Cloudflare Tunnel</strong></td>
+      <td>Publishes a web service running on the Pi through Cloudflare's network, with HTTPS and DDoS protection built in.</td>
+      <td>Sharing a website or web app running on the Pi with the public.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> Tailscale is free for personal use with up to 100 devices and is the simplest way to access your Pi securely from anywhere. Install it on Raspberry Pi OS Bookworm using Tailscale's official installer script — do not use a plain <code>apt install</code> as the package is not in the default Raspberry Pi OS repository. Open a Terminal on the Pi and run:
+<pre class="code"><code>curl -fsSL https://tailscale.com/install.sh | sh</code></pre>
+<div class="explain">This downloads and runs the official Tailscale installation script directly from tailscale.com. The script detects your operating system (Debian Bookworm on a Pi 5), adds the correct package repository, and installs Tailscale. After it completes, run <code>sudo tailscale up</code> and follow the link it shows to sign in and approve the Pi in your Tailscale account.</div>
+</div>
+
+<div class="warn"><strong>Careful:</strong> Running a script piped directly from the internet (the <code>curl … | sh</code> pattern) is only safe when you trust the source completely. Only do this with well-known, reputable services such as Tailscale, and always verify you are typing the URL correctly.</div>
+
+<h2 id="step-six-fail2ban-blocking-repeated-bad-login-at">Step Six: fail2ban — Blocking Repeated Bad Login Attempts</h2>
+
+<div class="jargon"><strong>In plain words:</strong> <em>fail2ban</em> watches your system's log files for repeated failed login attempts and automatically blocks the IP address of whoever is trying. Think of it as a bouncer who notices someone trying the wrong door code five times in a row and then bars the door to them for an hour.</div>
+
+<p>Even if you have SSH keys enabled and password login disabled, fail2ban is good practice: it reduces log clutter and slows down any scanners that probe your Pi.</p>
+
+<ol class="steps">
+  <li>Install fail2ban:
+    <pre class="code"><code>sudo apt install fail2ban -y</code></pre>
+    <div class="explain">Downloads and installs fail2ban from the software repository. Once installed, it starts running automatically in the background and begins watching the SSH login logs immediately.</div>
+  </li>
+  <li>Create a local configuration file so your settings survive future package updates:
+    <pre class="code"><code>sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local</code></pre>
+    <div class="explain">Copies the default configuration file to a new file called <code>jail.local</code>. fail2ban always reads <code>jail.local</code> in preference to <code>jail.conf</code>, so any customisations you make here will not be overwritten when fail2ban is updated.</div>
+  </li>
+  <li>Check that the SSH protection is active:
+    <pre class="code"><code>sudo fail2ban-client status sshd</code></pre>
+    <div class="explain">Asks the fail2ban service to report the status of its SSH "jail". You should see that the jail is active and a count of currently banned IP addresses (probably zero on a freshly set-up Pi). If the command returns "sshd is not a valid jail", try <code>sudo fail2ban-client status ssh</code> instead.</div>
+  </li>
+</ol>
+
+<p>The default settings ban an IP address for 10 minutes after five failed login attempts within 10 minutes. You can adjust these values in <code>/etc/fail2ban/jail.local</code> if you wish, but the defaults are sensible for most home Pi setups.</p>
+
+<h2 id="step-seven-disable-unused-interfaces-with-raspi-">Step Seven: Disable Unused Interfaces with raspi-config</h2>
+
+<p>The <code>raspi-config</code> tool lets you switch hardware interfaces (SSH, VNC, the camera connector, and so on) on or off. Disabling anything you are not using is good security practice — an interface that is switched off cannot be attacked.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <em>interface</em> here means a communication channel — for example, the SSH network service, or the I2C bus used by electronic sensors. If you are not using it, turning it off removes a potential entry point.</div>
+
+<pre class="code"><code>sudo raspi-config</code></pre>
+<div class="explain">Opens the Raspberry Pi Configuration tool in the terminal. Use the arrow keys to navigate and Enter to select. Go to <strong>Interface Options</strong> to enable or disable SSH, VNC, the camera connector, I2C, SPI, and other interfaces. Select <strong>Finish</strong> when done; the Pi may ask you to reboot.</div>
+
+<p>A sensible starting point for a Pi used as a desktop or SSH server:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Interface</th>
+      <th>Recommended setting</th>
+      <th>Why</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>SSH</td><td>Enabled</td><td>Needed for remote terminal access.</td></tr>
+    <tr><td>VNC</td><td>Only if you use it</td><td>Disable if you only use SSH; VNC opens another port.</td></tr>
+    <tr><td>Camera</td><td>Only if connected</td><td>Disable if you have no camera module attached.</td></tr>
+    <tr><td>I2C / SPI / Serial</td><td>Only if wiring electronics</td><td>Disable if you are not connecting GPIO components.</td></tr>
+    <tr><td>1-Wire</td><td>Off by default — leave off</td><td>Only needed for specific temperature sensors.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="step-eight-backups-as-a-security-measure">Step Eight: Backups as a Security Measure</h2>
+
+<p>Security is not only about keeping attackers out — it is also about recovering quickly if something goes wrong. A ransomware attack, a corrupted microSD card, or an accidental deletion can all destroy your work. Backups are your safety net.</p>
+
+<p>We covered backups in detail in Chapter 17. The most important points to remember from a security perspective are:</p>
+
+<ul>
+  <li>Keep at least one backup <strong>off the Pi itself</strong> — on a USB drive, another computer, or cloud storage. A backup that lives only on the Pi is lost if the Pi is lost.</li>
+  <li>Test your backups occasionally. A backup you have never restored from is a backup you cannot trust.</li>
+  <li>Use the <code>rpi-clone</code> tool (Chapter 17) to clone the entire microSD card to a USB drive, so you can be up and running again in minutes if the card fails.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> The <code>rclone</code> tool (free, open-source) can automatically copy important files from the Pi to Google Drive, OneDrive, Dropbox, or many other cloud services. Install it with:
+<pre class="code"><code>sudo apt install rclone -y</code></pre>
+<div class="explain">Downloads and installs rclone from the Raspberry Pi OS repository. After installation, run <code>rclone config</code> in the terminal to follow an interactive setup wizard that connects rclone to your preferred cloud service. Once configured, you can back up a folder to the cloud with a single command.</div>
+</div>
+
+<h2 id="step-nine-physical-safety">Step Nine: Physical Safety</h2>
+
+<p>Software security is only half the picture. The physical setup of your Pi matters too.</p>
+
+<h3>Use the correct power supply</h3>
+
+<p>The Pi 5 requires a <strong>27 W USB-C Power Delivery supply at 5.1 V / 5 A</strong> — the one that came in your iRasptek kit. Using a lower-rated charger (for example, a phone charger rated at 5 W or 18 W) can cause instability and data corruption.</p>
+
+<div class="jargon"><strong>In plain words:</strong> The <em>undervoltage warning</em> is a lightning-bolt icon that appears in the top-right corner of the Pi's desktop when the power supply cannot keep up with demand. If you see it, stop what you are doing and switch to the correct supply — running under-voltage can corrupt the microSD card and make the Pi unusable.</div>
+
+<div class="warn"><strong>Careful:</strong> If you see a yellow lightning-bolt icon in the corner of the screen, or the message "Under-voltage detected!" in the terminal, your power supply is not delivering enough power. Switch to the official 27 W USB-C supply immediately. Continuing to run under-voltage risks file system corruption.</div>
+
+<h3>Always shut down cleanly</h3>
+
+<p>Never simply pull the power cable out of the Pi while it is running. The Pi writes data to the microSD card constantly; cutting power mid-write can corrupt the file system in a way that is difficult or impossible to repair.</p>
+
+<p>Always shut down using one of these methods:</p>
+
+<ul>
+  <li>From the desktop: click the Raspberry Pi menu &rarr; <strong>Logout</strong> &rarr; <strong>Shutdown</strong>.</li>
+  <li>From the terminal or SSH:
+    <pre class="code"><code>sudo shutdown now</code></pre>
+    <div class="explain">Tells the operating system to close all programs safely, write any unsaved data to the card, and then cut power. The Pi 5 has a power button — after this command completes, the green activity light will go out, and pressing the power button will then remove the remaining standby power.</div>
+  </li>
+  <li>Press the physical power button on the Pi 5 board once — this sends a clean shutdown signal (equivalent to the command above). Do not hold it down for more than a few seconds or it will force-cut power.</li>
+</ul>
+
+<h3>Protect the GPIO pins</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <em>GPIO</em> stands for General Purpose Input/Output — the 40 metal pins along the edge of the Pi board that let you connect physical components like LEDs, sensors, and buttons. We explore them in Chapter 18.</div>
+
+<div class="warn"><strong>Careful:</strong> The GPIO pins run on <strong>3.3 V logic</strong>, not 5 V. Connecting a 5 V signal directly to a GPIO input pin can permanently destroy the Pi. Always check the voltage requirements of any component before wiring it up. Also never short (accidentally connect) the 5 V power pins to the ground pins or to each other — this can blow a fuse or damage the board.</div>
+
+<ul>
+  <li>Always double-check your wiring before applying power when working with GPIO.</li>
+  <li>Keep the Pi away from metal surfaces and loose components that could bridge the pins.</li>
+  <li>Consider using a GPIO pin protector cap or keeping the board in its case (your iRasptek kit came with a case) when you are not doing electronics work.</li>
+</ul>
+
+<h2 id="security-checklist">Security Checklist</h2>
+
+<p>Use this checklist to confirm you have taken the most important steps. Work through it once now, and revisit it whenever you install a major new service on the Pi.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+  <rect x="10" y="10" width="620" height="380" rx="12" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="320" y="40" text-anchor="middle" font-size="16" font-weight="bold" fill="#6d28d9">Security Quick-Check</text>
+
+  <!-- Col 1 -->
+  <rect x="30" y="58" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="72" fill="#1f2933">Change default password — use a long passphrase</text>
+
+  <rect x="30" y="88" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="102" fill="#1f2933">Run sudo apt update &amp;&amp; sudo apt full-upgrade -y monthly</text>
+
+  <rect x="30" y="118" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="132" fill="#1f2933">Install unattended-upgrades for automatic security patches</text>
+
+  <rect x="30" y="148" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="162" fill="#1f2933">Generate SSH key pair on Windows and copy public key to Pi</text>
+
+  <rect x="30" y="178" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="192" fill="#1f2933">Test key login, then optionally set PasswordAuthentication no</text>
+
+  <rect x="30" y="208" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="222" fill="#1f2933">Enable ufw — allow ssh first, then sudo ufw enable</text>
+
+  <rect x="30" y="238" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="252" fill="#1f2933">Never forward router ports — use Tailscale or Pi Connect instead</text>
+
+  <rect x="30" y="268" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="282" fill="#1f2933">Install fail2ban to auto-block repeated login failures</text>
+
+  <rect x="30" y="298" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="312" fill="#1f2933">Disable unused interfaces in raspi-config</text>
+
+  <rect x="30" y="328" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="342" fill="#1f2933">Make regular backups stored off the Pi — test one</text>
+
+  <rect x="30" y="358" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="58" y="372" fill="#1f2933">Use 27 W USB-C supply; always shut down cleanly; protect GPIO pins</text>
+</svg>
+<figcaption>Print or bookmark this checklist. The first three items are the most important — tackle them before anything else.</figcaption>
+</figure>
+
+<ol class="steps">
+  <li><strong>Change the default password.</strong> Run <code>passwd</code> and set a long, unique passphrase. Store it in a password manager.</li>
+  <li><strong>Update the system.</strong> Run <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code> and repeat monthly. Optionally install <code>unattended-upgrades</code>.</li>
+  <li><strong>Set up SSH keys.</strong> Generate a key pair on Windows, copy the public key to the Pi, test that key login works.</li>
+  <li><strong>Optionally disable SSH password login.</strong> Set <code>PasswordAuthentication no</code> in <code>/etc/ssh/sshd_config</code> only after confirming key login works.</li>
+  <li><strong>Enable ufw.</strong> Run <code>sudo ufw allow ssh</code> then <code>sudo ufw enable</code>. Add only the ports you genuinely need.</li>
+  <li><strong>Never forward ports directly.</strong> Use Tailscale, Raspberry Pi Connect, or Cloudflare Tunnel for remote access instead.</li>
+  <li><strong>Install fail2ban.</strong> Run <code>sudo apt install fail2ban -y</code> and leave it running in the background.</li>
+  <li><strong>Disable unused interfaces.</strong> Run <code>sudo raspi-config</code> and switch off anything you are not using.</li>
+  <li><strong>Make regular backups.</strong> Keep at least one backup off the Pi. Test it. Use rpi-clone for a full card image.</li>
+  <li><strong>Use the correct power supply.</strong> 27 W USB-C PD only. If you see a lightning-bolt icon, investigate immediately.</li>
+  <li><strong>Always shut down cleanly.</strong> Use the menu, <code>sudo shutdown now</code>, or the power button — never yank the cable.</li>
+  <li><strong>Be GPIO-careful.</strong> Check voltages before wiring. Keep the Pi in its case when not working with electronics.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> You do not need to do all of these on day one. The most important three are: change the password, keep the system updated, and use SSH keys. The rest can be added gradually as you become more comfortable.</div>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>passwd</strong> — the Linux command that lets you change your user account's password.</li>
+    <li><strong>apt</strong> — the Raspberry Pi OS package manager, used to install, update, and remove software.</li>
+    <li><strong>SSH (Secure Shell)</strong> — an encrypted protocol for remotely controlling a computer via a terminal.</li>
+    <li><strong>SSH key pair</strong> — two mathematically linked files: a private key (kept on your PC) and a public key (placed on the Pi). Together they prove identity without transmitting a password.</li>
+    <li><strong>Ed25519</strong> — a modern SSH key algorithm: fast, secure, and recommended over the older RSA algorithm.</li>
+    <li><strong>authorized_keys</strong> — a file on the Pi listing every public key permitted to log in via SSH.</li>
+    <li><strong>sshd_config</strong> — the SSH server configuration file, located at <code>/etc/ssh/sshd_config</code>.</li>
+    <li><strong>ufw (Uncomplicated Firewall)</strong> — a beginner-friendly firewall tool for Linux that blocks unwanted incoming connections.</li>
+    <li><strong>fail2ban</strong> — a tool that automatically bans IP addresses that make too many failed login attempts.</li>
+    <li><strong>Tailscale</strong> — a free service that creates a private encrypted network between your devices, making remote access safe without opening router ports.</li>
+    <li><strong>raspi-config</strong> — the Raspberry Pi configuration tool used to enable or disable hardware interfaces and other system settings.</li>
+    <li><strong>Undervoltage warning</strong> — a lightning-bolt icon shown when the Pi is not receiving enough power; signals a risk of data corruption.</li>
+    <li><strong>GPIO</strong> — the 40-pin header on the Pi used to connect physical electronic components; runs on 3.3 V logic.</li>
+    <li><strong>unattended-upgrades</strong> — a package that automatically installs security updates in the background.</li>
+    <li><strong>passphrase</strong> — a password made of several words; longer than a typical password, easier to remember, and very hard for an attacker to guess.</li>
+    <li><strong>Interface (in raspi-config)</strong> — a hardware or network communication channel on the Pi, such as SSH, VNC, or I2C, that can be individually switched on or off.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Change the default password immediately and use a long, unique passphrase stored in a password manager.</li>
+    <li>Run <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code> monthly — or install <code>unattended-upgrades</code> for automatic security patches.</li>
+    <li>SSH key pairs replace passwords with a public/private key system: generate a pair on Windows with <code>ssh-keygen -t ed25519</code>, copy the public key to <code>~/.ssh/authorized_keys</code> on the Pi, and optionally disable password login in <code>sshd_config</code>.</li>
+    <li>Install ufw with <code>sudo apt install ufw -y</code>, allow SSH before enabling, then run <code>sudo ufw enable</code> to block unexpected incoming connections.</li>
+    <li>Never open router ports to expose the Pi directly to the internet — use Tailscale (installed via the official curl script), Raspberry Pi Connect, or Cloudflare Tunnel instead.</li>
+    <li>Install <code>fail2ban</code> to automatically ban IP addresses that repeatedly fail to log in.</li>
+    <li>Disable hardware interfaces you are not using via <code>sudo raspi-config</code> to reduce the attack surface.</li>
+    <li>Backups are part of security: keep a copy off the Pi and test it occasionally.</li>
+    <li>Use the correct 27 W USB-C power supply, always shut down cleanly, and treat the 3.3 V GPIO pins with care.</li>
+    <li>The twelve-point security checklist in this chapter gives you a complete, actionable to-do list — the first three items are the most critical.</li>
+  </ul>
+</div>

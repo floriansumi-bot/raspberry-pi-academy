@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch09",
+  "title": "Getting Connected",
+  "questions": [
+    {
+      "q": "Why is it important to change your Raspberry Pi's password BEFORE enabling any remote access?",
+      "choices": [
+        "The Pi will refuse to enable SSH until the password is changed.",
+        "The default password is well known and anyone on your network could log in using it.",
+        "Remote access tools only work with passwords longer than 8 characters.",
+        "Changing the password also enables the firewall automatically."
+      ],
+      "answer": 1,
+      "explain": "The default credentials are publicly documented, so anyone on your home network (or even the internet with some tools) could log in without permission. Changing the password first closes this risk before you open any remote-access door."
+    },
+    {
+      "q": "What does DHCP do when your Raspberry Pi connects to your home network?",
+      "choices": [
+        "It encrypts all traffic between the Pi and the router.",
+        "It reserves a permanent IP address so the Pi always gets the same number.",
+        "It automatically assigns an IP address to the Pi so you do not have to configure one manually.",
+        "It lets you type a hostname like 'raspberrypi.local' instead of a number."
+      ],
+      "answer": 2,
+      "explain": "DHCP (Dynamic Host Configuration Protocol) is the system where the router automatically hands out IP addresses to every device that connects — no manual setup needed. The downside is that the address can change after a restart; DHCP reservation (a separate router setting) is needed to make it permanent."
+    },
+    {
+      "q": "You want to control your Raspberry Pi's full graphical desktop from a web browser while you are away from home, without changing any router settings. Which remote-access method is best suited for this?",
+      "choices": [
+        "SSH via Windows Terminal",
+        "scp from PowerShell",
+        "VNC using wayvnc and RealVNC Viewer",
+        "Raspberry Pi Connect"
+      ],
+      "answer": 3,
+      "explain": "Raspberry Pi Connect is an official service that works from any web browser anywhere in the world through a secure relay — no router configuration needed. SSH and VNC both require port forwarding to work outside your home, and scp is a file-copy tool, not a desktop solution."
+    },
+    {
+      "q": "When you connect to your Pi via SSH for the very first time and see a message about a 'key fingerprint', what should you do and why?",
+      "choices": [
+        "Type 'yes' to accept it on your home network; your PC saves the fingerprint and will not ask again next time.",
+        "Type 'no' and stop — this message always means someone is intercepting your connection.",
+        "Ignore it and press Enter without reading it, because it appears every time.",
+        "Restart the Pi so the fingerprint message disappears."
+      ],
+      "answer": 0,
+      "explain": "The first-time fingerprint prompt is a one-time security check. On your own home network where you know the Pi is yours, it is safe to accept. Your PC stores the fingerprint, so it will not ask again — but if the warning reappears on a future connection you have made before, that is a signal to investigate."
+    },
+    {
+      "q": "What is the key advantage of SSH key authentication over using a password each time you connect?",
+      "choices": [
+        "SSH keys allow you to connect without the Pi being turned on.",
+        "SSH keys replace the need for a username and hostname when connecting.",
+        "SSH keys work even if you forget your Pi's username.",
+        "No password is sent over the network, making the login both more convenient and more secure."
+      ],
+      "answer": 3,
+      "explain": "With SSH key authentication, your Windows PC holds a private key and the Pi holds the matching public key. The two match automatically — no password travels over the network at all. This is both the gold standard for SSH security and more convenient than typing a password every time."
+    }
+  ]
+}

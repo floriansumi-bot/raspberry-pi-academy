@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch17",
+  "title": "Smart-Home Hub",
+  "questions": [
+    {
+      "q": "What happens to your smart-home devices if you use Amazon Alexa or Google Home and the company's server goes offline?",
+      "choices": [
+        "They stop working because the command cannot complete without reaching the company's internet server.",
+        "They switch automatically to a backup local server on your router.",
+        "Only voice commands fail; the companion app still works.",
+        "The devices remember the last command and repeat it on a timer."
+      ],
+      "answer": 0,
+      "explain": "Cloud systems like Alexa route every command through the company's own internet servers. If those servers go offline or the product is discontinued, your devices stop responding entirely. Home Assistant's local control avoids this by keeping all commands inside your home network."
+    },
+    {
+      "q": "Which installation method does the chapter recommend for beginners who want the simplest setup and full access to the Add-on Store?",
+      "choices": [
+        "Home Assistant Container (Docker), run alongside Raspberry Pi OS",
+        "Installing Home Assistant with apt directly on top of Raspberry Pi OS",
+        "Running Home Assistant inside a virtual machine on your Windows PC",
+        "Home Assistant OS (HAOS) flashed to a microSD card"
+      ],
+      "answer": 3,
+      "explain": "Home Assistant OS is explicitly labelled 'Recommended for beginners' in the chapter. It gives the simplest setup, automatic updates, and full Add-on Store access. The Docker container route is more complex and loses Add-on Store access."
+    },
+    {
+      "q": "After the Raspberry Pi first boots into Home Assistant OS, where does all ongoing setup and daily control take place?",
+      "choices": [
+        "Directly on the Pi using a keyboard and monitor attached to it.",
+        "Through the Raspberry Pi Imager tool on your Windows PC.",
+        "In a web browser on any device on the same home network, at http://homeassistant.local:8123.",
+        "Through a dedicated Windows desktop application downloaded from home-assistant.io."
+      ],
+      "answer": 2,
+      "explain": "Once the Pi shows its IP address on screen, everything — onboarding, adding devices, creating automations — is done in a browser at http://homeassistant.local:8123. The Pi's keyboard and monitor are only needed for the very first boot."
+    },
+    {
+      "q": "Why do Zigbee and Z-Wave smart home devices require an extra piece of hardware when used with Home Assistant on the Raspberry Pi 5?",
+      "choices": [
+        "They need a separate router because they use a different frequency band than Wi-Fi.",
+        "They only work with the Docker container version of Home Assistant, not Home Assistant OS.",
+        "They require a paid Nabu Casa cloud subscription to decode their signals.",
+        "They communicate over dedicated short-range radio protocols that the Pi 5 has no built-in radio for, so a USB dongle is needed."
+      ],
+      "answer": 3,
+      "explain": "Zigbee and Z-Wave are dedicated short-range radio protocols. The Raspberry Pi 5 has no built-in Zigbee or Z-Wave radio, so a USB dongle (such as the Sonoff Zigbee 3.0 USB Dongle Plus) must be plugged into one of the Pi's USB ports."
+    },
+    {
+      "q": "What is one important step the chapter says you should do BEFORE applying a Home Assistant update?",
+      "choices": [
+        "Unplug all Zigbee devices to prevent interference during the update.",
+        "Create a backup via Settings → System → Backups so you can restore your settings if something goes wrong.",
+        "Re-flash the microSD card with the latest Home Assistant OS image using Raspberry Pi Imager.",
+        "Disconnect the Pi from the internet to prevent an incomplete download."
+      ],
+      "answer": 1,
+      "explain": "The chapter explicitly warns: 'Before every update, make a backup first' via Settings → System → Backups. This snapshot preserves all your settings and automations so you can recover if an update causes problems."
+    }
+  ]
+}

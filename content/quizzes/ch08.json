@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch08",
+  "title": "Installing & Updating Software",
+  "questions": [
+    {
+      "q": "What does running 'sudo apt update' actually do?",
+      "choices": [
+        "Downloads and installs all available software updates",
+        "Refreshes APT's local list of available packages without installing anything",
+        "Removes outdated packages to free up space",
+        "Reboots the Pi to apply pending changes"
+      ],
+      "answer": 1,
+      "explain": "'sudo apt update' only downloads the latest package catalogue so APT knows what versions are available — it does not install or change anything. You need to run 'sudo apt full-upgrade' separately to actually apply updates."
+    },
+    {
+      "q": "You want to completely remove a program and also delete all the settings files it created. Which command should you use?",
+      "choices": [
+        "sudo apt remove <name>",
+        "sudo apt autoremove <name>",
+        "sudo apt clean <name>",
+        "sudo apt purge <name>"
+      ],
+      "answer": 3,
+      "explain": "'sudo apt purge' removes both the program and all its configuration files, giving you a clean slate. 'sudo apt remove' uninstalls the program but intentionally leaves config files behind in case you reinstall later."
+    },
+    {
+      "q": "Why does Raspberry Pi OS Bookworm block running plain 'pip install' directly into the system Python?",
+      "choices": [
+        "The OS protects its own Python tools from being broken by conflicting library versions",
+        "pip is not installed on Raspberry Pi OS by default",
+        "pip can only install packages that are already available through APT",
+        "pip requires a network connection that Bookworm disables by default"
+      ],
+      "answer": 0,
+      "explain": "Bookworm marks the system Python as 'externally managed' because the OS itself relies on certain Python packages being at specific versions. Overwriting them with pip could break system tools. Safe alternatives include Thonny's package manager, APT python3-* packages, or a virtual environment."
+    },
+    {
+      "q": "What is the purpose of 'sudo apt autoremove'?",
+      "choices": [
+        "It automatically installs recommended packages alongside each new install",
+        "It rolls back the most recent upgrade if something went wrong",
+        "It removes dependency packages that were installed to support other programs but are no longer needed",
+        "It deletes cached installer files from /var/cache/apt/archives/ to free disk space"
+      ],
+      "answer": 2,
+      "explain": "'sudo apt autoremove' finds and removes packages that were only installed as dependencies for something you have since removed. 'sudo apt clean' is the separate command that deletes cached download files."
+    },
+    {
+      "q": "An AppImage is a portable single-file application. What extra step is required before you can run one for the first time?",
+      "choices": [
+        "Register it with APT so it appears in the package catalogue",
+        "Install the Flatpak runtime so it has the libraries it needs",
+        "Run 'sudo apt update' so the system recognises the new file",
+        "Mark the file as executable with 'chmod +x'"
+      ],
+      "answer": 3,
+      "explain": "AppImages are downloaded as plain files; the OS will not run them until you mark them executable with 'chmod +x MyApp.AppImage'. After that you can launch them directly with './MyApp.AppImage' — no installation or administrator password is needed."
+    }
+  ]
+}

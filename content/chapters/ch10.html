@@ -1,0 +1,553 @@
+<p class="lead">Your Raspberry Pi 5 keeps everything it knows — the operating system, your files, your programs — on a small microSD card that slips into a slot on the underside of the board. In this chapter you will learn how to look after that card, make regular backups so you never lose your work, connect extra drives, and eventually upgrade to a much faster solid-state drive so your Pi feels like a completely different machine.</p>
+
+<h2 id="understanding-how-the-pi-stores-its-data">Understanding How the Pi Stores Its Data</h2>
+
+<p>Every computer needs somewhere to keep its files permanently — even when the power is off. On a laptop that is usually a built-in hard drive or SSD. On a Raspberry Pi 5, the default storage is a <strong>microSD card</strong>: the same type of tiny card you might use in a camera or smartphone.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Storage" means the place your computer writes files to keep them safe long-term — just like a filing cabinet. "Memory" (RAM) is different: it is the scratchpad the computer uses while it is working, and it empties itself the moment you switch off. Your microSD card is storage; the 16 GB of RAM inside your Pi 5 is memory.</div>
+
+<p>The microSD card works perfectly well for everyday use, but it has two important weaknesses you should know about from the start:</p>
+
+<ul>
+  <li><strong>Wear.</strong> Every time data is written to a microSD card, a tiny part of it wears out. Most cards are rated for a limited number of write cycles. A Pi that is running a busy project — writing logs, updating files, running a web server — can wear out a cheap card faster than you might expect.</li>
+  <li><strong>Corruption on sudden power loss.</strong> If the Pi is writing a file at the exact moment the power is cut, that file (and sometimes nearby parts of the filesystem) can become scrambled and unreadable. This is called <strong>filesystem corruption</strong>.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> The "filesystem" is the system of rules and structures that keeps your files organised on a storage device — like the tabs and dividers inside a filing cabinet. When corruption strikes, it is as if someone spilt water on the cabinet and the labels dissolved.</div>
+
+<div class="warn"><strong>Careful:</strong> Never pull the power lead out of your Pi without shutting it down first. Always use the shutdown option from the desktop menu or the command line. This is the single most important habit to protect your data.</div>
+
+<h3>Always Shut Down Properly</h3>
+
+<p>To shut down from the desktop, click the <strong>Raspberry Pi menu</strong> (top-left), then choose <strong>Logout → Shutdown</strong>. Wait until the screen goes dark and the green activity light on the board stops blinking before you unplug anything.</p>
+
+<p>To shut down from the terminal (the black command-line window), type:</p>
+
+<pre class="code"><code>sudo shutdown now</code></pre>
+<div class="explain">
+  <p><strong>sudo</strong> — short for "superuser do". It runs the command with administrator privileges, which is required for system-level actions like shutting down.<br>
+  <strong>shutdown now</strong> — tells the Pi to shut itself down immediately, saving all open files first. The word <code>now</code> means do it straight away, with no delay.</p>
+</div>
+
+<p>You will see a few lines of text scroll past, and then the Pi will halt safely. The green activity light will stop blinking. Only then should you disconnect power.</p>
+
+<div class="tip"><strong>Tip:</strong> Your Pi 5 has a small physical power button on the corner of the board. A quick single press triggers a clean shutdown — just like choosing Shutdown from the menu. This is very handy if the button is accessible through your case.</div>
+
+<h2 id="checking-how-much-space-you-have">Checking How Much Space You Have</h2>
+
+<p>Before you start downloading things or installing programs, it is good practice to check how much free space remains on your card. The command for this is <code>df</code>, which stands for <em>disk free</em>.</p>
+
+<pre class="code"><code>df -h</code></pre>
+<div class="explain">
+  <p><strong>df</strong> — the disk-free command; it shows how much space each storage device is using and how much is left.<br>
+  <strong>-h</strong> — stands for "human-readable". Without this flag the numbers are shown in raw blocks of bytes, which is hard to read. With <code>-h</code> you see figures in megabytes (MB) and gigabytes (GB) instead.</p>
+</div>
+
+<p>The output will look something like this (your exact numbers will differ):</p>
+
+<pre class="code"><code>Filesystem      Size  Used Avail Use% Mounted on
+/dev/mmcblk0p2  119G   12G  102G  11% /
+/dev/mmcblk0p1  512M   64M  448M  13% /boot/firmware
+tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
+<div class="explain">
+  <p><strong>Filesystem</strong> — the internal name the Pi uses for each storage area.<br>
+  <strong>/dev/mmcblk0p2</strong> — your main microSD card partition: the big one holding the operating system and all your files. <code>mmc</code> stands for MultiMediaCard — the standard that microSD uses. <code>p2</code> means partition 2.<br>
+  <strong>Size</strong> — the total capacity of that partition (119 GB in this example, from a 128 GB card — some space is always used up by the card's own bookkeeping).<br>
+  <strong>Used</strong> — how much space is currently occupied (12 GB here).<br>
+  <strong>Avail</strong> — how much is still free (102 GB).<br>
+  <strong>Use%</strong> — the percentage used (11%). A good rule of thumb: keep this below 80%.<br>
+  <strong>Mounted on /</strong> — the forward-slash <code>/</code> is called the <em>root</em> of the filesystem. Everything on the Pi hangs off this one point. Think of it like the C:\ drive on Windows, but with a forward slash instead.<br>
+  <strong>/dev/mmcblk0p1</strong> — the smaller boot partition, which holds the files the Pi reads when it first starts up.<br>
+  <strong>/boot/firmware</strong> — the mount point (location in the filesystem) for the boot partition on Bookworm. This is where bootloader configuration files live.<br>
+  <strong>tmpfs</strong> — a temporary area held in RAM, not on the card. Files here vanish when you reboot — it is not real storage.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> If your <code>Use%</code> is climbing above 80%, it is time to delete unwanted files, move things to an external drive, or upgrade to a bigger card or SSD.</div>
+
+<h3>Listing All Connected Drives</h3>
+
+<p>To see a cleaner picture of every storage device the Pi can see — including USB drives and SSDs — use <code>lsblk</code>:</p>
+
+<pre class="code"><code>lsblk</code></pre>
+<div class="explain">
+  <p><strong>lsblk</strong> — stands for "list block devices". A "block device" is the technical name for any storage drive. This command prints a tree showing every drive and its partitions, their sizes, and where they are mounted. Your microSD card will appear as <code>mmcblk0</code>, a USB drive as <code>sda</code>, and an NVMe SSD as <code>nvme0n1</code>.</p>
+</div>
+
+<h3>The Filesystem Is Already Expanded for You</h3>
+
+<p>When Raspberry Pi OS is first installed on a card, it normally occupies only a small portion of the card's capacity. On first boot, the system automatically <strong>expands the filesystem</strong> to fill the entire card — so all the space on your 64, 128, or 256 GB card becomes usable. You do not need to do anything; it happens in the background. If you ever re-flash the card, you can trigger this manually via <strong>Raspberry Pi Configuration → Performance → Expand Filesystem</strong>, or by running <code>sudo raspi-config</code> and choosing <strong>Advanced Options → Expand Filesystem</strong>.</p>
+
+<h2 id="using-usb-drives-and-external-hard-drives">Using USB Drives and External Hard Drives</h2>
+
+<p>Plugging in a USB memory stick, an external hard drive, or an external SSD is one of the easiest ways to add more storage or to move files between your Pi and your Windows PC.</p>
+
+<h3>Where USB Drives Appear</h3>
+
+<p>When you plug a USB drive into one of the Pi's USB ports, Raspberry Pi OS automatically <strong>mounts</strong> it — meaning it makes the drive accessible and gives it a location in the filesystem.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Mounting" a drive means connecting it to the filesystem tree so you can reach its files. Think of it like plugging a new drawer into the filing cabinet. "Unmounting" (or ejecting) does the reverse — it safely disconnects the drive so you can remove it without risking data loss.</div>
+
+<p>The drive will appear in the <strong>file manager</strong> (the folder icon in the taskbar) on the left panel. On the command line, its files will be at a path such as:</p>
+
+<p><code>/media/your-username/MY-USB-DRIVE</code></p>
+
+<p>Replace <code>your-username</code> with the username you chose during setup (the default is <code>pi</code>). The <code>MY-USB-DRIVE</code> part is whatever name (label) was given to the drive when it was formatted.</p>
+
+<div class="note"><strong>Note:</strong> The Pi 5 has two <strong>USB 3.0</strong> ports (the ones with blue plastic inside) and two <strong>USB 2.0</strong> ports (black plastic). For the fastest transfers with a USB 3.0 drive, plug it into one of the blue ports.</div>
+
+<h3>Copying Files to and from a USB Drive</h3>
+
+<p>You can drag and drop files in the file manager exactly as you would on Windows. Or, from the terminal, use the <code>cp</code> (copy) command:</p>
+
+<pre class="code"><code>cp ~/Documents/my-report.txt /media/pi/MY-USB-DRIVE/</code></pre>
+<div class="explain">
+  <p><strong>cp</strong> — the copy command.<br>
+  <strong>~/Documents/my-report.txt</strong> — the file to copy. The tilde <code>~</code> is a shortcut for your home folder (e.g. <code>/home/pi</code>).<br>
+  <strong>/media/pi/MY-USB-DRIVE/</strong> — the destination: the root folder of the USB drive. Replace <code>pi</code> with your username and <code>MY-USB-DRIVE</code> with the actual label of your drive. The trailing slash <code>/</code> tells <code>cp</code> you are copying into a folder, not renaming the file.</p>
+</div>
+
+<p>To copy a whole folder and everything inside it, add <code>-r</code> (for "recursive"):</p>
+
+<pre class="code"><code>cp -r ~/Projects /media/pi/MY-USB-DRIVE/</code></pre>
+<div class="explain">
+  <p><strong>-r</strong> — tells <code>cp</code> to copy recursively, meaning it copies the folder itself and every file and sub-folder inside it. Without <code>-r</code>, <code>cp</code> will refuse to copy a folder.</p>
+</div>
+
+<h3>Keeping a Folder in Sync with rsync</h3>
+
+<p>The <code>cp</code> command always copies everything from scratch. If you run it a second time, it copies all files again even if most have not changed. The <code>rsync</code> command is smarter: it only copies files that are new or have changed since the last time. This makes it much faster for large folders and ideal for regular backups.</p>
+
+<pre class="code"><code>rsync -av ~/Documents/ /media/pi/MY-USB-DRIVE/Documents-backup/</code></pre>
+<div class="explain">
+  <p><strong>rsync</strong> — "remote sync", a tool for efficiently copying and synchronising files. It compares source and destination and only transfers what has changed.<br>
+  <strong>-a</strong> — "archive mode". This one flag does a lot of useful things at once: it copies folders recursively, preserves file permissions, timestamps, and symbolic links. Think of it as "copy everything faithfully".<br>
+  <strong>-v</strong> — "verbose". Prints the name of each file as it is copied, so you can see what is happening.<br>
+  <strong>~/Documents/</strong> — the source folder. The trailing slash <code>/</code> here is important: it means "copy the <em>contents</em> of Documents, not the Documents folder itself".<br>
+  <strong>/media/pi/MY-USB-DRIVE/Documents-backup/</strong> — the destination folder on your USB drive. Replace the drive name with yours.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Run the same <code>rsync</code> command again the next day — it will only copy files that have changed since yesterday, making it very quick. This is an easy habit that keeps a current copy of your work on a separate drive.</div>
+
+<h3>Safely Ejecting a USB Drive</h3>
+
+<p>Before you pull out a USB drive, you must tell the Pi to finish writing and disconnect it cleanly. In the file manager, right-click the drive in the left panel and choose <strong>Eject</strong>. Or from the terminal:</p>
+
+<pre class="code"><code>sudo umount /media/pi/MY-USB-DRIVE</code></pre>
+<div class="explain">
+  <p><strong>sudo</strong> — administrator privileges are needed for hardware operations.<br>
+  <strong>umount</strong> — the unmount command. Note the spelling: it is <code>umount</code>, not <code>unmount</code> — a long-standing quirk of Linux. This safely disconnects the drive from the filesystem. Once the command completes with no error message, it is safe to physically unplug the drive.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> Pulling out a USB drive without ejecting it first can corrupt the files on the drive, just as with the microSD card. Always eject first — it only takes a second.</div>
+
+<h3>Formatting a New Drive (If Needed)</h3>
+
+<p>If you buy a brand-new USB drive or a new SSD enclosure, it may arrive already formatted and ready to use, or it may need formatting first. The easiest way to format a drive on the Pi is through the <strong>Disks</strong> graphical tool (also called GParted in some versions).</p>
+
+<ol class="steps">
+  <li>Open the application menu → <strong>Accessories → Disks</strong> (if Disks is not listed, open a terminal and run <code>sudo apt install gnome-disk-utility</code> to install it).</li>
+  <li>Select the drive you want to format from the list on the left. <em>Be very careful to pick the correct drive</em> — formatting erases all data permanently.</li>
+  <li>Click the menu button (three horizontal lines, top-right) and choose <strong>Format Disk</strong>.</li>
+  <li>For the partition type, choose <strong>GPT</strong>. Click Format.</li>
+  <li>Once the disk is blank, click the <strong>+</strong> button to create a new partition. Choose the full size, and select <strong>Ext4</strong> as the filesystem type for a Linux drive, or <strong>FAT32 / exFAT</strong> if you also want to read it on Windows. Give it a label (a name) and click Create.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> <strong>Ext4</strong> is the standard Linux filesystem — fast and reliable on the Pi, but Windows cannot read it without extra software. <strong>exFAT</strong> works on both Windows 11 and the Pi without any extra tools, making it ideal for drives you share between the two computers.</div>
+
+<h2 id="backing-up-your-pi-why-it-matters">Backing Up Your Pi — Why It Matters</h2>
+
+<p>A microSD card can fail without any warning. It can be corrupted by a power cut. It can be lost or broken. If that happens and you have no backup, everything — your files, your settings, your programs — is gone. Backups are not optional; they are essential.</p>
+
+<p>There are two main approaches to backing up a Raspberry Pi:</p>
+
+<ol>
+  <li><strong>Image the whole card</strong> to your Windows PC — making a perfect copy of the entire card as a single file.</li>
+  <li><strong>Clone the card</strong> to another card or USB drive directly from the Pi, using the built-in SD Card Copier tool.</li>
+</ol>
+
+<h3>What Is a Disk Image?</h3>
+
+<div class="jargon"><strong>In plain words:</strong> A "disk image" (often a <code>.img</code> file) is a single file that contains a perfect, byte-for-byte copy of an entire storage device. It is like a photograph of the entire card — every file, every setting, the operating system itself. If your card dies, you can write the image back to a new card and your Pi will be exactly as it was.</div>
+
+<h3>Method 1 — Making an Image on Your Windows PC</h3>
+
+<p>This method uses your Windows PC and requires you to remove the microSD card from the Pi (shut down first!), insert it into the USB card reader that came with your kit, and plug that into your Windows PC.</p>
+
+<p>Two free tools can do this:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Tool</th>
+      <th>Best for</th>
+      <th>Where to get it</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Raspberry Pi Imager</strong></td>
+      <td>Writing a fresh OS image AND backing up (it can read a card to a <code>.img.gz</code> file)</td>
+      <td>raspberrypi.com/software — free download</td>
+    </tr>
+    <tr>
+      <td><strong>Win32DiskImager</strong></td>
+      <td>Simple, dedicated tool for reading and writing raw disk images (<code>.img</code>)</td>
+      <td>sourceforge.net/projects/win32diskimager — free download</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Using <strong>Win32DiskImager</strong> to back up your card:</p>
+
+<ol class="steps">
+  <li>Shut down your Pi properly and remove the microSD card once the board has fully powered off and the green light has stopped blinking.</li>
+  <li>Insert the card into the USB card reader and plug the reader into your Windows PC.</li>
+  <li>Open Win32DiskImager. You may need to run it as Administrator (right-click → Run as administrator).</li>
+  <li>In the <strong>Image File</strong> field, click the folder icon and choose where to save the backup file. Give it a clear name, such as <code>pi-backup-2026-06-19.img</code>, and click Save.</li>
+  <li>In the <strong>Device</strong> dropdown, select the drive letter that corresponds to your microSD card. Check Windows Explorer (File Explorer) to confirm which letter your card reader has been assigned — it is usually something like E: or F:. <em>Be very careful: choosing the wrong drive letter could overwrite data on your PC.</em></li>
+  <li>Click <strong>Read</strong>. Win32DiskImager will copy the entire card into the image file. This may take 10–30 minutes depending on the card size and your PC's speed.</li>
+  <li>When it says "Read Successful", click OK. Your backup is complete.</li>
+  <li>Remove the card reader and put the microSD card back into the Pi.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> A raw backup image will be roughly the same size as your card's capacity (e.g. a 128 GB card produces a ~128 GB image file), even if the card is mostly empty. This is because a raw image copies every sector of the card, used or not. Make sure you have enough free space on your Windows PC before starting. To save space, you can compress the finished <code>.img</code> file using 7-Zip (free at 7-zip.org) — a mostly-empty 128 GB image can often compress to 5–15 GB.</div>
+
+<p>To <strong>restore</strong> the backup to a new card, simply use Win32DiskImager again, but click <strong>Write</strong> instead of Read, choosing the <code>.img</code> file as the source and the new card as the destination.</p>
+
+<div class="warn"><strong>Careful:</strong> When clicking Write in Win32DiskImager, double-check the device letter one more time before clicking. Writing an OS image to the wrong drive will erase everything on it with no undo.</div>
+
+<h3>Method 2 — SD Card Copier (Clone Card-to-Card on the Pi)</h3>
+
+<p>Raspberry Pi OS includes a built-in tool called <strong>SD Card Copier</strong> that lets you clone your current microSD card to a second card (or a USB drive) while the Pi is still running. This is the simplest backup method because you do not need to shut down or use your Windows PC at all.</p>
+
+<ol class="steps">
+  <li>Insert a second microSD card (via the USB card reader) or a USB drive into one of the Pi's USB ports. It must be at least as large as your current card.</li>
+  <li>Open <strong>Applications menu → Accessories → SD Card Copier</strong>.</li>
+  <li>In the <strong>Copy From Device</strong> dropdown, select your internal card (listed as something like <code>/dev/mmcblk0</code>).</li>
+  <li>In the <strong>Copy To Device</strong> dropdown, select the destination card or drive.</li>
+  <li>Make sure <strong>New Partition UUIDs</strong> is ticked. This gives the cloned card its own unique identity so the Pi does not get confused if both cards are ever plugged in at the same time.</li>
+  <li>Click <strong>Start</strong>. Progress is shown on screen. It may take 15–45 minutes depending on the card size.</li>
+  <li>When complete, you will see a success message. The cloned card is now a perfect working copy of your Pi's card — you could boot from it immediately if needed.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Store your backup image or cloned card somewhere safe — a labelled envelope in a drawer, or uploaded to cloud storage (if you compress it first). Make a fresh backup whenever you have finished a big project or installed a lot of new programs. Once a month is a reasonable habit for general use.</div>
+
+<h3>The <code>dd</code> Command — For the Curious</h3>
+
+<p>You may come across references to a Linux command called <code>dd</code> for making disk images directly in the terminal. It is a powerful low-level tool that can copy an entire drive to a file. However, it has no safety prompts — a single typo can silently wipe the wrong drive — so it is not recommended for beginners. The tools above (SD Card Copier and Win32DiskImager) do the same job more safely and with a visual progress indicator. If you are curious, <code>dd</code> stands for "data duplicator", and it is worth exploring once you are comfortable with the terminal.</p>
+
+<h2 id="upgrading-to-a-solid-state-drive-ssd">Upgrading to a Solid-State Drive (SSD)</h2>
+
+<p>Once you have been using your Pi for a while, you may notice that some tasks — opening programs, loading large files, running a busy web server — feel a little sluggish. The microSD card is often the bottleneck. The solution is to add or switch to a <strong>solid-state drive (SSD)</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A "solid-state drive" (SSD) is a type of storage that is much faster than a microSD card and far more durable for heavy, continuous use. Unlike an old-style hard drive, it has no moving parts — it stores data on chips. An "NVMe SSD" is a particular type of very fast SSD that uses a connector standard called M.2 and a communication protocol called NVMe, designed to take full advantage of the Pi 5's high-speed PCIe connection.</div>
+
+<p>The Pi 5 gives you two practical ways to add an SSD:</p>
+
+<ol>
+  <li><strong>PCIe NVMe SSD via a HAT</strong> — the fastest option, using the Pi's built-in PCIe slot.</li>
+  <li><strong>USB SSD</strong> — a simpler option using any of the Pi's USB 3.0 ports, no extra board needed.</li>
+</ol>
+
+<figure class="fig">
+  <svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+    <!-- Title -->
+    <text x="340" y="20" text-anchor="middle" fill="#1f2933" font-size="13" font-weight="bold">Three storage options compared</text>
+
+    <!-- MicroSD Card column -->
+    <rect x="30" y="35" width="180" height="145" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="120" y="58" text-anchor="middle" fill="#6d28d9" font-size="13" font-weight="bold">microSD Card</text>
+    <text x="120" y="76" text-anchor="middle" fill="#1f2933" font-size="11">Speed: 20–80 MB/s read</text>
+    <text x="120" y="92" text-anchor="middle" fill="#1f2933" font-size="11">Write: 10–30 MB/s</text>
+    <text x="120" y="108" text-anchor="middle" fill="#1f2933" font-size="11">Durability: moderate</text>
+    <text x="120" y="124" text-anchor="middle" fill="#1f2933" font-size="11">Extra hardware: none</text>
+    <text x="120" y="140" text-anchor="middle" fill="#1f2933" font-size="11">Cost: already included</text>
+    <text x="120" y="160" text-anchor="middle" fill="#6d28d9" font-size="12" font-weight="bold">Good for: getting started</text>
+
+    <!-- USB SSD column -->
+    <rect x="250" y="35" width="180" height="145" rx="8" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2"/>
+    <text x="340" y="58" text-anchor="middle" fill="#0ea5a4" font-size="13" font-weight="bold">USB 3.0 SSD</text>
+    <text x="340" y="76" text-anchor="middle" fill="#1f2933" font-size="11">Speed: 200–450 MB/s read</text>
+    <text x="340" y="92" text-anchor="middle" fill="#1f2933" font-size="11">Write: 150–400 MB/s</text>
+    <text x="340" y="108" text-anchor="middle" fill="#1f2933" font-size="11">Durability: excellent</text>
+    <text x="340" y="124" text-anchor="middle" fill="#1f2933" font-size="11">Extra hardware: USB enclosure</text>
+    <text x="340" y="140" text-anchor="middle" fill="#1f2933" font-size="11">Cost: £20–40</text>
+    <text x="340" y="160" text-anchor="middle" fill="#0ea5a4" font-size="12" font-weight="bold">Good for: easy upgrade</text>
+
+    <!-- NVMe SSD column -->
+    <rect x="470" y="35" width="180" height="145" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="560" y="58" text-anchor="middle" fill="#6d28d9" font-size="13" font-weight="bold">NVMe via HAT</text>
+    <text x="560" y="76" text-anchor="middle" fill="#1f2933" font-size="11">Speed: 400–900 MB/s read</text>
+    <text x="560" y="92" text-anchor="middle" fill="#1f2933" font-size="11">Write: 300–700 MB/s</text>
+    <text x="560" y="108" text-anchor="middle" fill="#1f2933" font-size="11">Durability: excellent</text>
+    <text x="560" y="124" text-anchor="middle" fill="#1f2933" font-size="11">Extra hardware: HAT + SSD</text>
+    <text x="560" y="140" text-anchor="middle" fill="#1f2933" font-size="11">Cost: £30–70</text>
+    <text x="560" y="160" text-anchor="middle" fill="#6d28d9" font-size="12" font-weight="bold">Good for: maximum speed</text>
+  </svg>
+  <figcaption>Storage options at a glance. The NVMe route is the fastest but costs a little more and requires an extra board. The USB SSD is a great middle ground that needs no extra board at all.</figcaption>
+</figure>
+
+<h3>Option A — PCIe NVMe SSD (the Fast Way)</h3>
+
+<p>The Pi 5 has a <strong>PCIe 2.0 x1 connector</strong> — a small slot on the edge of the board that enables very fast data transfer, the same technology used in full-size desktop computers for high-speed storage. On its own, this connector cannot directly accept a standard M.2 NVMe SSD; you need an additional accessory board called a <strong>HAT</strong> that bridges the two.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "PCIe" (PCI Express) is a high-speed data pathway between the processor and a storage device. "NVMe" (Non-Volatile Memory Express) is the protocol that tells data how to travel along that pathway very quickly. "M.2" is the physical shape and connector of the SSD itself — a small rectangular stick about the size of a stick of chewing gum. A "HAT" (Hardware Attached on Top) is a small add-on board that clips or connects to the Pi to give it new capabilities — here, an M.2 socket connected to the PCIe slot via a short ribbon cable.</div>
+
+<p>Popular HAT options include:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>HAT</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Raspberry Pi M.2 HAT+</strong> (official)</td>
+      <td>The official board from the Raspberry Pi Foundation. Supports 2230 and 2242 M.2 NVMe SSDs. Connects via the PCIe ribbon cable and the 40-pin GPIO header for power. Recommended for beginners — it is well documented and fully supported.</td>
+    </tr>
+    <tr>
+      <td><strong>Pimoroni NVMe Base</strong></td>
+      <td>A popular third-party option that mounts under the Pi for a compact build. Supports the longer 2280 drives (the most widely available and cheapest size).</td>
+    </tr>
+    <tr>
+      <td><strong>Various third-party HATs</strong></td>
+      <td>Many manufacturers make PCIe-to-M.2 HATs. Ensure yours explicitly says "Raspberry Pi 5 compatible" and supports "PCIe Gen 2 x1" — otherwise it may not work at all.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> The HAT and the M.2 NVMe SSD are sold separately — they are not included in the iRasptek starter kit. When buying an SSD, look for an <strong>M.2 NVMe</strong> drive in a size your HAT supports (2230, 2242, or 2280 — these numbers describe the length in millimetres). A 256 GB or 512 GB drive is plenty for most Pi projects and very affordable.</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+    <!-- Pi board -->
+    <rect x="40" y="80" width="220" height="150" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2.5"/>
+    <text x="150" y="105" text-anchor="middle" fill="#1f2933" font-size="13" font-weight="bold">Raspberry Pi 5</text>
+    <!-- GPIO header on Pi -->
+    <rect x="60" y="220" width="140" height="8" rx="2" fill="#1f2933"/>
+    <text x="130" y="244" text-anchor="middle" fill="#1f2933" font-size="11">40-pin GPIO header (power)</text>
+    <!-- PCIe connector on Pi -->
+    <rect x="248" y="152" width="14" height="28" rx="2" fill="#6d28d9"/>
+    <text x="278" y="150" text-anchor="start" fill="#6d28d9" font-size="11">PCIe</text>
+    <text x="278" y="163" text-anchor="start" fill="#6d28d9" font-size="11">connector</text>
+
+    <!-- Ribbon cable -->
+    <path d="M 262 166 Q 310 166 310 200" stroke="#0ea5a4" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <text x="325" y="185" text-anchor="start" fill="#0ea5a4" font-size="11">ribbon cable</text>
+
+    <!-- HAT board -->
+    <rect x="310" y="200" width="280" height="90" rx="8" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2.5"/>
+    <text x="450" y="222" text-anchor="middle" fill="#1f2933" font-size="13" font-weight="bold">M.2 HAT+</text>
+    <!-- M.2 socket on HAT -->
+    <rect x="340" y="232" width="220" height="20" rx="3" fill="#6d28d9"/>
+    <text x="450" y="246" text-anchor="middle" fill="white" font-size="11">M.2 socket</text>
+    <!-- NVMe SSD  -->
+    <rect x="345" y="236" width="185" height="10" rx="2" fill="#1f2933"/>
+    <text x="450" y="270" text-anchor="middle" fill="#1f2933" font-size="12">NVMe SSD (M.2 "stick")</text>
+
+    <!-- Labels at top -->
+    <text x="150" y="58" text-anchor="middle" fill="#1f2933" font-size="13" font-weight="bold">How the NVMe SSD connects to the Pi 5</text>
+    <!-- Arrow indicating data flow -->
+    <line x1="450" y1="200" x2="310" y2="176" stroke="#0ea5a4" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="5,4"/>
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 Z" fill="#0ea5a4"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>The M.2 HAT+ connects to the Pi 5 via a short PCIe ribbon cable (teal). The NVMe SSD plugs into the M.2 socket on the HAT. Power for the HAT comes from the 40-pin GPIO header.</figcaption>
+</figure>
+
+<h3>Step 1 — Update the Bootloader First</h3>
+
+<p>Before fitting the HAT, it is important to ensure your Pi's bootloader (the tiny program that runs before the operating system) is up to date. Older bootloader versions may not support NVMe boot at all. Do this while still booted from your microSD card:</p>
+
+<pre class="code"><code>sudo apt update
+sudo apt full-upgrade -y
+sudo rpi-eeprom-update -a
+sudo reboot</code></pre>
+<div class="explain">
+  <p><strong>sudo apt update</strong> — refreshes the list of available software packages from the internet so the next commands know about the latest versions.<br>
+  <strong>sudo apt full-upgrade -y</strong> — installs all available updates, including any updated bootloader package. The <code>-y</code> automatically answers "yes" to any prompts.<br>
+  <strong>sudo rpi-eeprom-update -a</strong> — checks for a newer version of the Pi's EEPROM (the chip that holds the bootloader) and schedules the update to be applied on next boot. <code>-a</code> means "apply any available update". The update itself is applied during the reboot.<br>
+  <strong>sudo reboot</strong> — restarts the Pi so the bootloader update is written into the EEPROM chip. After this reboot your bootloader is current and NVMe boot will be fully supported.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Even if you are not planning to add an SSD, keeping your bootloader updated is good practice. It brings bug fixes and performance improvements.</div>
+
+<h3>Step 2 — Physically Install the HAT and SSD</h3>
+
+<p>Follow the instructions included with your HAT carefully. In general:</p>
+
+<ol class="steps">
+  <li>Power off the Pi completely and disconnect the power lead.</li>
+  <li>Locate the PCIe FPC connector (a small black latch near the edge of the board) and lift the latch gently, then insert the ribbon cable included with the HAT, gold contacts facing down. Press the latch closed.</li>
+  <li>Connect the other end of the ribbon cable to the HAT in the same way.</li>
+  <li>If your HAT mounts on top of the Pi, align it with the 40-pin GPIO header and press it gently down until the pins are fully seated.</li>
+  <li>Slide the M.2 NVMe SSD into the socket at a slight angle (about 30°), then press it flat and secure it with the small retaining screw.</li>
+  <li>Reconnect power. The Pi should boot from the microSD card as normal, and the new SSD should now be visible to the system.</li>
+</ol>
+
+<h3>Step 3 — Verify the SSD Is Detected</h3>
+
+<pre class="code"><code>lsblk</code></pre>
+<div class="explain">
+  <p><strong>lsblk</strong> — lists all block (storage) devices. You should now see both your microSD card (<code>mmcblk0</code>) and the NVMe SSD, which will appear as <code>nvme0n1</code>. If <code>nvme0n1</code> is not listed, check that the ribbon cable is seated properly at both ends and the SSD is fully pushed into the socket.</p>
+</div>
+
+<h3>Step 4 — Clone the MicroSD Card to the SSD</h3>
+
+<p>Use SD Card Copier to clone your entire system to the new SSD:</p>
+
+<ol class="steps">
+  <li>Open <strong>Applications → Accessories → SD Card Copier</strong>.</li>
+  <li>Set <strong>Copy From Device</strong> to your microSD card (<code>/dev/mmcblk0</code>).</li>
+  <li>Set <strong>Copy To Device</strong> to the NVMe SSD (<code>/dev/nvme0n1</code>).</li>
+  <li>Tick <strong>New Partition UUIDs</strong> and click <strong>Start</strong>. Wait for it to finish — this can take 10–30 minutes.</li>
+</ol>
+
+<h3>Step 5 — Set the Boot Order</h3>
+
+<p>Tell the Pi to try the NVMe SSD before the microSD card when it starts up:</p>
+
+<pre class="code"><code>sudo raspi-config</code></pre>
+<div class="explain">
+  <p><strong>raspi-config</strong> — the Raspberry Pi Configuration tool. It opens a menu-driven interface for changing system settings without editing configuration files by hand. Use the arrow keys to navigate and Enter to select.</p>
+</div>
+
+<p>In the menu, navigate to <strong>Advanced Options → Boot Order → NVMe/USB Boot</strong> and press Enter to select it. Then arrow down to <strong>Finish</strong> and press Enter. When asked if you want to reboot, choose <strong>Yes</strong>.</p>
+
+<div class="note"><strong>Note:</strong> Choosing "NVMe/USB Boot" does not mean the Pi ignores the microSD card forever. It means: "try NVMe or USB drive first; if neither is found, fall back to the microSD card." This is a safe setting — if anything goes wrong with the SSD, you can still put the microSD card back in and the Pi will boot from it.</div>
+
+<h3>Step 6 — Test the SSD Boot</h3>
+
+<ol class="steps">
+  <li>After the Pi reboots, open a terminal and run <code>lsblk</code> to confirm the system is running from <code>nvme0n1</code> — you should see it listed as mounted at <code>/</code>.</li>
+  <li>If everything looks correct, power off the Pi, remove the microSD card, and power back on. If the Pi boots successfully to your desktop, the SSD is working as the sole boot drive.</li>
+  <li>Store the microSD card somewhere safe as an emergency fallback — you can always boot from it if the SSD ever has a problem.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Once you are running from an NVMe SSD, the difference is immediately noticeable. The Pi boots in 5–10 seconds rather than 20–30, programs open almost instantly, and file-heavy tasks like compiling code or processing large images are dramatically faster.</div>
+
+<h3>Option B — USB SSD Boot (The Simpler Way)</h3>
+
+<p>If you do not want to buy a HAT, you can boot from an external SSD connected via USB — specifically into one of the <strong>blue USB 3.0 ports</strong>. You need an SSD in a USB 3.0 enclosure (readily available online for £10–20). No HAT required. The process is almost identical to the NVMe method:</p>
+
+<ol class="steps">
+  <li>Connect the USB SSD to one of the blue USB 3.0 ports on the Pi (while still booted from the microSD card).</li>
+  <li>Use <strong>SD Card Copier</strong> to clone the microSD card to the USB SSD, just as described above.</li>
+  <li>Run <code>sudo raspi-config</code> → <strong>Advanced Options → Boot Order → NVMe/USB Boot</strong> to set the boot priority.</li>
+  <li>Reboot. Remove the microSD card if desired. The Pi should now boot from the USB SSD.</li>
+</ol>
+
+<p>A USB SSD is not quite as fast as a PCIe NVMe drive (USB 3.0 is capped at roughly 450 MB/s in ideal conditions), but it is still many times faster than a microSD card and far more reliable for heavy continuous use. It is an excellent middle-ground upgrade that costs very little and requires no hardware modifications to the Pi.</p>
+
+<h3>A Note on Power for Bus-Powered Drives</h3>
+
+<div class="warn"><strong>Careful:</strong> Some larger external drives (particularly 2.5-inch mechanical spinning hard drives) draw more power than the Pi's USB ports can safely provide. This can cause the drive to disconnect randomly or the Pi to reboot unexpectedly. If you use an external drive, prefer one that is labelled <strong>"SSD"</strong> (solid-state, low power draw) or one that has its own separate power supply. Compact 2.5-inch SSDs in a USB enclosure typically draw well under 1 W and work fine. If you see a lightning-bolt icon in the top-right corner of the screen, the Pi is warning you that it is under-powered — switch to a powered USB hub or a drive with its own power brick.</div>
+
+<div class="note"><strong>Note:</strong> The Pi 5 with the official 27 W USB-C power supply is more capable than earlier Pi models, but the total power budget across all USB ports is still limited. Bear this in mind if you have several USB devices connected at once.</div>
+
+<h2 id="quick-reference-storage-commands">Quick Reference: Storage Commands</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Task</th>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Check free space</td>
+      <td><code>df -h</code></td>
+      <td>Shows used and free space on all drives in MB/GB</td>
+    </tr>
+    <tr>
+      <td>List all drives</td>
+      <td><code>lsblk</code></td>
+      <td>Shows every storage device and partition tree</td>
+    </tr>
+    <tr>
+      <td>Shut down safely</td>
+      <td><code>sudo shutdown now</code></td>
+      <td>Powers off the Pi cleanly, saving all files first</td>
+    </tr>
+    <tr>
+      <td>Safely eject a USB drive</td>
+      <td><code>sudo umount /media/pi/DRIVE-NAME</code></td>
+      <td>Disconnects the drive so it is safe to unplug</td>
+    </tr>
+    <tr>
+      <td>Open Pi configuration</td>
+      <td><code>sudo raspi-config</code></td>
+      <td>Menu for changing system settings including boot order</td>
+    </tr>
+    <tr>
+      <td>Copy a file to USB drive</td>
+      <td><code>cp ~/file.txt /media/pi/DRIVE-NAME/</code></td>
+      <td>Copies a single file to the drive</td>
+    </tr>
+    <tr>
+      <td>Copy a whole folder to USB drive</td>
+      <td><code>cp -r ~/MyFolder /media/pi/DRIVE-NAME/</code></td>
+      <td>Copies a folder and all its contents</td>
+    </tr>
+    <tr>
+      <td>Sync a folder (smart backup)</td>
+      <td><code>rsync -av ~/Documents/ /media/pi/DRIVE-NAME/backup/</code></td>
+      <td>Copies only new or changed files — much faster on repeat runs</td>
+    </tr>
+    <tr>
+      <td>Update bootloader</td>
+      <td><code>sudo rpi-eeprom-update -a</code></td>
+      <td>Schedules a bootloader update to apply on next reboot</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>MicroSD card</strong> — the small removable card that holds the Pi's operating system and files by default; convenient but vulnerable to wear and corruption from sudden power loss.</li>
+    <li><strong>Filesystem</strong> — the rules and structures that organise files on a storage device, like the dividers and labels inside a filing cabinet.</li>
+    <li><strong>Filesystem corruption</strong> — damage to stored data caused by a sudden loss of power during a write operation.</li>
+    <li><strong>df -h</strong> — a terminal command that displays disk usage in human-readable units (MB/GB).</li>
+    <li><strong>lsblk</strong> — a terminal command that lists all storage (block) devices connected to the Pi and their partitions.</li>
+    <li><strong>Mount / unmount</strong> — connecting (mounting) or safely disconnecting (unmounting) a drive so the operating system can access it or release it cleanly.</li>
+    <li><strong>Disk image (.img)</strong> — a single file containing a perfect byte-for-byte copy of an entire storage device; can be written back to a new card to restore the Pi exactly.</li>
+    <li><strong>SD Card Copier</strong> — a built-in Raspberry Pi OS graphical tool for cloning the current card to another card or drive.</li>
+    <li><strong>rsync</strong> — a command-line tool that copies only new or changed files between two locations, making repeat backups fast and efficient.</li>
+    <li><strong>SSD (Solid-State Drive)</strong> — a fast, durable storage device with no moving parts; much faster and more reliable than a microSD card for continuous use.</li>
+    <li><strong>NVMe</strong> — a communication protocol for SSDs that uses PCIe lanes; delivers the highest storage speeds on the Pi 5.</li>
+    <li><strong>M.2</strong> — the physical form factor used by NVMe SSDs — a small rectangular stick. Sizes like 2230, 2242, and 2280 describe length in millimetres.</li>
+    <li><strong>HAT (Hardware Attached on Top)</strong> — an add-on board that connects to the Pi to add capabilities, such as an M.2 socket for an NVMe SSD.</li>
+    <li><strong>PCIe (PCI Express)</strong> — a high-speed data bus built into the Pi 5 that enables very fast communication with an NVMe SSD via a HAT.</li>
+    <li><strong>EEPROM / bootloader</strong> — a small chip and program on the Pi board that runs before the operating system starts; it decides which drive to boot from. Keeping it updated ensures NVMe boot works correctly.</li>
+    <li><strong>rpi-eeprom-update</strong> — the command to check for and apply bootloader (EEPROM) updates on a Raspberry Pi.</li>
+    <li><strong>raspi-config</strong> — a menu-driven terminal tool for configuring Pi system settings, including boot order.</li>
+    <li><strong>Boot order</strong> — the sequence of storage devices the Pi tries when starting up; can be set to prefer NVMe or USB over the microSD card.</li>
+    <li><strong>Bus-powered</strong> — a drive that draws its power from the USB port rather than its own power supply; small SSDs work fine this way, but large spinning hard drives often need external power.</li>
+    <li><strong>exFAT</strong> — a filesystem format readable by both Windows 11 and Raspberry Pi OS without extra software; ideal for drives shared between both computers.</li>
+    <li><strong>Ext4</strong> — the standard Linux filesystem used by Raspberry Pi OS; fast and reliable on the Pi, but not readable by Windows without third-party software.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Always shut down the Pi properly before cutting power — the physical power button, the desktop menu, or <code>sudo shutdown now</code> all do this safely — to protect the microSD card from corruption.</li>
+    <li>Use <code>df -h</code> to check free space and <code>lsblk</code> to see all connected drives; keep disk usage below 80%.</li>
+    <li>Raspberry Pi OS automatically expands the filesystem to fill your entire card on first boot — no action needed.</li>
+    <li>USB drives appear in the file manager automatically; always eject them via right-click or <code>sudo umount</code> before unplugging.</li>
+    <li><code>rsync -av</code> is smarter than <code>cp</code> for regular backups — it only copies files that have changed, making repeat runs fast.</li>
+    <li>Back up your Pi regularly by imaging the card to your Windows PC with Win32DiskImager, or by cloning it with the built-in SD Card Copier; store the backup somewhere safe.</li>
+    <li>Before adding an NVMe SSD, update the Pi's bootloader with <code>sudo rpi-eeprom-update -a</code> and reboot to ensure NVMe boot is fully supported.</li>
+    <li>The Pi 5's PCIe slot supports a very fast NVMe SSD via an M.2 HAT+, delivering speeds 10–30 times greater than a microSD card.</li>
+    <li>A USB SSD connected to a blue USB 3.0 port is a simpler, slightly slower upgrade that needs no extra HAT — set the boot order via <code>raspi-config</code> and you are done.</li>
+    <li>Small SSDs draw very little power and work safely from the Pi's USB ports; large mechanical hard drives may draw too much and need their own power supply.</li>
+  </ul>
+</div>

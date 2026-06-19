@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch11",
+  "title": "Your First Code with Python",
+  "questions": [
+    {
+      "q": "What does the input() function always return, no matter what the user types?",
+      "choices": ["An integer", "A float", "A string", "A boolean"],
+      "answer": 2,
+      "explain": "input() always returns a string, even if the user types a number. To use the value in maths, you must convert it with int() or float() first."
+    },
+    {
+      "q": "On Raspberry Pi OS Bookworm, what happens if you run a plain 'pip install' into the system Python?",
+      "choices": ["You get an 'externally-managed-environment' error and must use apt or a virtual environment instead", "The library installs normally with no warning", "pip is not available at all on Raspberry Pi OS", "The install works but only if you use sudo pip install"],
+      "answer": 0,
+      "explain": "Bookworm introduced an 'externally managed' protection to stop pip from modifying the system Python, because the OS itself depends on it. The safe alternatives are 'sudo apt install python3-name' or using a virtual environment."
+    },
+    {
+      "q": "In a for loop written as 'for i in range(5):', what values does i take during the loop?",
+      "choices": ["1, 2, 3, 4, 5", "0, 1, 2, 3, 4", "0, 1, 2, 3, 4, 5", "1, 2, 3, 4"],
+      "answer": 1,
+      "explain": "Python counts from zero by default, so range(5) produces the values 0, 1, 2, 3, 4 — five values in total, starting at 0 not 1."
+    },
+    {
+      "q": "You want to install a Python library that is not available through apt. Which command correctly creates a virtual environment called 'myenv'?",
+      "choices": ["pip install myenv", "sudo apt install myenv", "venv create myenv", "python3 -m venv myenv"],
+      "answer": 3,
+      "explain": "The command 'python3 -m venv myenv' tells Python 3 to run its built-in venv module and create a self-contained virtual environment in a folder called myenv. You can then activate it and use pip install freely without touching the system Python."
+    },
+    {
+      "q": "What is the purpose of a try / except block in Python?",
+      "choices": ["To repeat a block of code until a condition is false", "To define a reusable function", "To catch errors so the program responds politely instead of crashing", "To import a library from the internet"],
+      "answer": 2,
+      "explain": "try / except lets your program attempt risky code (like converting user input to a number) and handle any error gracefully, showing a friendly message instead of a crash. It does not repeat code or define functions."
+    }
+  ]
+}

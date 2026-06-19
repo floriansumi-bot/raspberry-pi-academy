@@ -1,0 +1,520 @@
+<p class="lead">Switching on your Raspberry Pi for the first time is one of those genuinely exciting moments — within a few minutes you will see a full desktop appear on your screen, ready to explore. This chapter walks you through every step of that journey, whether your microSD card already has the software loaded or you prefer to put a fresh, clean copy on it yourself.</p>
+
+<h2 id="before-you-begin-two-paths-to-your-first-boot">Before You Begin: Two Paths to Your First Boot</h2>
+
+<p>Your iRasptek kit may have come with a microSD card that already has Raspberry Pi OS installed on it. If that is the case, you can jump straight to <strong>Path A</strong> below. If the card is blank, or if you would simply prefer to start from a known-clean installation (always a good idea), follow <strong>Path B</strong> first to copy the operating system onto the card yourself.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>microSD card</em> is the tiny memory chip — about the size of a fingernail — that acts as the Raspberry Pi's hard drive. The <em>operating system</em> (OS) is the core software that makes the computer work; on your Pi it is called <strong>Raspberry Pi OS</strong>. <em>Flashing</em> means copying that operating system onto the card so the Pi can start up from it.</div>
+
+<h2 id="path-a-your-card-is-already-loaded">Path A — Your Card Is Already Loaded</h2>
+
+<p>If your kit arrived with Raspberry Pi OS pre-installed, the only thing you need to do before powering on is insert the card into the Pi.</p>
+
+<ol class="steps">
+  <li>Hold the microSD card so the gold contacts (the shiny metal strips) face <strong>down</strong> and the printed label faces up.</li>
+  <li>Slide the card into the microSD slot on the <strong>underside</strong> of the Raspberry Pi board (the slot is on the edge opposite the USB ports). Push it in gently until you feel a soft click. It should sit flush — it is not designed to stick out.</li>
+  <li>Skip ahead to the section <strong>"Connecting Everything Up for the First Time"</strong> later in this chapter.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> If the card does not slide in smoothly, try turning it around — it only fits one way. Never force it.</div>
+
+<h2 id="path-b-flashing-your-own-card-with-raspberry-pi-">Path B — Flashing Your Own Card with Raspberry Pi Imager</h2>
+
+<p>Even if your card came pre-loaded, following Path B is a great habit: it gives you a clean, up-to-date installation and lets you set up your password and Wi-Fi details <em>before</em> the Pi ever boots. You will use a free program called <strong>Raspberry Pi Imager</strong> on your Windows 11 computer to do this.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Raspberry Pi Imager</em> is a simple free program that downloads Raspberry Pi OS and copies it onto your microSD card in one step. Think of it like burning a DVD, except onto a tiny memory card instead.</div>
+
+<h3>Step 1 — Download and Install Raspberry Pi Imager</h3>
+
+<ol class="steps">
+  <li>On your Windows 11 PC, open a web browser and go to: <code>https://www.raspberrypi.com/software/</code></li>
+  <li>Click the large button labelled <strong>"Download for Windows"</strong>. A file called something like <code>imager_1.x.x.exe</code> will download (the version number may be higher than shown here — that is fine, always get the latest).</li>
+  <li>Once downloaded, double-click the file in your Downloads folder. If Windows asks "Do you want to allow this app to make changes to your device?", click <strong>Yes</strong>.</li>
+  <li>Follow the installer — click <strong>Install</strong>, then <strong>Finish</strong>. Raspberry Pi Imager is now on your PC.</li>
+</ol>
+
+<h3>Step 2 — Insert the microSD Card into Your Windows PC</h3>
+
+<ol class="steps">
+  <li>Take the <strong>USB card reader</strong> from your kit and plug it into a USB port on your Windows PC.</li>
+  <li>Insert the microSD card into the card reader (gold contacts facing down, label up). Windows may pop up an "AutoPlay" window — simply close it.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Make sure you are using the <em>microSD card from your kit</em> and not a USB stick or another drive that contains files you need. Flashing permanently erases everything on the card.</div>
+
+<h3>Step 3 — Open Raspberry Pi Imager and Choose Your Settings</h3>
+
+<ol class="steps">
+  <li>Open <strong>Raspberry Pi Imager</strong> from the Start menu (search for "Raspberry Pi Imager").</li>
+  <li>You will see three big buttons: <strong>Raspberry Pi Device</strong>, <strong>Operating System</strong>, and <strong>Storage</strong>. Work through them left to right.</li>
+  <li>Click <strong>"Choose Device"</strong> and select <strong>Raspberry Pi 5</strong> from the list.</li>
+  <li>Click <strong>"Choose OS"</strong>. The top option will be <strong>Raspberry Pi OS (64-bit)</strong> — this is the correct one for your Pi 5. Select it.</li>
+  <li>Click <strong>"Choose Storage"</strong>. Your microSD card will appear (it may show as a drive letter like <code>D:</code> or by the card's size, e.g. "64 GB"). Select it.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Always choose the <strong>64-bit</strong> version of Raspberry Pi OS when you see the option. Your Pi 5 has a 64-bit processor, and the 64-bit OS uses its full capability — it runs faster and more efficiently than the 32-bit version.</div>
+
+<h3>Step 4 — Pre-configure Your Settings (the Edit Settings Button)</h3>
+
+<p>This is the most important step that many guides skip. After you have made all three selections above and clicked <strong>Next</strong>, Imager will ask "Would you like to apply OS customisation settings?" — click <strong>"Edit Settings"</strong>. This opens a panel where you can set your username, password, and Wi-Fi details <em>before</em> the card is written. It saves significant time during first boot, and it is the only easy opportunity to enable remote access without a monitor.</p>
+
+<ol class="steps">
+  <li>A settings panel opens. Fill in the following fields on the <strong>General</strong> tab:
+    <ul>
+      <li><strong>Hostname:</strong> a short name for your Pi on your home network, for example <code>raspberrypi</code>. You can leave the default if you like.</li>
+      <li><strong>Username:</strong> choose a username for your account, for example <code>pi</code> or your own first name (all lowercase, no spaces).</li>
+      <li><strong>Password:</strong> choose a <em>strong</em> password — at least 12 characters, mixing letters, numbers, and symbols. Write it down somewhere safe. (See the section "Choosing a Strong Password" near the end of this chapter.)</li>
+      <li><strong>Configure wireless LAN:</strong> tick this box, then type your home Wi-Fi network name (<em>SSID</em>) and password exactly as they appear. Set <strong>Wireless LAN country</strong> to your country (e.g. <code>GB</code> for the UK, <code>FR</code> for France, <code>DE</code> for Germany, <code>CH</code> for Switzerland, and so on).</li>
+      <li><strong>Set locale settings:</strong> choose your time zone (e.g. <code>Europe/London</code>, <code>Europe/Paris</code>, <code>Europe/Zurich</code>) and keyboard layout (e.g. <code>gb</code> for a UK keyboard, <code>fr</code> for French).</li>
+    </ul>
+  </li>
+  <li>Switch to the <strong>Services</strong> tab. Tick <strong>"Enable SSH"</strong> and select <strong>"Use password authentication"</strong>. SSH lets you control the Pi from another computer over your home network — you do not need to use it straight away, but enabling it here is much easier than turning it on later.</li>
+  <li>Click <strong>Save</strong> to close the settings panel, then click <strong>Yes</strong> to apply the settings.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Your Wi-Fi password is sensitive. Make sure no one is looking over your shoulder when you type it into Imager, and close the program when you are done.</div>
+
+<div class="jargon"><strong>In plain words:</strong> <em>SSH</em> (Secure Shell) is a way to type commands into your Pi from another computer across your home network — even without a monitor attached to the Pi. Think of it as a text-based remote control. Chapter 9 covers it in full detail.</div>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Hostname</em> is simply the name your Pi announces itself by on your home network — the same way your phone might appear as "Florian's iPhone" in your router's list of connected devices.</div>
+
+<div class="jargon"><strong>In plain words:</strong> <em>SSID</em> is the technical term for a Wi-Fi network name — the name you see when you look for Wi-Fi on your phone or laptop.</div>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Locale</em> refers to your region settings — primarily the time zone and keyboard layout, so that the Pi knows where in the world it is and which keyboard symbols go with which keys.</div>
+
+<h3>Step 5 — Write the Card</h3>
+
+<ol class="steps">
+  <li>Click <strong>Yes</strong> when Imager asks if you are sure you want to erase the card.</li>
+  <li>Imager will now download the latest version of Raspberry Pi OS from the internet and write it to the card. This typically takes <strong>5 to 15 minutes</strong> depending on your internet speed and card speed. A progress bar shows how far along it is.</li>
+  <li>After writing, Imager automatically <strong>verifies</strong> the card — it reads it back to check for errors. Do not remove the card during this step.</li>
+  <li>When you see the message <strong>"Write Successful"</strong>, click <strong>Continue</strong>.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> If the write fails with an error, try a different USB port, or re-insert the card reader and try again. Occasionally Imager may need to format the card first — it will usually offer to do this automatically.</div>
+
+<h3>Step 6 — Eject the Card Safely</h3>
+
+<ol class="steps">
+  <li>In the Windows taskbar (bottom right), look for the <strong>Safely Remove Hardware</strong> icon (it looks like a USB plug with a small tick or arrow). Click it.</li>
+  <li>Click <strong>"Eject"</strong> next to your card reader.</li>
+  <li>Wait for the "Safe to Remove Hardware" message, then gently pull the card reader out of the USB port.</li>
+  <li>Remove the microSD card from the card reader.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Always eject the card properly before removing it. Pulling it out without ejecting can corrupt the data you just wrote and you would have to start over.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 700 430" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+  <defs>
+    <marker id="arr-ch4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6d28d9"/>
+    </marker>
+    <marker id="arr2-ch4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#0ea5a4"/>
+    </marker>
+  </defs>
+  <!-- Background -->
+  <rect width="700" height="430" fill="#f3f0ff" rx="12"/>
+  <!-- Title -->
+  <text x="350" y="32" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f2933">Raspberry Pi Imager — Step by Step</text>
+
+  <!-- Step 1 -->
+  <rect x="30" y="55" width="140" height="60" rx="8" fill="#6d28d9"/>
+  <text x="100" y="80" text-anchor="middle" fill="white" font-weight="bold">1. Download</text>
+  <text x="100" y="97" text-anchor="middle" fill="white" font-size="11">Raspberry Pi Imager</text>
+  <text x="100" y="112" text-anchor="middle" fill="white" font-size="11">from raspberrypi.com</text>
+
+  <!-- Arrow 1 to 2 -->
+  <line x1="170" y1="85" x2="198" y2="85" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr-ch4)"/>
+
+  <!-- Step 2 -->
+  <rect x="200" y="55" width="140" height="60" rx="8" fill="#6d28d9"/>
+  <text x="270" y="80" text-anchor="middle" fill="white" font-weight="bold">2. Choose Device</text>
+  <text x="270" y="97" text-anchor="middle" fill="white" font-size="11">Select</text>
+  <text x="270" y="112" text-anchor="middle" fill="white" font-size="11">Raspberry Pi 5</text>
+
+  <!-- Arrow 2 to 3 -->
+  <line x1="340" y1="85" x2="368" y2="85" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr-ch4)"/>
+
+  <!-- Step 3 -->
+  <rect x="370" y="55" width="140" height="60" rx="8" fill="#6d28d9"/>
+  <text x="440" y="80" text-anchor="middle" fill="white" font-weight="bold">3. Choose OS</text>
+  <text x="440" y="97" text-anchor="middle" fill="white" font-size="11">Raspberry Pi OS</text>
+  <text x="440" y="112" text-anchor="middle" fill="white" font-size="11">(64-bit)</text>
+
+  <!-- Arrow 3 to 4 -->
+  <line x1="510" y1="85" x2="538" y2="85" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr-ch4)"/>
+
+  <!-- Step 4 -->
+  <rect x="540" y="55" width="130" height="60" rx="8" fill="#6d28d9"/>
+  <text x="605" y="80" text-anchor="middle" fill="white" font-weight="bold">4. Choose</text>
+  <text x="605" y="97" text-anchor="middle" fill="white" font-weight="bold">Storage</text>
+  <text x="605" y="112" text-anchor="middle" fill="white" font-size="11">Your microSD card</text>
+
+  <!-- Down arrow from step 4 -->
+  <line x1="605" y1="115" x2="605" y2="153" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr2-ch4)"/>
+
+  <!-- Step 5 -->
+  <rect x="470" y="155" width="200" height="65" rx="8" fill="#0ea5a4"/>
+  <text x="570" y="178" text-anchor="middle" fill="white" font-weight="bold">5. Edit Settings</text>
+  <text x="570" y="195" text-anchor="middle" fill="white" font-size="11">Hostname · User · Password</text>
+  <text x="570" y="210" text-anchor="middle" fill="white" font-size="11">Wi-Fi · Locale · SSH</text>
+
+  <!-- Down arrow from step 5 -->
+  <line x1="570" y1="220" x2="570" y2="258" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr2-ch4)"/>
+
+  <!-- Step 6 -->
+  <rect x="470" y="260" width="200" height="60" rx="8" fill="#0ea5a4"/>
+  <text x="570" y="283" text-anchor="middle" fill="white" font-weight="bold">6. Write &amp; Verify</text>
+  <text x="570" y="300" text-anchor="middle" fill="white" font-size="11">Wait for "Write Successful"</text>
+  <text x="570" y="315" text-anchor="middle" fill="white" font-size="11">Do not remove card</text>
+
+  <!-- Down arrow from step 6 -->
+  <line x1="570" y1="320" x2="570" y2="358" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr2-ch4)"/>
+
+  <!-- Step 7 -->
+  <rect x="470" y="360" width="200" height="55" rx="8" fill="#1f2933"/>
+  <text x="570" y="382" text-anchor="middle" fill="white" font-weight="bold">7. Eject safely</text>
+  <text x="570" y="399" text-anchor="middle" fill="white" font-size="11">Use "Safely Remove Hardware"</text>
+  <text x="570" y="414" text-anchor="middle" fill="white" font-size="11">then insert card into Pi</text>
+
+  <!-- Settings panel on left -->
+  <rect x="30" y="155" width="420" height="260" rx="8" fill="white" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="240" y="178" text-anchor="middle" font-size="13" font-weight="bold" fill="#6d28d9">What to fill in during Edit Settings (Step 5)</text>
+
+  <text x="50" y="205" fill="#1f2933" font-size="12">General tab:</text>
+  <text x="50" y="225" fill="#1f2933" font-size="12">  • Hostname:  e.g. raspberrypi</text>
+  <text x="50" y="243" fill="#1f2933" font-size="12">  • Username:  e.g. pi  (lowercase, no spaces)</text>
+  <text x="50" y="261" fill="#1f2933" font-size="12">  • Password:  strong — min. 12 characters</text>
+  <text x="50" y="279" fill="#1f2933" font-size="12">  • Wi-Fi SSID: your home network name</text>
+  <text x="50" y="297" fill="#1f2933" font-size="12">  • Wi-Fi Password: exactly as on your router</text>
+  <text x="50" y="315" fill="#1f2933" font-size="12">  • Wi-Fi Country: GB / FR / DE / CH / etc.</text>
+  <text x="50" y="333" fill="#1f2933" font-size="12">  • Time zone:  e.g. Europe/London</text>
+  <text x="50" y="351" fill="#1f2933" font-size="12">  • Keyboard layout:  e.g. gb</text>
+  <text x="50" y="375" fill="#1f2933" font-size="12" font-weight="bold">Services tab:</text>
+  <text x="50" y="395" fill="#1f2933" font-size="12">  • Enable SSH — tick it, use password authentication</text>
+</svg>
+<figcaption>Figure 4.1 — The seven steps of using Raspberry Pi Imager on Windows. Steps 1–4 run left to right across the top; steps 5–7 flow downward on the right. The white panel shows exactly what to fill in during step 5.</figcaption>
+</figure>
+
+<h2 id="connecting-everything-up-for-the-first-time">Connecting Everything Up for the First Time</h2>
+
+<p>With the microSD card ready and inserted into the Pi, it is time to connect your cables. The order matters — always connect power <strong>last</strong>. The diagram below shows where each port is on the Pi 5.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>micro-HDMI</em> is a smaller version of the HDMI connector you probably know from TVs and monitors. The Pi 5 has two micro-HDMI sockets along one edge; your kit includes a cable with a small micro-HDMI plug on one end (for the Pi) and a standard full-size HDMI plug on the other (for your TV or monitor).</div>
+
+<figure class="fig">
+<svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="12">
+  <defs>
+    <marker id="label-arr" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L7,3.5 z" fill="#6d28d9"/>
+    </marker>
+  </defs>
+  <rect width="680" height="320" fill="#f3f0ff" rx="10"/>
+  <text x="340" y="26" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2933">Raspberry Pi 5 — Port Layout (top view)</text>
+
+  <!-- Pi board body -->
+  <rect x="200" y="50" width="280" height="180" rx="8" fill="#1f2933" stroke="#6d28d9" stroke-width="2"/>
+  <text x="340" y="145" text-anchor="middle" fill="#6d28d9" font-size="11" font-weight="bold">Raspberry Pi 5</text>
+  <text x="340" y="162" text-anchor="middle" fill="#6d28d9" font-size="10">16 GB RAM</text>
+
+  <!-- TOP EDGE: USB-C power + micro-HDMI x2 + audio (none) -->
+  <!-- USB-C power -->
+  <rect x="205" y="38" width="28" height="14" rx="3" fill="#0ea5a4"/>
+  <text x="219" y="34" text-anchor="middle" font-size="9" fill="#0ea5a4">USB-C</text>
+  <text x="219" y="24" text-anchor="middle" font-size="9" fill="#0ea5a4">Power</text>
+
+  <!-- HDMI0 -->
+  <rect x="242" y="38" width="30" height="14" rx="3" fill="#6d28d9"/>
+  <text x="257" y="34" text-anchor="middle" font-size="9" fill="#6d28d9">HDMI0</text>
+  <text x="257" y="24" text-anchor="middle" font-size="9" fill="#6d28d9">(primary)</text>
+
+  <!-- HDMI1 -->
+  <rect x="281" y="38" width="30" height="14" rx="3" fill="#6d28d9"/>
+  <text x="296" y="34" text-anchor="middle" font-size="9" fill="#6d28d9">HDMI1</text>
+  <text x="296" y="24" text-anchor="middle" font-size="9" fill="#6d28d9">(second)</text>
+
+  <!-- RIGHT EDGE: USB 3.0 x2 + USB 2.0 x2 -->
+  <rect x="478" y="68" width="14" height="22" rx="3" fill="#0ea5a4"/>
+  <rect x="478" y="96" width="14" height="22" rx="3" fill="#0ea5a4"/>
+  <text x="500" y="78" font-size="10" fill="#0ea5a4">USB 3.0</text>
+  <text x="500" y="105" font-size="10" fill="#0ea5a4">USB 3.0</text>
+
+  <rect x="478" y="128" width="14" height="22" rx="3" fill="#1f2933" stroke="#0ea5a4"/>
+  <rect x="478" y="156" width="14" height="22" rx="3" fill="#1f2933" stroke="#0ea5a4"/>
+  <text x="500" y="138" font-size="10" fill="#0ea5a4">USB 2.0</text>
+  <text x="500" y="165" font-size="10" fill="#0ea5a4">USB 2.0</text>
+
+  <!-- RIGHT EDGE: Ethernet -->
+  <rect x="478" y="185" width="14" height="30" rx="3" fill="#f3f0ff" stroke="#6d28d9"/>
+  <text x="500" y="198" font-size="10" fill="#6d28d9">Ethernet</text>
+  <text x="500" y="210" font-size="10" fill="#6d28d9">(Gigabit)</text>
+
+  <!-- LEFT EDGE: GPIO header -->
+  <rect x="188" y="60" width="14" height="100" rx="3" fill="#1f2933" stroke="#f3f0ff"/>
+  <text x="140" y="105" font-size="10" fill="#1f2933" text-anchor="middle">40-pin</text>
+  <text x="140" y="118" font-size="10" fill="#1f2933" text-anchor="middle">GPIO</text>
+  <line x1="185" y1="110" x2="155" y2="110" stroke="#6d28d9" stroke-width="1" marker-end="url(#label-arr)"/>
+
+  <!-- BOTTOM EDGE: microSD -->
+  <rect x="250" y="228" width="35" height="12" rx="3" fill="#f3f0ff" stroke="#6d28d9"/>
+  <text x="267" y="253" text-anchor="middle" font-size="10" fill="#6d28d9">microSD slot</text>
+  <text x="267" y="265" text-anchor="middle" font-size="10" fill="#6d28d9">(underside)</text>
+
+  <!-- Power button (Pi 5 feature) -->
+  <circle cx="430" cy="52" r="7" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="430" y="42" text-anchor="middle" font-size="9" fill="#6d28d9">PWR</text>
+  <text x="430" y="32" text-anchor="middle" font-size="9" fill="#6d28d9">button</text>
+
+  <!-- LED indicators -->
+  <circle cx="390" cy="56" r="4" fill="red"/>
+  <circle cx="405" cy="56" r="4" fill="#22c55e"/>
+  <text x="397" y="45" text-anchor="middle" font-size="9" fill="#1f2933">LEDs</text>
+
+  <!-- Labels on left for HDMI note -->
+  <text x="340" y="295" text-anchor="middle" font-size="11" fill="#6d28d9" font-weight="bold">Connect your screen to HDMI0 (closest to the USB-C power port) for first boot.</text>
+</svg>
+<figcaption>Figure 4.2 — Simplified top-view port layout of the Raspberry Pi 5. For first boot, plug your screen into HDMI0 (the socket closest to the USB-C power port). The microSD slot is on the underside (bottom edge).</figcaption>
+</figure>
+
+<ol class="steps">
+  <li><strong>Insert the microSD card</strong> (gold contacts down) into the slot on the underside of the Pi if you have not already done so. Push until it clicks.</li>
+  <li><strong>Connect the micro-HDMI cable</strong> to your TV or monitor first (the standard HDMI end goes into the screen), then plug the small micro-HDMI end into the Pi. <em>Use the port labelled HDMI0</em> — this is the socket closest to the USB-C power port. It is the primary display output and the one the Pi uses by default on first boot.</li>
+  <li><strong>Switch your TV or monitor on</strong> and select the correct HDMI input (often labelled HDMI 1 or HDMI 2 on your screen's remote — whichever socket you plugged the cable into).</li>
+  <li><strong>Plug in a USB keyboard</strong> into one of the larger USB ports (any of the four USB ports on the right side of the Pi will work).</li>
+  <li><strong>Plug in a USB mouse</strong> into another USB port.</li>
+  <li><strong>Optionally plug in an Ethernet cable</strong> from your home router into the Pi's Ethernet port (the socket that looks like a wide telephone jack, on the right edge). This gives you a wired internet connection — faster and more reliable than Wi-Fi, especially during the first big software update.</li>
+  <li><strong>Connect the USB-C power supply last.</strong> Plug the USB-C end into the power socket on the Pi, then plug the other end into the mains wall socket and switch the socket on.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Always connect power <em>last</em>. Plugging in the power before connecting the display cable can cause the Pi to start up without detecting the screen, which may mean you see nothing on your TV or monitor.</div>
+
+<div class="note"><strong>Note:</strong> Your Pi 5 does <strong>not</strong> have a 3.5 mm headphone jack. Sound comes out through the HDMI cable to your TV or monitor's built-in speakers, or through a USB audio adapter. If you need audio from a device without HDMI audio, a small USB audio adapter costs just a few pounds or euros and plugs into any USB port.</div>
+
+<div class="tip"><strong>Tip:</strong> Your Raspberry Pi 5 has a small physical <strong>power button</strong> on the board itself (next to the LED lights). Once the Pi is running, a brief press of this button will perform a clean, safe shutdown — much better than simply pulling the power cable.</div>
+
+<h3>Understanding the LED Lights</h3>
+
+<p>On the corner of the Raspberry Pi 5 board you will see two small indicator lights. They tell you at a glance what the Pi is doing.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>LED colour / state</th>
+      <th>What it means</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Solid red</td>
+      <td>Power is on and the voltage is good. This should stay on the whole time the Pi is running.</td>
+    </tr>
+    <tr>
+      <td>Red light off</td>
+      <td>No power reaching the board, or the power supply is not providing enough voltage. Check your cable and power adapter are fully connected.</td>
+    </tr>
+    <tr>
+      <td>Green flashing</td>
+      <td>The Pi is reading from or writing to the microSD card. This is completely normal during boot and whenever the system is busy.</td>
+    </tr>
+    <tr>
+      <td>Green solid (not flashing)</td>
+      <td>The Pi is running and currently idle — the microSD card is not being accessed at this moment.</td>
+    </tr>
+    <tr>
+      <td>Green off entirely</td>
+      <td>No SD card detected, or the card cannot be read. Check the card is fully inserted and the right way around.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> <em>Never</em> pull the power cable out while the green LED is flashing. The Pi is writing to the card at that moment, and cutting the power mid-write can corrupt the microSD card — meaning you would have to re-flash it from scratch.</div>
+
+<h2 id="the-first-run-wizard">The First-Run Wizard</h2>
+
+<p>The first time Raspberry Pi OS boots, it runs a short setup wizard called the <strong>Welcome to Raspberry Pi</strong> screen. This wizard walks you through a handful of important settings. Follow the steps on screen — here is what to expect at each stage.</p>
+
+<div class="note"><strong>Note:</strong> The first boot takes <strong>longer than usual</strong> — typically 60 to 90 seconds. The screen may go dark briefly, the Pi may reboot itself once, and you may see lines of scrolling text. This is completely normal. Be patient and do not unplug anything.</div>
+
+<ol class="steps">
+  <li><strong>Country, language, and time zone:</strong> Select your country from the drop-down list. The language and time zone will fill in automatically. If you set the locale in Imager (Path B), these may already be correct — just confirm and click Next.</li>
+  <li><strong>Create user / set password:</strong> If you set a username and password in Imager, this step may be skipped or pre-filled. If not, enter a username and a <em>strong password</em> now. Write it down. You will need this password to install software, make system changes, and log in remotely.</li>
+  <li><strong>Set up screen:</strong> The wizard may ask whether there is a black border around your desktop. If you see a black frame around the edges of the picture, tick the box — this turns off "overscan" so the image fills your screen properly.</li>
+  <li><strong>Connect to Wi-Fi:</strong> A list of nearby Wi-Fi networks appears. Click your network name, type your Wi-Fi password, and click Next. If you entered Wi-Fi details in Imager, the Pi may already be connected — you will see a tick next to your network name.</li>
+  <li><strong>Choose browser:</strong> The wizard may ask which browser you want to use. <strong>Chromium</strong> (the default) is a good choice — it is fast and behaves very much like Google Chrome.</li>
+  <li><strong>Update software:</strong> The wizard will offer to check for and install updates. Click <strong>Next</strong> to allow this. It downloads the latest security patches and bug fixes. <strong>This step can take 10 to 15 minutes</strong> on a typical home broadband connection. Let it finish completely — do not touch anything.</li>
+  <li>When updates are complete, click <strong>Restart</strong>. The Pi reboots and lands on the desktop — your Raspberry Pi is now fully set up.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Do <em>not</em> unplug the power during the software update step. If the power is cut while the Pi is installing updates, it can leave the system in a broken, unbootable state. Wait until the Pi restarts on its own.</div>
+
+<div class="tip"><strong>Tip:</strong> If the first-run wizard does not appear and you see the desktop straight away, that is fine — it simply means the pre-installed image was already fully configured. You can still run updates manually (covered later in this chapter and in Chapter 5) and change any settings you like from the System Settings menu.</div>
+
+<h2 id="what-you-see-on-the-desktop">What You See on the Desktop</h2>
+
+<p>After the wizard completes and the Pi restarts, you will see the <strong>Raspberry Pi OS desktop</strong>. At the top is a panel (similar to the Windows taskbar) with a small raspberry logo on the left — this is the application menu, like the Start menu on Windows. To the right you will find icons for a file manager, a web browser, and a terminal window, followed by a Wi-Fi indicator, a Bluetooth icon, a speaker volume control, and a clock. The desktop itself shows a plain wallpaper by default.</p>
+
+<p>In Chapter 5 you will start exploring everything that is installed and how to make the desktop feel like home. For now, simply enjoy having a fully working computer in front of you.</p>
+
+<h2 id="running-the-first-update-from-the-terminal">Running the First Update from the Terminal</h2>
+
+<p>If the wizard's update step was skipped, or you simply want to make absolutely sure everything is fully up to date, you can run a manual update. You will use the <strong>Terminal</strong> — a text-based window where you type commands directly.</p>
+
+<div class="jargon"><strong>In plain words:</strong> The <em>Terminal</em> (also called the <em>command line</em> or <em>shell</em>) is a window where you type short text instructions to the computer. It can look old-fashioned at first, but it is the fastest and most reliable way to manage a Linux system. You do not need to memorise commands — just type them exactly as shown here.</div>
+
+<p>Open the Terminal by clicking the black rectangle icon in the taskbar near the top of the screen (it shows a small <code>&gt;_</code> symbol inside it), or by pressing <strong>Ctrl + Alt + T</strong> on your keyboard.</p>
+
+<p>When the Terminal opens, you will see a line of text ending with a <code>$</code> symbol. This is the <em>prompt</em> — it means the Pi is ready for a command. Type the following line exactly, then press Enter:</p>
+
+<pre class="code"><code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code></pre>
+<div class="explain">
+  <p><strong>What each part of this command does:</strong></p>
+  <ul>
+    <li><code>sudo</code> — stands for "superuser do". It temporarily grants administrator permission for this one command. The first time you use <code>sudo</code> in a session, the Pi asks for your password. Type it and press Enter. You will not see the characters appear as you type — that is intentional security behaviour, not a fault.</li>
+    <li><code>apt</code> — the package manager: the Pi's built-in tool for finding, downloading, and installing software.</li>
+    <li><code>update</code> — tells <code>apt</code> to download the latest <em>list</em> of available software. This does not install anything yet; it just refreshes the catalogue so the next step knows what versions are available.</li>
+    <li><code>&amp;&amp;</code> — means "and then, but only if the previous command succeeded". If the update check fails (for example, because there is no internet connection), the second part will not run, which prevents errors.</li>
+    <li><code>sudo apt full-upgrade -y</code> — actually downloads and installs all the waiting updates. <code>full-upgrade</code> is slightly smarter than plain <code>upgrade</code>: it can also replace older packages when needed, making it the safer choice. The <code>-y</code> flag automatically answers "yes" to any confirmation prompts so you do not have to babysit it.</li>
+  </ul>
+  <p>Once you press Enter and the command finishes (the <code>$</code> prompt reappears), your Pi is fully up to date.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> On Raspberry Pi OS Bookworm (the version your Pi runs), the system Python is described as <em>externally managed</em>. This means you should <strong>not</strong> type <code>pip install</code> directly to add Python packages — it will refuse with an error message. Instead, install Python packages using <code>sudo apt install python3-packagename</code>, use the pre-installed Thonny editor's built-in package manager, or create a virtual environment. Chapter 8 explains all of this step by step.</div>
+
+<h2 id="shutting-down-safely">Shutting Down Safely</h2>
+
+<p>Never simply pull the power cable out to turn off the Pi. Doing so while the operating system is running can corrupt the microSD card, potentially destroying your files and your installation. Always shut down properly.</p>
+
+<p>There are three easy ways to shut the Pi down:</p>
+
+<ul>
+  <li><strong>From the desktop menu:</strong> Click the raspberry logo in the top-left corner, then choose <strong>Shutdown</strong> from the menu, then <strong>Shutdown</strong> again in the confirmation box. The Pi will power off within a few seconds.</li>
+  <li><strong>From the Terminal:</strong> Type <code>sudo shutdown now</code> and press Enter. The Pi will shut down immediately.</li>
+  <li><strong>Using the power button:</strong> The Pi 5 has a small physical power button on the board. A brief single press will initiate a clean, safe shutdown — the same as using the menu.</li>
+</ul>
+
+<p>After the green LED goes off and stays off, it is safe to unplug the power cable.</p>
+
+<div class="warn"><strong>Careful:</strong> A <em>long press</em> (holding the power button for several seconds) forces an immediate hard shutdown — the equivalent of pulling the power cable. Only do this if the Pi has completely locked up and will not respond to any normal commands. Use the short press for everyday shutdowns.</div>
+
+<h2 id="headless-setup-running-the-pi-without-a-monitor">Headless Setup: Running the Pi Without a Monitor</h2>
+
+<p>Sometimes you may want to use the Pi without a screen, keyboard, or mouse at all — perhaps tucking it away behind a TV or in a cupboard. This is called running the Pi <strong>headless</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Headless</em> simply means the computer runs without a display attached — like a server tucked in a cupboard. You control it entirely from another computer using SSH (the remote connection we enabled in Imager).</div>
+
+<p>If you followed Path B and enabled SSH in Raspberry Pi Imager, and you entered your Wi-Fi details too, your Pi is <em>already prepared</em> for headless use. After it boots (which you can confirm after about 60 seconds by checking your router's connected-devices list for the Pi's hostname), you can connect to it from your Windows 11 PC using <strong>PowerShell</strong> or <strong>Windows Terminal</strong> — both come pre-installed on Windows 11.</p>
+
+<p>Full step-by-step instructions for SSH and headless access are in <strong>Chapter 9</strong>. The key points to remember now are:</p>
+
+<ul>
+  <li>SSH must be enabled in Imager <em>before</em> you write the card — or turned on later from the Pi's Preferences menu when you do have a screen attached.</li>
+  <li>The Pi and your Windows PC must be on the same Wi-Fi or wired network.</li>
+  <li>You connect using your Pi's hostname (for example <code>raspberrypi.local</code>) or its IP address, which you can find in your router's device list.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> If you are not sure whether to go headless or use a monitor, start with a monitor for your very first boot. It is much easier to spot and fix problems when you can see what the Pi is doing. Once everything is working well, you can tuck the Pi away and switch to headless use any time.</div>
+
+<h2 id="troubleshooting-common-first-boot-problems">Troubleshooting Common First-Boot Problems</h2>
+
+<p>Most first boots go smoothly, but here are the most common problems and how to solve them.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Symptom</th>
+      <th>Most likely cause</th>
+      <th>What to try</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Screen stays black</td>
+      <td>Wrong HDMI port, or TV on wrong input</td>
+      <td>Make sure the cable is in HDMI0 (closest to the USB-C power port). Select the correct HDMI input on your TV using its remote. Check the cable is fully pushed in at both ends.</td>
+    </tr>
+    <tr>
+      <td>Red LED on but no green LED — no boot</td>
+      <td>microSD card not detected, missing, or incorrectly flashed</td>
+      <td>Remove the card, check it is the right way around (gold contacts down), re-insert until it clicks. If still no green light, re-flash the card with Raspberry Pi Imager.</td>
+    </tr>
+    <tr>
+      <td>Red LED off entirely</td>
+      <td>Power supply not providing enough power, or loose connection</td>
+      <td>Check both ends of the USB-C power cable are fully plugged in. Make sure you are using the 27 W USB-C supply from the kit, not a phone charger. Try a different mains socket.</td>
+    </tr>
+    <tr>
+      <td>Coloured square / rainbow square in top-right corner</td>
+      <td>Under-voltage warning — the power supply is not giving enough current</td>
+      <td>Use only the official 27 W USB-C supply from your kit. Avoid long or thin USB-C cables. Do not plug too many power-hungry USB devices in at once.</td>
+    </tr>
+    <tr>
+      <td>Pi boots but can't connect to Wi-Fi</td>
+      <td>Wrong SSID or password entered in Imager, or wrong Wi-Fi country code</td>
+      <td>Check your Wi-Fi name (SSID) and password are exactly correct (case-sensitive). Make sure the country code matches your country. Try connecting via the Wi-Fi icon in the desktop taskbar instead.</td>
+    </tr>
+    <tr>
+      <td>First-run wizard does not appear</td>
+      <td>Pre-installed image was already configured, or image is not from Imager</td>
+      <td>This is normal — just proceed to the desktop. Run <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code> in the Terminal to get updates.</td>
+    </tr>
+    <tr>
+      <td>Keyboard or mouse not responding</td>
+      <td>USB device not recognised, or plugged into a non-working port</td>
+      <td>Unplug and re-plug into a different USB port. Prefer the blue USB 3.0 ports. If using a wireless USB dongle, try plugging the dongle directly rather than through a hub.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="choosing-a-strong-password">Choosing a Strong Password</h2>
+
+<p>Your Pi will be connected to the internet, which means a weak password is a genuine security risk. Here is what "strong" actually means in practice:</p>
+
+<ul>
+  <li><strong>At least 12 characters long</strong> — the longer, the better.</li>
+  <li><strong>A mix of uppercase letters, lowercase letters, numbers, and symbols</strong> — for example: <code>Sunny7!Harbour&amp;Blue</code>.</li>
+  <li><strong>Not a real word, name, or date</strong> — avoid <code>raspberry</code>, your name, or your birthday.</li>
+  <li><strong>Not re-used from another account</strong> — if this password is ever stolen, you do not want it to also unlock your email or bank.</li>
+  <li><strong>Written down somewhere safe</strong> — a physical notebook kept at home is perfectly fine. If you forget it, you will have to re-flash the card and start over.</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> The old default Raspberry Pi password (<code>raspberry</code>) is publicly known and widely used by automated hacking tools that scan the internet. Raspberry Pi OS Bookworm no longer allows a default password — you <em>must</em> create your own. Make it genuinely strong.</div>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>microSD card</strong> — a tiny removable memory chip that acts as the Pi's hard drive, holding the operating system and all your files.</li>
+  <li><strong>Raspberry Pi OS</strong> — the official Linux-based operating system designed for Raspberry Pi computers, based on Debian 12 (codename Bookworm).</li>
+  <li><strong>Flashing</strong> — the process of copying an operating system image onto a microSD card, overwriting everything that was there before.</li>
+  <li><strong>Raspberry Pi Imager</strong> — the official free Windows/Mac/Linux tool used to write Raspberry Pi OS (or other operating systems) to a microSD card.</li>
+  <li><strong>Hostname</strong> — the name your Pi announces on your local network, used to find it without knowing its exact IP address (for example <code>raspberrypi.local</code>).</li>
+  <li><strong>SSID</strong> — Service Set Identifier; the technical term for a Wi-Fi network's name (the name you see when searching for Wi-Fi on a phone or laptop).</li>
+  <li><strong>SSH (Secure Shell)</strong> — an encrypted method of remotely controlling your Pi from another computer using a text-based terminal, without needing a monitor connected to the Pi.</li>
+  <li><strong>Headless</strong> — running the Pi with no monitor, keyboard, or mouse connected; controlled entirely over the network from another computer.</li>
+  <li><strong>sudo</strong> — a command prefix that grants temporary administrator ("superuser") permission for a single terminal command.</li>
+  <li><strong>apt</strong> — the package manager for Raspberry Pi OS; the built-in tool used to install, update, and remove software packages.</li>
+  <li><strong>Locale</strong> — the region settings that tell the operating system your time zone and keyboard layout.</li>
+  <li><strong>micro-HDMI</strong> — the smaller HDMI connector format used on the Raspberry Pi 5; your kit includes a cable to connect it to a standard HDMI screen.</li>
+  <li><strong>HDMI0</strong> — the primary display output socket on the Pi 5; it is the micro-HDMI port closest to the USB-C power socket, and the one to use for your first boot.</li>
+  <li><strong>Terminal</strong> — the text-based window on Raspberry Pi OS where you type commands directly; also called the command line or shell.</li>
+  <li><strong>Bookworm</strong> — the codename for Debian 12, which is the Linux foundation that the current version of Raspberry Pi OS is built on.</li>
+  <li><strong>Under-voltage</strong> — a warning state where the Pi is not receiving enough electrical power; shown by a rainbow-coloured square in the top-right corner of the screen.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>Your Pi can be started from a pre-loaded microSD card (Path A) or from a card you flash yourself using Raspberry Pi Imager on your Windows PC (Path B) — both result in the same working system.</li>
+  <li>Raspberry Pi Imager's Edit Settings panel lets you pre-configure hostname, username, password, Wi-Fi, locale, and SSH before writing the card — saving significant setup time and enabling headless use from day one.</li>
+  <li>Always choose the <strong>64-bit</strong> version of Raspberry Pi OS for the Raspberry Pi 5.</li>
+  <li>Connect cables in order: display first, then keyboard and mouse, then network, and <strong>power last</strong>; plug your screen into HDMI0 (the socket closest to the USB-C power port).</li>
+  <li>The red LED confirms power is good; a flashing green LED means the microSD card is being accessed — never cut power while the green light is flashing.</li>
+  <li>The first-run wizard sets your country, password, and Wi-Fi, then downloads updates — this is normal, can take 10–15 minutes, and must not be interrupted.</li>
+  <li>Running <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code> in the Terminal keeps your Pi fully up to date with the latest security fixes.</li>
+  <li>Always shut down properly — via the menu, the Terminal (<code>sudo shutdown now</code>), or a brief press of the physical power button — never by pulling the power cable.</li>
+  <li>Enabling SSH in Imager before writing prepares your Pi for headless (no-monitor) use; full details are in Chapter 9.</li>
+  <li>Choose a strong, unique password of at least 12 characters — the old default <code>raspberry</code> password is publicly known and must never be used.</li>
+</ul>
+</div>

@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch20",
+  "title": "Security & Good Habits",
+  "questions": [
+    {
+      "q": "Why is 'kettle-purple-moon-46-fence' considered a stronger password than 'P@ssw0rd!'?",
+      "choices": [
+        "It contains more special characters and symbols",
+        "It is longer, making it much harder to crack even though it uses ordinary words",
+        "It includes numbers, which are the most important factor in password strength",
+        "It is harder for humans to remember, which makes it more secure"
+      ],
+      "answer": 1,
+      "explain": "Length is the most important factor in password strength. A 30-character passphrase of common words is far harder to crack than a short string of symbols, because the sheer number of possible combinations grows enormously with length."
+    },
+    {
+      "q": "When setting up SSH key authentication, where must the public key be placed on the Raspberry Pi?",
+      "choices": [
+        "~/.ssh/authorized_keys",
+        "/etc/ssh/sshd_config",
+        "/home/yourname/.ssh/id_ed25519",
+        "/etc/passwd"
+      ],
+      "answer": 0,
+      "explain": "The public key must be appended to ~/.ssh/authorized_keys on the Pi. This is the file the SSH server reads to decide which keys are allowed to log in. The private key (id_ed25519) stays on your Windows PC and is never shared."
+    },
+    {
+      "q": "When enabling the ufw firewall, what must you do BEFORE running 'sudo ufw enable'?",
+      "choices": [
+        "Reboot the Pi so ufw loads cleanly",
+        "Install fail2ban first so the two tools work together",
+        "Disable password authentication in sshd_config",
+        "Run 'sudo ufw allow ssh' to permit SSH connections"
+      ],
+      "answer": 3,
+      "explain": "You must allow SSH before enabling ufw, otherwise the firewall will block your remote access the moment it turns on. Running 'sudo ufw allow ssh' adds the rule that keeps port 22 open."
+    },
+    {
+      "q": "What does fail2ban do when it detects too many failed login attempts from the same IP address?",
+      "choices": [
+        "It shuts down the SSH service until you restart it manually",
+        "It sends you an email alert and waits for your instructions",
+        "It automatically blocks that IP address for a period of time",
+        "It changes your SSH port to a random number"
+      ],
+      "answer": 2,
+      "explain": "fail2ban watches the login logs and automatically bans the offending IP address — by default, after five failed attempts within 10 minutes, the IP is blocked for 10 minutes. This stops brute-force attacks without any manual action from you."
+    },
+    {
+      "q": "The chapter warns that you should never simply pull the power cable out of a running Raspberry Pi. What is the main risk of doing so?",
+      "choices": [
+        "The microSD card file system can become corrupted because writes are interrupted mid-way",
+        "The GPIO pins can be damaged by the sudden loss of voltage",
+        "The Pi's CPU can overheat if it does not go through a cool-down cycle",
+        "The SSH keys stored in ~/.ssh will be permanently deleted"
+      ],
+      "answer": 0,
+      "explain": "The Pi writes data to the microSD card constantly. Cutting power mid-write can corrupt the file system in a way that is hard or impossible to repair. Always use the shutdown menu, 'sudo shutdown now', or the physical power button to close everything safely first."
+    }
+  ]
+}

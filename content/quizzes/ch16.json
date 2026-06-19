@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch16",
+  "title": "Home Server & Cloud",
+  "questions": [
+    {
+      "q": "What software does this chapter install to make the Raspberry Pi's folders appear as a network drive in Windows Explorer?",
+      "choices": ["Nextcloud", "rsync", "Samba", "snapd"],
+      "answer": 2,
+      "explain": "Samba speaks SMB — Windows' own file-sharing protocol — so Windows treats the Pi's shared folder like a local drive. Nextcloud is a separate personal-cloud tool covered in Part B of the same chapter."
+    },
+    {
+      "q": "Which fstab option does the chapter say is critical for a USB drive entry, and what does it do?",
+      "choices": ["nofail — boot continues normally even if the drive is missing", "defaults — applies the standard read/write mount settings", "uid=1000 — makes the drive's files owned by the main user", "0 0 — skips automatic filesystem checks at startup"],
+      "answer": 0,
+      "explain": "The chapter calls nofail 'critical': if the USB drive is absent at boot, the Pi continues starting up instead of hanging. The other options are also present in the fstab line but none of them is described as the critical safety setting."
+    },
+    {
+      "q": "After editing smb.conf to add a new share, what command does the chapter say you must run to check the file for typos before restarting Samba?",
+      "choices": ["sudo systemctl status smbd", "sudo smbpasswd -a pi", "sudo nano /etc/samba/smb.conf", "testparm"],
+      "answer": 3,
+      "explain": "testparm is Samba's built-in configuration checker. It reads smb.conf and reports errors; if it ends with 'Loaded services file OK' the file is valid. Running systemctl status only shows whether the service is running, not whether the config is correct."
+    },
+    {
+      "q": "Why must the nextcloud-data folder on the USB drive be owned by www-data rather than your own Pi account?",
+      "choices": ["The Nextcloud snap's web server runs as www-data and needs write access to store uploaded files", "www-data is the only account that can read a USB drive mounted via fstab", "Using your own account would expose the files to anyone on the home network", "The nextcloud.occ management tool only accepts commands run as www-data"],
+      "answer": 0,
+      "explain": "The Nextcloud snap bundles the Apache web server, which runs under the www-data account. If the data folder belongs to a different owner, Apache cannot write there and uploads fail silently. The chapter's Careful box repeats this warning explicitly."
+    },
+    {
+      "q": "According to the chapter, what is bundled inside the Nextcloud snap package so you do not have to install or configure those pieces yourself?",
+      "choices": ["Only the Nextcloud PHP code — you still configure a database separately", "The Nextcloud web interface and a MySQL database, but not a web server", "Nothing extra — snap packages contain only the application itself", "A web server, a database, and PHP — everything Nextcloud needs to run"],
+      "answer": 3,
+      "explain": "The chapter states the snap 'bundles the Apache web server, a MySQL-compatible database, and PHP — all the parts Nextcloud needs — so you do not have to install or configure any of them separately.' This is the main beginner-friendly advantage of using the snap route."
+    }
+  ]
+}

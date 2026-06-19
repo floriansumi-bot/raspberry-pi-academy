@@ -1,0 +1,576 @@
+<p class="lead">The moment you boot your Raspberry Pi 5 for the first time, you are greeted by a clean, friendly desktop that works much like Windows — but with its own personality and a few surprises. This chapter is your guided tour: we will walk every corner of the screen, open every important application, and leave you confident enough to explore on your own.</p>
+
+<h2 id="what-you-see-when-you-first-log-in">What You See When You First Log In</h2>
+
+<p>After the Raspberry Pi finishes starting up, you land on the <strong>Raspberry Pi OS desktop</strong>. At first glance it looks like any other computer — there is a background image, some icons, and a bar along the top. That bar is called the <strong>taskbar</strong> (sometimes called the "panel"), and it is the control centre for everything.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>desktop</em> is just the main screen you see after your computer starts — the equivalent of a physical desk where you lay out your work. The <em>taskbar</em> is the strip of buttons and icons that gives you quick access to apps, settings, and the clock.</div>
+
+<div class="note"><strong>Note:</strong> When you first boot a fresh Raspberry Pi OS Bookworm image, a setup wizard called the <strong>Welcome to Raspberry Pi</strong> assistant may appear. It will walk you through choosing your country, language, time zone, and a username and password. Complete this wizard before continuing — it sets up the most important personal settings in one go. If you skipped it or it did not appear, do not worry: we will cover all those settings manually in this chapter.</div>
+
+<h2 id="a-map-of-the-desktop">A Map of the Desktop</h2>
+
+<p>The diagram below labels every part of the default Raspberry Pi OS Bookworm desktop so you can follow along as we explore each section.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 780 480" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+
+  <!-- Desktop background -->
+  <rect x="0" y="0" width="780" height="480" fill="#1a2a3a" rx="6"/>
+
+  <!-- Taskbar -->
+  <rect x="0" y="0" width="780" height="44" fill="#3a3a3a"/>
+
+  <!-- Raspberry Menu button -->
+  <circle cx="22" cy="22" r="15" fill="#c0392b"/>
+  <text x="22" y="28" text-anchor="middle" font-size="15" fill="white">&#x1F353;</text>
+
+  <!-- File Manager shortcut -->
+  <rect x="46" y="9" width="28" height="28" fill="#555" rx="3"/>
+  <text x="60" y="29" text-anchor="middle" font-size="16" fill="#f0c040">&#x1F4C1;</text>
+
+  <!-- Chromium shortcut -->
+  <rect x="80" y="9" width="28" height="28" fill="#555" rx="3"/>
+  <text x="94" y="29" text-anchor="middle" font-size="15" fill="#4d90fe">&#x1F310;</text>
+
+  <!-- Terminal shortcut -->
+  <rect x="114" y="9" width="28" height="28" fill="#555" rx="3"/>
+  <text x="128" y="29" text-anchor="middle" font-size="15" fill="#50fa7b">&#x25A0;</text>
+
+  <!-- Right side applets -->
+  <text x="590" y="30" font-size="14" fill="#e0e0e0">&#x1F4F6;</text>
+  <text x="620" y="30" font-size="14" fill="#e0e0e0">&#x1F50A;</text>
+  <text x="650" y="30" font-size="14" fill="#e0e0e0">&#x1F4F1;</text>
+  <rect x="676" y="5" width="98" height="36" fill="#555" rx="3"/>
+  <text x="725" y="26" text-anchor="middle" font-size="13" fill="white">14:32</text>
+  <text x="725" y="39" text-anchor="middle" font-size="10" fill="#aaa">Fri 19 Jun</text>
+
+  <!-- Callout lines and labels -->
+  <!-- Menu -->
+  <line x1="22" y1="44" x2="22" y2="88" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="0" y="88" width="136" height="28" fill="#6d28d9" rx="4"/>
+  <text x="68" y="107" text-anchor="middle" font-size="12" fill="white">Raspberry Menu</text>
+
+  <!-- Quick-launch -->
+  <line x1="94" y1="44" x2="94" y2="88" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="28" y="88" width="144" height="28" fill="#0ea5a4" rx="4"/>
+  <text x="100" y="107" text-anchor="middle" font-size="12" fill="white">Quick-launch icons</text>
+
+  <!-- System tray -->
+  <line x1="635" y1="44" x2="570" y2="88" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="492" y="88" width="160" height="28" fill="#6d28d9" rx="4"/>
+  <text x="572" y="107" text-anchor="middle" font-size="12" fill="white">System tray (applets)</text>
+
+  <!-- Clock -->
+  <line x1="725" y1="44" x2="725" y2="88" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="662" y="88" width="126" height="28" fill="#0ea5a4" rx="4"/>
+  <text x="725" y="107" text-anchor="middle" font-size="12" fill="white">Clock &amp; calendar</text>
+
+  <!-- Window list area label -->
+  <rect x="148" y="9" width="420" height="28" fill="#444" rx="3" opacity="0.5"/>
+  <text x="358" y="27" text-anchor="middle" font-size="11" fill="#bbb">Window list — open windows appear here</text>
+  <line x1="358" y1="44" x2="358" y2="88" stroke="#aaa" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="280" y="88" width="156" height="28" fill="#555" rx="4"/>
+  <text x="358" y="107" text-anchor="middle" font-size="12" fill="#eee">Open windows list</text>
+
+  <!-- Desktop area label -->
+  <text x="390" y="280" text-anchor="middle" font-size="22" fill="#ffffff" opacity="0.10">D E S K T O P</text>
+
+  <!-- Wastebasket icon on desktop -->
+  <text x="720" y="420" text-anchor="middle" font-size="34" fill="#aaaaaa" opacity="0.7">&#x1F5D1;</text>
+  <text x="720" y="440" text-anchor="middle" font-size="11" fill="#aaaaaa" opacity="0.7">Wastebasket</text>
+  <line x1="700" y1="420" x2="590" y2="390" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="500" y="374" width="116" height="28" fill="#0ea5a4" rx="4"/>
+  <text x="558" y="393" text-anchor="middle" font-size="12" fill="white">Wastebasket</text>
+
+  <!-- Desktop right-click hint box -->
+  <rect x="200" y="310" width="220" height="100" fill="#2d2d2d" rx="5" stroke="#6d28d9" stroke-width="1"/>
+  <text x="310" y="330" text-anchor="middle" font-size="11" fill="#aaa">Right-click the desktop for:</text>
+  <text x="218" y="352" font-size="11" fill="#ccc">&#x2022; Desktop Preferences</text>
+  <text x="218" y="370" font-size="11" fill="#ccc">&#x2022; Open Terminal Here</text>
+  <text x="218" y="388" font-size="11" fill="#ccc">&#x2022; Open File Manager Here</text>
+  <line x1="310" y1="310" x2="310" y2="280" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="240" y="254" width="140" height="28" fill="#6d28d9" rx="4"/>
+  <text x="310" y="272" text-anchor="middle" font-size="12" fill="white">Desktop area</text>
+
+  <!-- Border -->
+  <rect x="0" y="0" width="780" height="480" fill="none" stroke="#555" stroke-width="2" rx="6"/>
+</svg>
+<figcaption>The default Raspberry Pi OS Bookworm desktop. The taskbar runs across the top; the system tray and clock sit in the top-right corner. Right-clicking anywhere on the empty desktop reveals shortcut options.</figcaption>
+</figure>
+
+<h2 id="the-taskbar-in-detail">The Taskbar in Detail</h2>
+
+<p>The taskbar runs across the very top of the screen. From left to right, you will find:</p>
+
+<ul>
+  <li><strong>The Raspberry Menu button</strong> — the small raspberry icon at the far left. Click it to open the main application menu.</li>
+  <li><strong>Quick-launch icons</strong> — small icons for the File Manager, Chromium browser, and Terminal sit right next to the menu button. One click and they open immediately.</li>
+  <li><strong>The window list area</strong> — the wide empty middle section. When you open an app, a button for it appears here so you can switch between open windows. Click a button to bring that window to the front; click it again to minimise it.</li>
+  <li><strong>The system tray</strong> — a cluster of small icons in the top-right corner for Wi-Fi, Bluetooth, volume, and more. We will look at these shortly.</li>
+  <li><strong>The clock</strong> — at the very right, showing the time and date. Click it to see a small calendar.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> If you right-click any empty space on the taskbar, you get options to add or remove panels and applets, so you can customise what lives there over time.</div>
+
+<h3>Managing Windows: Minimise, Maximise, Close</h3>
+
+<p>Every open application window has three buttons in its top-right corner, just like on Windows:</p>
+
+<ul>
+  <li><strong>– (minus / dash)</strong> — minimises the window (hides it; it stays as a button in the window list area of the taskbar).</li>
+  <li><strong>&#x25A1; (square)</strong> — maximises the window so it fills the whole screen. Click it again to restore it to its previous size.</li>
+  <li><strong>&#x2715; (cross)</strong> — closes the window. If you have unsaved work, the app will ask you to save first.</li>
+</ul>
+
+<p>You can also double-click the title bar of any window to maximise or restore it, and drag the title bar to move the window around the screen.</p>
+
+<h2 id="the-raspberry-menu">The Raspberry Menu</h2>
+
+<p>Click the raspberry icon (top-left) to open the main menu. This is your gateway to every installed application, organised into tidy categories.</p>
+
+<h3>Menu Categories Explained</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Category</th>
+      <th>What You Find There</th>
+      <th>Examples</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Programming</strong></td>
+      <td>Tools for writing code</td>
+      <td>Thonny (Python IDE), Scratch 3, Geany</td>
+    </tr>
+    <tr>
+      <td><strong>Internet</strong></td>
+      <td>Web and communication apps</td>
+      <td>Chromium browser, Claws Mail</td>
+    </tr>
+    <tr>
+      <td><strong>Sound &amp; Video</strong></td>
+      <td>Media players and audio tools</td>
+      <td>VLC Media Player, Audacity (if installed)</td>
+    </tr>
+    <tr>
+      <td><strong>Graphics</strong></td>
+      <td>Image viewers and editors</td>
+      <td>Image Viewer, LibreOffice Draw (if installed)</td>
+    </tr>
+    <tr>
+      <td><strong>Accessories</strong></td>
+      <td>Everyday utilities</td>
+      <td>Text Editor, Calculator, Archive Manager</td>
+    </tr>
+    <tr>
+      <td><strong>Office</strong></td>
+      <td>Document, spreadsheet and presentation apps</td>
+      <td>LibreOffice Writer, Calc, Impress (if installed)</td>
+    </tr>
+    <tr>
+      <td><strong>Preferences</strong></td>
+      <td>All system settings</td>
+      <td>Raspberry Pi Configuration, Appearance, Screen Configuration</td>
+    </tr>
+    <tr>
+      <td><strong>Help</strong></td>
+      <td>Built-in documentation</td>
+      <td>Raspberry Pi Help</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> The exact list of apps depends on which version of the Raspberry Pi OS image was pre-loaded on your microSD card. Some kits come with a "full" image that includes LibreOffice and extra tools; others use a lighter "desktop" image. If an app is missing, the section on Add/Remove Software later in this chapter shows you how to install it for free.</div>
+
+<p>At the bottom of the menu you will also see <strong>Shutdown</strong> — we will cover how to use that safely at the end of this chapter.</p>
+
+<h2 id="the-bundled-applications-worth-knowing">The Bundled Applications Worth Knowing</h2>
+
+<p>Let us take a closer look at the most useful programs that come pre-installed.</p>
+
+<h3>Chromium Web Browser</h3>
+
+<p>Chromium is the open-source version of Google Chrome. It looks and behaves almost identically — if you have used Chrome on Windows, you will feel right at home. You can sign in with your Google account to sync bookmarks, use extensions from the Chrome Web Store, and watch videos on YouTube. Find it in <strong>Internet → Chromium Web Browser</strong>, or click its icon on the taskbar.</p>
+
+<div class="tip"><strong>Tip:</strong> On a Pi 5 with 16 GB of RAM, Chromium runs very well. You can have many tabs open at once without slowdown — something earlier Pis with 2–4 GB struggled with.</div>
+
+<h3>File Manager</h3>
+
+<p>The <strong>File Manager</strong> (also called PCManFM) works like Windows Explorer. You can browse folders, copy and paste files, rename things, create new folders, and plug in a USB drive to see its contents. Find it in the taskbar quick-launch area or under <strong>Accessories → File Manager</strong>.</p>
+
+<p>Key points about the file system on your Pi:</p>
+<ul>
+  <li>Your personal files live in your <strong>home folder</strong>. If your username is <code>pi</code> this is <code>/home/pi</code>; if you chose a different name during setup (e.g. <code>alice</code>), it is <code>/home/alice</code>. This is equivalent to <code>C:\Users\YourName</code> on Windows. The File Manager opens your home folder by default.</li>
+  <li>The folder called <code>/</code> (just a forward slash, called "root") is the very top of the file system, like <code>C:\</code> on Windows.</li>
+  <li>USB drives and the microSD card appear automatically on the left side of the File Manager when you plug them in.</li>
+  <li>Right-clicking a file or folder in the File Manager gives you options to copy, cut, paste, rename, delete, or check its properties — just like right-clicking in Windows Explorer.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> On Linux (which Raspberry Pi OS is built on), file paths use <em>forward slashes</em> (<code>/</code>) instead of backslashes (<code>\</code>) like on Windows. So a folder called "Documents" inside your home folder is written as <code>/home/pi/Documents</code> (or <code>/home/alice/Documents</code> if your username is alice).</div>
+
+<div class="tip"><strong>Tip:</strong> In the File Manager, press <strong>Ctrl+H</strong> to show hidden files and folders — those whose names start with a dot (such as <code>.config</code>). These are system files and settings that are normally tucked out of sight to keep things tidy. Press Ctrl+H again to hide them.</div>
+
+<h3>Text Editor</h3>
+
+<p>Under <strong>Accessories → Text Editor</strong> you will find a simple editor similar to Notepad on Windows — perfect for jotting notes, editing configuration files, or looking at plain text. It does syntax highlighting (colour-coding) for many programming languages, which is handy when you start exploring code.</p>
+
+<h3>Thonny Python IDE</h3>
+
+<p>Thonny is found in <strong>Programming → Thonny</strong>. It is a beginner-friendly environment for writing Python programs. Chapter 10 covers Thonny in detail, but for now just know it is there and ready to use — no installation needed.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <em>IDE</em> (Integrated Development Environment) is a program that helps you write, run, and fix code all in one place. Think of it as a very smart text editor that understands programming languages.</div>
+
+<h3>Scratch 3</h3>
+
+<p>Found in <strong>Programming → Scratch 3</strong>, Scratch is a visual programming environment where you build programs by snapping colourful blocks together — no typing required. It is wonderfully beginner-friendly and a great way to understand how programming logic works before moving to text-based languages like Python. It is used in schools worldwide and is just as fun for adults learning to code.</p>
+
+<h3>LibreOffice (if present)</h3>
+
+<p>If your image includes LibreOffice, you will find it under the <strong>Office</strong> menu. It contains:</p>
+<ul>
+  <li><strong>LibreOffice Writer</strong> — a full word processor, very similar to Microsoft Word. It can open and save <code>.docx</code> files.</li>
+  <li><strong>LibreOffice Calc</strong> — a spreadsheet program like Microsoft Excel. It can open and save <code>.xlsx</code> files.</li>
+  <li><strong>LibreOffice Impress</strong> — a presentation maker like Microsoft PowerPoint. It can open and save <code>.pptx</code> files.</li>
+</ul>
+
+<p>If LibreOffice is not installed, you can add it from Add/Remove Software (covered later in this chapter).</p>
+
+<h3>Raspberry Pi Imager</h3>
+
+<p>If you ever need to write a new operating system to a microSD card, <strong>Raspberry Pi Imager</strong> makes it easy. It may already be installed under <strong>Accessories → Imager</strong>. You choose an OS image from a built-in menu, select your card, and click Write — the tool does the rest. Chapter 3 covers this in full detail; it is mentioned here so you know where to find it.</p>
+
+<h3>Terminal</h3>
+
+<p>The <strong>Terminal</strong> is a text-only window where you type commands directly at the computer. It looks intimidating but is incredibly powerful once you are comfortable with it. On Bookworm it is called <strong>LXTerminal</strong> and lives in <strong>Accessories → Terminal</strong>, or you can click the black rectangle icon on the taskbar. You can also right-click anywhere on the empty desktop and choose <strong>Open Terminal Here</strong> to open a Terminal directly in the folder you were looking at.</p>
+
+<p>Chapter 7 is entirely dedicated to using the Terminal, so do not worry about it for now — just know where to find it.</p>
+
+<h2 id="the-system-tray-wi-fi-bluetooth-volume-and-more">The System Tray: Wi-Fi, Bluetooth, Volume and More</h2>
+
+<p>The cluster of small icons in the top-right corner of the taskbar is called the <strong>system tray</strong>. Each icon is called an <strong>applet</strong> — a tiny mini-program that controls one aspect of your system.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <em>applet</em> is just a very small program that lives in the taskbar and lets you control one specific thing — like the volume or the Wi-Fi connection — with a single click.</div>
+
+<h3>Wi-Fi Applet</h3>
+<p>Click the network icon (it looks like signal-strength bars or a pair of computers) to see available Wi-Fi networks. Click your network name, type the password when prompted, and you are connected. Once connected, the icon shows your signal strength. If you are using a wired Ethernet cable instead of Wi-Fi, this applet shows two small rectangles (representing network plugs).</p>
+
+<div class="tip"><strong>Tip:</strong> The Pi 5 supports both 2.4 GHz and 5 GHz Wi-Fi. If your router offers both, pick the 5 GHz network for faster speeds — it will usually have "5G" or "5GHz" somewhere in its name.</div>
+
+<h3>Bluetooth Applet</h3>
+<p>Click the Bluetooth icon (a stylised "B" shape) to open the Bluetooth manager. From here you can pair a wireless keyboard, mouse, or headphones. Click <strong>Add Device</strong>, put your device into pairing mode (check its manual), and the Pi will find it automatically.</p>
+
+<div class="note"><strong>Note:</strong> Remember that the Pi 5 has <em>no headphone jack</em>. If you want audio through speakers or headphones, you need either HDMI audio (your TV or monitor's built-in speakers), a USB audio adapter, or a Bluetooth speaker or headphones paired through this applet.</div>
+
+<h3>Volume Applet</h3>
+<p>Click the speaker icon to see a volume slider. Drag it left to go quieter, right to go louder. Right-click the same icon to choose which audio output device to use — for example, switching between HDMI audio and a USB speaker.</p>
+
+<h3>Eject / Removable Media</h3>
+<p>When you plug in a USB drive, an eject icon appears in the system tray. <strong>Always click this icon and choose "Eject" before unplugging a USB drive.</strong> This tells the Pi to finish writing any data before the drive is removed, preventing file corruption.</p>
+
+<div class="warn"><strong>Careful:</strong> Pulling out a USB drive without ejecting it first can corrupt the files on that drive — just like on Windows. Always eject first, then unplug.</div>
+
+<h3>Software Update Notifications</h3>
+<p>A small shield or update icon sometimes appears in the system tray to let you know that software updates are available. Click it to open a graphical update manager that lists what will be updated and lets you apply the changes with one click. Keeping your software up to date is important for security and stability, so do not dismiss these notifications — install the updates when you have a few spare minutes.</p>
+
+<h3>Clock and Calendar</h3>
+<p>Click the clock in the top-right corner to pop up a small calendar. You can scroll through months. The time is set automatically if you are connected to the internet (the Pi uses a service called NTP — Network Time Protocol — to sync with internet time servers).</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>NTP</em> (Network Time Protocol) is an invisible background service that checks the correct time over the internet and keeps your computer's clock accurate. You never need to touch it.</div>
+
+<h2 id="preferences-raspberry-pi-configuration">Preferences: Raspberry Pi Configuration</h2>
+
+<p>Go to <strong>Raspberry Menu → Preferences → Raspberry Pi Configuration</strong>. This is the most important settings window on your Pi — a one-stop shop for tuning how the system works. It has five tabs. Let us go through each one.</p>
+
+<div class="note"><strong>Note:</strong> Some changes in this window require a reboot to take effect. The Pi will tell you when that is necessary.</div>
+
+<h3>System Tab</h3>
+
+<p>This tab controls fundamental behaviour:</p>
+
+<ul>
+  <li><strong>Password</strong> — change the password for your user account. <em>Do this early if you have not already.</em> The default password on older images is well known and is a security risk on any network.</li>
+  <li><strong>Hostname</strong> — the name your Pi announces on the local network. Change it from the default <code>raspberrypi</code> to something personal like <code>florians-pi</code> (use only letters, numbers, and hyphens — no spaces).</li>
+  <li><strong>Boot</strong> — choose whether the Pi boots straight to the desktop (recommended for beginners) or to a command-line screen.</li>
+  <li><strong>Auto login</strong> — when enabled, the Pi skips the login screen and goes straight to the desktop. Convenient at home; turn it off if others can access the machine.</li>
+  <li><strong>Network at Boot</strong> — if ticked, the Pi waits for a network connection before finishing start-up. Useful if you have services that need the internet immediately.</li>
+  <li><strong>Splash screen</strong> — the decorative image shown during boot. You can turn it off to see the technical boot messages instead (useful when diagnosing problems).</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Changing your password is the single most important security step for a Pi on any network. Go to the System tab now and set a strong password you will remember.</div>
+
+<h3>Display Tab</h3>
+
+<p>Controls what appears on your screen:</p>
+
+<ul>
+  <li><strong>Headless Resolution</strong> — if you ever run the Pi without a monitor attached (called "headless"), this sets the virtual screen size used for remote desktop access.</li>
+  <li><strong>Underscan</strong> — on some older TVs, the edges of the screen are cut off or have a black border. Toggle this to fix it.</li>
+  <li><strong>Pixel Doubling</strong> — makes everything appear twice as large. Useful on very high-resolution monitors where text is tiny.</li>
+  <li><strong>Screen Blanking</strong> — if enabled, the screen turns off after a period of inactivity to save power. Disable it if you find your screen going black annoyingly.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Headless</em> means running the Pi without a keyboard, mouse, or monitor connected directly — you control it entirely from another computer over the network. It is a common setup once you are more comfortable with the Pi.</div>
+
+<h3>Interfaces Tab</h3>
+
+<p>This tab switches on or off various technical connections. By default most are off to keep the system secure:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Interface</th>
+      <th>What It Does</th>
+      <th>When to Enable</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>SSH</td>
+      <td>Lets you control the Pi remotely from another computer using a text terminal</td>
+      <td>When you want to log in from your Windows PC without a keyboard on the Pi</td>
+    </tr>
+    <tr>
+      <td>VNC</td>
+      <td>Lets you see and control the Pi's full desktop from another computer</td>
+      <td>When you want to use the Pi remotely with a graphical screen</td>
+    </tr>
+    <tr>
+      <td>SPI</td>
+      <td>A communication bus for certain electronics add-ons</td>
+      <td>When connecting specific sensors or displays to the GPIO pins</td>
+    </tr>
+    <tr>
+      <td>I2C</td>
+      <td>Another communication bus for electronics add-ons</td>
+      <td>When connecting I2C-compatible sensors (temperature, pressure, etc.)</td>
+    </tr>
+    <tr>
+      <td>Serial Port</td>
+      <td>Enables the hardware serial connection on GPIO pins</td>
+      <td>When connecting GPS modules, Arduino boards, or similar devices</td>
+    </tr>
+    <tr>
+      <td>1-Wire</td>
+      <td>A simple bus used mainly for temperature sensors</td>
+      <td>When using a DS18B20 temperature sensor</td>
+    </tr>
+    <tr>
+      <td>Remote GPIO</td>
+      <td>Allows another computer to control the Pi's GPIO pins over the network</td>
+      <td>Advanced use only</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> Only enable SSH and VNC if you need them. Leaving unnecessary interfaces enabled widens the attack surface of your Pi, especially on a shared or public network. Enable them only after you have set a strong password.</div>
+
+<h3>Performance Tab</h3>
+
+<p>This tab lets you adjust how hard your Pi works:</p>
+
+<ul>
+  <li><strong>GPU Memory</strong> — how much RAM (in megabytes) is reserved for the graphics chip. On Raspberry Pi OS Bookworm, graphics memory is largely managed automatically using a modern system called CMA (Contiguous Memory Allocation), so the default value of 128 MB works well for everyday use. You generally do not need to change this unless a specific application asks you to.</li>
+  <li><strong>Overlay File System</strong> — an advanced option that makes the microSD card read-only to protect it from corruption. Leave it off unless you have a specific reason.</li>
+  <li><strong>Fan</strong> — the Pi 5 has a connector for the Active Cooler's fan. This panel lets you choose between always-on, temperature-controlled (recommended), or off. Temperature-controlled is the default: the fan spins up when the chip gets warm and quietens down when it cools.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> <em>GPU</em> stands for Graphics Processing Unit — the part of the chip that draws images on your screen. <em>CMA</em> (Contiguous Memory Allocation) is a behind-the-scenes technique that lets the system share RAM between the main processor and the graphics chip intelligently, rather than permanently reserving a fixed chunk for graphics.</div>
+
+<h3>Localisation Tab</h3>
+
+<p>This tab makes your Pi feel at home in your country:</p>
+
+<ul>
+  <li><strong>Locale</strong> — sets the language, number format, and date format. For the UK choose <code>en_GB.UTF-8</code>; for France choose <code>fr_FR.UTF-8</code>; for Germany <code>de_DE.UTF-8</code>; for Switzerland you can choose any of the four national languages.</li>
+  <li><strong>Timezone</strong> — sets the region and city for your local time. Pick the nearest city in your timezone (e.g. <code>Europe/London</code>, <code>Europe/Paris</code>, <code>Europe/Zurich</code>).</li>
+  <li><strong>Keyboard</strong> — sets the keyboard layout. If your keyboard has different symbols than what appears on screen, this is what to change (e.g. <code>gb</code> for a UK keyboard, <code>fr</code> for a French AZERTY keyboard, <code>de</code> for a German QWERTZ keyboard).</li>
+  <li><strong>Wi-Fi Country</strong> — sets the radio regulations for Wi-Fi. Always set this to your country — using Wi-Fi channels not permitted locally is illegal in most jurisdictions.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> If you find that pressing Shift+2 gives you <code>"</code> instead of <code>@</code>, or the <code>@</code> and <code>"</code> keys are swapped, the keyboard layout is set wrong. Go to the Localisation tab and correct it immediately — it affects everything you type.</div>
+
+<h2 id="screen-configuration-tool">Screen Configuration Tool</h2>
+
+<p>Go to <strong>Raspberry Menu → Preferences → Screen Configuration</strong>. This tool opens a graphical editor that shows your physical monitors as rectangles. The Pi 5 has <em>two</em> micro-HDMI ports, so it can drive two separate monitors at once.</p>
+
+<p>With Screen Configuration you can:</p>
+<ul>
+  <li><strong>Drag the monitor rectangles</strong> to set which screen is "left" and which is "right" — matching your physical desk layout.</li>
+  <li><strong>Set the resolution and refresh rate</strong> for each screen. The Pi 5 supports up to 4K (3840 × 2160) at 60 frames per second on each port.</li>
+  <li><strong>Mirror or extend</strong> — "mirror" shows the same picture on both screens; "extend" gives you one large continuous desktop spread across both.</li>
+  <li><strong>Rotate a screen</strong> — useful if you mount a monitor in portrait orientation.</li>
+</ul>
+
+<p>After making changes, click <strong>Apply</strong> in the top-left corner of the Screen Configuration tool, then confirm the change within a few seconds (the tool reverts automatically if you do not confirm, so you cannot lock yourself into a broken display).</p>
+
+<div class="note"><strong>Note:</strong> If you use only one monitor, plug the HDMI cable into the micro-HDMI port labelled <strong>HDMI0</strong> — it is the one closest to the USB-C power socket. The Pi 5 defaults to HDMI0 as the primary display.</div>
+
+<h2 id="changing-the-appearance-and-desktop-background">Changing the Appearance and Desktop Background</h2>
+
+<p>Go to <strong>Raspberry Menu → Preferences → Appearance Settings</strong>. This window has several tabs:</p>
+
+<ul>
+  <li><strong>Desktop</strong> — change the background image or colour. You can pick from the built-in images, or click the folder icon to choose any image file from your home folder. You can also set different backgrounds on each monitor if you have two screens.</li>
+  <li><strong>Menu Bar</strong> — change the colour and size of the taskbar, and the size of the icons in it.</li>
+  <li><strong>System</strong> — choose a theme (controls the colour of window borders, buttons, and menus). The built-in choices include light and dark variants.</li>
+  <li><strong>Defaults</strong> — a set of preset combinations of wallpaper, theme, and icon style. A quick way to give your desktop a completely different look.</li>
+</ul>
+
+<p>You can also right-click anywhere on the empty desktop and choose <strong>Desktop Preferences</strong> to jump straight to the background settings.</p>
+
+<div class="tip"><strong>Tip:</strong> You can use any JPEG or PNG image as your wallpaper. Download a photo you love in Chromium, save it to your Pictures folder (in your home folder), and set it as your wallpaper here.</div>
+
+<h2 id="add-remove-software-the-graphical-app-store">Add / Remove Software: The Graphical App Store</h2>
+
+<p>Go to <strong>Raspberry Menu → Preferences → Add / Remove Software</strong>. This opens a window that works much like an app store — you can search for free software, tick what you want, and click <strong>OK</strong> to install it automatically.</p>
+
+<p>Behind the scenes it is using Debian's software archive, which contains tens of thousands of free and open-source programs. Everything is free of charge and safe to install from this source.</p>
+
+<h3>Installing an App (Step by Step)</h3>
+
+<ol class="steps">
+  <li>Open <strong>Raspberry Menu → Preferences → Add / Remove Software</strong>.</li>
+  <li>Type what you are looking for in the search box at the top (for example, type <code>vlc</code> to find the VLC media player).</li>
+  <li>A list of matching programs appears. Read the short description next to each result to make sure you have the right one.</li>
+  <li>Tick the checkbox next to the program you want.</li>
+  <li>Click <strong>OK</strong>. You will be asked for your password.</li>
+  <li>The Pi downloads and installs the software. This may take a minute or two, depending on the size of the program and your internet speed.</li>
+  <li>Once done, the program appears in the appropriate menu category. It is ready to use immediately — no restart required.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> To remove an app you no longer want, open Add / Remove Software, search for it, <em>un-tick</em> its checkbox, and click OK. This frees up space on your microSD card.</div>
+
+<h3>Installing Software from the Terminal</h3>
+
+<p>Power users often install software faster by typing a single command in the Terminal. The command tool that manages software on Raspberry Pi OS is called <code>apt</code>. Here is how to install VLC as an example:</p>
+
+<pre class="code"><code>sudo apt update</code></pre>
+<div class="explain">
+  <p><strong><code>sudo apt update</code></strong> — Downloads the latest list of available software from Debian's servers on the internet. Think of it as refreshing the app store catalogue so the system knows about the newest versions. <code>sudo</code> means "run this as administrator" (short for "superuser do") — some commands need elevated permission to make system-level changes. You will be asked for your password.</p>
+</div>
+
+<pre class="code"><code>sudo apt install vlc</code></pre>
+<div class="explain">
+  <p><strong><code>sudo apt install vlc</code></strong> — Tells the package manager to download and install the program called <code>vlc</code>. The Pi will ask you to confirm by pressing <kbd>Y</kbd> then Enter. Replace <code>vlc</code> with the name of any program you want to install — for example, <code>sudo apt install libreoffice</code> to install the full LibreOffice suite.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> <code>sudo</code> is like clicking "Run as Administrator" on Windows — it temporarily grants you the highest level of permission to make system-level changes. You will be asked for your password the first time you use it in a Terminal session. On subsequent commands in the same session it remembers for a few minutes.</div>
+
+<div class="warn"><strong>Careful:</strong> Only run <code>sudo</code> commands from a trustworthy source — the official Raspberry Pi documentation, this book, or a well-known tutorial site. A malicious <code>sudo</code> command has the power to make serious, hard-to-reverse changes to your system.</div>
+
+<div class="note"><strong>Note:</strong> On Raspberry Pi OS Bookworm, if you try to install a Python package by typing <code>pip install something</code> without any extra steps, you will see an error saying the environment is "externally managed". This is a protection to prevent accidentally breaking the system. For Python packages, use Thonny's built-in package manager, install them with <code>sudo apt install python3-packagename</code>, or use a virtual environment (Chapter 10 explains all of these).</div>
+
+<h2 id="keeping-your-software-up-to-date">Keeping Your Software Up to Date</h2>
+
+<p>Software updates bring security fixes, bug corrections, and new features. On Raspberry Pi OS Bookworm, updates arrive in two ways:</p>
+
+<ul>
+  <li><strong>Graphically</strong> — a shield icon appears in the system tray when updates are ready. Click it and follow the prompts to apply them.</li>
+  <li><strong>From the Terminal</strong> — run the two commands below. Many guides combine them onto one line, but here they are shown separately so you can see exactly what each one does.</li>
+</ul>
+
+<pre class="code"><code>sudo apt update
+sudo apt upgrade</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>sudo apt update</code></strong>: Contacts the Debian software servers and downloads an up-to-date list of all available packages and their latest version numbers. This does not install anything yet — it just refreshes the catalogue.</p>
+  <p><strong>Line 2 — <code>sudo apt upgrade</code></strong>: Compares your currently installed software against the catalogue just downloaded, then downloads and installs any newer versions it finds. You will be shown a list of what will be upgraded and asked to confirm with <kbd>Y</kbd> then Enter.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Run these two commands every week or two. It is one of the best habits you can build. If the system suggests a reboot afterwards, do so to make sure all updates are fully active.</div>
+
+<h2 id="how-to-shut-down-and-reboot-and-why-it-matters">How to Shut Down and Reboot — and Why It Matters</h2>
+
+<p>This is one of the most important habits to build. <strong>Never just unplug the power cable to turn off the Pi.</strong> Raspberry Pi OS, like all Linux systems, constantly writes data to the microSD card in the background. If you cut the power mid-write, you can corrupt the file system — sometimes badly enough that the card will not boot.</p>
+
+<div class="warn"><strong>Careful:</strong> Unplugging the Pi while it is running is the most common cause of microSD card corruption for new users. Always shut down properly through the menu or with the power button first, then wait for the activity light to go out before unplugging.</div>
+
+<h3>Shutting Down from the Menu</h3>
+
+<ol class="steps">
+  <li>Click the <strong>Raspberry Menu</strong> (top-left raspberry icon).</li>
+  <li>Click <strong>Shutdown</strong> at the bottom of the menu.</li>
+  <li>A small window appears with three buttons: <strong>Shutdown</strong>, <strong>Reboot</strong>, and <strong>Logout</strong>.</li>
+  <li>Click <strong>Shutdown</strong> to turn the Pi off completely, or <strong>Reboot</strong> to restart it.</li>
+  <li>Wait until the screen goes dark and the green activity light on the Pi stops flashing. Then — and only then — you can safely unplug the power.</li>
+</ol>
+
+<h3>Shutting Down from the Terminal</h3>
+
+<p>If you are already working in a Terminal window, you can shut down or reboot with a command. Run one or the other — not both at the same time:</p>
+
+<pre class="code"><code>sudo shutdown now</code></pre>
+<div class="explain">
+  <p><strong><code>sudo shutdown now</code></strong> — Immediately begins a safe shutdown. The Pi saves everything, stops all running programs cleanly, and powers itself off. Wait for the green activity LED to go dark before removing power.</p>
+</div>
+
+<pre class="code"><code>sudo reboot</code></pre>
+<div class="explain">
+  <p><strong><code>sudo reboot</code></strong> — Cleanly restarts the Pi, as if you chose Reboot from the Raspberry Menu. Use this after installing updates or making configuration changes that require a restart.</p>
+</div>
+
+<h3>Using the Physical Power Button</h3>
+
+<p>The Raspberry Pi 5 has a small physical button on the board (usually accessible through a small hole in the lid of your case). A <strong>single short press</strong> initiates a safe, clean shutdown — exactly the same as choosing Shutdown from the menu. This is the quickest and safest way to power off if your keyboard or mouse is not responding.</p>
+
+<div class="note"><strong>Note:</strong> Holding the power button down for several seconds forces an immediate power cut without saving — only do this as a last resort if the Pi is completely frozen and will not respond to anything.</div>
+
+<h2 id="exploring-safely-good-habits-from-day-one">Exploring Safely: Good Habits from Day One</h2>
+
+<p>The desktop is yours to explore, and you really cannot break anything simply by <em>opening</em> apps and clicking menus. Here are a few habits that will keep your Pi healthy:</p>
+
+<ul>
+  <li><strong>Always shut down properly</strong> — never unplug the power mid-session.</li>
+  <li><strong>Keep software updated</strong> — security fixes and improvements arrive regularly. Run <code>sudo apt update</code> followed by <code>sudo apt upgrade</code> in the Terminal every week or two, or click the shield icon in the system tray when it appears.</li>
+  <li><strong>Set a strong password</strong> — do this in Raspberry Pi Configuration → System as soon as possible if you have not already.</li>
+  <li><strong>Eject USB drives before unplugging</strong> — use the system tray eject icon.</li>
+  <li><strong>Read error messages</strong> — the Pi usually tells you in plain language when something goes wrong. Do not just click OK without reading.</li>
+  <li><strong>Back up your microSD card</strong> — Chapter 13 covers this. A microSD card can wear out or get corrupted; a backup means you can be back up and running in minutes.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> If you accidentally delete something from the File Manager, open the <strong>Wastebasket</strong> — right-click the bin icon on the desktop and choose Open, or look for it in the File Manager's left-hand panel. Files deleted from the File Manager go there first, just like the Recycle Bin on Windows. Files deleted from the Terminal, however, are gone immediately — the Terminal has no wastebasket.</div>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Taskbar</strong> — the strip along the top of the screen containing the menu, quick-launch icons, window list, system tray applets, and clock.</li>
+  <li><strong>Applet</strong> — a tiny program embedded in the taskbar that controls one aspect of your system (Wi-Fi, volume, etc.).</li>
+  <li><strong>System tray</strong> — the cluster of small applet icons in the top-right corner of the taskbar.</li>
+  <li><strong>Raspberry Menu</strong> — the main application launcher, opened by clicking the raspberry icon at the top-left of the taskbar.</li>
+  <li><strong>Chromium</strong> — the open-source web browser included with Raspberry Pi OS, almost identical to Google Chrome.</li>
+  <li><strong>Thonny</strong> — a beginner-friendly Python programming environment pre-installed on the Pi.</li>
+  <li><strong>Scratch 3</strong> — a visual, block-based programming environment great for learning coding concepts without typing code.</li>
+  <li><strong>LibreOffice</strong> — a free, open-source office suite compatible with Microsoft Office file formats (.docx, .xlsx, .pptx).</li>
+  <li><strong>Terminal</strong> — a text-based window where you type commands directly at the system; covered in depth in Chapter 7.</li>
+  <li><strong>SSH</strong> — Secure Shell; a way to control the Pi remotely from another computer's terminal over a network.</li>
+  <li><strong>VNC</strong> — Virtual Network Computing; lets you see and control the full Pi desktop from another computer over a network.</li>
+  <li><strong>GPU</strong> — Graphics Processing Unit; the part of the chip that handles drawing images and video on your screen.</li>
+  <li><strong>CMA</strong> — Contiguous Memory Allocation; a modern technique used on Bookworm to share RAM flexibly between the processor and graphics chip.</li>
+  <li><strong>Locale</strong> — a setting that tells the system which language, number format, and date format to use.</li>
+  <li><strong>Headless</strong> — running the Pi without a directly connected keyboard, mouse, or monitor; controlled remotely over the network.</li>
+  <li><strong>apt</strong> — the command-line software manager for Debian/Raspberry Pi OS; used to install, update, and remove programs.</li>
+  <li><strong>sudo</strong> — a prefix for commands that need administrator-level permission; equivalent to "Run as Administrator" on Windows.</li>
+  <li><strong>NTP</strong> — Network Time Protocol; a background service that keeps your Pi's clock accurate by syncing with internet time servers.</li>
+  <li><strong>Shutdown</strong> — the safe process of stopping all software and powering off the Pi without corrupting data.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>The taskbar runs across the top of the screen and holds the Raspberry Menu, quick-launch icons, a window list, the system tray applets, and the clock.</li>
+  <li>The Raspberry Menu organises all installed apps into categories: Programming, Internet, Sound &amp; Video, Graphics, Accessories, Office, Preferences, and Help.</li>
+  <li>Key bundled apps include Chromium (web browser), File Manager, Text Editor, Thonny (Python IDE), Scratch 3 (visual coding), and optionally LibreOffice.</li>
+  <li>Right-clicking anywhere on the empty desktop reveals shortcuts to Desktop Preferences, Open Terminal Here, and Open File Manager Here.</li>
+  <li>The system tray applets control Wi-Fi, Bluetooth, volume, removable media, and software update notifications — always eject USB drives before unplugging them.</li>
+  <li>Raspberry Pi Configuration (Preferences menu) is a five-tab settings window covering System, Display, Interfaces, Performance, and Localisation — set your password and localisation settings there first.</li>
+  <li>The Screen Configuration tool lets you arrange, resize, and configure up to two monitors connected to the Pi 5's dual micro-HDMI ports.</li>
+  <li>Appearance Settings let you change the desktop background, taskbar colour, and window theme.</li>
+  <li>Add / Remove Software is a graphical app store with tens of thousands of free programs; you can also install software with <code>sudo apt install &lt;name&gt;</code> in the Terminal.</li>
+  <li>Keep software up to date by running <code>sudo apt update</code> then <code>sudo apt upgrade</code> every week or two, or by clicking the shield update icon in the system tray.</li>
+  <li>Always shut down the Pi using the Raspberry Menu, the <code>sudo shutdown now</code> command, or the physical power button — never unplug the power cable during use, as this can corrupt the microSD card.</li>
+  <li>Good habits — proper shutdown, regular updates, a strong password, and USB ejection — protect your Pi from the most common everyday problems.</li>
+</ul>
+</div>

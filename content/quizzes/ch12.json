@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch12",
+  "title": "Physical Computing: GPIO",
+  "questions": [
+    {
+      "q": "Why does an LED always need a resistor when connected to a GPIO pin?",
+      "choices": [
+        "To make the LED blink at a steady rate",
+        "To boost the voltage up to 5 V so the LED lights up",
+        "To limit the current and prevent the LED (and GPIO pin) from burning out",
+        "To protect the Pi from receiving 5 V signals"
+      ],
+      "answer": 2,
+      "explain": "An LED has almost no resistance of its own, so without a series resistor too much current flows through it and it burns out instantly — sometimes damaging the GPIO pin too. A 330 Ω resistor limits current to a safe level."
+    },
+    {
+      "q": "In the gpiozero code 'led = LED(17)', what does the number 17 refer to?",
+      "choices": [
+        "Physical pin number 17 on the header",
+        "The GPIO (BCM) number, which corresponds to physical pin 11",
+        "The resistor value in ohms",
+        "The LED's brightness level on a scale of 0 to 40"
+      ],
+      "answer": 1,
+      "explain": "gpiozero always uses BCM (GPIO) numbers in code, not physical pin positions. GPIO 17 sits at physical pin 11 on the header. Confusing these two numbering systems is one of the most common beginner mistakes."
+    },
+    {
+      "q": "When wiring a push button with gpiozero, why do you NOT need an external resistor for the button circuit?",
+      "choices": [
+        "gpiozero automatically enables a built-in pull-down resistor inside the Pi chip",
+        "Buttons have enough built-in resistance to protect the GPIO pin",
+        "The 3.3 V supply voltage is too low to require any protection",
+        "The breadboard's internal connections act as a resistor"
+      ],
+      "answer": 0,
+      "explain": "The Pi 5 has internal pull-down resistors on its GPIO pins, and gpiozero enables them automatically when you create a Button object. This keeps the pin reading a definite LOW when the button is not pressed, so no external resistor is needed."
+    },
+    {
+      "q": "What is the maximum safe voltage you can feed into a GPIO input pin on the Raspberry Pi 5?",
+      "choices": [
+        "5 V, because the Pi runs from a 5 V power supply",
+        "1.8 V, the same as modern mobile chips",
+        "12 V with a suitable current-limiting resistor",
+        "3.3 V — applying 5 V will permanently damage the pin"
+      ],
+      "answer": 3,
+      "explain": "The Pi 5 GPIO pins use 3.3 V logic. Applying 5 V to a GPIO input pin will destroy it instantly and permanently — there is no fuse. Always use 3.3 V-compatible components, or a level-shifter when interfacing with 5 V devices."
+    },
+    {
+      "q": "In a breadboard's central area, which holes are electrically connected to each other?",
+      "choices": [
+        "All holes in the same numbered column, running top to bottom",
+        "All holes in the same half-row (e.g., 10a, 10b, 10c, 10d, 10e), but NOT across the centre gap",
+        "All holes on the entire board — that is the purpose of a breadboard",
+        "Only holes that share the same letter label (e.g., all 'a' holes on every row)"
+      ],
+      "answer": 1,
+      "explain": "Inside the breadboard, each half-row (a–e or f–j) shares a connection. The centre gap separates the two halves of the same numbered row, so holes 10e and 10f are NOT connected to each other. This separation is what lets you straddle a component like an LED or button across the gap."
+    }
+  ]
+}

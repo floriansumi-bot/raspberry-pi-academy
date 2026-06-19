@@ -1,0 +1,592 @@
+<p class="lead">Your Raspberry Pi comes with a lot of software already installed, but sooner or later you will want to add something new — a media player, a game, a useful tool. This chapter shows you exactly how to do that safely and confidently, explains what is happening behind the scenes, and builds the habit of keeping everything up to date so your Pi stays secure and running smoothly.</p>
+
+<h2 id="how-software-gets-onto-the-pi">How Software Gets Onto the Pi</h2>
+
+<p>On Windows you usually visit a website, download a <code>.exe</code> file, and run it. On Raspberry Pi OS things work differently — and, once you get used to it, much more conveniently. Almost every program you will ever want is available from a central, trusted collection managed by the operating system itself. You do not need to hunt around the web.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>package</strong> is a ready-to-install bundle containing a program (or a library the program needs), plus instructions telling the system where to put all its files. Think of it like a flat-pack furniture box: everything is inside, and the assembly instructions are included.</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>repository</strong> (often shortened to "repo") is an enormous, carefully organised online library of packages — a bit like an official app store, except it is run by the people who make your operating system, not a private company. Raspberry Pi OS uses the Debian repositories plus a few Raspberry Pi-specific ones. Every package in there has been tested and is known to work safely together.</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>package manager</strong> is the program that talks to the repository for you. You tell it what you want; it fetches the right package (and any other packages that program depends on), checks that nothing is broken, and installs everything in the right order. The package manager on Raspberry Pi OS is called <strong>APT</strong> (Advanced Package Tool).</div>
+
+<figure class="fig">
+<svg viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <!-- Internet cloud / repository -->
+  <ellipse cx="320" cy="54" rx="130" ry="40" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="320" y="47" text-anchor="middle" font-size="13" fill="#1f2933" font-weight="bold">Debian / Raspberry Pi</text>
+  <text x="320" y="66" text-anchor="middle" font-size="13" fill="#1f2933">Repositories (online)</text>
+
+  <!-- Arrow down from repo to APT -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#6d28d9"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#0ea5a4"/>
+    </marker>
+  </defs>
+  <line x1="320" y1="96" x2="320" y2="158" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="342" y="132" font-size="12" fill="#1f2933">apt downloads</text>
+
+  <!-- APT box -->
+  <rect x="210" y="158" width="220" height="52" rx="8" fill="#6d28d9"/>
+  <text x="320" y="181" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="bold">APT</text>
+  <text x="320" y="200" text-anchor="middle" font-size="12" fill="#f3f0ff">Package Manager</text>
+
+  <!-- Arrow down from APT to Pi -->
+  <line x1="320" y1="210" x2="320" y2="245" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr2)"/>
+
+  <!-- Pi box -->
+  <rect x="185" y="245" width="270" height="26" rx="7" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2"/>
+  <text x="320" y="263" text-anchor="middle" font-size="13" fill="#1f2933">Your Raspberry Pi (installed!)</text>
+
+  <!-- Left side label -->
+  <text x="28" y="52" font-size="12" fill="#6d28d9">Thousands of</text>
+  <text x="28" y="68" font-size="12" fill="#6d28d9">free, checked</text>
+  <text x="28" y="84" font-size="12" fill="#6d28d9">packages</text>
+  <line x1="155" y1="68" x2="188" y2="58" stroke="#6d28d9" stroke-width="1" stroke-dasharray="4,3"/>
+</svg>
+<figcaption>Figure 8-1 — APT fetches packages from the online repositories and installs them on your Pi.</figcaption>
+</figure>
+
+<h2 id="the-terminal-where-you-type-commands">The Terminal: Where You Type Commands</h2>
+
+<p>Most software-management tasks are done by typing short commands in the <strong>Terminal</strong> — a text window where you talk directly to the operating system. Open it by clicking the black screen icon in the taskbar at the top of the desktop. Do not be put off by the plain look; each command is short, and this chapter explains every one.</p>
+
+<div class="jargon"><strong>In plain words:</strong> The <strong>Terminal</strong> (also called the command line or shell) is like a chat window with your Pi. You type an instruction, press Enter, and the Pi carries it out and replies. It feels different from clicking around a graphical interface, but for managing software it is faster and more reliable.</div>
+
+<h2 id="the-apt-command-your-swiss-army-knife">The APT Command — Your Swiss Army Knife</h2>
+
+<p>Every APT command that changes something on the system starts with <code>sudo</code>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>sudo</strong> stands for "superuser do". It temporarily grants you administrator-level power for just the one command that follows. The system will ask for your password the first time you use it in a session. Without <code>sudo</code>, APT cannot write files to protected system folders — which is exactly what installing software requires.</div>
+
+<div class="note"><strong>Note:</strong> When you type your password after <code>sudo</code>, the cursor does not move and no dots or asterisks appear. This is normal — the password is being recorded silently for security. Type it and press Enter.</div>
+
+<h3>Step 1 — Refresh the catalogue: <code>sudo apt update</code></h3>
+
+<p>Before you install or upgrade anything, always tell APT to check the repositories for the latest list of available packages. This does <em>not</em> install anything; it only updates APT's local "catalogue" so it knows what versions are currently available.</p>
+
+<pre class="code"><code>sudo apt update</code></pre>
+<div class="explain">
+  <strong>sudo</strong> — run the following command as administrator.<br>
+  <strong>apt update</strong> — contact every repository listed in your configuration, download the current package lists, and store them locally. You will see lines scrolling by as APT contacts each server. This usually completes in under a minute.
+</div>
+
+<p>You should run <code>sudo apt update</code> every time before installing or upgrading, and ideally at least once a week.</p>
+
+<h3>Step 2 — Install available upgrades: <code>sudo apt full-upgrade</code></h3>
+
+<p>After refreshing the catalogue, you can apply any newer versions of packages that are already installed.</p>
+
+<pre class="code"><code>sudo apt full-upgrade</code></pre>
+<div class="explain">
+  <strong>apt full-upgrade</strong> — compares what is installed against the freshly downloaded catalogue. If newer versions exist, it downloads and installs them. Unlike the simpler <code>apt upgrade</code>, <code>full-upgrade</code> is also allowed to remove old packages that are blocking an update — which is sometimes necessary on Raspberry Pi OS. You will be shown a summary and asked to confirm with <strong>Y</strong> then Enter before anything is changed.
+</div>
+
+<div class="tip"><strong>Tip:</strong> You can chain both commands into one line so you never forget to update first:</div>
+
+<pre class="code"><code>sudo apt update &amp;&amp; sudo apt full-upgrade</code></pre>
+<div class="explain">
+  <strong>sudo apt update</strong> — refreshes the package catalogue.<br>
+  <strong>&amp;&amp;</strong> — means "run the next command only if the previous one succeeded without errors".<br>
+  <strong>sudo apt full-upgrade</strong> — installs all available updates. The two commands run one after the other automatically, so you only need to confirm once at the end.
+</div>
+
+<div class="note"><strong>Note:</strong> A full upgrade can take several minutes if many packages need updating — especially the first time after a fresh install. Leave the Terminal open and let it finish.</div>
+
+<h3>Installing a new package: <code>sudo apt install</code></h3>
+
+<pre class="code"><code>sudo apt install &lt;package-name&gt;</code></pre>
+<div class="explain">
+  Replace <strong>&lt;package-name&gt;</strong> with the actual name of the package you want. APT will look it up in the catalogue, list everything it needs to download (including any dependencies — other packages the program relies on), and ask you to confirm. Press <strong>Y</strong> then Enter to proceed.
+</div>
+
+<p>You can install several packages at once by listing their names separated by spaces:</p>
+
+<pre class="code"><code>sudo apt install vlc fastfetch</code></pre>
+<div class="explain">
+  Installs both <strong>vlc</strong> (the VLC media player) and <strong>fastfetch</strong> (a tool that displays a summary of your system) in a single operation. APT fetches both together and asks for one confirmation.
+</div>
+
+<h3>Removing a package: <code>sudo apt remove</code> and <code>sudo apt purge</code></h3>
+
+<p>There are two levels of removal:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it removes</th>
+      <th>Configuration files?</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>sudo apt remove &lt;name&gt;</code></td>
+      <td>The program itself</td>
+      <td>Left behind — useful if you reinstall later</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt purge &lt;name&gt;</code></td>
+      <td>The program <em>and</em> all its configuration files</td>
+      <td>Deleted — a completely clean slate</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Use <code>remove</code> if you think you might want the program back one day. Use <code>purge</code> for a truly clean removal — for example, if you had configured a server wrongly and want to start fresh.</p>
+
+<pre class="code"><code>sudo apt remove fastfetch</code></pre>
+<div class="explain">
+  Removes the <strong>fastfetch</strong> program but keeps any settings files it created, so your configuration is preserved if you reinstall it later.
+</div>
+
+<pre class="code"><code>sudo apt purge fastfetch</code></pre>
+<div class="explain">
+  Removes <strong>fastfetch</strong> and deletes its configuration files completely. Use this when you want a clean slate and are sure you will not reinstall the package.
+</div>
+
+<h3>Searching for a package: <code>apt search</code></h3>
+
+<p>If you are not sure of the exact package name, you can search the catalogue. This command does <em>not</em> need <code>sudo</code> because it only reads information — it does not change anything.</p>
+
+<pre class="code"><code>apt search chess</code></pre>
+<div class="explain">
+  Searches all package names and descriptions for the word "chess" and lists every match. You can then pick the exact name you want and use <code>apt install</code> with it.
+</div>
+
+<div class="tip"><strong>Tip:</strong> The list can be very long. Pipe it through <code>less</code> so you can scroll one page at a time: <code>apt search chess | less</code> — press the spacebar to move forward a page and <strong>q</strong> to quit back to the prompt.</div>
+
+<h3>Learning about a package before installing: <code>apt show</code></h3>
+
+<pre class="code"><code>apt show vlc</code></pre>
+<div class="explain">
+  Displays detailed information about the <strong>vlc</strong> package: its version number, download size, a plain description, what other packages it depends on, and who maintains it. Useful for checking you have the right package before committing to an install. No <code>sudo</code> needed — this only reads information.
+</div>
+
+<h3>Checking the installed version of a package: <code>dpkg -l</code></h3>
+
+<p>Once a package is installed, you can check exactly which version is on your system:</p>
+
+<pre class="code"><code>dpkg -l vlc</code></pre>
+<div class="explain">
+  <strong>dpkg</strong> is the lower-level tool that APT sits on top of. You will sometimes see it mentioned in error messages, so it is good to know its name.<br>
+  <strong>-l vlc</strong> — list the status and installed version of the <strong>vlc</strong> package. A line beginning with <strong>ii</strong> means the package is correctly installed. This command needs no <code>sudo</code>.
+</div>
+
+<h3>Cleaning up afterwards: <code>sudo apt autoremove</code> and <code>sudo apt clean</code></h3>
+
+<p>Over time, APT can accumulate packages that were only installed to support something else (called <strong>dependencies</strong>) but are no longer needed after you removed the main program. It also keeps downloaded package files in a cache folder even after installation.</p>
+
+<pre class="code"><code>sudo apt autoremove</code></pre>
+<div class="explain">
+  Automatically finds and removes packages that were installed as dependencies but are no longer needed by any remaining program. APT will show you exactly what it plans to delete and ask for confirmation before removing anything. Safe to run regularly.
+</div>
+
+<pre class="code"><code>sudo apt clean</code></pre>
+<div class="explain">
+  Deletes the downloaded <code>.deb</code> package files from the local cache (stored in <code>/var/cache/apt/archives/</code>). The packages are already installed, so the cached files are just consuming space on your microSD card. This command reclaims that space. It does not remove any installed programs.
+</div>
+
+<div class="tip"><strong>Tip:</strong> Run this full sequence once a month to keep your Pi tidy and up to date:</div>
+
+<pre class="code"><code>sudo apt update &amp;&amp; sudo apt full-upgrade &amp;&amp; sudo apt autoremove &amp;&amp; sudo apt clean</code></pre>
+<div class="explain">
+  <strong>sudo apt update</strong> — refresh the package catalogue.<br>
+  <strong>sudo apt full-upgrade</strong> — install all available updates.<br>
+  <strong>sudo apt autoremove</strong> — remove dependency packages no longer needed.<br>
+  <strong>sudo apt clean</strong> — delete cached installer files to free up disk space.<br>
+  Each step only runs if the previous one completed successfully (thanks to <code>&amp;&amp;</code>). You will be asked to confirm upgrades and autoremove before they proceed.
+</div>
+
+<h2 id="a-quick-reference-apt-commands-at-a-glance">A Quick Reference: APT Commands at a Glance</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+      <th>Needs sudo?</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>sudo apt update</code></td>
+      <td>Refresh the list of available packages</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt full-upgrade</code></td>
+      <td>Install all available updates</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt install &lt;name&gt;</code></td>
+      <td>Install a new package</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt remove &lt;name&gt;</code></td>
+      <td>Remove a package (keep config files)</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt purge &lt;name&gt;</code></td>
+      <td>Remove a package and all its config files</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td><code>apt search &lt;word&gt;</code></td>
+      <td>Search for packages matching a keyword</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>apt show &lt;name&gt;</code></td>
+      <td>Show details about a package</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>dpkg -l &lt;name&gt;</code></td>
+      <td>Show the installed version of a package</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt autoremove</code></td>
+      <td>Remove unneeded dependency packages</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt clean</code></td>
+      <td>Delete cached downloaded package files</td>
+      <td>Yes</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="three-concrete-examples">Three Concrete Examples</h2>
+
+<p>Reading about commands is one thing — seeing them applied to real programs makes everything click. Here are three installs you can try right now.</p>
+
+<h3>Example 1 — Fastfetch (a system information display)</h3>
+
+<p>Fastfetch prints a colourful summary of your Pi's hardware and software — processor model, RAM, operating system version, uptime, and more. It is a satisfying first install because the result appears immediately.</p>
+
+<pre class="code"><code>sudo apt update
+sudo apt install fastfetch
+fastfetch</code></pre>
+<div class="explain">
+  <strong>Line 1:</strong> Refresh the package catalogue so APT knows the latest version is available.<br>
+  <strong>Line 2:</strong> Download and install fastfetch. APT will list the package and ask you to confirm with <strong>Y</strong> then Enter.<br>
+  <strong>Line 3:</strong> Run fastfetch. No <code>sudo</code> is needed to run a program — only to install it.
+</div>
+
+<p>You should see a Raspberry Pi logo made of coloured characters on the left, and columns of information on the right. Any time you open a new Terminal session you can type <code>fastfetch</code> to see that summary instantly.</p>
+
+<h3>Example 2 — Ninvaders (a text-based Space Invaders game)</h3>
+
+<p>The repository contains several classic text games. <code>ninvaders</code> is a Space Invaders clone that runs entirely in the Terminal window — no extra graphics needed.</p>
+
+<pre class="code"><code>sudo apt install ninvaders
+ninvaders</code></pre>
+<div class="explain">
+  <strong>Line 1:</strong> Installs the ninvaders package. If you have already run <code>sudo apt update</code> in this session, you do not need to run it again before every install.<br>
+  <strong>Line 2:</strong> Launches the game. Use the left and right arrow keys to move your ship and the spacebar to fire. Press <strong>q</strong> to quit.
+</div>
+
+<h3>Example 3 — VLC Media Player</h3>
+
+<p>VLC is one of the most popular media players in the world. It plays almost any video or audio format, including streamed internet content.</p>
+
+<pre class="code"><code>sudo apt install vlc</code></pre>
+<div class="explain">
+  Installs VLC and all the supporting libraries (called codecs — small programs that decode different audio and video formats) that it needs. This may take a couple of minutes because there are quite a few dependencies. After installation, VLC appears in the <strong>Sound &amp; Video</strong> section of the application menu (click the raspberry icon at the top-left of the desktop).
+</div>
+
+<div class="note"><strong>Note:</strong> The Raspberry Pi 5 has no headphone socket. Audio from VLC comes out through your HDMI-connected monitor or TV's built-in speakers. If your monitor has no speakers, you can connect a USB audio adapter or USB speaker instead.</div>
+
+<h2 id="the-graphical-alternative-add-remove-software">The Graphical Alternative: Add / Remove Software</h2>
+
+<p>If you prefer not to use the Terminal for installing software, Raspberry Pi OS includes a graphical application called <strong>Add / Remove Software</strong>. You can find it in the application menu under <strong>Preferences</strong>.</p>
+
+<ol class="steps">
+  <li>Click the raspberry icon at the top-left of the desktop to open the application menu.</li>
+  <li>Go to <strong>Preferences</strong> and click <strong>Add / Remove Software</strong>.</li>
+  <li>Use the search box at the top to type the name or description of what you want.</li>
+  <li>Click the checkbox next to a result to select it, then click <strong>Apply</strong>.</li>
+  <li>Enter your password when prompted and wait for the installation to finish.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> The graphical tool is a front-end for APT — it does exactly the same thing under the hood. Many people prefer it when starting out. Either method is perfectly fine and results in the same installed software.</div>
+
+<h2 id="keeping-the-pi-s-firmware-up-to-date">Keeping the Pi's Firmware Up to Date</h2>
+
+<p>As well as software packages, the Raspberry Pi has a piece of low-level software called the <strong>bootloader</strong> (sometimes called firmware). This tiny program is stored in a special chip on the board and is what runs the instant you press the power button — even before the operating system loads. The Raspberry Pi Foundation occasionally releases bootloader updates to improve stability, add features, or fix bugs.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>EEPROM</strong> stands for Electrically Erasable Programmable Read-Only Memory. It is a small chip on the Pi 5 board that stores the bootloader permanently, even when the power is off. Think of it as the Pi's ignition system — it fires up first and hands control over to the operating system.</div>
+
+<p>First, check whether a newer bootloader version is available:</p>
+
+<pre class="code"><code>sudo apt update
+sudo apt install rpi-eeprom
+sudo rpi-eeprom-update</code></pre>
+<div class="explain">
+  <strong>Line 1:</strong> Refresh the package catalogue.<br>
+  <strong>Line 2:</strong> Make sure the EEPROM update tool is installed. On a fresh Bookworm installation it is usually already present; APT will simply confirm it is at the latest version.<br>
+  <strong>Line 3:</strong> Check whether a newer bootloader is available. If everything is current, the output will include <strong>BOOTLOADER: up to date</strong> and you are done. If an update is available, the output will tell you.
+</div>
+
+<p>If an update is available, apply it with:</p>
+
+<pre class="code"><code>sudo rpi-eeprom-update -a
+sudo reboot</code></pre>
+<div class="explain">
+  <strong>sudo rpi-eeprom-update -a</strong> — schedules the bootloader update to be applied on the next reboot. The <code>-a</code> flag means "apply". Nothing is changed until the Pi actually reboots.<br>
+  <strong>sudo reboot</strong> — restarts the Pi. During the reboot you may briefly see a green screen or a progress display as the new bootloader is written to the EEPROM chip. This is completely normal.
+</div>
+
+<div class="tip"><strong>Tip:</strong> Check the bootloader every few months. You do not need to do it every week — bootloader updates are infrequent.</div>
+
+<div class="warn"><strong>Careful:</strong> Do not press the power button or cut the power while the Pi is rebooting after an EEPROM update. Wait until the desktop (or login prompt) appears before touching anything. Interrupting a bootloader write is extremely rare to cause permanent damage, but it is best avoided.</div>
+
+<h2 id="when-the-app-you-want-is-not-in-apt">When the App You Want Is Not in APT</h2>
+
+<p>The Debian / Raspberry Pi repositories are very large — there are over 60,000 packages. But occasionally the program you want is not there, or only an outdated version is available. In that situation you have a few options.</p>
+
+<h3>Option 1 — Flatpak</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Flatpak</strong> is a newer packaging system — think of it as a second, parallel app store. Each Flatpak package bundles everything the program needs inside itself, so it works independently of what APT has installed. The main Flatpak hub is called <strong>Flathub</strong>, and it hosts thousands of applications.</div>
+
+<p>To set up Flatpak on Raspberry Pi OS Bookworm:</p>
+
+<pre class="code"><code>sudo apt install flatpak
+sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+sudo reboot</code></pre>
+<div class="explain">
+  <strong>Line 1:</strong> Install the Flatpak system itself via APT.<br>
+  <strong>Line 2:</strong> Register Flathub (the main Flatpak app library) as a trusted source. The <code>--if-not-exists</code> flag prevents an error if you have already done this step before.<br>
+  <strong>Line 3:</strong> Reboot the Pi so the Flatpak integration is picked up correctly by the desktop environment.
+</div>
+
+<p>After rebooting, you can install a Flatpak app like this (using the GIMP image editor as an example):</p>
+
+<pre class="code"><code>flatpak install flathub org.gimp.GIMP</code></pre>
+<div class="explain">
+  <strong>flatpak install flathub</strong> — download from the Flathub source.<br>
+  <strong>org.gimp.GIMP</strong> — the Flatpak application ID for GIMP. Flatpak uses reverse-domain IDs (like <code>org.gimp.GIMP</code>) instead of short names to avoid conflicts between publishers. You can find an app's exact ID by searching on <strong>flathub.org</strong>.
+</div>
+
+<p>To run a Flatpak app from the Terminal:</p>
+
+<pre class="code"><code>flatpak run org.gimp.GIMP</code></pre>
+<div class="explain">
+  <strong>flatpak run</strong> — launch the specified Flatpak application. Flatpak apps also appear in the application menu after installation, so you can just click their icon there instead.
+</div>
+
+<div class="note"><strong>Note:</strong> Flatpak packages are larger than APT packages because they bundle their own dependencies. On a 64 GB or larger microSD card this is not usually a problem, but be aware that a single Flatpak app can take several hundred megabytes.</div>
+
+<h3>Option 2 — AppImage</h3>
+
+<div class="jargon"><strong>In plain words:</strong> An <strong>AppImage</strong> is a single portable file that contains an entire application. You download the file, mark it as runnable, and double-click it — no installation needed, and no administrator password required. You can delete it simply by dragging it to the bin.</div>
+
+<p>To use an AppImage:</p>
+
+<ol class="steps">
+  <li>Download the <code>.AppImage</code> file from the developer's official website and save it to your <code>Downloads</code> folder.</li>
+  <li>Open a Terminal and move into your Downloads folder:</li>
+</ol>
+
+<pre class="code"><code>cd ~/Downloads</code></pre>
+<div class="explain">
+  <strong>cd</strong> — "change directory", i.e. move to a different folder.<br>
+  <strong>~/Downloads</strong> — the <code>~</code> symbol is a shortcut for your home folder (<code>/home/pi</code> by default). So this moves you into <code>/home/pi/Downloads</code>.
+</div>
+
+<ol class="steps" start="3">
+  <li>Make the file executable (runnable) and launch it:</li>
+</ol>
+
+<pre class="code"><code>chmod +x MyApp.AppImage
+./MyApp.AppImage</code></pre>
+<div class="explain">
+  <strong>chmod +x</strong> — changes the file's permissions to mark it as executable. You only need to do this once per file. Replace <strong>MyApp.AppImage</strong> with the actual filename you downloaded.<br>
+  <strong>./MyApp.AppImage</strong> — runs the application. The <code>./</code> at the start means "look for this file in the current folder" (not somewhere else on the system).
+</div>
+
+<div class="warn"><strong>Careful:</strong> AppImages and software downloaded directly from websites bypass the safety checks that APT and Flatpak provide. Only download AppImages from the official website of the software you want. If you are not sure whether a source is trustworthy, do not run the file until you have verified it.</div>
+
+<h3>Option 3 — A Project's Own Install Script</h3>
+
+<p>Some projects — particularly developer tools — provide their own installation script, usually a command beginning with <code>curl</code> or <code>wget</code> that you paste into the Terminal. These are common and generally safe when they come from a well-known project's official documentation, but they run with administrator privileges. Always copy the command from the official project page rather than from a random forum post or social-media message.</p>
+
+<h2 id="python-software-in-particular">Python Software in Particular</h2>
+
+<p>Python deserves a special mention. Raspberry Pi OS Bookworm marks the system Python as <strong>externally managed</strong>, which means running plain <code>pip install</code> directly will show an error. This is intentional — it protects the operating system's own tools from accidental breakage.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>pip</strong> is Python's own package manager — it installs Python libraries (add-on collections of code written in Python). On Bookworm, running <code>pip install</code> directly into the system-wide Python is blocked, because the OS itself relies on certain Python packages being at specific versions.</div>
+
+<p>Instead, choose one of these safe approaches:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Approach</th>
+      <th>Best for</th>
+      <th>How</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Thonny's package manager</strong></td>
+      <td>Beginners; installing libraries for use in Thonny</td>
+      <td>In Thonny: <strong>Tools &gt; Manage packages</strong></td>
+    </tr>
+    <tr>
+      <td><strong>APT python3-* packages</strong></td>
+      <td>Popular libraries available system-wide</td>
+      <td><code>sudo apt install python3-numpy</code> (for example)</td>
+    </tr>
+    <tr>
+      <td><strong>Virtual environment</strong></td>
+      <td>Projects that need specific library versions</td>
+      <td><code>python3 -m venv myenv</code> then <code>source myenv/bin/activate</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Using APT for Python libraries</h3>
+
+<pre class="code"><code>sudo apt install python3-numpy python3-matplotlib</code></pre>
+<div class="explain">
+  Installs the <strong>NumPy</strong> maths library and the <strong>Matplotlib</strong> plotting library via APT. These are available system-wide to all Python scripts, without needing pip or a virtual environment. Many popular libraries have an <code>apt</code> package named <code>python3-&lt;libraryname&gt;</code>.
+</div>
+
+<h3>Using a virtual environment</h3>
+
+<p>A virtual environment is an isolated copy of Python that belongs to one project. You install packages into it freely with pip, and it never touches the system Python.</p>
+
+<pre class="code"><code>python3 -m venv myenv
+source myenv/bin/activate
+pip install requests
+deactivate</code></pre>
+<div class="explain">
+  <strong>python3 -m venv myenv</strong> — create a new virtual environment in a folder called <code>myenv</code>. You only do this once per project.<br>
+  <strong>source myenv/bin/activate</strong> — switch into the virtual environment. Your Terminal prompt will change to show <strong>(myenv)</strong> at the start, confirming it is active. Any <code>pip install</code> now goes into <code>myenv</code>, not the system Python.<br>
+  <strong>pip install requests</strong> — as an example, installs the popular <strong>requests</strong> HTTP library into the virtual environment only.<br>
+  <strong>deactivate</strong> — leave the virtual environment and return to normal. The libraries you installed stay inside <code>myenv</code> for next time.
+</div>
+
+<div class="tip"><strong>Tip:</strong> To re-enter the virtual environment in a future session, just run <code>source myenv/bin/activate</code> again from the same folder. You do not need to recreate it.</div>
+
+<div class="note"><strong>Note:</strong> If you are just starting out with Python, use <strong>Thonny</strong>. It manages its own private environment behind the scenes, so you can install libraries through its menu (Tools &gt; Manage packages) without any of the above complexity. Come back to virtual environments when you are more comfortable.</div>
+
+<h2 id="enabling-system-features-with-raspi-config">Enabling System Features with <code>raspi-config</code></h2>
+
+<p>Some software — particularly programs that talk to physical hardware like sensors, displays, or cameras — requires certain features of the Pi to be switched on before they will work. The tool for this is <strong>raspi-config</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>raspi-config</strong> is a configuration menu that you open in the Terminal. It lets you turn on or off built-in features of the Pi — for example, the camera, SSH remote access, SPI and I2C communication buses for electronics, and more. Think of it as the Pi's "System Settings" for things that cannot easily be changed from the graphical desktop.</div>
+
+<pre class="code"><code>sudo raspi-config</code></pre>
+<div class="explain">
+  Opens the raspi-config text menu. Use the arrow keys to highlight an option and Enter to select it. Navigate to <strong>Interface Options</strong> to enable features like the camera, SSH, SPI, or I2C. Navigate to <strong>System Options</strong> to change the hostname or password. Press <strong>Tab</strong> to reach the Finish button, then reboot if prompted.
+</div>
+
+<div class="note"><strong>Note:</strong> You will rarely need raspi-config as a beginner. It becomes important when you start connecting physical components to the GPIO pins (covered in a later chapter), or when you want to access the Pi remotely from another computer.</div>
+
+<h2 id="building-the-update-habit">Building the Update Habit</h2>
+
+<p>Keeping your Pi's software up to date is one of the most important things you can do for security and stability. Updates fix bugs, patch security holes, and sometimes add new features. Think of it like antivirus updates on Windows — routine maintenance that protects you without requiring you to understand all the details.</p>
+
+<p>A simple, sensible routine:</p>
+
+<ol class="steps">
+  <li>Once a week (or any time before you do important work), open a Terminal and run:<br><code>sudo apt update &amp;&amp; sudo apt full-upgrade</code></li>
+  <li>Once a month, add the clean-up steps:<br><code>sudo apt autoremove &amp;&amp; sudo apt clean</code></li>
+  <li>Every few months, check the bootloader:<br><code>sudo rpi-eeprom-update</code></li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> The taskbar sometimes shows a small software-update icon (a circle with an arrow). Clicking it runs the equivalent of <code>apt update</code> and offers to apply upgrades without you typing anything — useful on days when you do not want to open the Terminal.</div>
+
+<div class="warn"><strong>Careful:</strong> If an upgrade summary shows it will remove a package you deliberately installed and care about, read the list carefully before typing Y to confirm. This is rare, but it is worth a quick check. If you are unsure, type <strong>N</strong> to cancel and search online for why that package is being removed.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 660 200" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <!-- Weekly box -->
+  <rect x="20" y="30" width="180" height="140" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="110" y="55" text-anchor="middle" font-size="13" fill="#6d28d9" font-weight="bold">Weekly</text>
+  <text x="110" y="78" text-anchor="middle" font-size="11" fill="#1f2933">sudo apt update</text>
+  <text x="110" y="97" text-anchor="middle" font-size="11" fill="#1f2933">&amp;&amp;</text>
+  <text x="110" y="116" text-anchor="middle" font-size="11" fill="#1f2933">sudo apt full-upgrade</text>
+  <text x="110" y="155" text-anchor="middle" font-size="10" fill="#6d28d9">Security &amp; stability</text>
+
+  <!-- Arrow -->
+  <line x1="200" y1="100" x2="238" y2="100" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr3)"/>
+  <defs>
+    <marker id="arr3" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#6d28d9"/>
+    </marker>
+    <marker id="arr4" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#0ea5a4"/>
+    </marker>
+  </defs>
+
+  <!-- Monthly box -->
+  <rect x="238" y="30" width="180" height="140" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="328" y="55" text-anchor="middle" font-size="13" fill="#6d28d9" font-weight="bold">Monthly</text>
+  <text x="328" y="78" text-anchor="middle" font-size="11" fill="#1f2933">+ sudo apt autoremove</text>
+  <text x="328" y="97" text-anchor="middle" font-size="11" fill="#1f2933">&amp;&amp;</text>
+  <text x="328" y="116" text-anchor="middle" font-size="11" fill="#1f2933">sudo apt clean</text>
+  <text x="328" y="155" text-anchor="middle" font-size="10" fill="#6d28d9">Free up disk space</text>
+
+  <!-- Arrow -->
+  <line x1="418" y1="100" x2="456" y2="100" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr4)"/>
+
+  <!-- Every few months box -->
+  <rect x="456" y="30" width="184" height="140" rx="10" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2"/>
+  <text x="548" y="55" text-anchor="middle" font-size="13" fill="#0ea5a4" font-weight="bold">Every few months</text>
+  <text x="548" y="78" text-anchor="middle" font-size="11" fill="#1f2933">+ sudo rpi-eeprom-update</text>
+  <text x="548" y="116" text-anchor="middle" font-size="11" fill="#1f2933">(apply if update found)</text>
+  <text x="548" y="155" text-anchor="middle" font-size="10" fill="#0ea5a4">Bootloader firmware</text>
+</svg>
+<figcaption>Figure 8-2 — A simple maintenance schedule: weekly updates, monthly clean-up, occasional firmware check.</figcaption>
+</figure>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Package</strong> — a bundle containing a program (or library) and instructions for installing it on your system.</li>
+  <li><strong>Repository (repo)</strong> — a large, trusted online library of packages, maintained by the OS team.</li>
+  <li><strong>APT</strong> — the package manager built into Raspberry Pi OS; the tool that installs, updates, and removes packages.</li>
+  <li><strong>sudo</strong> — a command prefix that grants temporary administrator privileges for a single command.</li>
+  <li><strong>Dependency</strong> — a package that another package requires in order to work; APT installs these automatically.</li>
+  <li><strong>apt update</strong> — refreshes APT's local catalogue of available packages (does not install anything).</li>
+  <li><strong>apt full-upgrade</strong> — installs all available updates for packages already on your system.</li>
+  <li><strong>apt autoremove</strong> — removes dependency packages no longer needed by any installed program.</li>
+  <li><strong>apt clean</strong> — deletes cached downloaded package files from <code>/var/cache/apt/archives/</code> to free disk space.</li>
+  <li><strong>dpkg</strong> — the lower-level tool APT sits on top of; use <code>dpkg -l &lt;name&gt;</code> to check an installed package's version.</li>
+  <li><strong>EEPROM / bootloader</strong> — the low-level firmware in a tiny chip on the Pi 5 board; it runs before the OS and can be updated with <code>rpi-eeprom-update</code>.</li>
+  <li><strong>Flatpak / Flathub</strong> — an alternative packaging system (Flatpak) and its main app library (Flathub); apps bundle their own dependencies.</li>
+  <li><strong>AppImage</strong> — a portable single-file application that needs no installation; download, mark executable, and run.</li>
+  <li><strong>pip</strong> — Python's own package manager; on Bookworm, use it only inside a virtual environment or via Thonny, not directly into the system Python.</li>
+  <li><strong>Virtual environment</strong> — an isolated Python workspace created with <code>python3 -m venv</code>, letting you use pip freely without affecting the system Python.</li>
+  <li><strong>raspi-config</strong> — a Terminal menu tool for enabling Pi hardware features such as SSH, SPI, I2C, and the camera interface.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>Raspberry Pi OS uses APT to install software from trusted online repositories — no need to download files from random websites.</li>
+  <li>Always run <code>sudo apt update</code> before installing or upgrading to ensure APT has the latest package information.</li>
+  <li><code>sudo apt full-upgrade</code> installs all pending updates; run it weekly to keep the system secure and stable.</li>
+  <li><code>sudo apt install &lt;name&gt;</code> installs a package; <code>sudo apt remove</code> uninstalls it (or <code>purge</code> for a completely clean removal including config files).</li>
+  <li>Use <code>apt search</code> to find packages by keyword, <code>apt show</code> to read details before installing, and <code>dpkg -l</code> to check what is already installed.</li>
+  <li><code>sudo apt autoremove</code> and <code>sudo apt clean</code> keep your microSD card tidy by removing unneeded files monthly.</li>
+  <li>The graphical Add / Remove Software tool does the same job as APT commands but with a point-and-click interface — equally valid for beginners.</li>
+  <li>The Pi 5's bootloader firmware can be updated with <code>sudo rpi-eeprom-update -a</code> followed by a reboot; check it every few months.</li>
+  <li>Software not in APT can come from Flatpak (Flathub), AppImage files, or a project's own install script — always use the official source.</li>
+  <li>For Python libraries, use Thonny's built-in package manager, an APT <code>python3-*</code> package, or a virtual environment — never plain <code>pip install</code> into the system Python on Bookworm.</li>
+  <li>Use <code>sudo raspi-config</code> to enable hardware interfaces (camera, SSH, SPI, I2C) that some software requires before it will work.</li>
+</ul>
+</div>

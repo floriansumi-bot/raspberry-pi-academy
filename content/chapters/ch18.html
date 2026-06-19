@@ -1,0 +1,599 @@
+<p class="lead">Your Raspberry Pi 5 can do far more than run programs you use yourself — it can <em>serve</em> things to other devices on your home network, acting as a tiny, always-on web server or running powerful self-hosted applications. This chapter shows you two practical paths: the quick-and-simple way with a built-in Python trick, and the modern, tidy way using Docker containers.</p>
+
+<h2 id="what-is-a-web-server-really">What Is a Web Server, Really?</h2>
+
+<p>When you type a web address into your browser, your browser sends a request over the network asking "Please send me that page." A <em>web server</em> is simply a program sitting on another computer, waiting for those requests and then sending back the web page (an HTML file) in reply. The word "server" just means "something that serves requests" — it has nothing to do with the size or power of the computer. Your Pi 5 is perfectly capable of being a web server for every device on your home Wi-Fi.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>web server</strong> is a program that listens for browsers asking for pages and hands them back, the same way a library assistant hands you a book when you ask for one.</div>
+
+<p>Every device on your home network has a local address called an <strong>IP address</strong> — a set of four numbers like <code>192.168.1.42</code>. Once your Pi is running a web server, any other device on the same Wi-Fi can open a browser and visit <code>http://192.168.1.42</code> to see whatever page the Pi is serving. (Finding your Pi's IP address was covered in Chapter 5; the quick reminder is to open a Terminal on the Pi and type <code>hostname -I</code>.)</p>
+
+<div class="note"><strong>Note:</strong> Everything in this chapter works on your <em>home network</em> only, until you deliberately open it to the outside world. That is the safe default — we discuss the outside internet at the end of the chapter.</div>
+
+<h2 id="part-a-serve-a-simple-web-page">Part A — Serve a Simple Web Page</h2>
+
+<p>There are two easy approaches. The first uses a tool that is already installed; the second installs the professional-grade web server software called <strong>Nginx</strong>. Both end with you viewing a page from another device.</p>
+
+<h3>Method 1: The One-Command Python Server</h3>
+
+<p>Python 3 is already installed on Raspberry Pi OS and includes a tiny built-in web server. It takes one command and serves every file in a folder. This is great for a quick demo or sharing files on your home network — but it is not meant to run permanently or to handle heavy traffic.</p>
+
+<ol class="steps">
+  <li>Open a <strong>Terminal</strong> on your Pi.</li>
+  <li>Create a test folder and move into it:
+    <pre class="code"><code>mkdir ~/my-website
+cd ~/my-website</code></pre>
+    <div class="explain">
+      <p><code>mkdir ~/my-website</code> — creates a new folder called <code>my-website</code> inside your home directory. The <code>~</code> is a shortcut that always means "my home folder" (usually <code>/home/pi</code>).</p>
+      <p><code>cd ~/my-website</code> — changes your current location to that new folder so the next commands work there.</p>
+    </div>
+  </li>
+  <li>Create a simple web page:
+    <pre class="code"><code>nano index.html</code></pre>
+    <div class="explain">
+      <p><code>nano index.html</code> — opens the Nano text editor to create a new file called <code>index.html</code>. A file named <code>index.html</code> is the conventional "home page" that web servers look for first when a visitor arrives at the address without asking for a specific file.</p>
+    </div>
+    <p>Type (or paste) this into Nano:</p>
+    <pre class="code"><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;&lt;title&gt;My Pi Website&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Hello from my Raspberry Pi 5!&lt;/h1&gt;
+    &lt;p&gt;This page is being served by my Pi.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+    <div class="explain">
+      <p>This is a minimal HTML web page. The <code>&lt;!DOCTYPE html&gt;</code> declaration tells the browser this is a modern HTML5 document. <code>&lt;h1&gt;</code> creates a large heading; <code>&lt;p&gt;</code> creates a paragraph. The browser will display both. You can write anything you like here — it is your page.</p>
+    </div>
+    <p>Press <kbd>Ctrl + O</kbd> then <kbd>Enter</kbd> to save, then <kbd>Ctrl + X</kbd> to exit Nano.</p>
+  </li>
+  <li>Start the web server:
+    <pre class="code"><code>python3 -m http.server 8080</code></pre>
+    <div class="explain">
+      <p><code>python3 -m http.server 8080</code> — tells Python 3 to run its built-in web server module (<code>http.server</code>) and listen on <strong>port 8080</strong>. A <em>port</em> is like a numbered door on your Pi — different services listen on different door numbers. The standard web port is 80, but we use 8080 here to avoid needing extra administrator permissions.</p>
+    </div>
+    <p>You will see a message like <code>Serving HTTP on 0.0.0.0 port 8080</code>. The Terminal is now busy running the server — leave it open.</p>
+  </li>
+  <li>On any device on your home network (phone, laptop, another computer), open a web browser and go to:
+    <p><code>http://&lt;your-pi-ip&gt;:8080</code></p>
+    <p>Replace <code>&lt;your-pi-ip&gt;</code> with the actual IP address shown by <code>hostname -I</code> on the Pi (for example <code>http://192.168.1.42:8080</code>). The <code>:8080</code> tells the browser which port to knock on.</p>
+    <p>You should see your "Hello from my Raspberry Pi 5!" page.</p>
+  </li>
+  <li>When you are done, go back to the Terminal and press <kbd>Ctrl + C</kbd> to stop the server.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> While the server is running, look back at the Terminal — it prints a line every time a device visits the page, showing the visitor's IP address, the time, and what file was requested. This is exactly what a real web server access log looks like.</div>
+
+<h3>Method 2: Nginx — The Proper Web Server</h3>
+
+<p><strong>Nginx</strong> (pronounced "engine-ecks") is a fast, professional web server used by millions of websites worldwide. Unlike the Python one-liner, it runs as a background service that starts automatically when your Pi boots. This is the right choice if you want a page that is <em>always</em> available.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>service</strong> (also called a <em>daemon</em>) is a program that runs quietly in the background all the time, without needing a Terminal window open. Your Pi starts its services automatically when it boots up, so you never have to remember to start them.</div>
+
+<ol class="steps">
+  <li>Open a Terminal and install Nginx:
+    <pre class="code"><code>sudo apt update
+sudo apt install nginx -y</code></pre>
+    <div class="explain">
+      <p><code>sudo apt update</code> — refreshes the list of available software packages from the internet. Always do this before installing something new to make sure you get the latest version.</p>
+      <p><code>sudo apt install nginx -y</code> — downloads and installs Nginx. The <code>-y</code> answers "yes" automatically to the "do you want to continue?" question, so you do not have to type it yourself.</p>
+    </div>
+    <p>When the installation finishes, Nginx starts automatically and is immediately listening for web traffic.</p>
+  </li>
+  <li>Check that it is running:
+    <pre class="code"><code>sudo systemctl status nginx</code></pre>
+    <div class="explain">
+      <p><code>sudo systemctl status nginx</code> — asks the system service manager (<code>systemctl</code>) to report the current status of the Nginx service. You should see the word <strong>active (running)</strong> highlighted in green. Press <kbd>Q</kbd> to exit the status view.</p>
+    </div>
+  </li>
+  <li>On your Pi itself, open the Chromium web browser and go to <code>http://localhost</code>. The word <code>localhost</code> always means "this computer itself". You should see the Nginx welcome page — this confirms it is working.</li>
+  <li>Now replace the default page with your own. The web files Nginx serves live in <code>/var/www/html/</code>. Edit the default page:
+    <pre class="code"><code>sudo nano /var/www/html/index.html</code></pre>
+    <div class="explain">
+      <p><code>sudo nano /var/www/html/index.html</code> — opens the existing index file in the Nano editor. <code>sudo</code> is needed because the folder is owned by the system, not your user account, and without it Nano would not be able to save your changes.</p>
+    </div>
+    <p>Select all the existing text (hold <kbd>Ctrl + K</kbd> repeatedly to delete line by line) and replace it with your own HTML — you can use the same simple page from Method 1, or write something new. Save with <kbd>Ctrl + O</kbd>, <kbd>Enter</kbd>, then <kbd>Ctrl + X</kbd>.</p>
+  </li>
+  <li>From any device on your home network, open a browser and visit:
+    <p><code>http://&lt;your-pi-ip&gt;</code></p>
+    <p>No port number is needed — Nginx listens on the standard web port 80, which browsers use automatically when you just type an <code>http://</code> address without a colon and number.</p>
+    <p>Your page appears! And it will still be there the next time you visit, even after you restart the Pi.</p>
+  </li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> You can drop any number of HTML files, images, or CSS files into <code>/var/www/html/</code> and Nginx will serve them all. Create sub-folders for different pages and link between them with normal HTML links — you are building a real website.</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 660 280" xmlns="http://www.w3.org/2000/svg" role="img">
+    <title>How a home network web server works</title>
+    <desc>Diagram showing a browser on a laptop sending an HTTP request to the Raspberry Pi, which has Nginx running and returns a web page. Both are connected through a home Wi-Fi router.</desc>
+    <!-- Pi box -->
+    <rect x="30" y="80" width="175" height="120" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="117" y="104" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f2933">Raspberry Pi 5</text>
+    <rect x="50" y="114" width="135" height="28" rx="6" fill="#6d28d9"/>
+    <text x="117" y="133" text-anchor="middle" font-size="12" fill="#ffffff">Nginx (web server)</text>
+    <text x="117" y="162" text-anchor="middle" font-size="11" fill="#1f2933">192.168.1.42 : 80</text>
+    <text x="117" y="180" text-anchor="middle" font-size="11" fill="#6d28d9">/var/www/html/</text>
+    <!-- Arrow right (request) -->
+    <line x1="460" y1="128" x2="215" y2="128" stroke="#0ea5a4" stroke-width="2.5" marker-end="url(#arrow-teal)"/>
+    <text x="337" y="118" text-anchor="middle" font-size="12" fill="#0ea5a4">GET http://192.168.1.42/</text>
+    <!-- Arrow left (response) -->
+    <line x1="215" y1="162" x2="460" y2="162" stroke="#6d28d9" stroke-width="2.5" marker-end="url(#arrow-purple)"/>
+    <text x="337" y="182" text-anchor="middle" font-size="12" fill="#6d28d9">Here is index.html &#8594;</text>
+    <!-- Laptop box -->
+    <rect x="460" y="80" width="175" height="120" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="547" y="104" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f2933">Your Laptop / Phone</text>
+    <rect x="478" y="114" width="140" height="28" rx="6" fill="#0ea5a4"/>
+    <text x="548" y="133" text-anchor="middle" font-size="12" fill="#ffffff">Web browser</text>
+    <text x="548" y="168" text-anchor="middle" font-size="11" fill="#1f2933">Displays the page</text>
+    <!-- Home router -->
+    <rect x="235" y="220" width="190" height="40" rx="8" fill="#e9e4ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="330" y="242" text-anchor="middle" font-size="13" fill="#1f2933">Home Wi-Fi Router</text>
+    <text x="330" y="256" text-anchor="middle" font-size="11" fill="#6d28d9">(same network)</text>
+    <!-- Lines to router -->
+    <line x1="117" y1="200" x2="235" y2="235" stroke="#6d28d9" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="548" y1="200" x2="425" y2="235" stroke="#6d28d9" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- Arrowhead markers -->
+    <defs>
+      <marker id="arrow-teal" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#0ea5a4"/>
+      </marker>
+      <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6d28d9"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>A browser on any device on your home network asks the Pi's Nginx web server for a page. Nginx reads the HTML file from disk and sends it back. The whole conversation stays inside your home network, through the router.</figcaption>
+</figure>
+
+<h2 id="part-b-the-modern-way-docker-and-containers">Part B — The Modern Way: Docker and Containers</h2>
+
+<p>Serving a static HTML page is satisfying, but the real fun begins when you run complete self-hosted applications on your Pi — things like a home dashboard, a private notes app, an uptime monitor, or a media server. The cleanest way to do this in 2025 is with <strong>Docker</strong>.</p>
+
+<h3>What Is Docker?</h3>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>container</strong> is like a pre-packed lunchbox for a program. It contains the program itself plus every library, tool, and configuration file it needs to run — all bundled together. You can drop the lunchbox onto any compatible computer and it just works, without touching or interfering with anything else on the machine. <strong>Docker</strong> is the most popular tool for creating and running these containers.</div>
+
+<p>Before Docker, installing a server application on Linux could mean following a long list of steps, installing dozens of extra packages, editing configuration files, and hoping nothing clashed with other software already on the machine. With Docker:</p>
+
+<ul>
+  <li>You pull a ready-made container <em>image</em> from the internet (think of an image as the sealed lunchbox before you open it).</li>
+  <li>Docker runs it in an isolated environment — it cannot accidentally break other things on your Pi.</li>
+  <li>Removing an app is as simple as deleting its container and image — no leftover files scattered everywhere.</li>
+  <li>The same container works the same way every time, on every machine that runs Docker.</li>
+</ul>
+
+<figure class="fig">
+  <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg" role="img">
+    <title>Docker containers on a Raspberry Pi</title>
+    <desc>Diagram showing Raspberry Pi OS at the base, Docker Engine on top of it, and three separate containers sitting side by side inside Docker, each with their own libraries and a port number.</desc>
+    <!-- Base OS -->
+    <rect x="20" y="185" width="600" height="40" rx="8" fill="#6d28d9"/>
+    <text x="320" y="211" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">Raspberry Pi OS (Bookworm) — the base system</text>
+    <!-- Docker Engine layer -->
+    <rect x="20" y="140" width="600" height="38" rx="6" fill="#0ea5a4"/>
+    <text x="320" y="164" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">Docker Engine</text>
+    <!-- Container 1 -->
+    <rect x="30" y="25" width="175" height="108" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="117" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2933">Container A</text>
+    <text x="117" y="70" text-anchor="middle" font-size="12" fill="#6d28d9">Uptime Kuma</text>
+    <text x="117" y="90" text-anchor="middle" font-size="11" fill="#1f2933">Port 3001</text>
+    <text x="117" y="110" text-anchor="middle" font-size="10" fill="#888888">(its own libraries)</text>
+    <!-- Container 2 -->
+    <rect x="233" y="25" width="175" height="108" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="320" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2933">Container B</text>
+    <text x="320" y="70" text-anchor="middle" font-size="12" fill="#6d28d9">Memos (Notes)</text>
+    <text x="320" y="90" text-anchor="middle" font-size="11" fill="#1f2933">Port 5230</text>
+    <text x="320" y="110" text-anchor="middle" font-size="10" fill="#888888">(its own libraries)</text>
+    <!-- Container 3 -->
+    <rect x="436" y="25" width="175" height="108" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="523" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2933">Container C</text>
+    <text x="523" y="70" text-anchor="middle" font-size="12" fill="#6d28d9">Any other app</text>
+    <text x="523" y="90" text-anchor="middle" font-size="11" fill="#1f2933">Port 9000</text>
+    <text x="523" y="110" text-anchor="middle" font-size="10" fill="#888888">(its own libraries)</text>
+    <!-- Bracket lines to Docker layer -->
+    <line x1="117" y1="133" x2="117" y2="140" stroke="#6d28d9" stroke-width="1.5"/>
+    <line x1="320" y1="133" x2="320" y2="140" stroke="#6d28d9" stroke-width="1.5"/>
+    <line x1="523" y1="133" x2="523" y2="140" stroke="#6d28d9" stroke-width="1.5"/>
+  </svg>
+  <figcaption>Three containers run side by side on the same Pi, each isolated with its own set of files and libraries. They share the underlying hardware through Docker but cannot interfere with each other or with the main Raspberry Pi OS.</figcaption>
+</figure>
+
+<h3>Installing Docker</h3>
+
+<p>The official and recommended way to install Docker on Raspberry Pi OS is to use a script provided by Docker themselves. Here is how.</p>
+
+<div class="warn"><strong>Careful:</strong> The installation command below downloads a script from the internet and runs it with administrator rights on your Pi. This is only safe because it comes directly from Docker's own website, which is a trusted source. As a rule, never paste commands that run downloaded scripts unless you trust where they come from. In this case, Docker's official documentation recommends exactly this method for Linux systems.</div>
+
+<ol class="steps">
+  <li>Open a Terminal and download the installer script:
+    <pre class="code"><code>curl -fsSL https://get.docker.com -o get-docker.sh</code></pre>
+    <div class="explain">
+      <p><code>curl</code> — a command-line tool for downloading files from the internet.</p>
+      <p><code>-fsSL</code> — a combination of flags: <code>-f</code> makes curl fail quietly on server errors, <code>-s</code> hides the download progress bar, <code>-S</code> still shows error messages even in silent mode, and <code>-L</code> follows any redirects automatically.</p>
+      <p><code>https://get.docker.com</code> — the official Docker installation script URL.</p>
+      <p><code>-o get-docker.sh</code> — saves the downloaded content to a file called <code>get-docker.sh</code> on your Pi rather than running it immediately, so you can inspect it first if you wish.</p>
+    </div>
+  </li>
+  <li>Run the installer:
+    <pre class="code"><code>sudo sh get-docker.sh</code></pre>
+    <div class="explain">
+      <p><code>sudo sh get-docker.sh</code> — runs the downloaded script with administrator privileges (<code>sudo</code>). This installs the Docker Engine and all its dependencies. You will see a lot of text scrolling past — that is normal. It will take a few minutes.</p>
+    </div>
+  </li>
+  <li>Add your user account to the <code>docker</code> group. By default, only administrators can run Docker commands. Adding yourself to the <code>docker</code> group means you can run them without typing <code>sudo</code> every time:
+    <pre class="code"><code>sudo usermod -aG docker $USER</code></pre>
+    <div class="explain">
+      <p><code>sudo usermod</code> — modifies a user account.</p>
+      <p><code>-aG docker</code> — <em>appends</em> (<code>-a</code>) the user to the <em>group</em> (<code>-G</code>) called <code>docker</code>. Using <code>-a</code> is critical: without it, the command would <em>replace</em> all your existing groups instead of adding to them, which could lock you out of things.</p>
+      <p><code>$USER</code> — the shell automatically replaces this with your own username (for example <code>pi</code>).</p>
+    </div>
+  </li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Being in the <code>docker</code> group is effectively the same as having administrator access, because Docker can manipulate system files. Only add trusted users to this group on your Pi.</div>
+
+<ol class="steps">
+  <li value="4">This group change does not take effect in your current Terminal session. You must log out and log back in, or simply reboot:
+    <pre class="code"><code>sudo reboot</code></pre>
+    <div class="explain">
+      <p><code>sudo reboot</code> — restarts the Pi. After it comes back on (give it about 30 seconds), open a Terminal and your user account will have Docker permissions.</p>
+    </div>
+  </li>
+  <li>After rebooting, open a Terminal and verify Docker is working:
+    <pre class="code"><code>docker --version
+docker run hello-world</code></pre>
+    <div class="explain">
+      <p><code>docker --version</code> — prints the installed Docker version number. A successful output confirms Docker is installed correctly.</p>
+      <p><code>docker run hello-world</code> — downloads a tiny test container image called <code>hello-world</code> from the internet and runs it. The container prints a friendly success message and then exits on its own. This confirms Docker can pull images from the internet and run containers on your Pi's ARM64 processor.</p>
+    </div>
+    <p>You should see a message that includes "Hello from Docker!" — Docker is ready.</p>
+  </li>
+</ol>
+
+<h3>Essential Docker Commands</h3>
+
+<p>Before running a real app, here are the key commands you will use day-to-day. These are worth bookmarking — you will reach for them often.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>docker ps</code></td>
+      <td>Lists all <em>running</em> containers — their names, what image they are based on, and which ports they are listening on.</td>
+    </tr>
+    <tr>
+      <td><code>docker ps -a</code></td>
+      <td>Lists <em>all</em> containers, including stopped ones.</td>
+    </tr>
+    <tr>
+      <td><code>docker stop &lt;name&gt;</code></td>
+      <td>Gracefully stops a running container. Replace <code>&lt;name&gt;</code> with the container's name.</td>
+    </tr>
+    <tr>
+      <td><code>docker start &lt;name&gt;</code></td>
+      <td>Starts a container that has been stopped.</td>
+    </tr>
+    <tr>
+      <td><code>docker restart &lt;name&gt;</code></td>
+      <td>Stops then immediately starts a container — useful after changing settings.</td>
+    </tr>
+    <tr>
+      <td><code>docker logs &lt;name&gt;</code></td>
+      <td>Prints the recent output (messages and errors) from a container — the first place to look when something is not working.</td>
+    </tr>
+    <tr>
+      <td><code>docker logs -f &lt;name&gt;</code></td>
+      <td>Follows the logs in real time as they are written. Press <kbd>Ctrl + C</kbd> to stop watching.</td>
+    </tr>
+    <tr>
+      <td><code>docker rm &lt;name&gt;</code></td>
+      <td>Deletes a stopped container. Your data in volumes is kept safe — only the container itself is removed.</td>
+    </tr>
+    <tr>
+      <td><code>docker images</code></td>
+      <td>Lists all downloaded images (the "sealed lunchboxes") on your Pi, with their sizes.</td>
+    </tr>
+    <tr>
+      <td><code>docker rmi &lt;image&gt;</code></td>
+      <td>Deletes a downloaded image from disk to free up storage space.</td>
+    </tr>
+    <tr>
+      <td><code>docker pull &lt;image&gt;</code></td>
+      <td>Downloads an image from Docker Hub without running it yet.</td>
+    </tr>
+    <tr>
+      <td><code>docker system prune</code></td>
+      <td>Cleans up all stopped containers, unused images, and unused networks in one go — useful for reclaiming disk space. It asks for confirmation before deleting anything.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="jargon"><strong>In plain words:</strong> A Docker <strong>image</strong> is the recipe — a sealed, downloadable package. A Docker <strong>container</strong> is what you get when you actually run that recipe — a live, running instance of the app. You can run the same image multiple times to get multiple separate containers, just as you can bake the same recipe multiple times to get multiple cakes.</div>
+
+<h3>Running Your First Real App: Uptime Kuma</h3>
+
+<p><strong>Uptime Kuma</strong> is a beautiful, free self-hosted monitoring dashboard. You give it a list of websites or services to watch, and it checks them regularly and shows you whether they are up or down — with a clean visual interface and optional alerts. It is a perfect first Docker app because it installs in one command and needs nothing else.</p>
+
+<ol class="steps">
+  <li>Run Uptime Kuma:
+    <pre class="code"><code>docker run -d \
+  --name uptime-kuma \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v uptime-kuma-data:/app/data \
+  louislam/uptime-kuma:1</code></pre>
+    <div class="explain">
+      <p><code>docker run</code> — the command to create and start a new container.</p>
+      <p><code>-d</code> — runs the container <em>detached</em>, meaning it runs in the background. You get your Terminal prompt back immediately.</p>
+      <p><code>--name uptime-kuma</code> — gives this container a human-readable name so you can use it in other commands (like <code>docker stop uptime-kuma</code>) instead of a random ID.</p>
+      <p><code>--restart unless-stopped</code> — tells Docker to automatically restart this container if the Pi reboots or if the container crashes, unless you manually stop it with <code>docker stop</code>. This is what makes it feel like a real always-on service.</p>
+      <p><code>-p 3001:3001</code> — maps <em>port 3001 on your Pi</em> to <em>port 3001 inside the container</em>. The format is always <code>Pi-port:container-port</code>. This is what lets your browser reach the app from outside the container.</p>
+      <p><code>-v uptime-kuma-data:/app/data</code> — creates a named storage area managed by Docker called <code>uptime-kuma-data</code> and links it to the folder inside the container where Uptime Kuma stores its data. Without this, all your settings and monitoring history would be lost every time the container is restarted.</p>
+      <p><code>louislam/uptime-kuma:1</code> — the image to use. Docker downloads it automatically from Docker Hub (the main public library of images) if it is not already on your Pi. <code>louislam</code> is the developer's account, <code>uptime-kuma</code> is the image name, and <code>:1</code> is the version tag — the latest version in the 1.x series, which supports ARM64 (your Pi's processor type).</p>
+      <p>The backslash <code>\</code> at the end of each line simply means "this command continues on the next line" — it is there for readability. You could write the whole thing on one line if you preferred.</p>
+    </div>
+    <p>Docker will download the image (this may take a minute or two the first time, depending on your internet speed) and then start the container. You will see a long container ID printed — that means it is running.</p>
+  </li>
+  <li>Check that it is running:
+    <pre class="code"><code>docker ps</code></pre>
+    <div class="explain">
+      <p><code>docker ps</code> — shows all currently running containers. You should see <code>uptime-kuma</code> in the list with a status of <code>Up</code> and the port <code>0.0.0.0:3001-&gt;3001/tcp</code> shown, which means port 3001 on your Pi is connected to port 3001 inside the container.</p>
+    </div>
+  </li>
+  <li>On your Pi's browser, or on any device on your home network, open a browser and go to:
+    <p><code>http://&lt;your-pi-ip&gt;:3001</code></p>
+    <p>Replace <code>&lt;your-pi-ip&gt;</code> with your Pi's actual local IP address — for example <code>http://192.168.1.42:3001</code>. The <code>:3001</code> is the port number you mapped in the <code>-p</code> flag.</p>
+    <p>The Uptime Kuma setup page appears. Create an admin account and start adding websites or services to monitor.</p>
+  </li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> The <code>--restart unless-stopped</code> flag means Uptime Kuma will automatically start again every time you reboot your Pi. You never need to remember to start it manually. To stop it permanently, run <code>docker stop uptime-kuma</code>.</div>
+
+<h3>Docker Compose — Managing Multi-Part Apps</h3>
+
+<p>Some apps are made of several containers working together — for example, a web application plus a separate database container. Typing a long <code>docker run</code> command for each one is tedious and error-prone. <strong>Docker Compose</strong> solves this with a single text file that describes all the containers, and one command to start them all.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>docker-compose.yml</strong> file is a recipe card that lists all the containers an app needs, their settings, and how they connect to each other. Running <code>docker compose up</code> reads the card and starts everything in one go.</div>
+
+<div class="note"><strong>Note:</strong> Modern Docker (version 20 and later, which is what you just installed) includes Compose built-in. The command is <code>docker compose</code> (two words, no hyphen). If you see older tutorials using <code>docker-compose</code> (with a hyphen), that is an older separate tool — the built-in version works the same way.</div>
+
+<p>Here is an example using <strong>Memos</strong>, a lightweight private notes app. You type notes into a clean interface and they are stored entirely on your Pi — no third-party server involved.</p>
+
+<ol class="steps">
+  <li>Create a folder for this app and move into it:
+    <pre class="code"><code>mkdir ~/memos &amp;&amp; cd ~/memos</code></pre>
+    <div class="explain">
+      <p><code>mkdir ~/memos</code> — creates a folder called <code>memos</code> in your home directory.</p>
+      <p><code>&amp;&amp;</code> — runs the second command only if the first one succeeded (a safety check).</p>
+      <p><code>cd ~/memos</code> — moves into that new folder so the next commands work there.</p>
+    </div>
+  </li>
+  <li>Create the Compose file:
+    <pre class="code"><code>nano docker-compose.yml</code></pre>
+    <div class="explain">
+      <p>Opens Nano to create a new file called <code>docker-compose.yml</code>. The name and the <code>.yml</code> extension are important — Docker Compose looks for exactly this filename in the current folder.</p>
+    </div>
+    <p>Paste in this content exactly. <strong>Indentation matters in YAML files</strong> — use spaces, not tabs, and keep the spacing exactly as shown:</p>
+    <pre class="code"><code>services:
+  memos:
+    image: neosmemo/memos:stable
+    container_name: memos
+    restart: unless-stopped
+    ports:
+      - "5230:5230"
+    volumes:
+      - ./data:/var/opt/memos</code></pre>
+    <div class="explain">
+      <p><code>services:</code> — the top-level section that lists all the containers this Compose file manages.</p>
+      <p><code>memos:</code> — the name we give to this service within Compose. It can be anything you like.</p>
+      <p><code>image: neosmemo/memos:stable</code> — the Docker image to use, pulled automatically from Docker Hub. The <code>:stable</code> tag means the latest stable release.</p>
+      <p><code>container_name: memos</code> — the name Docker will give the running container, so you can use commands like <code>docker logs memos</code>.</p>
+      <p><code>restart: unless-stopped</code> — auto-restart on reboot, same as before.</p>
+      <p><code>ports: - "5230:5230"</code> — maps port 5230 on the Pi to port 5230 inside the container.</p>
+      <p><code>volumes: - ./data:/var/opt/memos</code> — maps a folder called <code>data</code> in the current directory (<code>./data</code>) to the data folder inside the container. Docker will create the <code>data</code> sub-folder for you automatically the first time. This is where your notes are permanently stored — they survive container restarts and updates.</p>
+    </div>
+    <p>Save and exit Nano: <kbd>Ctrl + O</kbd>, <kbd>Enter</kbd>, <kbd>Ctrl + X</kbd>.</p>
+  </li>
+  <li>Start the app:
+    <pre class="code"><code>docker compose up -d</code></pre>
+    <div class="explain">
+      <p><code>docker compose up</code> — reads the <code>docker-compose.yml</code> file in the current folder and creates and starts all the services listed in it. Docker downloads the image if it is not already on your Pi.</p>
+      <p><code>-d</code> — runs everything in the background (detached), so your Terminal is free again.</p>
+    </div>
+  </li>
+  <li>Visit it on your network by opening a browser on any device and going to:
+    <p><code>http://&lt;your-pi-ip&gt;:5230</code></p>
+    <p>The Memos sign-up page appears. Create an account and start writing private notes — they are stored on your Pi, not on anyone else's server.</p>
+  </li>
+  <li>To stop everything in the Compose file (run this from inside the <code>~/memos</code> folder):
+    <pre class="code"><code>docker compose down</code></pre>
+    <div class="explain">
+      <p><code>docker compose down</code> — stops and removes all the containers defined in the Compose file. Your notes and data stored in the <code>./data</code> folder are <em>not</em> deleted — they stay safely on your Pi's storage. Run <code>docker compose up -d</code> again at any time to start the app back up.</p>
+    </div>
+  </li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> There is a huge community of self-hosted apps with ready-made Docker Compose files. Good places to discover them are <strong>Awesome-Selfhosted</strong> (a curated list at <code>github.com/awesome-selfhosted/awesome-selfhosted</code>) and the <strong>r/selfhosted</strong> community on Reddit. Home media servers, password managers, recipe organisers, photo libraries, and hundreds more can be running on your Pi in minutes.</div>
+
+<h3>Updating a Docker Container</h3>
+
+<p>Docker images are periodically updated by their authors to add features or fix security issues. Updating a container is a three-step process: pull the new image, stop and remove the old container, then run a new container from the updated image. For Compose apps it is even simpler.</p>
+
+<p><strong>For a single container (like Uptime Kuma):</strong></p>
+
+<pre class="code"><code>docker pull louislam/uptime-kuma:1
+docker stop uptime-kuma
+docker rm uptime-kuma
+docker run -d \
+  --name uptime-kuma \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v uptime-kuma-data:/app/data \
+  louislam/uptime-kuma:1</code></pre>
+<div class="explain">
+  <p><code>docker pull louislam/uptime-kuma:1</code> — downloads the latest version of the image. Even if the <code>:1</code> tag has not changed, this fetches any updates published under that tag.</p>
+  <p><code>docker stop uptime-kuma</code> — gracefully stops the running container.</p>
+  <p><code>docker rm uptime-kuma</code> — removes the old container. Your data is safe because it lives in the named volume <code>uptime-kuma-data</code>, not inside the container itself.</p>
+  <p>The final <code>docker run</code> block — creates and starts a fresh container from the newly downloaded image, with all the same settings as before. Your data in the volume is automatically reconnected.</p>
+</div>
+
+<p><strong>For a Compose app (like Memos) — from inside the app's folder:</strong></p>
+
+<pre class="code"><code>cd ~/memos
+docker compose pull
+docker compose up -d</code></pre>
+<div class="explain">
+  <p><code>cd ~/memos</code> — moves into the Memos folder so Docker Compose can find the <code>docker-compose.yml</code> file.</p>
+  <p><code>docker compose pull</code> — downloads the latest version of every image listed in the Compose file.</p>
+  <p><code>docker compose up -d</code> — restarts all services using the newly pulled images. Any container whose image has changed is automatically recreated. Your data in the <code>./data</code> folder is untouched.</p>
+</div>
+
+<div class="tip"><strong>Tip — Portainer, a graphical Docker dashboard:</strong> If you prefer clicking over typing commands, <strong>Portainer</strong> is a free, self-hosted web interface for managing all your Docker containers, images, and volumes through a browser. You can install it with a single <code>docker run</code> command (search for "Portainer CE install" on their official site at <code>portainer.io</code>). It makes updating, starting, and stopping containers as easy as clicking a button, and it is a great way to see everything Docker is doing on your Pi at a glance.</div>
+
+<h2 id="reaching-your-pi-from-outside-your-home-network">Reaching Your Pi from Outside Your Home Network</h2>
+
+<p>Everything so far works only on your home network — devices in your house can reach the Pi, but not anyone on the wider internet. You may wonder: how do I access my Pi when I am away from home, or share something with a friend?</p>
+
+<div class="warn"><strong>Careful — read this before opening your router to the internet.</strong> The most obvious method — opening a port on your home router (called "port forwarding") — directly exposes your Pi and everything running on it to the entire internet. Automated bots constantly scan the internet for open ports and attempt to break in. If your Pi is exposed without proper security measures (HTTPS encryption, strong authentication, firewall rules, and regular updates), it is likely to be compromised within hours or days. Do not attempt port forwarding without significant technical knowledge and careful preparation.</div>
+
+<p>The good news is that there are modern, safer alternatives that do not require opening any router ports at all. These tools create an encrypted tunnel between your Pi and their servers, so you can reach your Pi securely from anywhere without ever exposing a raw port to the internet.</p>
+
+<h3>Safer Alternatives to Port Forwarding</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Tool</th>
+      <th>What it does</th>
+      <th>Free tier?</th>
+      <th>Best for</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Tailscale</strong></td>
+      <td>Creates a private, encrypted virtual network (a VPN) between your devices. Your Pi gets a stable private IP address accessible from your phone or laptop anywhere in the world, as if they were all on the same home network. No open router ports needed.</td>
+      <td>Yes — free for up to 3 users / 100 devices</td>
+      <td>Personal access to your own Pi from anywhere</td>
+    </tr>
+    <tr>
+      <td><strong>Cloudflare Tunnel</strong></td>
+      <td>The Pi makes an outgoing connection to Cloudflare's network. Cloudflare gives you a public URL (optionally your own domain name) and routes traffic to your Pi with HTTPS automatically. No open router ports.</td>
+      <td>Yes — free for personal use</td>
+      <td>Sharing a web app publicly with a proper https:// web address</td>
+    </tr>
+    <tr>
+      <td><strong>Raspberry Pi Connect</strong></td>
+      <td>The Raspberry Pi Foundation's official remote access tool. Lets you reach the Pi desktop or a Terminal through a plain web browser, using your Raspberry Pi account. Very beginner-friendly to set up.</td>
+      <td>Yes — free</td>
+      <td>Remote desktop and Terminal access to the Pi itself</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Setting Up Tailscale (Recommended for Beginners)</h3>
+
+<p>Tailscale is the easiest option for personal use — install it on your Pi and on your phone or laptop, sign in with a free account, and your devices can reach each other from anywhere securely, with no technical configuration of your router required.</p>
+
+<ol class="steps">
+  <li>On your Pi, install Tailscale:
+    <pre class="code"><code>curl -fsSL https://tailscale.com/install.sh | sudo sh</code></pre>
+    <div class="explain">
+      <p><code>curl -fsSL https://tailscale.com/install.sh</code> — downloads the Tailscale installation script from their official servers. The flags mean the same as before: fail on error, silent, show errors, follow redirects.</p>
+      <p><code>| sudo sh</code> — the <code>|</code> (called a "pipe") sends the downloaded script directly into <code>sudo sh</code> to run it as administrator. This is the method Tailscale's own documentation recommends for Linux.</p>
+    </div>
+  </li>
+  <li>Connect the Pi to your Tailscale account:
+    <pre class="code"><code>sudo tailscale up</code></pre>
+    <div class="explain">
+      <p><code>sudo tailscale up</code> — starts the Tailscale connection and authentication process. It will print a URL in the Terminal. Open that URL on any device — your phone, laptop, or the Pi's own browser — to log in with your Tailscale account (or create a free one). Once you log in, the Pi joins your private Tailscale network immediately.</p>
+    </div>
+  </li>
+  <li>Install Tailscale on your phone or laptop too. Free apps are available for Windows, macOS, iOS, and Android. Visit <strong>tailscale.com/download</strong> and sign in with the same account you used in the previous step.</li>
+  <li>Find your Pi's Tailscale IP address:
+    <pre class="code"><code>tailscale ip -4</code></pre>
+    <div class="explain">
+      <p><code>tailscale ip -4</code> — prints your Pi's private Tailscale IP address. It will look something like <code>100.x.x.x</code>. This address only works when you are connected to Tailscale on both the Pi and the device you are browsing from, but it works from anywhere in the world — your home, a cafe, or another country — through an encrypted connection, with no router ports open.</p>
+      <p>For example, if your Tailscale IP is <code>100.64.10.5</code>, you could reach Uptime Kuma from anywhere by visiting <code>http://100.64.10.5:3001</code>.</p>
+    </div>
+  </li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Tailscale's free tier supports up to 3 users and 100 devices — more than enough for personal and family use. If you ever want to share an app publicly with a real <code>https://</code> web address that anyone can visit without installing Tailscale, look at <strong>Cloudflare Tunnel</strong> — but that is a more advanced step beyond this chapter.</div>
+
+<h2 id="quick-reference-ports-used-in-this-chapter">Quick Reference: Ports Used in This Chapter</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Service</th>
+      <th>Default port</th>
+      <th>Access URL on your home network</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Python http.server (temporary)</td>
+      <td>8080</td>
+      <td><code>http://&lt;pi-ip&gt;:8080</code></td>
+    </tr>
+    <tr>
+      <td>Nginx (permanent web server)</td>
+      <td>80</td>
+      <td><code>http://&lt;pi-ip&gt;</code> (no port needed)</td>
+    </tr>
+    <tr>
+      <td>Uptime Kuma (monitoring)</td>
+      <td>3001</td>
+      <td><code>http://&lt;pi-ip&gt;:3001</code></td>
+    </tr>
+    <tr>
+      <td>Memos (private notes)</td>
+      <td>5230</td>
+      <td><code>http://&lt;pi-ip&gt;:5230</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip — find your Pi's IP address quickly:</strong> Open a Terminal on the Pi and type <code>hostname -I</code>. The first number shown (e.g. <code>192.168.1.42</code>) is your Pi's local IP address. Use that number everywhere you see <code>&lt;pi-ip&gt;</code> in this chapter.</div>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Web server</strong> — a program that listens for browser requests and sends back web pages in reply.</li>
+    <li><strong>Nginx</strong> — a popular, fast, professional web server that runs as a permanent background service on your Pi.</li>
+    <li><strong>IP address</strong> — a unique number (like <code>192.168.1.42</code>) that identifies a device on a network.</li>
+    <li><strong>Port</strong> — a numbered "door" on a networked device; different services listen on different port numbers so many services can run on the same machine simultaneously.</li>
+    <li><strong>localhost</strong> — a special name that always means "this computer itself"; typing <code>http://localhost</code> in a browser on the Pi reaches the Pi's own web server.</li>
+    <li><strong>Docker</strong> — software for running applications inside isolated containers on your Pi.</li>
+    <li><strong>Container</strong> — a self-contained, isolated running instance of an application, bundled with everything it needs, that cannot interfere with the rest of the system.</li>
+    <li><strong>Image</strong> — the sealed, downloadable package from which a container is created; the recipe that Docker runs to produce a container.</li>
+    <li><strong>Docker Hub</strong> — the main public online library where Docker images are stored and downloaded from.</li>
+    <li><strong>Volume</strong> — a Docker-managed storage area that keeps your data (settings, databases, files) safe even when a container is stopped, updated, or replaced.</li>
+    <li><strong>Docker Compose</strong> — a tool that reads a YAML file describing one or more containers and starts them all with a single command.</li>
+    <li><strong>Port forwarding</strong> — a router setting that sends incoming internet traffic to a specific device on your home network; risky without expert-level security measures.</li>
+    <li><strong>Tailscale</strong> — a free VPN tool that creates a private, encrypted connection between your devices so you can reach your Pi from anywhere without opening any router ports.</li>
+    <li><strong>Cloudflare Tunnel</strong> — a free service that gives a Pi-hosted app a public HTTPS web address without opening any router ports.</li>
+    <li><strong>Service / daemon</strong> — a program that runs quietly in the background, starting automatically each time the Pi boots, with no Terminal window required.</li>
+    <li><strong>ARM64</strong> — the processor architecture used by the Raspberry Pi 5. When choosing Docker images, look for ones that support <code>linux/arm64</code> or <code>arm64/v8</code> — most popular images do.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>A web server is simply a program that responds to browser requests with web pages — your Pi 5 can be one right now with no special hardware.</li>
+    <li><code>python3 -m http.server 8080</code> instantly serves any folder as a temporary website — useful for quick tests but stops when you close the Terminal.</li>
+    <li>Nginx is a proper, always-on web server installed with <code>sudo apt install nginx</code>; drop HTML files into <code>/var/www/html/</code> and they are immediately available on your network, even after a reboot.</li>
+    <li>Docker lets you run self-hosted applications as isolated containers — one command installs a complete app without touching anything else on the Pi.</li>
+    <li>Key Docker habits: always use <code>--restart unless-stopped</code> so apps survive reboots; always use a volume (<code>-v</code>) so your data is preserved; check <code>docker logs &lt;name&gt;</code> first when something goes wrong.</li>
+    <li>Docker Compose describes multi-container apps in a single <code>docker-compose.yml</code> file and starts everything with <code>docker compose up -d</code>; updates are as simple as <code>docker compose pull</code> followed by <code>docker compose up -d</code>.</li>
+    <li>Access your apps on the home network at <code>http://&lt;pi-ip&gt;:&lt;port&gt;</code>; use Tailscale, Cloudflare Tunnel, or Raspberry Pi Connect for safe remote access from outside your home — never open raw router ports without expert security knowledge.</li>
+  </ul>
+</div>

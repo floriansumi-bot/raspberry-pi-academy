@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch19",
+  "title": "Run AI on Your Pi",
+  "questions": [
+    {
+      "q": "What does quantisation do to an AI model?",
+      "choices": [
+        "It compresses the model by storing its numbers at lower precision, reducing size and RAM use.",
+        "It makes the model smarter by training it on more data.",
+        "It connects the model to the internet for faster responses.",
+        "It converts the model from text generation to image generation."
+      ],
+      "answer": 0,
+      "explain": "Quantisation rounds a model's internal numbers from 32-bit or 16-bit down to 4-bit or 8-bit, shrinking the file to roughly a quarter of its original size with only a small loss of quality. It does not add intelligence — it trades a tiny bit of accuracy for a much smaller memory footprint."
+    },
+    {
+      "q": "Why is the 16 GB version of the Raspberry Pi 5 specifically recommended for running AI models in this chapter?",
+      "choices": [
+        "It has a faster CPU that generates tokens twice as quickly as the 8 GB version.",
+        "It has enough RAM to run 7B–8B quantised models comfortably while still leaving memory for the operating system.",
+        "It includes a built-in AI accelerator chip that smaller versions lack.",
+        "It comes with Ollama pre-installed, saving the setup step."
+      ],
+      "answer": 1,
+      "explain": "The chapter explains that 16 GB of RAM allows the Pi 5 to run 7B–8B models (which need around 5–6 GB after quantisation) with plenty of room left for the OS. The 4 GB and 8 GB versions can only manage smaller 1B–3B models. The 16 GB Pi has no extra chip, no pre-installed Ollama, and the same CPU as other variants."
+    },
+    {
+      "q": "Which of the following is the biggest advantage of running an AI model locally on your Raspberry Pi 5 instead of using a cloud service like ChatGPT?",
+      "choices": [
+        "Local models always give more accurate answers than cloud models.",
+        "Local models can generate photorealistic images much faster.",
+        "Your prompts never leave your device, so everything stays completely private.",
+        "Local models have a longer memory and never forget earlier parts of a conversation."
+      ],
+      "answer": 2,
+      "explain": "Privacy is described in the chapter as the 'genuine superpower' of running AI locally — nothing is sent over the internet, no company sees your prompts, and it works completely offline. Local models are actually less accurate than large cloud models and cannot generate images at any practical speed on the Pi."
+    },
+    {
+      "q": "After installing Ollama, what command do you run to start an interactive chat session with the Llama 3.2 3B model?",
+      "choices": [
+        "ollama pull llama3.2:3b",
+        "ollama list",
+        "ollama start llama3.2:3b",
+        "ollama run llama3.2:3b"
+      ],
+      "answer": 3,
+      "explain": "'ollama run' loads a model into memory and opens an interactive chat prompt. 'ollama pull' is used to download a model for the first time, and 'ollama list' shows all downloaded models — neither of those starts a chat. There is no 'ollama start' command."
+    },
+    {
+      "q": "What is 'hallucination' in the context of AI language models?",
+      "choices": [
+        "When the model runs out of RAM and crashes.",
+        "When the model generates text too slowly to read comfortably.",
+        "When the model forgets what was said at the start of a long conversation.",
+        "When the model confidently states something that is factually incorrect."
+      ],
+      "answer": 3,
+      "explain": "Hallucination means the model produces text that sounds plausible but is factually wrong — a known limitation of all current language models that is more common in smaller models. It is not about speed or memory; it is about accuracy. Forgetting earlier context is a separate issue called limited context length."
+    }
+  ]
+}

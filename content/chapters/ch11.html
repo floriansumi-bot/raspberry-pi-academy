@@ -1,0 +1,759 @@
+<p class="lead">Python is the perfect first programming language — it reads almost like plain English, runs instantly, and comes pre-installed on every Raspberry Pi. In this chapter you will write your very first lines of code, understand what they do, build up to a complete mini-game, and learn how to add extra Python tools the safe, Bookworm-correct way.</p>
+
+<h2 id="what-is-programming">What is programming?</h2>
+
+<p>A computer does exactly what you tell it — nothing more, nothing less. A <strong>program</strong> is simply a list of very precise instructions written in a language the computer can follow. Every instruction is carried out in order, from top to bottom, unless you deliberately tell the computer to jump around.</p>
+
+<p>Imagine a recipe for making toast:</p>
+<ol>
+  <li>Put bread in toaster.</li>
+  <li>Press the lever down.</li>
+  <li>Wait until the bread pops up.</li>
+  <li>Spread butter on the toast.</li>
+  <li>Serve.</li>
+</ol>
+
+<p>A Python program works exactly like that recipe. Each line is one instruction. The computer reads line 1, carries it out, then reads line 2, carries it out, and so on. If you leave out a step, or write one in the wrong order, you get the wrong result — just like forgetting to put bread in the toaster first.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Programming</em> means writing a list of instructions in a special language that a computer can understand and carry out automatically.</div>
+
+<h2 id="why-python">Why Python?</h2>
+
+<p>There are dozens of programming languages. Python is chosen as the default on the Raspberry Pi for good reasons:</p>
+
+<ul>
+  <li>Its instructions look like short English sentences, so beginners can guess what code means even before they have learned it properly.</li>
+  <li>You can test a single line of code immediately without building an entire project.</li>
+  <li>There is an enormous library of ready-made tools for everything from controlling GPIO pins to analysing spreadsheets.</li>
+  <li>It is one of the most-used languages in science, education, automation, and professional software development worldwide.</li>
+  <li>The Raspberry Pi Foundation has built a beginner-friendly editor called <strong>Thonny</strong> that makes writing and running Python programs as easy as using a word processor.</li>
+</ul>
+
+<h2 id="two-ways-to-run-python-code">Two ways to run Python code</h2>
+
+<p>On your Pi you have two main routes to writing and running Python. Both are useful and you will use both regularly.</p>
+
+<h3>Method 1 — Thonny (the easy visual editor)</h3>
+
+<p>Thonny is a purpose-built Python editor designed for people who have never programmed before. It has a big text area where you type your code, a green Run button you click, and a panel at the bottom (called the <strong>Shell</strong>) that shows you what happens when the program runs. You can also type single lines directly into the Shell to test them instantly.</p>
+
+<p>To open Thonny, click the raspberry icon in the top-left corner of the desktop, go to <strong>Programming</strong>, and click <strong>Thonny</strong>. You can also type <code>thonny</code> in a terminal and press Enter.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Window frame -->
+  <rect x="10" y="10" width="500" height="280" rx="8" fill="#1f2933" stroke="#6d28d9" stroke-width="2"/>
+  <!-- Title bar -->
+  <rect x="10" y="10" width="500" height="32" rx="8" fill="#6d28d9"/>
+  <rect x="10" y="30" width="500" height="12" fill="#6d28d9"/>
+  <text x="260" y="31" font-family="sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="bold">Thonny — Python IDE</text>
+  <!-- Toolbar area -->
+  <rect x="10" y="42" width="500" height="36" fill="#2d3748"/>
+  <!-- Run button -->
+  <rect x="20" y="50" width="60" height="20" rx="4" fill="#0ea5a4"/>
+  <text x="50" y="64" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle">&#9654; Run</text>
+  <!-- Stop button -->
+  <rect x="88" y="50" width="60" height="20" rx="4" fill="#9b2c2c"/>
+  <text x="118" y="64" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle">&#9632; Stop</text>
+  <!-- Code editor area label -->
+  <rect x="10" y="78" width="500" height="20" fill="#374151"/>
+  <text x="20" y="92" font-family="sans-serif" font-size="11" fill="#a0aec0">Code editor (type your program here)</text>
+  <!-- Code editor body -->
+  <rect x="10" y="98" width="500" height="110" fill="#111827"/>
+  <text x="24" y="118" font-family="monospace" font-size="12" fill="#a5b4fc">print("Hello, world!")</text>
+  <text x="24" y="136" font-family="monospace" font-size="12" fill="#6b7280">name = input("What is your name? ")</text>
+  <text x="24" y="154" font-family="monospace" font-size="12" fill="#6b7280">print("Nice to meet you,", name)</text>
+  <!-- Divider -->
+  <line x1="10" y1="210" x2="510" y2="210" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <!-- Shell label -->
+  <rect x="10" y="210" width="500" height="20" fill="#374151"/>
+  <text x="20" y="224" font-family="sans-serif" font-size="11" fill="#a0aec0">Shell (output and interactive commands appear here)</text>
+  <!-- Shell body -->
+  <rect x="10" y="230" width="500" height="60" fill="#0f172a"/>
+  <text x="24" y="250" font-family="monospace" font-size="12" fill="#4ade80">Hello, world!</text>
+  <text x="24" y="268" font-family="monospace" font-size="12" fill="#4ade80">What is your name? _</text>
+</svg>
+<figcaption>The Thonny editor. Type code in the top panel, click Run, and see the output in the Shell panel below. You can also type single commands directly into the Shell.</figcaption>
+</figure>
+
+<h3>Method 2 — the terminal (python3 myfile.py)</h3>
+
+<p>Once you have saved a Python file you can also run it from the terminal without opening Thonny at all. This is quicker when you already know the code is ready.</p>
+
+<p>Open a terminal window (the black icon on the taskbar, or from the menu under <strong>Accessories &rarr; Terminal</strong>). If your file is called <code>hello.py</code> and you saved it in your home folder, type:</p>
+
+<pre class="code"><code>python3 hello.py</code></pre>
+<div class="explain">
+  <p><strong>python3</strong> — launches the Python 3 interpreter (the program that reads and runs Python code). On Raspberry Pi OS always write <code>python3</code>, not just <code>python</code>, to make sure you get the modern version.</p>
+  <p><strong>hello.py</strong> — the name of the file to run. Python files always end in <code>.py</code>.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Use Thonny while you are learning — it highlights errors, shows line numbers, and lets you run code one step at a time. Switch to the terminal later when you are comfortable.</div>
+
+<h3>Method 3 — the interactive Python shell (REPL)</h3>
+
+<p>There is a third option that is perfect for quick experiments: the <strong>Python REPL</strong> (Read-Evaluate-Print Loop). You launch it by typing <code>python3</code> in a terminal and pressing Enter, with no filename. You then type one line of Python at a time and see the result instantly.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>REPL</em> stands for Read-Evaluate-Print Loop. Python reads your line, evaluates it (runs it), prints the result, and then waits for the next line. It is like a calculator that understands Python.</div>
+
+<pre class="code"><code>python3</code></pre>
+<div class="explain">
+  <p><strong>python3</strong> (with no filename after it) — starts the interactive Python shell. Your prompt changes to <code>&gt;&gt;&gt;</code>, which means Python is waiting for your input.</p>
+</div>
+
+<p>Once you see the <code>&gt;&gt;&gt;</code> prompt, try these:</p>
+
+<pre class="code"><code>&gt;&gt;&gt; 2 + 2
+4
+&gt;&gt;&gt; print("Hello from the REPL!")
+Hello from the REPL!
+&gt;&gt;&gt; name = "Raspberry Pi"
+&gt;&gt;&gt; name
+'Raspberry Pi'
+&gt;&gt;&gt; exit()</code></pre>
+<div class="explain">
+  <p><strong>&gt;&gt;&gt; 2 + 2</strong> — you type the expression after the <code>&gt;&gt;&gt;</code> prompt; Python immediately prints the answer <code>4</code> on the next line.</p>
+  <p><strong>print("Hello from the REPL!")</strong> — works exactly as in a script.</p>
+  <p><strong>name = "Raspberry Pi"</strong> — creates a variable. Variables created in the REPL persist for the whole session.</p>
+  <p><strong>name</strong> — typing a variable name on its own (without <code>print</code>) shows its value. This only works in the REPL, not in a saved script.</p>
+  <p><strong>exit()</strong> — closes the Python shell and returns you to the normal terminal prompt.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> You can also use the REPL from inside Thonny — it is the Shell panel at the bottom. Click in it and type away.</div>
+
+<h2 id="your-first-python-building-blocks">Your first Python building blocks</h2>
+
+<p>The rest of this chapter introduces the core ideas of Python one at a time. Each section has a short runnable example. Open Thonny, type each example in the editor panel, and press the green <strong>Run</strong> button to see what happens. Do not just read — actually type the code. Your fingers will remember it.</p>
+
+<h3>print() — showing things on screen</h3>
+
+<p><code>print()</code> is the simplest instruction in Python. It tells the computer to display whatever is inside the brackets on screen.</p>
+
+<pre class="code"><code>print("Hello, world!")
+print("I am learning Python.")
+print(42)
+print(3.14)</code></pre>
+<div class="explain">
+  <p><strong>print("Hello, world!")</strong> — displays the words <em>Hello, world!</em> followed by a new line. The text must be inside quote marks so Python knows it is a piece of text, not a command.</p>
+  <p><strong>print("I am learning Python.")</strong> — displays a second sentence. Each <code>print()</code> call starts on a new line automatically.</p>
+  <p><strong>print(42)</strong> — prints a whole number. Numbers do not need quote marks.</p>
+  <p><strong>print(3.14)</strong> — prints a decimal number (called a <em>float</em> in Python).</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>function</em> in Python is a named action you can trigger by writing its name followed by brackets. <code>print()</code> is one of Python's built-in functions — it performs the action of displaying something on screen.</div>
+
+<h3>Variables — giving things a name</h3>
+
+<p>A <strong>variable</strong> is like a labelled box. You put a piece of information inside, give the box a name, and then use that name whenever you need the information later. You can change what is inside the box at any time.</p>
+
+<pre class="code"><code>age = 25
+name = "Florian"
+price = 4.99
+
+print(name)
+print(age)
+print(price)</code></pre>
+<div class="explain">
+  <p><strong>age = 25</strong> — creates a variable called <code>age</code> and stores the number 25 in it. The <code>=</code> sign means "store this value in this box", not "equals" in the mathematical sense.</p>
+  <p><strong>name = "Florian"</strong> — stores the text <em>Florian</em> in a variable called <code>name</code>. Text values are always wrapped in quote marks.</p>
+  <p><strong>price = 4.99</strong> — stores a decimal number.</p>
+  <p><strong>print(name)</strong> — displays whatever is stored in the variable <code>name</code> (in this case, <em>Florian</em>).</p>
+  <p><strong>print(age)</strong> and <strong>print(price)</strong> — display the contents of those variables in turn.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Variable names should be short and descriptive. Use lowercase letters and underscores for spaces (for example <code>player_score</code>, not <code>PlayerScore</code> or <code>playerscore</code>). Python is case-sensitive: <code>Name</code> and <code>name</code> are two different variables.</div>
+
+<h3>Strings and numbers</h3>
+
+<div class="jargon"><strong>In plain words:</strong> In programming, a piece of text is called a <em>string</em> because it is a "string of characters". Numbers come in two flavours: whole numbers (<em>integers</em>, like 7 or &minus;3) and decimal numbers (<em>floats</em>, like 3.14).</div>
+
+<p>You can join strings together with <code>+</code> and do maths with numbers:</p>
+
+<pre class="code"><code>first = "Raspberry"
+second = " Pi"
+full = first + second
+print(full)
+
+a = 10
+b = 3
+print(a + b)
+print(a - b)
+print(a * b)
+print(a / b)
+print(a ** b)</code></pre>
+<div class="explain">
+  <p><strong>first + second</strong> — glues two strings together end-to-end. Notice the space at the start of <code>" Pi"</code> so the result reads <em>Raspberry Pi</em>, not <em>RaspberryPi</em>.</p>
+  <p><strong>a + b</strong> — adds 10 and 3, giving 13.</p>
+  <p><strong>a - b</strong> — subtracts, giving 7.</p>
+  <p><strong>a * b</strong> — multiplies (<code>*</code> is the multiply sign in Python), giving 30.</p>
+  <p><strong>a / b</strong> — divides, giving approximately 3.333&hellip;</p>
+  <p><strong>a ** b</strong> — raises to a power: 10&sup3; = 1000. Two asterisks mean "to the power of".</p>
+</div>
+
+<p>To mix a number and a string in one <code>print()</code>, you can either use a comma (which adds a space automatically) or an <strong>f-string</strong> (a modern, cleaner method):</p>
+
+<pre class="code"><code>score = 95
+print("Your score is", score)
+print(f"Your score is {score} out of 100.")</code></pre>
+<div class="explain">
+  <p><strong>print("Your score is", score)</strong> — the comma tells <code>print()</code> to display both items with a space between them. This is the quick-and-easy method.</p>
+  <p><strong>f"Your score is {score} out of 100."</strong> — an f-string. The letter <code>f</code> before the opening quote mark tells Python to look for variable names inside curly braces <code>{}</code> and replace them with the variable's value. This is the cleanest way to build sentences that include variable values, and is the recommended modern approach.</p>
+</div>
+
+<h3>input() — asking the user a question</h3>
+
+<p><code>input()</code> pauses the program and waits for the user to type something and press Enter. Whatever the user types is returned as a string.</p>
+
+<pre class="code"><code>name = input("What is your name? ")
+print(f"Hello, {name}! Welcome to Python.")</code></pre>
+<div class="explain">
+  <p><strong>input("What is your name? ")</strong> — displays the prompt text, then waits. When the user presses Enter, everything they typed is stored in <code>name</code> as a string.</p>
+  <p><strong>print(f"Hello, {name}! ...")</strong> — greets the user by name using an f-string.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> <code>input()</code> always gives you a <em>string</em>, even if the user types a number. If you want to do maths with it, you must convert it first: <code>age = int(input("How old are you? "))</code>. The <code>int()</code> function converts a string like <code>"25"</code> into the number <code>25</code>. If the user types something that is not a number (for example "hello"), Python will crash with a <code>ValueError</code>. You will learn how to handle that safely in the error-handling section below.</div>
+
+<h3>if / elif / else — making decisions</h3>
+
+<p>Programs need to make decisions: "if this is true, do that; otherwise, do something else." Python uses the keywords <code>if</code>, <code>elif</code> (short for "else if"), and <code>else</code>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Indentation</em> means the spaces or tabs at the start of a line. Python uses indentation to show which lines belong inside an <code>if</code> block. Press the Tab key once to indent — Thonny does this automatically when you press Enter after a colon. Indentation is one of the most important rules in Python — get it wrong and the program will either crash or behave unexpectedly.</div>
+
+<pre class="code"><code>temperature = int(input("Enter today's temperature in C: "))
+
+if temperature &gt;= 25:
+    print("It's a warm day -- perfect for a picnic!")
+elif temperature &gt;= 10:
+    print("Mild weather. Maybe bring a light jacket.")
+else:
+    print("It's cold! Wrap up warm.")</code></pre>
+<div class="explain">
+  <p><strong>int(input(...))</strong> — gets a number from the user. The outer <code>int()</code> converts the typed text into a whole number so we can compare it mathematically.</p>
+  <p><strong>if temperature &gt;= 25:</strong> — checks whether the temperature is 25 or above. The colon at the end is required; Thonny will automatically indent the next line for you.</p>
+  <p><strong>    print(...)</strong> — this line is indented (four spaces or one Tab), which tells Python it belongs inside the <code>if</code> block and only runs if the condition is true.</p>
+  <p><strong>elif temperature &gt;= 10:</strong> — only checked if the first condition was false. If the temperature is between 10 and 24, this branch runs.</p>
+  <p><strong>else:</strong> — runs if none of the above conditions were true (temperature below 10). No condition is needed — it is the "everything else" catch-all.</p>
+</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Symbol</th>
+      <th>Meaning</th>
+      <th>Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>==</code></td><td>equal to</td><td><code>score == 100</code></td></tr>
+    <tr><td><code>!=</code></td><td>not equal to</td><td><code>colour != "red"</code></td></tr>
+    <tr><td><code>&gt;</code></td><td>greater than</td><td><code>age &gt; 18</code></td></tr>
+    <tr><td><code>&lt;</code></td><td>less than</td><td><code>price &lt; 10</code></td></tr>
+    <tr><td><code>&gt;=</code></td><td>greater than or equal to</td><td><code>score &gt;= 50</code></td></tr>
+    <tr><td><code>&lt;=</code></td><td>less than or equal to</td><td><code>weight &lt;= 100</code></td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> Notice that "equal to" uses <em>two</em> equals signs (<code>==</code>), not one. A single <code>=</code> means "store a value in a variable". Using <code>=</code> when you mean <code>==</code> is one of the most common beginner mistakes in Python — if your <code>if</code> statement behaves unexpectedly, check this first.</div>
+
+<h3>for loops — repeating a fixed number of times</h3>
+
+<p>A <strong>loop</strong> lets you repeat a block of instructions without writing it out multiple times. A <code>for</code> loop repeats a set number of times, or once for each item in a collection.</p>
+
+<pre class="code"><code>for i in range(5):
+    print(f"This is repetition number {i + 1}")
+
+print("Loop finished!")
+
+fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+    print(f"I like {fruit}.")</code></pre>
+<div class="explain">
+  <p><strong>for i in range(5):</strong> — repeats the indented block 5 times. The variable <code>i</code> takes the values 0, 1, 2, 3, 4 in turn (Python counts from zero by default).</p>
+  <p><strong>print(f"... {i + 1}")</strong> — we add 1 to <code>i</code> so the displayed count starts at 1 instead of 0, which looks more natural to a human reader.</p>
+  <p><strong>print("Loop finished!")</strong> — this line is <em>not</em> indented, so it only runs once, after the loop has completed all five repetitions.</p>
+  <p><strong>fruits = [...]</strong> — a list of three strings (more on lists shortly).</p>
+  <p><strong>for fruit in fruits:</strong> — repeats the block once for each item in the list. On each pass, <code>fruit</code> holds the current item (<em>apple</em>, then <em>banana</em>, then <em>cherry</em>).</p>
+</div>
+
+<h3>while loops — repeating until a condition changes</h3>
+
+<p>A <code>while</code> loop keeps repeating for as long as a condition is true. It is useful when you do not know in advance how many repetitions you need.</p>
+
+<pre class="code"><code>count = 1
+while count &lt;= 5:
+    print(f"Count is {count}")
+    count = count + 1
+
+print("Done!")</code></pre>
+<div class="explain">
+  <p><strong>count = 1</strong> — starts a counter at 1, before the loop begins.</p>
+  <p><strong>while count &lt;= 5:</strong> — keeps looping as long as <code>count</code> is 5 or less. The condition is checked before every repetition.</p>
+  <p><strong>count = count + 1</strong> — increases the counter by 1 each time around. Without this line the counter would never change, the condition would always be true, and the loop would run forever (an <em>infinite loop</em>). You can also write this more concisely as <code>count += 1</code>, which means exactly the same thing.</p>
+  <p><strong>print("Done!")</strong> — runs only after the loop has finished, because it is not indented inside the loop.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> If your program seems to freeze and keeps printing the same thing, you probably have an infinite loop. Press <strong>Ctrl + C</strong> in the Shell (or click the red Stop button in Thonny) to force it to stop.</div>
+
+<h3>Lists — storing multiple items together</h3>
+
+<p>A <strong>list</strong> is a single variable that holds several values in a fixed order. You create one with square brackets <code>[]</code> and separate items with commas.</p>
+
+<pre class="code"><code>colours = ["red", "green", "blue", "yellow"]
+
+print(colours[0])
+print(colours[2])
+print(len(colours))
+
+colours.append("purple")
+print(colours)
+
+colours.remove("green")
+print(colours)</code></pre>
+<div class="explain">
+  <p><strong>colours[0]</strong> — accesses the first item. Python counts positions starting from zero, so <code>[0]</code> = first, <code>[1]</code> = second, <code>[2]</code> = third, and so on. This is called <em>zero-based indexing</em>.</p>
+  <p><strong>colours[2]</strong> — the third item, which is <em>blue</em>.</p>
+  <p><strong>len(colours)</strong> — returns how many items are in the list. <code>len</code> is short for "length". The result here is 4.</p>
+  <p><strong>colours.append("purple")</strong> — adds <em>purple</em> to the end of the list. The dot before <code>append</code> means "call this action on this particular list".</p>
+  <p><strong>colours.remove("green")</strong> — removes the first occurrence of <em>green</em> from the list. If the item is not in the list, Python will raise a <code>ValueError</code>.</p>
+</div>
+
+<h3>Dictionaries — storing information with labels</h3>
+
+<p>A <strong>dictionary</strong> is like a list, but instead of numbered positions you access each item by a meaningful <em>key</em>. Think of a real dictionary: you look up a word (the key) to find its meaning (the value).</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>dictionary</em> in Python stores pairs of information: a key and a value. You look up a value by its key, just like looking up a word in a printed dictionary. Dictionaries use curly braces <code>{}</code>.</div>
+
+<pre class="code"><code>person = {
+    "name": "Alice",
+    "age": 30,
+    "city": "London"
+}
+
+print(person["name"])
+print(person["age"])
+
+person["age"] = 31
+print(person["age"])
+
+person["country"] = "UK"
+print(person)</code></pre>
+<div class="explain">
+  <p><strong>person = {"name": "Alice", ...}</strong> — creates a dictionary with three entries. Each entry is a key-value pair separated by a colon. Keys are usually strings (in quotes); values can be any type.</p>
+  <p><strong>person["name"]</strong> — retrieves the value stored under the key <code>"name"</code>, which is <em>Alice</em>. You use square brackets with the key name, not a number.</p>
+  <p><strong>person["age"] = 31</strong> — updates the value of an existing key. The old value (30) is replaced with 31.</p>
+  <p><strong>person["country"] = "UK"</strong> — adds a brand-new key-value pair to the dictionary. Dictionaries grow automatically as you add keys.</p>
+  <p><strong>print(person)</strong> — prints the entire dictionary, showing all keys and their current values.</p>
+</div>
+
+<h3>Functions — packaging instructions you will reuse</h3>
+
+<p>A <strong>function</strong> is a named block of code that you write once and can call (run) as many times as you like, anywhere in your program. You define one with the keyword <code>def</code>.</p>
+
+<pre class="code"><code>def greet(person_name):
+    print(f"Hello, {person_name}!")
+    print("Great to have you here.")
+
+greet("Alice")
+greet("Bob")
+greet("everyone")</code></pre>
+<div class="explain">
+  <p><strong>def greet(person_name):</strong> — defines a new function called <code>greet</code>. Inside the brackets is a <em>parameter</em> — a temporary variable that will hold whatever value you pass in when you call the function. The colon and indentation work the same way as with <code>if</code>.</p>
+  <p><strong>The two indented print lines</strong> — the body of the function. They only run when the function is called, not when Python first reads the definition.</p>
+  <p><strong>greet("Alice")</strong> — calls the function and passes <em>Alice</em> as the value of <code>person_name</code>. The body runs with <code>person_name</code> equal to <em>Alice</em>.</p>
+  <p>The function is called three times with different names, without repeating the code three times — this is the core benefit of functions.</p>
+</div>
+
+<p>Functions can also send a result back using <code>return</code>:</p>
+
+<pre class="code"><code>def add(x, y):
+    result = x + y
+    return result
+
+total = add(7, 3)
+print(f"7 plus 3 equals {total}")</code></pre>
+<div class="explain">
+  <p><strong>def add(x, y):</strong> — defines a function that accepts two values, named <code>x</code> and <code>y</code>.</p>
+  <p><strong>result = x + y</strong> — calculates the sum and stores it temporarily.</p>
+  <p><strong>return result</strong> — sends the calculated value back to wherever the function was called from. Once Python hits <code>return</code>, the function stops and hands the value back.</p>
+  <p><strong>total = add(7, 3)</strong> — calls the function with 7 and 3; the returned value (10) is stored in <code>total</code>.</p>
+</div>
+
+<h3>Comments — notes inside your code</h3>
+
+<p>A <strong>comment</strong> is a line (or part of a line) that Python completely ignores. It is there for <em>you</em> — to explain what the code is doing, leave reminders, or temporarily disable a line.</p>
+
+<pre class="code"><code># This whole line is a comment -- Python skips it entirely.
+
+age = 30  # The user's age in years
+
+# TODO: add a check that age is a positive number
+print(age)</code></pre>
+<div class="explain">
+  <p><strong>#</strong> — any text after a hash symbol on a line is a comment. Python ignores everything from the <code>#</code> to the end of that line. You can put a comment on its own line, or at the end of a line of code.</p>
+  <p><strong># TODO: ...</strong> — a common convention. Writing <code>TODO</code> in a comment is a reminder to yourself of something you still need to add or fix.</p>
+  <p>Comments are extremely valuable — even experienced programmers write them constantly. Get into the habit of explaining <em>why</em> you wrote something, not just what it does.</p>
+</div>
+
+<h3>Handling errors gracefully — try / except</h3>
+
+<p>Sometimes your program will encounter a situation it cannot handle — for example, the user types "hello" when you expected a number. Without protection, Python crashes with an error message. The <code>try / except</code> block lets your program catch the problem and respond politely instead.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>try / except</em> is Python's way of saying "try this; if something goes wrong, do this instead". It stops a crash from reaching the user.</div>
+
+<pre class="code"><code>try:
+    raw = input("Enter a number: ")
+    number = int(raw)
+    print(f"Double your number is {number * 2}")
+except ValueError:
+    print("That doesn't look like a number. Please try again.")</code></pre>
+<div class="explain">
+  <p><strong>try:</strong> — starts the protected block. Python attempts every line inside this block.</p>
+  <p><strong>number = int(raw)</strong> — converts the input to a whole number. If the user typed something that is not a number, this line would normally crash the program.</p>
+  <p><strong>except ValueError:</strong> — if a <code>ValueError</code> occurs anywhere inside the <code>try</code> block (which is what <code>int()</code> raises when given non-numeric text), Python jumps here instead of crashing.</p>
+  <p><strong>print("That doesn't look like a number...")</strong> — the friendly message shown to the user instead of a scary error. The program continues normally after this.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> You do not need to wrap every line in a <code>try / except</code>. Use it wherever you take input from the user or read from a file — those are the places where unexpected things are most likely to happen.</div>
+
+<h2 id="putting-it-all-together-a-number-guessing-game">Putting it all together — a number-guessing game</h2>
+
+<p>Now let us build a complete, working program that uses everything you have just learned. The game picks a secret number between 1 and 20, then keeps asking the player to guess it, giving hints ("too high" or "too low") until the player gets it right. It also handles the case where the user types something that is not a number, without crashing.</p>
+
+<p>In Thonny, open a new file (<strong>File &rarr; New</strong>), type the code below exactly as written, then save it as <code>guess_game.py</code> (<strong>File &rarr; Save As&hellip;</strong>) and press the green Run button.</p>
+
+<pre class="code"><code>import random
+
+# Pick a secret number between 1 and 20
+secret = random.randint(1, 20)
+attempts = 0
+
+print("Welcome to the Number Guessing Game!")
+print("I have picked a number between 1 and 20.")
+print("Can you guess it?\n")
+
+def check_guess(guess, secret):
+    if guess &lt; secret:
+        return "Too low! Try higher."
+    elif guess &gt; secret:
+        return "Too high! Try lower."
+    else:
+        return "correct"
+
+# Keep looping until the player guesses correctly
+guessed = False
+while not guessed:
+    raw = input("Your guess: ")
+
+    try:
+        guess = int(raw)
+    except ValueError:
+        print("Please enter a whole number.")
+        continue
+
+    attempts = attempts + 1
+    hint = check_guess(guess, secret)
+
+    if hint == "correct":
+        print(f"\nYou got it! The number was {secret}.")
+        print(f"It took you {attempts} attempt(s). Well done!")
+        guessed = True
+    else:
+        print(hint)
+
+print("\nThanks for playing!")</code></pre>
+<div class="explain">
+  <p><strong>import random</strong> — loads Python's built-in <em>random</em> module, which contains tools for generating random numbers. The <code>import</code> keyword loads a module (a collection of ready-made functions) so you can use them.</p>
+  <p><strong>secret = random.randint(1, 20)</strong> — picks a random whole number between 1 and 20 (both 1 and 20 are possible) and stores it in <code>secret</code>. This is different every time the program runs.</p>
+  <p><strong>attempts = 0</strong> — a counter that starts at zero and increases each time the player makes a valid guess.</p>
+  <p><strong>print("...\n")</strong> — the <code>\n</code> inside a string prints a blank line, making the output easier to read. <code>\n</code> is called a <em>newline character</em> — it is an invisible instruction to move down one line.</p>
+  <p><strong>def check_guess(guess, secret):</strong> — defines a function that compares the player's guess to the secret number and returns a hint string, or the word <code>"correct"</code> if the guess is right.</p>
+  <p><strong>guessed = False</strong> — a <em>boolean</em> variable (its value is either <code>True</code> or <code>False</code>) that tracks whether the player has won yet.</p>
+  <p><strong>while not guessed:</strong> — keeps looping for as long as <code>guessed</code> is still <code>False</code>. As soon as <code>guessed</code> becomes <code>True</code>, the loop stops after the current pass.</p>
+  <p><strong>try: guess = int(raw)</strong> — safely converts the typed text to a number. If the user typed something like "abc", the <code>except ValueError</code> catches it instead of crashing.</p>
+  <p><strong>continue</strong> — inside a loop, <code>continue</code> skips the rest of the current pass and goes straight back to the top of the loop (the <code>while</code> condition check). This restarts the loop without incrementing the attempts counter for an invalid entry.</p>
+  <p><strong>attempts = attempts + 1</strong> — increments the attempt counter. We only reach this line if the input was a valid number.</p>
+  <p><strong>hint = check_guess(guess, secret)</strong> — calls our function and stores the returned hint string.</p>
+  <p><strong>if hint == "correct":</strong> — if the function returned the exact string <code>"correct"</code>, the player has won. Note the double equals sign for comparison.</p>
+  <p><strong>guessed = True</strong> — sets the flag so the <code>while</code> loop will stop after this pass.</p>
+  <p><strong>else: print(hint)</strong> — if the guess was wrong, display the "too low" or "too high" message and loop around again.</p>
+  <p><strong>print("\nThanks for playing!")</strong> — runs once the loop has ended, after the player has guessed correctly.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Once the game works, try changing <code>20</code> to <code>100</code> in the <code>randint</code> call to make it harder. Try adding a maximum number of guesses — if the player reaches 7 wrong guesses, print "Game over!" and reveal the secret number. Experimenting like this is the fastest way to learn.</div>
+
+<h2 id="errors-are-normal-do-not-panic">Errors are normal — do not panic</h2>
+
+<p>Every programmer, beginner and expert alike, sees error messages constantly. An error message is Python's way of telling you exactly where it got confused. It is helpful, not an accusation.</p>
+
+<p>The three most common error types you will see:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Error type</th>
+      <th>What it means</th>
+      <th>Common cause</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>SyntaxError</code></td>
+      <td>Python could not understand the line at all — it is not valid Python</td>
+      <td>Missing colon after <code>if</code>, <code>def</code>, or <code>for</code>; unmatched brackets; wrong quote marks</td>
+    </tr>
+    <tr>
+      <td><code>NameError</code></td>
+      <td>You used a variable or function name that Python does not know about</td>
+      <td>Typo in the name, or using a variable before creating it</td>
+    </tr>
+    <tr>
+      <td><code>TypeError</code></td>
+      <td>You tried to do something with the wrong type of value</td>
+      <td>Adding a number and a string without converting one of them first, e.g. <code>"score: " + 5</code></td>
+    </tr>
+    <tr>
+      <td><code>ValueError</code></td>
+      <td>The right type, but an impossible value</td>
+      <td>Calling <code>int("hello")</code> — the string is the right type but cannot be converted to a number</td>
+    </tr>
+    <tr>
+      <td><code>IndexError</code></td>
+      <td>You tried to access a list position that does not exist</td>
+      <td>A list has 3 items but you asked for <code>mylist[5]</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Always read the <strong>last line</strong> of the error message first — it tells you the error type and a short description. The lines above it show the <em>traceback</em> — the chain of code that led to the crash, with the exact line number. In Thonny the offending line is also highlighted in red.</p>
+
+<div class="note"><strong>Note:</strong> If the error message seems baffling, copy the exact error text and search for it online — you will almost always find a clear explanation on a site called Stack Overflow, or in the Raspberry Pi forums at forums.raspberrypi.com.</div>
+
+<h2 id="saving-and-re-running-scripts">Saving and re-running scripts</h2>
+
+<p>In Thonny, save your file with <strong>Ctrl + S</strong>. Choose a meaningful name ending in <code>.py</code> and save it somewhere easy to find, such as a folder called <code>python_projects</code> inside your home directory.</p>
+
+<p>To re-run a saved file from the terminal, navigate to its folder first and then run it:</p>
+
+<pre class="code"><code>cd ~/python_projects
+python3 guess_game.py</code></pre>
+<div class="explain">
+  <p><strong>cd ~/python_projects</strong> — changes the current directory to your <code>python_projects</code> folder. The tilde (<code>~</code>) is shorthand for your home directory (for example <code>/home/pi</code> on a standard Raspberry Pi OS install). If the folder does not exist yet, create it first with <code>mkdir ~/python_projects</code>.</p>
+  <p><strong>python3 guess_game.py</strong> — runs the file. The terminal prints the output exactly as it would in Thonny's Shell panel.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Press the Up arrow key in the terminal to recall your previous commands. This saves a lot of retyping when you are testing and re-running a program repeatedly.</div>
+
+<h2 id="adding-extra-python-libraries-the-bookworm-corre">Adding extra Python libraries — the Bookworm-correct way</h2>
+
+<p>Python's real power comes from its huge collection of <strong>libraries</strong> (also called <em>packages</em> or <em>modules</em>) — ready-made bundles of code that do specific jobs, from drawing charts to talking to web APIs to controlling the Pi's GPIO pins.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>library</em> is a collection of functions someone else has already written and packaged up so you can use them with a single <code>import</code> statement. You do not need to understand how they work internally — you just use them.</div>
+
+<p>On Raspberry Pi OS Bookworm the system Python is <strong>externally managed</strong>. This means the operating system itself uses and maintains Python, and it protects itself by preventing you from installing packages into it with the plain <code>pip install</code> command. If you try, you will see a message like:</p>
+
+<pre class="code"><code>error: externally-managed-environment</code></pre>
+<div class="explain">
+  <p>This is not a bug — it is a deliberate safety measure introduced in Debian 12 (Bookworm) to stop accidental changes to the system Python from breaking the operating system itself. It means "stop — you need to use one of the safe methods below instead".</p>
+</div>
+
+<p>You have two safe, recommended approaches.</p>
+
+<h3>Approach 1 — install via apt (for common libraries)</h3>
+
+<p>For the most popular Python libraries, Raspberry Pi OS provides pre-packaged versions through its built-in package manager <code>apt</code>. This is the simplest method and is fully supported by the system.</p>
+
+<pre class="code"><code>sudo apt update
+sudo apt install python3-requests
+sudo apt install python3-numpy
+sudo apt install python3-matplotlib</code></pre>
+<div class="explain">
+  <p><strong>sudo apt update</strong> — refreshes the list of available packages from the internet so you get the latest versions. Always run this first before installing anything.</p>
+  <p><strong>sudo apt install python3-requests</strong> — installs the <code>requests</code> library (used for fetching web pages and data from the internet) in a way that is fully compatible with the system Python. The naming pattern is always <code>python3-</code> followed by the library name.</p>
+  <p><strong>python3-numpy</strong> — installs NumPy, a library for numerical calculations and arrays, widely used in science and data analysis.</p>
+  <p><strong>python3-matplotlib</strong> — installs Matplotlib, which draws charts and graphs.</p>
+</div>
+
+<p>To find out whether a library is available through <code>apt</code>, search for it:</p>
+
+<pre class="code"><code>apt-cache search python3- | grep requests</code></pre>
+<div class="explain">
+  <p><strong>apt-cache search python3-</strong> — lists all Python 3 packages known to <code>apt</code>. The list can be very long.</p>
+  <p><strong>| grep requests</strong> — the vertical bar (pipe) sends that list through the <code>grep</code> filter, which only shows lines containing the word <em>requests</em>. Replace <em>requests</em> with whatever library you are looking for.</p>
+</div>
+
+<h3>Approach 2 — use a virtual environment (for everything else)</h3>
+
+<p>If the library you need is not in <code>apt</code>, or you need a newer version than <code>apt</code> provides, use a <strong>virtual environment</strong>. This is a self-contained, isolated copy of Python that lives in a folder of your choosing. You can install anything into it with <code>pip</code> without touching the system Python at all.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>virtual environment</em> is like a separate room for your project's Python setup. Anything you install inside that room stays in that room and cannot affect the rest of the system. You can have as many rooms as you like — one per project.</div>
+
+<p>Here is the full process, step by step:</p>
+
+<ol class="steps">
+  <li>
+    <strong>Create the virtual environment.</strong> Choose a folder name — we will use <code>myenv</code>. In a terminal:
+    <pre class="code"><code>python3 -m venv myenv</code></pre>
+    <div class="explain">
+      <p><strong>python3 -m venv myenv</strong> — tells Python 3 to run its built-in <code>venv</code> module (<code>-m venv</code>) and create a virtual environment in a new folder called <code>myenv</code>. You only need to do this once per project. The folder contains its own Python interpreter and its own library storage area.</p>
+    </div>
+  </li>
+  <li>
+    <strong>Activate the virtual environment.</strong>
+    <pre class="code"><code>source myenv/bin/activate</code></pre>
+    <div class="explain">
+      <p><strong>source myenv/bin/activate</strong> — "activates" the virtual environment. Your terminal prompt changes to show <code>(myenv)</code> at the front, reminding you that you are inside the virtual environment. From this point on, <code>python3</code> and <code>pip</code> refer to the virtual environment's own copies, not the system ones.</p>
+    </div>
+    <p>Your prompt now looks something like <code>(myenv) pi@raspberrypi:~ $</code>. That <code>(myenv)</code> prefix confirms the virtual environment is active.</p>
+  </li>
+  <li>
+    <strong>Install any library you like with pip.</strong>
+    <pre class="code"><code>pip install requests</code></pre>
+    <div class="explain">
+      <p><strong>pip install requests</strong> — installs the <code>requests</code> library into the virtual environment only. No <code>sudo</code> is needed and the system Python is not affected. Replace <code>requests</code> with any library name from the Python Package Index (PyPI), which hosts over half a million Python libraries.</p>
+    </div>
+  </li>
+  <li>
+    <strong>Run your Python script as normal.</strong>
+    <pre class="code"><code>python3 my_script.py</code></pre>
+    <div class="explain">
+      <p>While the virtual environment is active, <code>python3</code> automatically uses the environment's Python and can see all the libraries you installed with <code>pip</code> inside it.</p>
+    </div>
+  </li>
+  <li>
+    <strong>Deactivate when you are finished.</strong>
+    <pre class="code"><code>deactivate</code></pre>
+    <div class="explain">
+      <p><strong>deactivate</strong> — returns your terminal to normal. The <code>(myenv)</code> prefix disappears. The virtual environment still exists in its folder — you just are not inside it any more. Next time you need it, run <code>source myenv/bin/activate</code> again to re-enter it.</p>
+    </div>
+  </li>
+</ol>
+
+<div class="note"><strong>Note:</strong> You need to activate the virtual environment again each time you open a new terminal window. If you try to run a script that needs a library and get a <code>ModuleNotFoundError</code>, the most likely cause is that you forgot to activate the environment first — just run <code>source myenv/bin/activate</code> and try again.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 540 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- System Python box -->
+  <rect x="20" y="20" width="185" height="165" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="112" y="44" font-family="sans-serif" font-size="13" font-weight="bold" fill="#1f2933" text-anchor="middle">System Python</text>
+  <text x="112" y="60" font-family="sans-serif" font-size="11" fill="#4a5568" text-anchor="middle">(externally managed)</text>
+  <rect x="38" y="72" width="149" height="24" rx="4" fill="#ddd6fe"/>
+  <text x="112" y="88" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">OS tools, Thonny, apt pkgs</text>
+  <rect x="38" y="102" width="149" height="24" rx="4" fill="#ddd6fe"/>
+  <text x="112" y="118" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">python3-requests (apt)</text>
+  <rect x="38" y="132" width="149" height="24" rx="4" fill="#ddd6fe"/>
+  <text x="112" y="148" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">python3-numpy (apt)</text>
+
+  <!-- Wall -->
+  <line x1="215" y1="50" x2="215" y2="178" stroke="#9b2c2c" stroke-width="2.5" stroke-dasharray="6,3"/>
+  <text x="228" y="105" font-family="sans-serif" font-size="10" fill="#9b2c2c" text-anchor="middle" transform="rotate(90 228 105)">protected wall</text>
+
+  <!-- Virtual Env box -->
+  <rect x="248" y="20" width="272" height="165" rx="8" fill="#ecfdf5" stroke="#0ea5a4" stroke-width="2"/>
+  <text x="384" y="44" font-family="sans-serif" font-size="13" font-weight="bold" fill="#1f2933" text-anchor="middle">Virtual Environment (myenv/)</text>
+  <text x="384" y="60" font-family="sans-serif" font-size="11" fill="#4a5568" text-anchor="middle">source myenv/bin/activate</text>
+  <rect x="266" y="72" width="236" height="24" rx="4" fill="#a7f3d0"/>
+  <text x="384" y="88" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">pip install anything -- safe here!</text>
+  <rect x="266" y="102" width="236" height="24" rx="4" fill="#a7f3d0"/>
+  <text x="384" y="118" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">pip install flask</text>
+  <rect x="266" y="132" width="236" height="24" rx="4" fill="#a7f3d0"/>
+  <text x="384" y="148" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">pip install pillow</text>
+</svg>
+<figcaption>The two safe installation zones. The system Python is protected by Bookworm; a virtual environment is your personal sandbox where pip can install freely without risk to the system.</figcaption>
+</figure>
+
+<h3>Which approach should I use?</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Situation</th>
+      <th>Best approach</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Common library (requests, numpy, matplotlib, RPi.GPIO, pygame&hellip;)</td>
+      <td><code>sudo apt install python3-&lt;name&gt;</code></td>
+    </tr>
+    <tr>
+      <td>Library not available via apt, or you need the very latest version</td>
+      <td>Create a virtual environment and use <code>pip install</code> inside it</td>
+    </tr>
+    <tr>
+      <td>Trying someone else's project that has a <code>requirements.txt</code> file</td>
+      <td>Create a virtual environment, activate it, then run <code>pip install -r requirements.txt</code>. A <em>requirements.txt</em> file is a plain text list of all the libraries a project needs — pip reads it and installs them all at once.</td>
+    </tr>
+    <tr>
+      <td>Quick one-off test in Thonny, library available via apt</td>
+      <td><code>sudo apt install python3-&lt;name&gt;</code> — Thonny uses the system Python by default</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> If you use a virtual environment and want Thonny to use it too, open Thonny, go to <strong>Tools &rarr; Options &rarr; Interpreter</strong>, click <strong>Browse&hellip;</strong> and navigate to <code>myenv/bin/python3</code> inside your project folder. Thonny will then use that environment's Python and see all its installed packages.</div>
+
+<h2 id="keep-experimenting">Keep experimenting</h2>
+
+<p>The best way to learn programming is to break things on purpose and fix them. Change a number, rename a variable, delete a colon and see what error you get. Every mistake teaches you something a textbook cannot. Python is patient — it will never be upset by your experiments, and the worst that can happen is an error message that points you straight to the problem.</p>
+
+<p>Save a new copy of your guessing game and try adding:</p>
+<ul>
+  <li>A maximum number of guesses (end the game after 7 attempts, printing "Game over!" and revealing the secret number).</li>
+  <li>A score that starts at 100 and goes down by 10 for each wrong guess.</li>
+  <li>A "play again?" question at the end using <code>input()</code>, wrapping the whole game in an outer <code>while</code> loop.</li>
+  <li>A list that keeps track of all the numbers the player has already guessed, warning them if they guess the same number twice.</li>
+</ul>
+
+<p>In the next chapter you will use Python to talk directly to the Pi's GPIO pins — controlling real-world electronics from code you write yourself.</p>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Program</strong> — an ordered list of precise instructions written in a language the computer can follow.</li>
+    <li><strong>Python</strong> — a popular, beginner-friendly programming language pre-installed on Raspberry Pi OS.</li>
+    <li><strong>Thonny</strong> — the beginner-friendly Python editor included with Raspberry Pi OS.</li>
+    <li><strong>REPL</strong> — the interactive Python shell, launched by typing <code>python3</code> alone in a terminal; lets you run one line at a time and see results instantly.</li>
+    <li><strong>print()</strong> — a built-in Python function that displays text or values on screen.</li>
+    <li><strong>Variable</strong> — a named container that stores a value in your program; the stored value can change at any time.</li>
+    <li><strong>String</strong> — a piece of text in Python, written inside quote marks.</li>
+    <li><strong>Integer</strong> — a whole number (no decimal point), such as 7 or &minus;3.</li>
+    <li><strong>Float</strong> — a decimal number in Python, such as 3.14.</li>
+    <li><strong>Boolean</strong> — a value that is either <code>True</code> or <code>False</code>; used to track yes/no states in a program.</li>
+    <li><strong>f-string</strong> — a string prefixed with <code>f</code> that lets you embed variable values directly inside curly braces <code>{}</code>.</li>
+    <li><strong>input()</strong> — a built-in function that displays a prompt and waits for the user to type something; always returns a string.</li>
+    <li><strong>if / elif / else</strong> — keywords used to make decisions: run different code depending on whether conditions are true or false.</li>
+    <li><strong>Indentation</strong> — the spaces or tabs at the start of a line that tell Python which lines belong inside an <code>if</code>, <code>for</code>, <code>while</code>, or <code>def</code> block.</li>
+    <li><strong>Loop</strong> — a block of code that repeats. A <code>for</code> loop repeats a fixed number of times; a <code>while</code> loop repeats until a condition becomes false.</li>
+    <li><strong>List</strong> — a single variable holding multiple values in order, written with square brackets <code>[]</code>.</li>
+    <li><strong>Dictionary</strong> — a variable holding key-value pairs, written with curly braces <code>{}</code>; you look up values by their key rather than by position.</li>
+    <li><strong>Function</strong> — a named, reusable block of code defined with <code>def</code>; can accept inputs (parameters) and return a result.</li>
+    <li><strong>Comment</strong> — a note in code starting with <code>#</code> that Python ignores; written for human readers.</li>
+    <li><strong>try / except</strong> — a block that catches errors gracefully so the program can respond politely instead of crashing.</li>
+    <li><strong>Library (module / package)</strong> — a bundle of ready-made Python functions you can load with <code>import</code>.</li>
+    <li><strong>pip</strong> — the Python package installer, used to download and install libraries from the PyPI repository on the internet.</li>
+    <li><strong>apt</strong> — the Raspberry Pi OS package manager; use <code>sudo apt install python3-&lt;name&gt;</code> for system-safe Python library installs.</li>
+    <li><strong>Virtual environment (venv)</strong> — a self-contained, isolated Python installation in a folder, created with <code>python3 -m venv</code>, where <code>pip</code> can install freely without affecting the system.</li>
+    <li><strong>Externally managed</strong> — the Bookworm protection that prevents <code>pip</code> from installing packages into the system Python directly, guarding against accidental damage to the OS.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>A program is a precise, ordered list of instructions; Python reads them from top to bottom.</li>
+    <li>Thonny is the easiest way to write and run Python on the Pi; the terminal command <code>python3 filename.py</code> also works once a file is saved.</li>
+    <li>The Python REPL (launched by typing <code>python3</code> alone) lets you test single lines instantly without creating a file.</li>
+    <li><code>print()</code> displays output; <code>input()</code> collects text typed by the user (always returned as a string).</li>
+    <li>Variables store values; strings hold text (in quotes), integers hold whole numbers, floats hold decimals, and booleans hold <code>True</code> or <code>False</code>.</li>
+    <li>F-strings (e.g. <code>f"Hello, {name}!"</code>) are the cleanest way to build sentences that include variable values.</li>
+    <li><code>if / elif / else</code> lets your code make decisions based on conditions; use <code>==</code> (two equals signs) to compare, not <code>=</code>.</li>
+    <li><code>for</code> loops repeat a fixed number of times; <code>while</code> loops repeat until a condition becomes false.</li>
+    <li>Lists store multiple values in a single variable; dictionaries store key-value pairs for labelled data.</li>
+    <li>Functions defined with <code>def</code> let you name and reuse blocks of code.</li>
+    <li><code>try / except</code> catches errors gracefully so bad user input does not crash your program.</li>
+    <li>Comments (lines starting with <code>#</code>) explain your code to future readers, including yourself.</li>
+    <li>On Bookworm, install common Python libraries safely with <code>sudo apt install python3-&lt;name&gt;</code>; for anything else, use a virtual environment (<code>python3 -m venv myenv</code>) and then <code>pip install</code> inside it.</li>
+    <li>Errors are normal and helpful — read the last line of the error message and the line number it points to; then fix and try again.</li>
+    <li>The best way to learn is to tinker: change the code, break it deliberately, fix it, and build on it.</li>
+  </ul>
+</div>

@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch14",
+  "title": "Retro Gaming",
+  "questions": [
+    {
+      "q": "What is the role of an emulator in retro gaming on the Raspberry Pi?",
+      "choices": [
+        "A program that mimics an old games console in software so game files designed for that console can run on the Pi.",
+        "A tool that stores game files on the microSD card so they load faster.",
+        "A service that connects your Pi to the internet to download games legally.",
+        "A converter that transforms modern game files into a format the original console hardware can read."
+      ],
+      "answer": 0,
+      "explain": "An emulator mimics the original hardware in software — it tricks game files into thinking they are running on the real console. It has nothing to do with storage speed or internet downloads."
+    },
+    {
+      "q": "Why does this guide recommend Batocera over RetroPie for absolute beginners?",
+      "choices": [
+        "Batocera runs on the same microSD card as Raspberry Pi OS, saving space.",
+        "Batocera is cheaper to download than RetroPie.",
+        "Batocera is a complete, standalone operating system that installs quickly, detects controllers automatically, and needs almost no configuration.",
+        "Batocera supports more consoles than RetroPie does."
+      ],
+      "answer": 2,
+      "explain": "Batocera is recommended because it is a plug-and-play experience with automatic controller detection and minimal setup, flashed to a separate card. RetroPie adds gaming on top of an existing Pi OS installation, which requires more manual steps."
+    },
+    {
+      "q": "You copy a NES ROM file into the correct Batocera folder but it does not appear in the game list. What should you do first?",
+      "choices": [
+        "Delete the file and copy it again using a USB drive instead.",
+        "Pair your controller via Bluetooth before the game list will refresh.",
+        "Restart the Pi to trigger an automatic scan.",
+        "Press Start, choose Game Settings, then Update Game Lists."
+      ],
+      "answer": 3,
+      "explain": "After copying new ROM files to Batocera you must manually trigger a refresh via Start > Game Settings > Update Game Lists. The game list does not update automatically, and restarting the Pi is not needed."
+    },
+    {
+      "q": "Which hotkey shortcut saves a save state to slot 1 while a game is running in Batocera?",
+      "choices": [
+        "Hotkey + L1",
+        "Hotkey + R1",
+        "Hotkey + Start",
+        "Hotkey + B"
+      ],
+      "answer": 1,
+      "explain": "Hotkey + R1 saves a save state to slot 1. Hotkey + L1 loads the state, Hotkey + Start quits back to EmulationStation, and Hotkey + B opens the RetroArch menu."
+    },
+    {
+      "q": "The Pi 5 has no 3.5 mm headphone socket. Which of the following is NOT a valid way to get audio from Batocera on a Pi 5?",
+      "choices": [
+        "Using the HDMI cable to send audio to a monitor or TV.",
+        "Plugging a USB audio adapter into a USB port on the Pi.",
+        "Connecting a 3.5 mm cable directly to the Pi's GPIO pins.",
+        "Pairing Bluetooth headphones via Controller and Bluetooth Settings."
+      ],
+      "answer": 2,
+      "explain": "The chapter lists three valid audio options for the Pi 5: HDMI, a USB audio adapter, and Bluetooth. GPIO pins do not provide an audio output on the Pi 5 and this is not a supported method."
+    }
+  ]
+}

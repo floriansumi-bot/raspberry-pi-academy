@@ -1,0 +1,519 @@
+<p class="lead">Imagine controlling every smart bulb, plug, sensor, thermostat, and door lock in your home — from any brand — through a single app that runs entirely on your Raspberry Pi, never sending your data to any company's server. That is exactly what Home Assistant does, and this chapter walks you through installing it, connecting your first device, and creating your first automation from scratch.</p>
+
+<h2 id="what-is-home-assistant">What is Home Assistant?</h2>
+
+<p>Home Assistant is free, open-source software that acts as the brain of a smart home. Instead of juggling five different apps for five different brands of smart devices, you open one page in your web browser and everything is there: lights, heating, door sensors, cameras, weather, energy monitors, robot vacuums — thousands of different products from hundreds of brands all talking to each other.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Open-source" means the software's code is written by volunteers and is freely available for anyone to inspect or improve. There is no company charging you a subscription, and no one can shut it down remotely.</div>
+
+<p>The biggest advantage over commercial smart-home systems (Amazon Alexa, Google Home, Apple HomeKit) is <strong>local control</strong>. Most of those systems send your commands up to a cloud server owned by a company, which then sends the instruction back down to your device. If the company's server goes offline, or if the company decides to shut down the product, your devices stop working. Home Assistant runs entirely on your Raspberry Pi, inside your home network. Your light-switching command travels: phone &rarr; Pi &rarr; light bulb, all within your own house. The internet is not involved at all.</p>
+
+<div class="note"><strong>Note:</strong> Home Assistant does offer optional cloud features (called "Nabu Casa") for a small monthly fee, which lets you control your home remotely from outside your house. That is entirely optional. The core local system is completely free and works without it.</div>
+
+<div class="jargon"><strong>In plain words:</strong> A "port" (the number after the colon in an address like <code>:8123</code>) is like a door number inside a computer. A single device can run many different services at the same time — each on its own door number. Port 8123 is the door Home Assistant listens on. You will see this number throughout the chapter.</div>
+
+<h2 id="the-two-ways-to-install-home-assistant">The two ways to install Home Assistant</h2>
+
+<p>There are two main approaches, and it is worth understanding both before you choose.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Approach</th>
+      <th>What it is</th>
+      <th>Pros</th>
+      <th>Cons</th>
+      <th>Best for</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Home Assistant OS</strong> (HAOS)</td>
+      <td>A complete, dedicated operating system you flash to your microSD card (or SSD). The Pi boots directly into Home Assistant and nothing else.</td>
+      <td>Simplest setup. Automatic updates. Full access to the Add-on Store. Best performance. Officially recommended.</td>
+      <td>The Pi is dedicated — you cannot also use it as a normal Raspberry Pi OS desktop at the same time.</td>
+      <td>Anyone who wants Home Assistant as the Pi's main job. <strong>Recommended for beginners.</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Home Assistant Container</strong> (Docker)</td>
+      <td>Home Assistant runs as a "container" (an isolated software box) inside Raspberry Pi OS, which you already know from this book.</td>
+      <td>You keep the normal Raspberry Pi OS desktop and can run other software alongside it.</td>
+      <td>More complex to set up. The Add-on Store is not available (add-ons must be managed manually). Updates require more steps.</td>
+      <td>Users who specifically need to keep a normal desktop <em>and</em> run Home Assistant on the same Pi.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> If you have a second microSD card or a spare SSD (via the Pi 5's PCIe slot), you can have both: one card for Raspberry Pi OS and one for Home Assistant OS, and simply swap them when you want to switch roles. This is a very popular approach.</div>
+
+<p>This chapter follows the <strong>Home Assistant OS route</strong> — it is the path the Home Assistant project itself recommends, it is the simplest, and it gives you the full feature set including the Add-on Store.</p>
+
+<h2 id="what-you-will-need">What you will need</h2>
+
+<ul>
+  <li>Your Raspberry Pi 5 (already assembled with its cooler and case).</li>
+  <li>A microSD card, 32 GB or larger (the 64/128/256 GB card from your kit is perfect). <em>Note: this will erase whatever is currently on the card, including Raspberry Pi OS if it was pre-installed. If you want to keep Raspberry Pi OS, use a second card.</em></li>
+  <li>The USB card reader that came with your kit.</li>
+  <li>A Windows 11 PC (your everyday computer) to flash the card.</li>
+  <li>A monitor, keyboard, and mouse connected to the Pi for the very first boot (after that, you manage everything from your PC's web browser).</li>
+  <li>An Ethernet cable <em>or</em> your Wi-Fi credentials (network name and password). Ethernet is strongly preferred for the first boot.</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> Flashing a new image to the microSD card completely erases all existing data on it. If your card came with Raspberry Pi OS pre-installed and you have files on it you want to keep, copy them to your Windows PC first before continuing.</div>
+
+<h2 id="step-1-flash-home-assistant-os-with-raspberry-pi">Step 1 — Flash Home Assistant OS with Raspberry Pi Imager</h2>
+
+<p>The process is almost identical to flashing Raspberry Pi OS in Chapter 4 — you use the same Raspberry Pi Imager tool on your Windows PC.</p>
+
+<ol class="steps">
+  <li>Insert the microSD card into the USB card reader, then plug the card reader into your Windows 11 PC.</li>
+  <li>Open <strong>Raspberry Pi Imager</strong>. (If you do not have it, download it free from <code>raspberrypi.com/software</code> — it is the same tool from Chapter 4.)</li>
+  <li>Under "Raspberry Pi Device", click <strong>Choose Device</strong> and select <strong>Raspberry Pi 5</strong>.</li>
+  <li>Under "Operating System", click <strong>Choose OS</strong>. Scroll down and click <strong>Other specific-purpose OS</strong>.</li>
+  <li>Click <strong>Home assistants and home automation</strong>.</li>
+  <li>Click <strong>Home Assistant OS</strong>. Then select the version listed for <strong>Raspberry Pi 5</strong> (it will be labelled something like "Home Assistant OS 14.x (RPi5)" — choose the highest version number available).</li>
+  <li>Under "Storage", click <strong>Choose Storage</strong> and select your microSD card. Double-check the name and size match your card — do not select your Windows PC's internal drive by mistake.</li>
+  <li>Click <strong>Next</strong>. When asked "Would you like to apply OS customisation settings?", click <strong>No</strong> — Home Assistant has its own first-run setup wizard and does not need anything entered here.</li>
+  <li>Click <strong>Yes</strong> to confirm you want to erase and write the card. The Imager will download the image and flash it. This typically takes 5–10 minutes depending on your internet speed.</li>
+  <li>When it says "Write Successful", click <strong>Continue</strong> and remove the card reader from your PC.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Raspberry Pi Imager downloads the Home Assistant OS image directly from the internet. Make sure your PC is connected to the internet before starting. The file is roughly 1–2 GB.</div>
+
+<h2 id="step-2-first-boot">Step 2 — First boot</h2>
+
+<ol class="steps">
+  <li>Insert the freshly flashed microSD card into the slot on the underside of your Raspberry Pi 5.</li>
+  <li>Connect the micro-HDMI cable from the Pi to your monitor, and plug in your keyboard and mouse.</li>
+  <li>
+    If you have an Ethernet cable, plug it in now — this is the most reliable option for the first boot, because Home Assistant can get a network address immediately without needing to know your Wi-Fi password.
+    <br>If you only have Wi-Fi, that is fine — you will enter your Wi-Fi details using the HAOS console menu (see the note below).
+  </li>
+  <li>Plug in the 27 W USB-C power supply. The Pi will start automatically.</li>
+  <li>Watch the monitor. You will see text scrolling past (this is the system starting up). After a minute or two, the screen will show a simple text display — not a desktop. It will look something like this:
+    <pre class="code"><code>Home Assistant
+  http://homeassistant.local:8123
+
+  hostname: homeassistant
+  IPv4: 192.168.1.45
+</code></pre>
+    <div class="explain">This screen is just a status display — you do not normally type anything here. It is telling you: Home Assistant is running, and you can reach it from any browser on your home network by going to the address shown. The IP address (the numbers like 192.168.1.45) will be different on your network — every router assigns its own addresses.</div>
+  </li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> The very first boot takes longer than usual — often 5 to 20 minutes — because Home Assistant is setting itself up internally. If the screen shows the address but your browser says "site can't be reached", wait a few more minutes and try again.</div>
+
+<div class="note"><strong>Note — Setting up Wi-Fi via the HAOS console:</strong> Home Assistant OS is <em>not</em> a normal Linux desktop. Its text console is a special menu-driven system, not a regular command prompt. If you need to configure Wi-Fi from the console (because you have no Ethernet cable), press Enter on the console screen after boot. You will see a menu. Navigate to <strong>Network</strong> using the arrow keys, then <strong>Update</strong>, choose your wireless interface (usually <code>wlan0</code>), and enter your Wi-Fi name (SSID) and password. Press Enter to save and the Pi will connect. Once it has an IP address, you can proceed with all remaining steps from your PC's browser.</div>
+
+<h2 id="step-3-onboarding-set-up-your-account-in-the-bro">Step 3 — Onboarding: set up your account in the browser</h2>
+
+<p>Everything from this point onwards happens in a web browser on your Windows 11 PC (or any phone, tablet, or laptop on the same home network). You do not need to type anything on the Pi itself.</p>
+
+<ol class="steps">
+  <li>On your Windows PC, open any web browser (Edge, Chrome, Firefox).</li>
+  <li>In the address bar, type exactly: <code>http://homeassistant.local:8123</code> and press Enter.
+    <br>If that does not work, use the IP address shown on the Pi's monitor screen instead (for example: <code>http://192.168.1.45:8123</code>).
+  </li>
+  <li>You will see a welcome page titled <strong>"Welcome to Home Assistant"</strong>. Click <strong>Create my smart home</strong>.</li>
+  <li>
+    Fill in the form to create your owner account:
+    <ul>
+      <li><strong>Name:</strong> your first name (e.g. "Alex").</li>
+      <li><strong>Username:</strong> a login name, no spaces (e.g. "alex").</li>
+      <li><strong>Password:</strong> choose a strong password and remember it — this protects your entire smart home.</li>
+    </ul>
+    Click <strong>Create account</strong>.
+  </li>
+  <li>Next, you are asked for your home location. Type your town name — Home Assistant uses this to calculate sunrise and sunset times for automations. Set your time zone (e.g. Europe/London, Europe/Paris, Europe/Zurich), unit system (Metric for Europe), and currency. Click <strong>Next</strong>.</li>
+  <li>Home Assistant will now show you a list of devices it has already found on your home network — smart TVs, printers, Philips Hue bridges, Sonos speakers, and so on. This is <strong>auto-discovery</strong> at work. You can add them now or skip and do it later. Click <strong>Finish</strong>.</li>
+  <li>You arrive at the Home Assistant <strong>Dashboard</strong> — your smart home control centre. Congratulations!</li>
+</ol>
+
+<div class="jargon"><strong>In plain words:</strong> "Auto-discovery" means Home Assistant scans your home network and recognises known devices all by itself, without you having to manually enter IP addresses or codes. It uses standard network protocols like mDNS and SSDP to find them.</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 660 370" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="660" height="370" fill="#f8f7ff" rx="10"/>
+
+    <!-- Title -->
+    <text x="330" y="28" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933">Home Assistant Setup Flow</text>
+
+    <!-- Row 1: Steps 1-4 -->
+    <!-- Step 1: Flash -->
+    <rect x="20" y="55" width="120" height="54" rx="8" fill="#6d28d9"/>
+    <text x="80" y="78" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">1. Flash card</text>
+    <text x="80" y="96" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#e0d9ff">HAOS via Imager</text>
+
+    <!-- Arrow -->
+    <line x1="140" y1="82" x2="162" y2="82" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Step 2: Boot Pi -->
+    <rect x="162" y="55" width="120" height="54" rx="8" fill="#6d28d9"/>
+    <text x="222" y="78" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">2. Boot Pi</text>
+    <text x="222" y="96" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#e0d9ff">Wait up to 20 min</text>
+
+    <!-- Arrow -->
+    <line x1="282" y1="82" x2="304" y2="82" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Step 3: Open Browser -->
+    <rect x="304" y="55" width="120" height="54" rx="8" fill="#6d28d9"/>
+    <text x="364" y="78" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">3. Open browser</text>
+    <text x="364" y="96" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#e0d9ff">:8123</text>
+
+    <!-- Arrow -->
+    <line x1="424" y1="82" x2="446" y2="82" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Step 4: Create account -->
+    <rect x="446" y="55" width="120" height="54" rx="8" fill="#6d28d9"/>
+    <text x="506" y="78" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">4. Create account</text>
+    <text x="506" y="96" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#e0d9ff">Name + password</text>
+
+    <!-- Arrow down from Step 4 -->
+    <line x1="506" y1="109" x2="506" y2="145" stroke="#6d28d9" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Row 2: Steps 5-7 (right to left) -->
+    <!-- Step 5: Location -->
+    <rect x="446" y="145" width="120" height="54" rx="8" fill="#0ea5a4"/>
+    <text x="506" y="168" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">5. Set location</text>
+    <text x="506" y="186" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#d0f7f6">Town + timezone</text>
+
+    <!-- Arrow left from Step 5 -->
+    <line x1="446" y1="172" x2="424" y2="172" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr2)"/>
+
+    <!-- Step 6: Discover -->
+    <rect x="304" y="145" width="120" height="54" rx="8" fill="#0ea5a4"/>
+    <text x="364" y="168" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">6. Auto-discover</text>
+    <text x="364" y="186" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#d0f7f6">Devices found</text>
+
+    <!-- Arrow left from Step 6 -->
+    <line x1="304" y1="172" x2="282" y2="172" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr2)"/>
+
+    <!-- Step 7: Dashboard -->
+    <rect x="162" y="145" width="120" height="54" rx="8" fill="#0ea5a4"/>
+    <text x="222" y="168" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">7. Dashboard</text>
+    <text x="222" y="186" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#d0f7f6">You're live!</text>
+
+    <!-- Big result box -->
+    <rect x="20" y="240" width="620" height="100" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="330" y="265" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#6d28d9">Your Home Assistant Dashboard is live</text>
+    <text x="330" y="287" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#1f2933">All control happens at  http://homeassistant.local:8123  in any browser</text>
+    <text x="330" y="307" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#444">on your phone, tablet, or PC — anything connected to the same home Wi-Fi</text>
+    <text x="330" y="327" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#444">No internet connection required for day-to-day use</text>
+
+    <!-- Arrowhead markers -->
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6d28d9"/>
+      </marker>
+      <marker id="arr2" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+        <path d="M8,0 L8,6 L0,3 z" fill="#0ea5a4"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>The seven steps from flashing the card to your live Home Assistant dashboard.</figcaption>
+</figure>
+
+<h2 id="step-4-add-your-first-integration">Step 4 — Add your first integration</h2>
+
+<div class="jargon"><strong>In plain words:</strong> An "integration" in Home Assistant is a plug-in that teaches Home Assistant how to talk to a specific brand or type of device. There are over 3,000 integrations included out of the box — no extra downloads needed for most popular products.</div>
+
+<p>If Home Assistant already found some of your devices during onboarding (Step 6 above), you may already have integrations set up. Here is how to add or manage them manually:</p>
+
+<ol class="steps">
+  <li>In the Home Assistant dashboard, click the three-line menu icon in the top-left corner (it looks like three stacked horizontal lines), then click <strong>Settings</strong>.</li>
+  <li>Click <strong>Devices &amp; Services</strong>. You will see any integrations already active, plus any discovered devices waiting to be added.</li>
+  <li>To add a new integration, click the blue <strong>Add Integration</strong> button in the bottom-right corner.</li>
+  <li>Type the name of your device brand in the search box — for example, "Philips Hue", "TP-Link Kasa", "IKEA TRÅDFRI", "Shelly", "Tasmota", "Tuya", "Sonos", or "Nest".</li>
+  <li>Click the matching result and follow the on-screen instructions. For most popular brands, this means entering your hub's IP address, or simply clicking a button on the hub itself to authorise the connection.</li>
+  <li>Once added, your devices appear automatically in the dashboard.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Philips Hue users — make sure your Hue Bridge is connected to your router by Ethernet, then press the round button on top of the Bridge when Home Assistant asks you to. That is all the authentication it needs.</div>
+
+<div class="note"><strong>Note:</strong> If your smart devices use <strong>Zigbee</strong> or <strong>Z-Wave</strong> radio protocols (common in professional-grade smart home gear), you will need a USB Zigbee/Z-Wave dongle plugged into one of the Pi's USB ports. Recommended dongles include the Sonoff Zigbee 3.0 USB Dongle Plus and the HUSBZB-1. Home Assistant will detect them and offer to set up the ZHA (Zigbee Home Automation) or Z-Wave JS integration automatically.</div>
+
+<div class="jargon"><strong>In plain words:</strong> "Zigbee" and "Z-Wave" are short-range radio protocols designed specifically for smart home devices. They use very little power (so sensor batteries last years) and the devices form a "mesh" — each device helps pass signals to others, extending the network's range through walls and floors.</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 660 320" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="660" height="320" fill="#f8f7ff" rx="10"/>
+
+    <text x="330" y="26" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="bold" fill="#1f2933">Home Network Topology: Your Pi as Smart-Home Hub</text>
+
+    <!-- Router -->
+    <rect x="270" y="48" width="120" height="46" rx="8" fill="#1f2933"/>
+    <text x="330" y="68" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">Home Router</text>
+    <text x="330" y="84" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#aaa">Internet gateway</text>
+
+    <!-- Router down to Pi -->
+    <line x1="330" y1="94" x2="330" y2="126" stroke="#6d28d9" stroke-width="2" stroke-dasharray="6,3"/>
+
+    <!-- Pi -->
+    <rect x="252" y="126" width="156" height="50" rx="8" fill="#6d28d9"/>
+    <text x="330" y="148" text-anchor="middle" font-family="sans-serif" font-size="13" fill="white" font-weight="bold">Raspberry Pi 5</text>
+    <text x="330" y="166" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#e0d9ff">Home Assistant OS</text>
+
+    <!-- Pi to Wi-Fi devices (left fan) -->
+    <line x1="260" y1="165" x2="140" y2="220" stroke="#0ea5a4" stroke-width="1.5"/>
+    <line x1="260" y1="165" x2="80" y2="248" stroke="#0ea5a4" stroke-width="1.5"/>
+
+    <!-- Pi to Wi-Fi devices (right fan) -->
+    <line x1="400" y1="165" x2="520" y2="220" stroke="#0ea5a4" stroke-width="1.5"/>
+    <line x1="400" y1="165" x2="580" y2="248" stroke="#0ea5a4" stroke-width="1.5"/>
+
+    <!-- Pi downward to Zigbee dongle -->
+    <line x1="330" y1="176" x2="330" y2="218" stroke="#6d28d9" stroke-width="2"/>
+
+    <!-- Zigbee dongle box -->
+    <rect x="270" y="218" width="120" height="38" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="330" y="234" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6d28d9" font-weight="bold">USB Zigbee Dongle</text>
+    <text x="330" y="248" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#444">(optional, for Zigbee devices)</text>
+
+    <!-- Zigbee mesh devices -->
+    <line x1="330" y1="256" x2="260" y2="290" stroke="#6d28d9" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="330" y1="256" x2="400" y2="290" stroke="#6d28d9" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <rect x="210" y="288" width="100" height="28" rx="5" fill="#6d28d9" opacity="0.7"/>
+    <text x="260" y="307" text-anchor="middle" font-family="sans-serif" font-size="10" fill="white">Zigbee sensor</text>
+    <rect x="350" y="288" width="100" height="28" rx="5" fill="#6d28d9" opacity="0.7"/>
+    <text x="400" y="307" text-anchor="middle" font-family="sans-serif" font-size="10" fill="white">Zigbee bulb</text>
+
+    <!-- Wi-Fi devices left -->
+    <rect x="68" y="238" width="110" height="28" rx="5" fill="#0ea5a4" opacity="0.85"/>
+    <text x="123" y="257" text-anchor="middle" font-family="sans-serif" font-size="10" fill="white">Smart plug (Wi-Fi)</text>
+    <rect x="20" y="272" width="110" height="28" rx="5" fill="#0ea5a4" opacity="0.85"/>
+    <text x="75" y="291" text-anchor="middle" font-family="sans-serif" font-size="10" fill="white">Philips Hue Bridge</text>
+
+    <!-- Wi-Fi devices right -->
+    <rect x="462" y="238" width="110" height="28" rx="5" fill="#0ea5a4" opacity="0.85"/>
+    <text x="517" y="257" text-anchor="middle" font-family="sans-serif" font-size="10" fill="white">Smart thermostat</text>
+    <rect x="522" y="272" width="110" height="28" rx="5" fill="#0ea5a4" opacity="0.85"/>
+    <text x="577" y="291" text-anchor="middle" font-family="sans-serif" font-size="10" fill="white">IP camera</text>
+
+    <!-- Legend -->
+    <line x1="30" y1="130" x2="55" y2="130" stroke="#0ea5a4" stroke-width="2"/>
+    <text x="60" y="134" font-family="sans-serif" font-size="10" fill="#1f2933">Wi-Fi / Ethernet</text>
+    <line x1="30" y1="148" x2="55" y2="148" stroke="#6d28d9" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="60" y="152" font-family="sans-serif" font-size="10" fill="#1f2933">Zigbee radio</text>
+    <line x1="30" y1="166" x2="55" y2="166" stroke="#6d28d9" stroke-width="2" stroke-dasharray="2,2"/>
+    <text x="60" y="170" font-family="sans-serif" font-size="10" fill="#1f2933">Ethernet (router&rarr;Pi)</text>
+  </svg>
+  <figcaption>Your Raspberry Pi 5 sits between your router and all your smart devices. Wi-Fi and Ethernet devices connect over your home network; Zigbee/Z-Wave devices need a small USB dongle.</figcaption>
+</figure>
+
+<h2 id="step-5-build-your-first-automation">Step 5 — Build your first automation</h2>
+
+<p>Automations are the magic of Home Assistant — rules that make things happen automatically. Let's create one everyone finds useful: <em>turn a lamp on at sunset every day</em>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An "automation" is a simple "if this, then that" rule. Home Assistant handles the "if" (the trigger) and the "then" (the action) for you through a visual editor — no programming required.</div>
+
+<ol class="steps">
+  <li>In the sidebar, go to <strong>Settings</strong> → <strong>Automations &amp; Scenes</strong>.</li>
+  <li>Click the blue <strong>Create Automation</strong> button, then choose <strong>Create new automation</strong>.</li>
+  <li>You are now in the automation editor. At the top, click on the automation name field and type a friendly name like <strong>Lamp on at sunset</strong>.</li>
+  <li>
+    Under <strong>Triggers</strong> (the "when" section), click <strong>Add trigger</strong> → <strong>Sun</strong>.
+    <ul>
+      <li>Set <strong>Event</strong> to <strong>Sunset</strong>.</li>
+      <li>You can optionally add an offset, for example <code>-00:30</code> to trigger 30 minutes before actual sunset.</li>
+    </ul>
+  </li>
+  <li>Scroll down to <strong>Actions</strong> (the "then do this" section). Click <strong>Add action</strong> → <strong>Device</strong>.</li>
+  <li>Click <strong>Pick a device</strong> and select your lamp from the list. Then choose the action <strong>Turn on</strong>. If your lamp supports brightness or colour, you can set those here too.</li>
+  <li>Click <strong>Save</strong> in the top-right corner. Your automation is now active and will run every evening.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Home Assistant knows your local sunset time because you entered your home location during onboarding. The sunset time adjusts automatically throughout the year — you never need to update it.</div>
+
+<p>Once you are comfortable with that, you can explore much more powerful automations: turn heating off when a door is left open, flash a light when someone rings the doorbell, send a notification to your phone when motion is detected while you are away, or turn everything off with one "Goodnight" button.</p>
+
+<h2 id="the-add-on-store">The Add-on Store</h2>
+
+<p>One of the biggest advantages of Home Assistant OS (compared to the Docker container approach) is the <strong>Add-on Store</strong>. Add-ons are extra software packages you can install with one click, running safely alongside Home Assistant on the same Pi.</p>
+
+<p>Popular add-ons include:</p>
+
+<ul>
+  <li><strong>Mosquitto Broker</strong> — runs an MQTT server on your Pi. MQTT is a lightweight messaging system used by a huge range of IoT devices.</li>
+  <li><strong>Node-RED</strong> — a powerful visual programming tool for building complex automations by dragging and connecting blocks on screen.</li>
+  <li><strong>ESPHome</strong> — lets you create your own custom smart sensors using cheap ESP32/ESP8266 microcontroller boards and have them talk directly to Home Assistant over Wi-Fi.</li>
+  <li><strong>Let's Encrypt</strong> — automatically sets up secure HTTPS access to your Home Assistant from outside your home (works together with the Nabu Casa remote access service or your own domain name).</li>
+  <li><strong>Samba share</strong> — makes the Home Assistant configuration folder visible as a shared network drive on your Windows PC, so you can edit configuration files easily without any technical tools.</li>
+  <li><strong>File editor</strong> — lets you view and edit configuration files directly in the browser.</li>
+  <li><strong>Zigbee2MQTT</strong> — an alternative to the built-in ZHA integration for Zigbee devices; preferred by many advanced users for its wider device support.</li>
+</ul>
+
+<p>To browse the Add-on Store: go to <strong>Settings</strong> → <strong>Add-ons</strong> → click <strong>Add-on Store</strong> in the bottom-right corner. Search for what you want, click it, then click <strong>Install</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "MQTT" stands for Message Queuing Telemetry Transport. It is a very lightweight messaging system that lets small, battery-powered devices send tiny data packets to a central server (called a "broker") efficiently. Many cheap sensors and smart home gadgets use it.</div>
+
+<h2 id="keeping-home-assistant-updated">Keeping Home Assistant updated</h2>
+
+<p>Home Assistant releases updates frequently — often every month — adding new integrations, features, and security fixes. On Home Assistant OS, updating is straightforward and safe:</p>
+
+<ol class="steps">
+  <li>When an update is available, you will see a notification icon in the bottom-left corner of the Home Assistant dashboard (a downward-pointing arrow with a number).</li>
+  <li>Click it, read the release notes, then click <strong>Update</strong>. Home Assistant downloads and applies the update in the background and restarts itself. The whole process usually takes just a few minutes.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Before every update, make a backup first. Go to <strong>Settings</strong> → <strong>System</strong> → <strong>Backups</strong> → <strong>Create backup</strong>. This creates a snapshot of all your settings, automations, and integrations. The backup file can be downloaded to your PC or saved to a USB drive. If an update ever causes a problem, you can restore from the backup in just a few clicks. Make backups a regular habit — ideally before any major change.</div>
+
+<h2 id="accessing-home-assistant-from-your-phone">Accessing Home Assistant from your phone</h2>
+
+<p>Home Assistant has official apps for Android and iPhone. Search for <strong>"Home Assistant"</strong> in the Google Play Store or Apple App Store and install the free official app (the publisher is "Home Assistant"). Open it, tap <strong>Add server manually</strong>, type in your Home Assistant address (<code>http://homeassistant.local:8123</code>), then log in with your username and password. You now have a full smart-home control panel on your phone — as long as your phone is on the same home Wi-Fi.</p>
+
+<div class="tip"><strong>Tip:</strong> The mobile app also supports <strong>companion features</strong>: Home Assistant can read your phone's GPS location, battery level, Wi-Fi network name, and more, and use those as triggers for automations. For example: "turn the heating on when my phone's GPS shows I am within 2 km of home", or "switch on the hall light when I disconnect from my office Wi-Fi network".</div>
+
+<h2 id="privacy-and-local-control-why-this-matters">Privacy and local control — why this matters</h2>
+
+<p>Every major smart-home platform — Amazon Alexa, Google Home, Apple HomeKit, Samsung SmartThings — requires its servers to work. When their servers are down (which does happen), your smart home stops working. When a company discontinues a product line (which also happens), devices you paid for become useless. Some platforms have raised subscription prices or removed features after users were already deeply invested.</p>
+
+<p>Home Assistant on your Raspberry Pi eliminates all of that:</p>
+
+<ul>
+  <li>All processing happens inside your house, on your Pi.</li>
+  <li>No subscription fee. No account required with any third-party company.</li>
+  <li>Your usage data — which lights you turn on, when you come and go, your camera footage — stays on your hardware and goes nowhere.</li>
+  <li>Even if the Home Assistant project shut down tomorrow, the software would keep running forever on your Pi, because it is already installed locally.</li>
+  <li>You can integrate devices that have been officially discontinued or abandoned by their manufacturers, as long as someone has written a Home Assistant integration for them.</li>
+</ul>
+
+<h2 id="the-docker-container-route-brief-overview">The Docker container route (brief overview)</h2>
+
+<p>If you specifically want to keep using Raspberry Pi OS as your main operating system <em>and</em> also run Home Assistant, the Docker container method is the way to do it. Docker is a system that runs self-contained software packages (containers) on top of a regular operating system, so multiple programs can share the same Pi without interfering with one another.</p>
+
+<div class="warn"><strong>Careful:</strong> These steps are more advanced than the HAOS route above. If you are not already comfortable with the Terminal from earlier chapters, use Home Assistant OS on a second microSD card instead. The end result (the web interface at <code>:8123</code>) looks exactly the same — only the installation method differs.</div>
+
+<p>Installing Docker and the Home Assistant container requires typing commands in the Terminal. Open a Terminal on Raspberry Pi OS and type the following commands:</p>
+
+<p><strong>First — install Docker using the official install script:</strong></p>
+
+<pre class="code"><code>curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+</code></pre>
+<div class="explain">
+  <p><strong>Line 1:</strong> Downloads the official Docker installation script from Docker's website and saves it to a file called <code>get-docker.sh</code> in the current folder. (<code>curl</code> is a tool for downloading files from the internet; <code>-fsSL</code> means "fail quietly on errors, follow redirects, and work in silent mode".)</p>
+  <p><strong>Line 2:</strong> Runs that installation script with administrator privileges (<code>sudo</code>). The script detects that you are on Raspberry Pi OS (Debian Bookworm) and installs the latest version of Docker from Docker's own servers — this is the correct, supported way to install Docker on Bookworm.</p>
+  <p><strong>Line 3:</strong> Adds your current user account to the "docker" group. <code>$USER</code> automatically fills in your username. This means you will be able to run Docker commands in the future without needing to type <code>sudo</code> each time. <strong>You must log out and log back in (or reboot) for this change to take effect.</strong></p>
+</div>
+
+<div class="note"><strong>Note:</strong> After running those three commands, reboot the Pi (<code>sudo reboot</code>) before continuing, so the group membership takes effect. When you log back in, open a new Terminal and proceed.</div>
+
+<p><strong>Second — create the folder for Home Assistant's settings and start the container:</strong></p>
+
+<pre class="code"><code>mkdir -p /home/$USER/homeassistant
+docker run -d \
+  --name homeassistant \
+  --privileged \
+  --restart=unless-stopped \
+  -v /home/$USER/homeassistant:/config \
+  -e TZ=Europe/London \
+  --network=host \
+  ghcr.io/home-assistant/home-assistant:stable
+</code></pre>
+<div class="explain">
+  <p><strong>Line 1:</strong> Creates the folder <code>/home/&lt;your-username&gt;/homeassistant</code> where Home Assistant will store all its settings, automations, and data. The <code>-p</code> flag means "create any missing parent folders too; do not error if it already exists". Using <code>$USER</code> ensures the path uses your actual username automatically.</p>
+  <p><strong>Line 2 (the backslash <code>\</code>):</strong> The backslash at the end of several lines is just a line-continuation character — it tells the Terminal that the command continues on the next line. This is purely for readability; it is all one single command.</p>
+  <p><strong><code>docker run -d</code>:</strong> Tells Docker to start a new container and run it in the background (<code>-d</code> stands for "detached"), so you get your Terminal prompt back immediately.</p>
+  <p><strong><code>--name homeassistant</code>:</strong> Gives the container a friendly name so you can refer to it later with commands like <code>docker stop homeassistant</code> or <code>docker logs homeassistant</code>.</p>
+  <p><strong><code>--privileged</code>:</strong> Gives Home Assistant full access to the Pi's hardware, including USB ports. This is required for Zigbee/Z-Wave dongles and other hardware integrations to work.</p>
+  <p><strong><code>--restart=unless-stopped</code>:</strong> Tells Docker to automatically restart the Home Assistant container whenever the Pi reboots — so your smart home comes back online automatically after a power cut.</p>
+  <p><strong><code>-v /home/$USER/homeassistant:/config</code>:</strong> Maps (links) the folder you just created on the Pi's storage to the <code>/config</code> folder inside the container. This means all your settings are saved outside the container on your real storage, so they survive container updates or re-creation.</p>
+  <p><strong><code>-e TZ=Europe/London</code>:</strong> Sets the time zone inside the container. Change this to match your location — for example: <code>Europe/Paris</code>, <code>Europe/Berlin</code>, <code>Europe/Zurich</code>, <code>Europe/Brussels</code>, <code>Europe/Amsterdam</code>. A full list is available at <code>en.wikipedia.org/wiki/List_of_tz_database_time_zones</code>.</p>
+  <p><strong><code>--network=host</code>:</strong> Uses your Pi's actual network connection directly, rather than a private virtual network inside Docker. This is required for Home Assistant's auto-discovery to work — it needs to "see" the same network as your other devices.</p>
+  <p><strong><code>ghcr.io/home-assistant/home-assistant:stable</code>:</strong> The address of the official Home Assistant container image, hosted on GitHub's container registry. The word "stable" at the end means "use the latest stable release".</p>
+</div>
+
+<p>After this command completes (it may take a few minutes to download the container image on first run), you access Home Assistant at the same address: <code>http://homeassistant.local:8123</code> or <code>http://&lt;your-pi-ip&gt;:8123</code>. The onboarding steps are identical to the HAOS route.</p>
+
+<div class="warn"><strong>Careful:</strong> With the Docker container route, the <strong>Add-on Store is not available</strong>. Add-ons like Mosquitto, Node-RED, and ESPHome must each be run as separate Docker containers and configured manually — this is significantly more complex. For most users, Home Assistant OS is the better choice.</div>
+
+<p>To update the Home Assistant container in future, run these two commands in Terminal:</p>
+
+<pre class="code"><code>docker pull ghcr.io/home-assistant/home-assistant:stable
+docker restart homeassistant
+</code></pre>
+<div class="explain">
+  <p><strong>Line 1:</strong> Downloads the newest version of the Home Assistant container image from the internet. "Pull" is Docker's word for "download the latest version of an image".</p>
+  <p><strong>Line 2:</strong> Stops and restarts the running container so it uses the newly downloaded image. Your settings in <code>/home/$USER/homeassistant</code> are unaffected because they live outside the container.</p>
+</div>
+
+<h2 id="troubleshooting-common-first-boot-issues">Troubleshooting common first-boot issues</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Problem</th>
+      <th>Likely cause</th>
+      <th>Fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Browser says "site can't be reached" at <code>homeassistant.local:8123</code></td>
+      <td>Pi still starting up, or your PC does not support mDNS name resolution</td>
+      <td>Wait 10 more minutes and try again. If still failing, use the IP address shown on the Pi's monitor screen instead (e.g. <code>http://192.168.1.45:8123</code>).</td>
+    </tr>
+    <tr>
+      <td>Pi's monitor shows no IP address</td>
+      <td>Pi not connected to the network yet</td>
+      <td>Check the Ethernet cable is firmly plugged into both the Pi and your router. If using Wi-Fi only, press Enter on the HAOS console to open the network menu, navigate to <strong>Network → Update</strong>, select <code>wlan0</code>, and enter your Wi-Fi name and password.</td>
+    </tr>
+    <tr>
+      <td>Pi shows a blank screen or no video output</td>
+      <td>Wrong micro-HDMI port or cable not fully inserted</td>
+      <td>The Pi 5 has two micro-HDMI ports — try the other one. Make sure the tiny connector clicks firmly into the Pi. Also check the cable is fully pushed into your monitor.</td>
+    </tr>
+    <tr>
+      <td>Onboarding page asks you to restore a backup instead of setting up fresh</td>
+      <td>You accidentally opened the restore prompt</td>
+      <td>Click <strong>Create new home</strong> or use the back button. You have not damaged anything — start again from the welcome screen.</td>
+    </tr>
+    <tr>
+      <td>A device is not auto-discovered</td>
+      <td>Device uses a protocol requiring a hub or dongle; or it is on a separate guest Wi-Fi network</td>
+      <td>Add the integration manually: <strong>Settings → Devices &amp; Services → Add Integration</strong>. Make sure the device and the Pi are on the <em>same</em> Wi-Fi network — most routers isolate guest networks, preventing discovery.</td>
+    </tr>
+    <tr>
+      <td>After a Home Assistant OS update, the dashboard is not loading</td>
+      <td>Update still in progress; browser cache stale</td>
+      <td>Wait 5 minutes and do a hard refresh (press Ctrl + Shift + R in your browser). If it still fails, restore from your backup via <strong>Settings → System → Backups</strong>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Home Assistant</strong> — free, open-source smart-home software that controls devices from many brands in one place, running locally on your Pi.</li>
+    <li><strong>Home Assistant OS (HAOS)</strong> — a complete, dedicated operating system you flash to a card; the recommended and simplest install method.</li>
+    <li><strong>Local control</strong> — commands that travel only within your home network, without going through the internet or any company's server.</li>
+    <li><strong>Integration</strong> — a plug-in that teaches Home Assistant to communicate with a specific brand or type of device.</li>
+    <li><strong>Auto-discovery</strong> — Home Assistant automatically scanning your network and recognising compatible devices without manual entry.</li>
+    <li><strong>Automation</strong> — an "if this, then that" rule that makes devices act automatically (e.g. turn a light on at sunset).</li>
+    <li><strong>Add-on</strong> — an extra software package (like an MQTT broker or Node-RED) you install alongside Home Assistant OS with one click from the Add-on Store; not available with the Docker container route.</li>
+    <li><strong>Zigbee / Z-Wave</strong> — short-range low-power radio protocols used by many smart home sensors and switches; require a USB dongle plugged into the Pi.</li>
+    <li><strong>MQTT</strong> — a lightweight messaging protocol widely used by IoT devices to send small data packets to a central server (broker).</li>
+    <li><strong>Docker</strong> — a system for running self-contained software packages (containers) on top of a regular operating system; used in the alternative Home Assistant Container install method.</li>
+    <li><strong>Port</strong> — a numbered "door" on a networked device. Home Assistant listens on port 8123, which is why you always include <code>:8123</code> in its address.</li>
+    <li><strong>Nabu Casa</strong> — the optional paid cloud service from the Home Assistant team that enables remote access from outside your home; not required for local smart-home control.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Home Assistant is free, open-source software that unifies smart devices from thousands of brands into one private, local control system running entirely on your Raspberry Pi.</li>
+    <li>The recommended install method is Home Assistant OS — flash it with Raspberry Pi Imager (under "Other specific-purpose OS → Home assistants and home automation") exactly as you would Raspberry Pi OS.</li>
+    <li>First boot takes up to 20 minutes; once ready, all setup and daily use happens in a web browser at <code>http://homeassistant.local:8123</code> — no keyboard on the Pi required after that.</li>
+    <li>The onboarding wizard creates your account, sets your location (for accurate sunrise/sunset times), and auto-discovers devices already on your network.</li>
+    <li>Integrations (over 3,000 included) connect Home Assistant to specific device brands; most require only a few clicks — no technical knowledge needed.</li>
+    <li>Automations are visual "if this, then that" rules — no programming needed — and can use triggers like time of day, sunrise/sunset, sensor values, or your phone's GPS location.</li>
+    <li>The Add-on Store (HAOS only) lets you install extra services like MQTT brokers, Node-RED visual programming, and ESPHome custom sensors with a single click.</li>
+    <li>The Docker container route lets you run Home Assistant alongside Raspberry Pi OS, but the Add-on Store is unavailable and setup is more complex — always make a backup before updating.</li>
+    <li>Everything runs locally: no subscription, no cloud dependency, no company can disable your smart home — your data stays in your house, on your hardware, forever.</li>
+  </ul>
+</div>

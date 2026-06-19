@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch03",
+  "title": "The Absolute Basics",
+  "questions": [
+    {
+      "q": "What happens to everything stored in RAM when you switch off your Raspberry Pi?",
+      "choices": [
+        "It is wiped — RAM loses all its contents when power is removed.",
+        "It is saved automatically to the microSD card.",
+        "It stays in RAM until the next time you turn the Pi on.",
+        "It is moved to the /tmp folder for safekeeping."
+      ],
+      "answer": 0,
+      "explain": "RAM is temporary working space — like a desk that gets swept clean the moment the power goes off. Unlike the microSD card (permanent storage), RAM cannot hold data without power, which is why you must save your work to a file before switching off."
+    },
+    {
+      "q": "On your Raspberry Pi 5, what plays the role that a hard drive plays in a typical laptop?",
+      "choices": [
+        "The RAM chips soldered onto the board.",
+        "The microSD card.",
+        "The USB port.",
+        "The GPIO pins."
+      ],
+      "answer": 1,
+      "explain": "The microSD card is the Pi's permanent storage — it holds the operating system, your files, installed programs, and settings. RAM is the fast but temporary working space, not the long-term storage."
+    },
+    {
+      "q": "Raspberry Pi OS is based on which Linux distribution, and what is the version name currently installed on the Pi 5?",
+      "choices": [
+        "Ubuntu, version Focal Fossa.",
+        "Fedora, version Bookworm.",
+        "Debian, version Bullseye.",
+        "Debian, version Bookworm."
+      ],
+      "answer": 3,
+      "explain": "Raspberry Pi OS is built on top of Debian, and the version on the Pi 5 is called Bookworm (Debian 12, released 2023). Debian names its releases after Toy Story characters. Ubuntu and Fedora are separate Linux distributions, and Bullseye is the previous Debian release."
+    },
+    {
+      "q": "What does typing sudo in front of a terminal command actually do?",
+      "choices": [
+        "It makes the command run faster by using more CPU.",
+        "It opens a graphical window for the command instead of showing text.",
+        "It runs that one command with administrator (root) privileges.",
+        "It saves the output of the command to a log file automatically."
+      ],
+      "answer": 2,
+      "explain": "sudo stands for 'superuser do' — it temporarily borrows the root administrator's powers for a single command. Your everyday account can't modify system-wide settings without it. The elevated permission applies only to that one command, not permanently."
+    },
+    {
+      "q": "Why will a Windows .exe program not run on your Raspberry Pi 5?",
+      "choices": [
+        "Because the Pi does not have enough RAM to run Windows programs.",
+        "Because .exe files are built for the x86-64 architecture, whereas the Pi 5 uses an ARM processor.",
+        "Because the Pi is not connected to the internet by default.",
+        "Because Raspberry Pi OS does not have a graphical desktop."
+      ],
+      "answer": 1,
+      "explain": "A processor's architecture is the internal instruction language it understands. Windows .exe files are compiled for Intel/AMD x86-64 chips and cannot run directly on the Pi's ARM (AArch64) processor — the two architectures speak different languages. The solution is to install software through Raspberry Pi OS's package manager, which provides ARM-compiled versions."
+    }
+  ]
+}

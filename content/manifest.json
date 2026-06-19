@@ -1,0 +1,1512 @@
+{
+ "title": "Raspberry Pi 5 Course",
+ "parts": [
+  {
+   "id": "getting-started",
+   "label": "Getting Started",
+   "short": "Box to working computer",
+   "blurb": "From an unopened box to a working, connected machine you feel at home with.",
+   "chapters": [
+    "ch01",
+    "ch02",
+    "ch03",
+    "ch04",
+    "ch05"
+   ]
+  },
+  {
+   "id": "learning-system",
+   "label": "Learning the System",
+   "short": "The core skills",
+   "blurb": "The terminal, files, software and networking that every project relies on.",
+   "chapters": [
+    "ch06",
+    "ch07",
+    "ch08",
+    "ch09",
+    "ch10"
+   ]
+  },
+  {
+   "id": "making-things",
+   "label": "Making Things",
+   "short": "Code & electronics",
+   "blurb": "Write your first code, then make the Pi control real-world electronics.",
+   "chapters": [
+    "ch11",
+    "ch12"
+   ]
+  },
+  {
+   "id": "projects",
+   "label": "Projects",
+   "short": "Seven things to build",
+   "blurb": "Seven complete, self-contained builds. Do them in any order.",
+   "chapters": [
+    "ch13",
+    "ch14",
+    "ch15",
+    "ch16",
+    "ch17",
+    "ch18",
+    "ch19"
+   ]
+  },
+  {
+   "id": "looking-after",
+   "label": "Looking After It",
+   "short": "Keep it healthy",
+   "blurb": "Keep your Pi safe and healthy — and find your next adventure.",
+   "chapters": [
+    "ch20",
+    "ch21",
+    "ch22"
+   ]
+  },
+  {
+   "id": "reference",
+   "label": "Reference",
+   "short": "Cheat-sheet & glossary",
+   "blurb": "A command quick-reference and a plain-English glossary of every term.",
+   "chapters": [
+    "apxA",
+    "glos"
+   ]
+  }
+ ],
+ "chapters": {
+  "ch01": {
+   "id": "ch01",
+   "n": 1,
+   "title": "Meet the Raspberry Pi",
+   "kind": "chapter",
+   "part": "getting-started",
+   "words": 4800,
+   "read_min": 24,
+   "sections": [
+    {
+     "id": "what-is-in-your-irasptek-starter-kit",
+     "title": "What is in your iRasptek starter kit?"
+    },
+    {
+     "id": "what-exactly-is-a-raspberry-pi",
+     "title": "What exactly is a Raspberry Pi?"
+    },
+    {
+     "id": "a-brief-friendly-history",
+     "title": "A brief, friendly history"
+    },
+    {
+     "id": "what-can-you-actually-do-with-one",
+     "title": "What can you actually do with one?"
+    },
+    {
+     "id": "how-is-it-different-from-your-windows-pc",
+     "title": "How is it different from your Windows PC?"
+    },
+    {
+     "id": "why-the-pi-5-is-a-big-leap-and-what-16-gb-of-ram",
+     "title": "Why the Pi 5 is a big leap — and what 16 GB of RAM unlocks"
+    },
+    {
+     "id": "a-quick-visual-tour-of-the-ports-and-connectors",
+     "title": "A quick visual tour of the ports and connectors"
+    },
+    {
+     "id": "you-almost-certainly-cannot-break-it",
+     "title": "You almost certainly cannot break it"
+    },
+    {
+     "id": "how-to-use-this-book",
+     "title": "How to use this book"
+    }
+   ],
+   "widgets": []
+  },
+  "ch02": {
+   "id": "ch02",
+   "n": 2,
+   "title": "Your Kit, Unboxed",
+   "kind": "chapter",
+   "part": "getting-started",
+   "words": 5124,
+   "read_min": 26,
+   "sections": [
+    {
+     "id": "a-guided-tour-of-the-raspberry-pi-5-board",
+     "title": "A Guided Tour of the Raspberry Pi 5 Board"
+    },
+    {
+     "id": "your-irasptek-kit-every-part-explained",
+     "title": "Your iRasptek Kit — Every Part Explained"
+    },
+    {
+     "id": "a-quick-reference-table-ports-and-what-to-plug-i",
+     "title": "A Quick-Reference Table: Ports and What to Plug In"
+    },
+    {
+     "id": "recognising-a-correct-assembly",
+     "title": "Recognising a Correct Assembly"
+    },
+    {
+     "id": "the-microsd-card-inserting-and-removing",
+     "title": "The microSD Card: Inserting and Removing"
+    },
+    {
+     "id": "connecting-everything-for-the-first-time",
+     "title": "Connecting Everything for the First Time"
+    },
+    {
+     "id": "what-you-will-see-when-the-pi-starts",
+     "title": "What You Will See When the Pi Starts"
+    },
+    {
+     "id": "how-to-turn-the-pi-off-properly",
+     "title": "How to Turn the Pi Off Properly"
+    }
+   ],
+   "widgets": []
+  },
+  "ch03": {
+   "id": "ch03",
+   "n": 3,
+   "title": "The Absolute Basics",
+   "kind": "chapter",
+   "part": "getting-started",
+   "words": 4782,
+   "read_min": 24,
+   "sections": [
+    {
+     "id": "what-is-an-operating-system",
+     "title": "What Is an Operating System?"
+    },
+    {
+     "id": "hardware-versus-software",
+     "title": "Hardware Versus Software"
+    },
+    {
+     "id": "ram-versus-storage-a-crucial-distinction",
+     "title": "RAM Versus Storage — A Crucial Distinction"
+    },
+    {
+     "id": "what-does-64-bit-mean",
+     "title": "What Does \"64-bit\" Mean?"
+    },
+    {
+     "id": "what-does-booting-mean",
+     "title": "What Does \"Booting\" Mean?"
+    },
+    {
+     "id": "two-ways-to-talk-to-the-computer",
+     "title": "Two Ways to Talk to the Computer"
+    },
+    {
+     "id": "what-is-linux",
+     "title": "What Is Linux?"
+    },
+    {
+     "id": "what-is-arm-and-why-does-it-occasionally-matter",
+     "title": "What Is ARM? And Why Does It Occasionally Matter?"
+    },
+    {
+     "id": "files-folders-and-paths",
+     "title": "Files, Folders, and Paths"
+    },
+    {
+     "id": "users-the-administrator-and-sudo",
+     "title": "Users, the Administrator, and sudo"
+    },
+    {
+     "id": "open-source-and-free-software-what-these-actuall",
+     "title": "Open Source and \"Free\" Software — What These Actually Mean"
+    },
+    {
+     "id": "putting-it-all-together-a-layers-picture",
+     "title": "Putting It All Together — A Layers Picture"
+    }
+   ],
+   "widgets": []
+  },
+  "ch04": {
+   "id": "ch04",
+   "n": 4,
+   "title": "First Boot: Installing the Operating System",
+   "kind": "chapter",
+   "part": "getting-started",
+   "words": 5182,
+   "read_min": 26,
+   "sections": [
+    {
+     "id": "before-you-begin-two-paths-to-your-first-boot",
+     "title": "Before You Begin: Two Paths to Your First Boot"
+    },
+    {
+     "id": "path-a-your-card-is-already-loaded",
+     "title": "Path A — Your Card Is Already Loaded"
+    },
+    {
+     "id": "path-b-flashing-your-own-card-with-raspberry-pi-",
+     "title": "Path B — Flashing Your Own Card with Raspberry Pi Imager"
+    },
+    {
+     "id": "connecting-everything-up-for-the-first-time",
+     "title": "Connecting Everything Up for the First Time"
+    },
+    {
+     "id": "the-first-run-wizard",
+     "title": "The First-Run Wizard"
+    },
+    {
+     "id": "what-you-see-on-the-desktop",
+     "title": "What You See on the Desktop"
+    },
+    {
+     "id": "running-the-first-update-from-the-terminal",
+     "title": "Running the First Update from the Terminal"
+    },
+    {
+     "id": "shutting-down-safely",
+     "title": "Shutting Down Safely"
+    },
+    {
+     "id": "headless-setup-running-the-pi-without-a-monitor",
+     "title": "Headless Setup: Running the Pi Without a Monitor"
+    },
+    {
+     "id": "troubleshooting-common-first-boot-problems",
+     "title": "Troubleshooting Common First-Boot Problems"
+    },
+    {
+     "id": "choosing-a-strong-password",
+     "title": "Choosing a Strong Password"
+    }
+   ],
+   "widgets": []
+  },
+  "ch05": {
+   "id": "ch05",
+   "n": 5,
+   "title": "A Tour of the Desktop",
+   "kind": "chapter",
+   "part": "getting-started",
+   "words": 5688,
+   "read_min": 28,
+   "sections": [
+    {
+     "id": "what-you-see-when-you-first-log-in",
+     "title": "What You See When You First Log In"
+    },
+    {
+     "id": "a-map-of-the-desktop",
+     "title": "A Map of the Desktop"
+    },
+    {
+     "id": "the-taskbar-in-detail",
+     "title": "The Taskbar in Detail"
+    },
+    {
+     "id": "the-raspberry-menu",
+     "title": "The Raspberry Menu"
+    },
+    {
+     "id": "the-bundled-applications-worth-knowing",
+     "title": "The Bundled Applications Worth Knowing"
+    },
+    {
+     "id": "the-system-tray-wi-fi-bluetooth-volume-and-more",
+     "title": "The System Tray: Wi-Fi, Bluetooth, Volume and More"
+    },
+    {
+     "id": "preferences-raspberry-pi-configuration",
+     "title": "Preferences: Raspberry Pi Configuration"
+    },
+    {
+     "id": "screen-configuration-tool",
+     "title": "Screen Configuration Tool"
+    },
+    {
+     "id": "changing-the-appearance-and-desktop-background",
+     "title": "Changing the Appearance and Desktop Background"
+    },
+    {
+     "id": "add-remove-software-the-graphical-app-store",
+     "title": "Add / Remove Software: The Graphical App Store"
+    },
+    {
+     "id": "keeping-your-software-up-to-date",
+     "title": "Keeping Your Software Up to Date"
+    },
+    {
+     "id": "how-to-shut-down-and-reboot-and-why-it-matters",
+     "title": "How to Shut Down and Reboot — and Why It Matters"
+    },
+    {
+     "id": "exploring-safely-good-habits-from-day-one",
+     "title": "Exploring Safely: Good Habits from Day One"
+    }
+   ],
+   "widgets": []
+  },
+  "ch06": {
+   "id": "ch06",
+   "n": 6,
+   "title": "The Terminal, Demystified",
+   "kind": "chapter",
+   "part": "learning-system",
+   "words": 5341,
+   "read_min": 27,
+   "sections": [
+    {
+     "id": "what-is-the-terminal-and-why-should-you-care",
+     "title": "What is the Terminal, and Why Should You Care?"
+    },
+    {
+     "id": "opening-the-terminal",
+     "title": "Opening the Terminal"
+    },
+    {
+     "id": "reading-the-prompt-every-part-explained",
+     "title": "Reading the Prompt — Every Part Explained"
+    },
+    {
+     "id": "the-filesystem-a-single-tree-starting-at",
+     "title": "The Filesystem: a Single Tree Starting at /"
+    },
+    {
+     "id": "the-anatomy-of-a-command",
+     "title": "The Anatomy of a Command"
+    },
+    {
+     "id": "your-first-commands",
+     "title": "Your First Commands"
+    },
+    {
+     "id": "editing-files-in-the-terminal-with-nano",
+     "title": "Editing Files in the Terminal with nano"
+    },
+    {
+     "id": "sudo-running-commands-as-administrator",
+     "title": "sudo — Running Commands as Administrator"
+    },
+    {
+     "id": "pipes-and-grep-connecting-commands-together",
+     "title": "Pipes and grep — Connecting Commands Together"
+    },
+    {
+     "id": "getting-help-at-any-time",
+     "title": "Getting Help at Any Time"
+    },
+    {
+     "id": "working-smarter-shortcuts-that-save-typing",
+     "title": "Working Smarter: Shortcuts That Save Typing"
+    },
+    {
+     "id": "putting-it-all-together-a-practice-session",
+     "title": "Putting it All Together: A Practice Session"
+    },
+    {
+     "id": "quick-reference-commands-at-a-glance",
+     "title": "Quick Reference: Commands at a Glance"
+    }
+   ],
+   "widgets": [
+    "terminal"
+   ]
+  },
+  "ch07": {
+   "id": "ch07",
+   "n": 7,
+   "title": "Files, Folders & Permissions",
+   "kind": "chapter",
+   "part": "learning-system",
+   "words": 5553,
+   "read_min": 28,
+   "sections": [
+    {
+     "id": "the-filing-cabinet-in-your-pi",
+     "title": "The Filing Cabinet in Your Pi"
+    },
+    {
+     "id": "important-system-folders",
+     "title": "Important System Folders"
+    },
+    {
+     "id": "editing-text-files-with-nano",
+     "title": "Editing Text Files with nano"
+    },
+    {
+     "id": "viewing-files-without-editing-them",
+     "title": "Viewing Files Without Editing Them"
+    },
+    {
+     "id": "creating-empty-files-with-touch",
+     "title": "Creating Empty Files with touch"
+    },
+    {
+     "id": "copying-moving-renaming-and-deleting-files",
+     "title": "Copying, Moving, Renaming and Deleting Files"
+    },
+    {
+     "id": "finding-files-with-find",
+     "title": "Finding Files with find"
+    },
+    {
+     "id": "using-wildcards-safely",
+     "title": "Using Wildcards Safely"
+    },
+    {
+     "id": "hidden-files-dotfiles",
+     "title": "Hidden Files — Dotfiles"
+    },
+    {
+     "id": "symbolic-links-shortcuts-on-the-command-line",
+     "title": "Symbolic Links — Shortcuts on the Command Line"
+    },
+    {
+     "id": "understanding-permissions",
+     "title": "Understanding Permissions"
+    },
+    {
+     "id": "changing-permissions-with-chmod",
+     "title": "Changing Permissions with chmod"
+    },
+    {
+     "id": "checking-detailed-file-information-with-stat",
+     "title": "Checking Detailed File Information with stat"
+    },
+    {
+     "id": "changing-ownership-with-chown",
+     "title": "Changing Ownership with chown"
+    },
+    {
+     "id": "sudo-root-and-why-your-password-is-asked",
+     "title": "sudo, Root, and Why Your Password Is Asked"
+    },
+    {
+     "id": "making-a-script-executable",
+     "title": "Making a Script Executable"
+    },
+    {
+     "id": "putting-it-all-together-a-practical-workflow",
+     "title": "Putting It All Together — A Practical Workflow"
+    }
+   ],
+   "widgets": []
+  },
+  "ch08": {
+   "id": "ch08",
+   "n": 8,
+   "title": "Installing & Updating Software",
+   "kind": "chapter",
+   "part": "learning-system",
+   "words": 4649,
+   "read_min": 23,
+   "sections": [
+    {
+     "id": "how-software-gets-onto-the-pi",
+     "title": "How Software Gets Onto the Pi"
+    },
+    {
+     "id": "the-terminal-where-you-type-commands",
+     "title": "The Terminal: Where You Type Commands"
+    },
+    {
+     "id": "the-apt-command-your-swiss-army-knife",
+     "title": "The APT Command — Your Swiss Army Knife"
+    },
+    {
+     "id": "a-quick-reference-apt-commands-at-a-glance",
+     "title": "A Quick Reference: APT Commands at a Glance"
+    },
+    {
+     "id": "three-concrete-examples",
+     "title": "Three Concrete Examples"
+    },
+    {
+     "id": "the-graphical-alternative-add-remove-software",
+     "title": "The Graphical Alternative: Add / Remove Software"
+    },
+    {
+     "id": "keeping-the-pi-s-firmware-up-to-date",
+     "title": "Keeping the Pi's Firmware Up to Date"
+    },
+    {
+     "id": "when-the-app-you-want-is-not-in-apt",
+     "title": "When the App You Want Is Not in APT"
+    },
+    {
+     "id": "python-software-in-particular",
+     "title": "Python Software in Particular"
+    },
+    {
+     "id": "enabling-system-features-with-raspi-config",
+     "title": "Enabling System Features with raspi-config"
+    },
+    {
+     "id": "building-the-update-habit",
+     "title": "Building the Update Habit"
+    }
+   ],
+   "widgets": []
+  },
+  "ch09": {
+   "id": "ch09",
+   "n": 9,
+   "title": "Getting Connected: Network & Remote Control",
+   "kind": "chapter",
+   "part": "learning-system",
+   "words": 6193,
+   "read_min": 31,
+   "sections": [
+    {
+     "id": "step-zero-change-your-password-first",
+     "title": "Step Zero: Change Your Password First"
+    },
+    {
+     "id": "networking-for-total-beginners",
+     "title": "Networking for Total Beginners"
+    },
+    {
+     "id": "how-your-home-network-fits-together",
+     "title": "How Your Home Network Fits Together"
+    },
+    {
+     "id": "finding-your-pi-s-ip-address",
+     "title": "Finding Your Pi's IP Address"
+    },
+    {
+     "id": "the-magic-of-raspberrypi-local",
+     "title": "The Magic of raspberrypi.local"
+    },
+    {
+     "id": "remote-access-option-a-ssh-command-line",
+     "title": "Remote Access Option A: SSH — Command Line"
+    },
+    {
+     "id": "remote-access-option-b-full-remote-desktop-with-",
+     "title": "Remote Access Option B: Full Remote Desktop with VNC"
+    },
+    {
+     "id": "remote-access-option-c-raspberry-pi-connect-acce",
+     "title": "Remote Access Option C: Raspberry Pi Connect — Access from Anywhere"
+    },
+    {
+     "id": "copying-files-between-windows-and-the-pi",
+     "title": "Copying Files Between Windows and the Pi"
+    },
+    {
+     "id": "setting-up-ssh-key-authentication-optional-but-r",
+     "title": "Setting Up SSH Key Authentication (Optional, but Recommended)"
+    },
+    {
+     "id": "keeping-your-pi-secure-on-the-network",
+     "title": "Keeping Your Pi Secure on the Network"
+    },
+    {
+     "id": "changing-or-checking-your-pi-s-hostname",
+     "title": "Changing or Checking Your Pi's Hostname"
+    },
+    {
+     "id": "quick-reference-all-connection-methods",
+     "title": "Quick-Reference: All Connection Methods"
+    }
+   ],
+   "widgets": []
+  },
+  "ch10": {
+   "id": "ch10",
+   "n": 10,
+   "title": "Storage, Backups & Booting from an SSD",
+   "kind": "chapter",
+   "part": "learning-system",
+   "words": 5850,
+   "read_min": 29,
+   "sections": [
+    {
+     "id": "understanding-how-the-pi-stores-its-data",
+     "title": "Understanding How the Pi Stores Its Data"
+    },
+    {
+     "id": "checking-how-much-space-you-have",
+     "title": "Checking How Much Space You Have"
+    },
+    {
+     "id": "using-usb-drives-and-external-hard-drives",
+     "title": "Using USB Drives and External Hard Drives"
+    },
+    {
+     "id": "backing-up-your-pi-why-it-matters",
+     "title": "Backing Up Your Pi — Why It Matters"
+    },
+    {
+     "id": "upgrading-to-a-solid-state-drive-ssd",
+     "title": "Upgrading to a Solid-State Drive (SSD)"
+    },
+    {
+     "id": "quick-reference-storage-commands",
+     "title": "Quick Reference: Storage Commands"
+    }
+   ],
+   "widgets": []
+  },
+  "ch11": {
+   "id": "ch11",
+   "n": 11,
+   "title": "Your First Code with Python",
+   "kind": "chapter",
+   "part": "making-things",
+   "words": 6737,
+   "read_min": 34,
+   "sections": [
+    {
+     "id": "what-is-programming",
+     "title": "What is programming?"
+    },
+    {
+     "id": "why-python",
+     "title": "Why Python?"
+    },
+    {
+     "id": "two-ways-to-run-python-code",
+     "title": "Two ways to run Python code"
+    },
+    {
+     "id": "your-first-python-building-blocks",
+     "title": "Your first Python building blocks"
+    },
+    {
+     "id": "putting-it-all-together-a-number-guessing-game",
+     "title": "Putting it all together — a number-guessing game"
+    },
+    {
+     "id": "errors-are-normal-do-not-panic",
+     "title": "Errors are normal — do not panic"
+    },
+    {
+     "id": "saving-and-re-running-scripts",
+     "title": "Saving and re-running scripts"
+    },
+    {
+     "id": "adding-extra-python-libraries-the-bookworm-corre",
+     "title": "Adding extra Python libraries — the Bookworm-correct way"
+    },
+    {
+     "id": "keep-experimenting",
+     "title": "Keep experimenting"
+    }
+   ],
+   "widgets": []
+  },
+  "ch12": {
+   "id": "ch12",
+   "n": 12,
+   "title": "Physical Computing: The GPIO Pins",
+   "kind": "chapter",
+   "part": "making-things",
+   "words": 6103,
+   "read_min": 31,
+   "sections": [
+    {
+     "id": "what-is-the-gpio-header",
+     "title": "What Is the GPIO Header?"
+    },
+    {
+     "id": "electricity-for-absolute-beginners",
+     "title": "Electricity for Absolute Beginners"
+    },
+    {
+     "id": "what-is-a-breadboard",
+     "title": "What Is a Breadboard?"
+    },
+    {
+     "id": "project-1-blink-an-led",
+     "title": "Project 1 — Blink an LED"
+    },
+    {
+     "id": "project-2-read-a-push-button",
+     "title": "Project 2 — Read a Push Button"
+    },
+    {
+     "id": "checking-gpio-access-in-bookworm",
+     "title": "Checking GPIO Access in Bookworm"
+    },
+    {
+     "id": "going-further-sensors-the-camera-and-hats",
+     "title": "Going Further: Sensors, the Camera, and HATs"
+    },
+    {
+     "id": "gpio-safety-checklist",
+     "title": "GPIO Safety Checklist"
+    }
+   ],
+   "widgets": [
+    "gpio",
+    "resistor"
+   ]
+  },
+  "ch13": {
+   "id": "ch13",
+   "n": 13,
+   "title": "A Media Centre for Your TV",
+   "kind": "project",
+   "part": "projects",
+   "words": 5926,
+   "read_min": 30,
+   "sections": [
+    {
+     "id": "what-are-your-options",
+     "title": "What Are Your Options?"
+    },
+    {
+     "id": "which-should-you-choose",
+     "title": "Which Should You Choose?"
+    },
+    {
+     "id": "a-word-on-media-you-can-play",
+     "title": "A Word on Media You Can Play"
+    },
+    {
+     "id": "full-worked-path-jellyfin-on-raspberry-pi-os",
+     "title": "Full Worked Path: Jellyfin on Raspberry Pi OS"
+    },
+    {
+     "id": "4k-and-hevc-what-the-pi-5-can-handle",
+     "title": "4K and HEVC: What the Pi 5 Can Handle"
+    },
+    {
+     "id": "controlling-playback",
+     "title": "Controlling Playback"
+    },
+    {
+     "id": "alternative-installing-kodi-on-raspberry-pi-os",
+     "title": "Alternative: Installing Kodi on Raspberry Pi OS"
+    },
+    {
+     "id": "troubleshooting-common-problems",
+     "title": "Troubleshooting Common Problems"
+    },
+    {
+     "id": "keeping-jellyfin-updated",
+     "title": "Keeping Jellyfin Updated"
+    }
+   ],
+   "widgets": [
+    "picker"
+   ]
+  },
+  "ch14": {
+   "id": "ch14",
+   "n": 14,
+   "title": "Retro Gaming",
+   "kind": "project",
+   "part": "projects",
+   "words": 5634,
+   "read_min": 28,
+   "sections": [
+    {
+     "id": "what-is-retro-gaming-on-the-pi",
+     "title": "What Is Retro Gaming on the Pi?"
+    },
+    {
+     "id": "choosing-your-platform",
+     "title": "Choosing Your Platform"
+    },
+    {
+     "id": "the-legal-picture-please-read-first",
+     "title": "The Legal Picture — Please Read First"
+    },
+    {
+     "id": "what-you-will-need",
+     "title": "What You Will Need"
+    },
+    {
+     "id": "step-1-download-batocera",
+     "title": "Step 1 — Download Batocera"
+    },
+    {
+     "id": "step-2-flash-batocera-to-your-spare-card",
+     "title": "Step 2 — Flash Batocera to Your Spare Card"
+    },
+    {
+     "id": "step-3-boot-into-batocera",
+     "title": "Step 3 — Boot into Batocera"
+    },
+    {
+     "id": "step-4-configure-your-controller",
+     "title": "Step 4 — Configure Your Controller"
+    },
+    {
+     "id": "step-5-connect-to-your-network",
+     "title": "Step 5 — Connect to Your Network"
+    },
+    {
+     "id": "step-6-copy-games-onto-batocera",
+     "title": "Step 6 — Copy Games onto Batocera"
+    },
+    {
+     "id": "about-bios-files",
+     "title": "About BIOS Files"
+    },
+    {
+     "id": "step-7-playing-a-game",
+     "title": "Step 7 — Playing a Game"
+    },
+    {
+     "id": "saving-and-loading-your-progress",
+     "title": "Saving and Loading Your Progress"
+    },
+    {
+     "id": "performance-what-to-expect-on-the-pi-5",
+     "title": "Performance — What to Expect on the Pi 5"
+    },
+    {
+     "id": "audio-no-headphone-socket-on-the-pi-5",
+     "title": "Audio — No Headphone Socket on the Pi 5"
+    },
+    {
+     "id": "scraping-cover-art",
+     "title": "Scraping Cover Art"
+    },
+    {
+     "id": "troubleshooting-common-problems",
+     "title": "Troubleshooting Common Problems"
+    },
+    {
+     "id": "useful-tips-for-the-best-experience",
+     "title": "Useful Tips for the Best Experience"
+    },
+    {
+     "id": "using-retropie-instead-advanced-option",
+     "title": "Using RetroPie Instead (Advanced Option)"
+    },
+    {
+     "id": "keeping-batocera-up-to-date",
+     "title": "Keeping Batocera Up to Date"
+    }
+   ],
+   "widgets": []
+  },
+  "ch15": {
+   "id": "ch15",
+   "n": 15,
+   "title": "Block Ads with Pi-hole",
+   "kind": "project",
+   "part": "projects",
+   "words": 5756,
+   "read_min": 29,
+   "sections": [
+    {
+     "id": "how-the-internet-looks-up-websites-and-how-pi-ho",
+     "title": "How the internet \"looks up\" websites — and how Pi-hole exploits that"
+    },
+    {
+     "id": "before-you-start-what-you-need",
+     "title": "Before you start: what you need"
+    },
+    {
+     "id": "step-1-give-your-pi-a-fixed-ip-address",
+     "title": "Step 1 — Give your Pi a fixed IP address"
+    },
+    {
+     "id": "step-2-install-pi-hole",
+     "title": "Step 2 — Install Pi-hole"
+    },
+    {
+     "id": "step-3-complete-the-initial-setup-in-the-web-das",
+     "title": "Step 3 — Complete the initial setup in the web dashboard"
+    },
+    {
+     "id": "step-4-point-your-router-s-dns-at-pi-hole",
+     "title": "Step 4 — Point your router's DNS at Pi-hole"
+    },
+    {
+     "id": "step-5-confirm-that-it-is-working",
+     "title": "Step 5 — Confirm that it is working"
+    },
+    {
+     "id": "using-the-admin-dashboard",
+     "title": "Using the admin dashboard"
+    },
+    {
+     "id": "resetting-or-changing-the-admin-password",
+     "title": "Resetting or changing the admin password"
+    },
+    {
+     "id": "allowing-a-domain-when-something-breaks",
+     "title": "Allowing a domain when something breaks"
+    },
+    {
+     "id": "keeping-pi-hole-up-to-date",
+     "title": "Keeping Pi-hole up to date"
+    },
+    {
+     "id": "adding-more-blocklists",
+     "title": "Adding more blocklists"
+    },
+    {
+     "id": "honest-limits-what-pi-hole-cannot-block",
+     "title": "Honest limits: what Pi-hole cannot block"
+    },
+    {
+     "id": "useful-pi-hole-commands-at-a-glance",
+     "title": "Useful Pi-hole commands at a glance"
+    },
+    {
+     "id": "troubleshooting-common-problems",
+     "title": "Troubleshooting common problems"
+    }
+   ],
+   "widgets": []
+  },
+  "ch16": {
+   "id": "ch16",
+   "n": 16,
+   "title": "Your Own Home Server & Private Cloud",
+   "kind": "project",
+   "part": "projects",
+   "words": 6280,
+   "read_min": 31,
+   "sections": [
+    {
+     "id": "part-a-a-home-file-server-with-samba",
+     "title": "Part A — A Home File Server with Samba"
+    },
+    {
+     "id": "part-b-your-own-private-cloud-with-nextcloud",
+     "title": "Part B — Your Own Private Cloud with Nextcloud"
+    },
+    {
+     "id": "troubleshooting-common-problems",
+     "title": "Troubleshooting common problems"
+    }
+   ],
+   "widgets": []
+  },
+  "ch17": {
+   "id": "ch17",
+   "n": 17,
+   "title": "A Private Smart-Home Hub",
+   "kind": "project",
+   "part": "projects",
+   "words": 5055,
+   "read_min": 25,
+   "sections": [
+    {
+     "id": "what-is-home-assistant",
+     "title": "What is Home Assistant?"
+    },
+    {
+     "id": "the-two-ways-to-install-home-assistant",
+     "title": "The two ways to install Home Assistant"
+    },
+    {
+     "id": "what-you-will-need",
+     "title": "What you will need"
+    },
+    {
+     "id": "step-1-flash-home-assistant-os-with-raspberry-pi",
+     "title": "Step 1 — Flash Home Assistant OS with Raspberry Pi Imager"
+    },
+    {
+     "id": "step-2-first-boot",
+     "title": "Step 2 — First boot"
+    },
+    {
+     "id": "step-3-onboarding-set-up-your-account-in-the-bro",
+     "title": "Step 3 — Onboarding: set up your account in the browser"
+    },
+    {
+     "id": "step-4-add-your-first-integration",
+     "title": "Step 4 — Add your first integration"
+    },
+    {
+     "id": "step-5-build-your-first-automation",
+     "title": "Step 5 — Build your first automation"
+    },
+    {
+     "id": "the-add-on-store",
+     "title": "The Add-on Store"
+    },
+    {
+     "id": "keeping-home-assistant-updated",
+     "title": "Keeping Home Assistant updated"
+    },
+    {
+     "id": "accessing-home-assistant-from-your-phone",
+     "title": "Accessing Home Assistant from your phone"
+    },
+    {
+     "id": "privacy-and-local-control-why-this-matters",
+     "title": "Privacy and local control — why this matters"
+    },
+    {
+     "id": "the-docker-container-route-brief-overview",
+     "title": "The Docker container route (brief overview)"
+    },
+    {
+     "id": "troubleshooting-common-first-boot-issues",
+     "title": "Troubleshooting common first-boot issues"
+    }
+   ],
+   "widgets": []
+  },
+  "ch18": {
+   "id": "ch18",
+   "n": 18,
+   "title": "Host a Website & Self-Host with Docker",
+   "kind": "project",
+   "part": "projects",
+   "words": 5570,
+   "read_min": 28,
+   "sections": [
+    {
+     "id": "what-is-a-web-server-really",
+     "title": "What Is a Web Server, Really?"
+    },
+    {
+     "id": "part-a-serve-a-simple-web-page",
+     "title": "Part A — Serve a Simple Web Page"
+    },
+    {
+     "id": "part-b-the-modern-way-docker-and-containers",
+     "title": "Part B — The Modern Way: Docker and Containers"
+    },
+    {
+     "id": "reaching-your-pi-from-outside-your-home-network",
+     "title": "Reaching Your Pi from Outside Your Home Network"
+    },
+    {
+     "id": "quick-reference-ports-used-in-this-chapter",
+     "title": "Quick Reference: Ports Used in This Chapter"
+    }
+   ],
+   "widgets": []
+  },
+  "ch19": {
+   "id": "ch19",
+   "n": 19,
+   "title": "Run AI on Your Pi",
+   "kind": "project",
+   "part": "projects",
+   "words": 6384,
+   "read_min": 32,
+   "sections": [
+    {
+     "id": "what-is-an-ai-language-model-in-plain-english",
+     "title": "What is an AI language model, in plain English?"
+    },
+    {
+     "id": "how-models-are-measured-and-what-fits-on-a-pi",
+     "title": "How models are measured — and what fits on a Pi"
+    },
+    {
+     "id": "setting-honest-expectations-before-you-start",
+     "title": "Setting honest expectations before you start"
+    },
+    {
+     "id": "installing-ollama",
+     "title": "Installing Ollama"
+    },
+    {
+     "id": "pulling-your-first-model",
+     "title": "Pulling your first model"
+    },
+    {
+     "id": "chatting-with-a-model-in-the-terminal",
+     "title": "Chatting with a model in the terminal"
+    },
+    {
+     "id": "controlling-the-model-from-a-python-script",
+     "title": "Controlling the model from a Python script"
+    },
+    {
+     "id": "using-the-official-ollama-python-library-optiona",
+     "title": "Using the official Ollama Python library (optional)"
+    },
+    {
+     "id": "managing-your-models-saving-space",
+     "title": "Managing your models — saving space"
+    },
+    {
+     "id": "other-on-device-ai-speech-to-text-with-whisper",
+     "title": "Other on-device AI: speech-to-text with Whisper"
+    },
+    {
+     "id": "simple-image-recognition-with-tensorflow-lite",
+     "title": "Simple image recognition with TensorFlow Lite"
+    },
+    {
+     "id": "the-raspberry-pi-ai-hat-optional-hardware-for-se",
+     "title": "The Raspberry Pi AI HAT+ — optional hardware for serious speed"
+    },
+    {
+     "id": "privacy-why-running-ai-locally-matters",
+     "title": "Privacy: why running AI locally matters"
+    },
+    {
+     "id": "troubleshooting-common-problems",
+     "title": "Troubleshooting common problems"
+    }
+   ],
+   "widgets": []
+  },
+  "ch20": {
+   "id": "ch20",
+   "n": 20,
+   "title": "Security & Good Habits",
+   "kind": "chapter",
+   "part": "looking-after",
+   "words": 5321,
+   "read_min": 27,
+   "sections": [
+    {
+     "id": "why-bother-with-security",
+     "title": "Why Bother with Security?"
+    },
+    {
+     "id": "step-one-change-the-default-password",
+     "title": "Step One: Change the Default Password"
+    },
+    {
+     "id": "step-two-keep-the-system-updated",
+     "title": "Step Two: Keep the System Updated"
+    },
+    {
+     "id": "step-three-ssh-keys-log-in-without-a-password",
+     "title": "Step Three: SSH Keys — Log In Without a Password"
+    },
+    {
+     "id": "step-four-a-simple-firewall-with-ufw",
+     "title": "Step Four: A Simple Firewall with ufw"
+    },
+    {
+     "id": "step-five-do-not-expose-the-pi-directly-to-the-i",
+     "title": "Step Five: Do Not Expose the Pi Directly to the Internet"
+    },
+    {
+     "id": "step-six-fail2ban-blocking-repeated-bad-login-at",
+     "title": "Step Six: fail2ban — Blocking Repeated Bad Login Attempts"
+    },
+    {
+     "id": "step-seven-disable-unused-interfaces-with-raspi-",
+     "title": "Step Seven: Disable Unused Interfaces with raspi-config"
+    },
+    {
+     "id": "step-eight-backups-as-a-security-measure",
+     "title": "Step Eight: Backups as a Security Measure"
+    },
+    {
+     "id": "step-nine-physical-safety",
+     "title": "Step Nine: Physical Safety"
+    },
+    {
+     "id": "security-checklist",
+     "title": "Security Checklist"
+    }
+   ],
+   "widgets": []
+  },
+  "ch21": {
+   "id": "ch21",
+   "n": 21,
+   "title": "Maintenance & Troubleshooting",
+   "kind": "chapter",
+   "part": "looking-after",
+   "words": 6226,
+   "read_min": 31,
+   "sections": [
+    {
+     "id": "routine-care-keeping-your-pi-healthy",
+     "title": "Routine Care: Keeping Your Pi Healthy"
+    },
+    {
+     "id": "understanding-your-pi-s-status-leds",
+     "title": "Understanding Your Pi's Status LEDs"
+    },
+    {
+     "id": "reading-logs-what-is-the-pi-telling-you",
+     "title": "Reading Logs: What Is the Pi Telling You?"
+    },
+    {
+     "id": "the-raspi-config-configuration-tool",
+     "title": "The raspi-config Configuration Tool"
+    },
+    {
+     "id": "troubleshooting-the-big-reference-table",
+     "title": "Troubleshooting: The Big Reference Table"
+    },
+    {
+     "id": "backing-up-your-files",
+     "title": "Backing Up Your Files"
+    },
+    {
+     "id": "when-a-clean-re-flash-is-the-fastest-fix",
+     "title": "When a Clean Re-Flash Is the Fastest Fix"
+    },
+    {
+     "id": "a-maintenance-checklist",
+     "title": "A Maintenance Checklist"
+    }
+   ],
+   "widgets": []
+  },
+  "ch22": {
+   "id": "ch22",
+   "n": 22,
+   "title": "Where to Go Next",
+   "kind": "chapter",
+   "part": "looking-after",
+   "words": 4829,
+   "read_min": 24,
+   "sections": [
+    {
+     "id": "you-are-already-a-maker",
+     "title": "You Are Already a Maker"
+    },
+    {
+     "id": "a-gallery-of-project-ideas",
+     "title": "A Gallery of Project Ideas"
+    },
+    {
+     "id": "accessories-worth-buying-and-why",
+     "title": "Accessories Worth Buying (and Why)"
+    },
+    {
+     "id": "where-to-keep-learning",
+     "title": "Where to Keep Learning"
+    },
+    {
+     "id": "how-to-ask-for-help-effectively",
+     "title": "How to Ask for Help Effectively"
+    },
+    {
+     "id": "keeping-your-pi-up-to-date",
+     "title": "Keeping Your Pi Up to Date"
+    },
+    {
+     "id": "a-few-principles-for-the-road-ahead",
+     "title": "A Few Principles for the Road Ahead"
+    },
+    {
+     "id": "a-warm-closing-word",
+     "title": "A Warm Closing Word"
+    }
+   ],
+   "widgets": []
+  },
+  "apxA": {
+   "id": "apxA",
+   "n": 23,
+   "title": "Command Quick-Reference",
+   "kind": "appendix",
+   "part": "reference",
+   "words": 4988,
+   "read_min": 25,
+   "sections": [
+    {
+     "id": "how-to-read-this-appendix",
+     "title": "How to Read This Appendix"
+    },
+    {
+     "id": "1-navigating-the-file-system",
+     "title": "1 — Navigating the File System"
+    },
+    {
+     "id": "2-working-with-files-and-folders",
+     "title": "2 — Working with Files and Folders"
+    },
+    {
+     "id": "3-permissions",
+     "title": "3 — Permissions"
+    },
+    {
+     "id": "4-installing-and-managing-software",
+     "title": "4 — Installing and Managing Software"
+    },
+    {
+     "id": "5-python-on-raspberry-pi-os-bookworm",
+     "title": "5 — Python on Raspberry Pi OS Bookworm"
+    },
+    {
+     "id": "6-system-information",
+     "title": "6 — System Information"
+    },
+    {
+     "id": "7-managing-services",
+     "title": "7 — Managing Services"
+    },
+    {
+     "id": "8-networking",
+     "title": "8 — Networking"
+    },
+    {
+     "id": "9-power-and-configuration",
+     "title": "9 — Power and Configuration"
+    },
+    {
+     "id": "10-helpful-keyboard-shortcuts-in-the-terminal",
+     "title": "10 — Helpful Keyboard Shortcuts in the Terminal"
+    },
+    {
+     "id": "11-pipes-redirects-and-other-useful-tricks",
+     "title": "11 — Pipes, Redirects and Other Useful Tricks"
+    },
+    {
+     "id": "12-gpio-quick-reference",
+     "title": "12 — GPIO Quick-Reference"
+    }
+   ],
+   "widgets": []
+  },
+  "glos": {
+   "id": "glos",
+   "n": 24,
+   "title": "Glossary of Terms",
+   "kind": "glossary",
+   "part": "reference",
+   "words": 6264,
+   "read_min": 31,
+   "sections": [
+    {
+     "id": "how-to-use-this-glossary",
+     "title": "How to use this glossary"
+    },
+    {
+     "id": "a",
+     "title": "A"
+    },
+    {
+     "id": "b",
+     "title": "B"
+    },
+    {
+     "id": "c",
+     "title": "C"
+    },
+    {
+     "id": "d",
+     "title": "D"
+    },
+    {
+     "id": "e",
+     "title": "E"
+    },
+    {
+     "id": "f",
+     "title": "F"
+    },
+    {
+     "id": "g",
+     "title": "G"
+    },
+    {
+     "id": "h",
+     "title": "H"
+    },
+    {
+     "id": "i",
+     "title": "I"
+    },
+    {
+     "id": "j",
+     "title": "J"
+    },
+    {
+     "id": "k",
+     "title": "K"
+    },
+    {
+     "id": "l",
+     "title": "L"
+    },
+    {
+     "id": "m",
+     "title": "M"
+    },
+    {
+     "id": "n",
+     "title": "N"
+    },
+    {
+     "id": "o",
+     "title": "O"
+    },
+    {
+     "id": "p",
+     "title": "P"
+    },
+    {
+     "id": "q",
+     "title": "Q"
+    },
+    {
+     "id": "r",
+     "title": "R"
+    },
+    {
+     "id": "s",
+     "title": "S"
+    },
+    {
+     "id": "t",
+     "title": "T"
+    },
+    {
+     "id": "u",
+     "title": "U"
+    },
+    {
+     "id": "v",
+     "title": "V"
+    },
+    {
+     "id": "w",
+     "title": "W"
+    },
+    {
+     "id": "x",
+     "title": "X"
+    },
+    {
+     "id": "y",
+     "title": "Y"
+    },
+    {
+     "id": "z",
+     "title": "Z"
+    },
+    {
+     "id": "quick-reference-abbreviations-at-a-glance",
+     "title": "Quick reference: abbreviations at a glance"
+    }
+   ],
+   "widgets": []
+  }
+ },
+ "order": [
+  "ch01",
+  "ch02",
+  "ch03",
+  "ch04",
+  "ch05",
+  "ch06",
+  "ch07",
+  "ch08",
+  "ch09",
+  "ch10",
+  "ch11",
+  "ch12",
+  "ch13",
+  "ch14",
+  "ch15",
+  "ch16",
+  "ch17",
+  "ch18",
+  "ch19",
+  "ch20",
+  "ch21",
+  "ch22",
+  "apxA",
+  "glos"
+ ]
+}

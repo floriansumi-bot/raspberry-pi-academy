@@ -1,0 +1,829 @@
+<p class="lead">The Raspberry Pi has a secret superpower hidden along its top edge: a row of 40 metal pins that can talk directly to the real world — switching lights on and off, reading button presses, measuring temperature, detecting motion, and far more. In this chapter you will learn what those pins do, understand just enough electricity to use them safely, and build your first two real electronic projects from scratch.</p>
+<div class="widget-mount" data-widget="gpio"></div>
+
+
+<h2 id="what-is-the-gpio-header">What Is the GPIO Header?</h2>
+
+<p>Along the top edge of your Pi 5 board you will see two parallel rows of tiny metal pins — 20 in each row, 40 in total. This connector is called the <strong>GPIO header</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>GPIO</strong> stands for <em>General-Purpose Input/Output</em>. "General-purpose" means each pin can be used for many different jobs. "Input" means the Pi can <em>sense</em> something connected to it (a button, a sensor). "Output" means the Pi can <em>control</em> something (an LED, a buzzer, a motor driver).</div>
+
+<p>Not every pin does the same thing. The 40 pins are divided into three groups:</p>
+
+<ul>
+  <li><strong>Power pins</strong> — supply electricity to your components. There are two 5 V pins and two 3.3 V pins.</li>
+  <li><strong>Ground (GND) pins</strong> — the return path for electricity. Think of these as the negative terminal of a battery. There are eight GND pins spread around the header for convenience.</li>
+  <li><strong>GPIO pins</strong> — the programmable ones. Your Python code can set each of these HIGH (3.3 V) or LOW (0 V), or read whether something connected to them is HIGH or LOW.</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> The GPIO pins on the Raspberry Pi 5 operate at <strong>3.3 V logic</strong>. If you connect anything that pushes 5 V into a GPIO input pin, you will permanently damage the Pi 5 — there is no fuse to protect it. Always use 3.3 V-compatible components on GPIO pins, or use a level-shifter circuit when you must interface with 5 V devices. Also, <strong>never let two pins touch each other</strong> (a "short circuit") — this can instantly destroy the board. Handle the header gently and double-check your wiring before powering up.</div>
+
+<h3>The 40-Pin Pinout</h3>
+
+<p>The diagram below shows every pin. The two columns of numbers are the <em>physical pin numbers</em> (the position on the header, 1–40). The labels beside them show what each pin does. Pin 1 is nearest the corner of the board marked with a tiny triangle on most Pi boards.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 680 820" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="680" height="820" fill="#f3f0ff" rx="12"/>
+  <text x="340" y="36" font-family="sans-serif" font-size="17" font-weight="bold" fill="#1f2933" text-anchor="middle">Raspberry Pi 5 — 40-Pin GPIO Header</text>
+  <text x="340" y="56" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle">Odd pins (1,3,5…) on the left column · Even pins (2,4,6…) on the right column</text>
+
+  <!-- Column headers -->
+  <text x="60" y="82" font-family="sans-serif" font-size="13" font-weight="bold" fill="#6d28d9" text-anchor="middle">Left label</text>
+  <text x="170" y="82" font-family="sans-serif" font-size="13" font-weight="bold" fill="#1f2933" text-anchor="middle">Pin</text>
+  <text x="230" y="82" font-family="sans-serif" font-size="13" font-weight="bold" fill="#1f2933" text-anchor="middle">Pin</text>
+  <text x="610" y="82" font-family="sans-serif" font-size="13" font-weight="bold" fill="#6d28d9" text-anchor="middle">Right label</text>
+
+  <!-- Legend -->
+  <rect x="20" y="90" width="14" height="14" fill="#f97316" rx="2"/>
+  <text x="38" y="102" font-family="sans-serif" font-size="11" fill="#1f2933">3.3 V power</text>
+  <rect x="110" y="90" width="14" height="14" fill="#dc2626" rx="2"/>
+  <text x="128" y="102" font-family="sans-serif" font-size="11" fill="#1f2933">5 V power</text>
+  <rect x="190" y="90" width="14" height="14" fill="#374151" rx="2"/>
+  <text x="208" y="102" font-family="sans-serif" font-size="11" fill="#1f2933">Ground (GND)</text>
+  <rect x="300" y="90" width="14" height="14" fill="#6d28d9" rx="2"/>
+  <text x="318" y="102" font-family="sans-serif" font-size="11" fill="#1f2933">GPIO (programmable)</text>
+  <rect x="450" y="90" width="14" height="14" fill="#0ea5a4" rx="2"/>
+  <text x="468" y="102" font-family="sans-serif" font-size="11" fill="#1f2933">Special function GPIO</text>
+
+  <!-- ROW 1: 3.3V / 5V -->
+  <rect x="140" y="116" width="28" height="22" fill="#f97316" rx="4"/>
+  <rect x="172" y="116" width="28" height="22" fill="#dc2626" rx="4"/>
+  <text x="136" y="131" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">3.3 V</text>
+  <text x="154" y="131" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">1</text>
+  <text x="186" y="131" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">2</text>
+  <text x="204" y="131" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">5 V</text>
+
+  <!-- ROW 2: GPIO2 / 5V -->
+  <rect x="140" y="149" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <rect x="172" y="149" width="28" height="22" fill="#dc2626" rx="4"/>
+  <text x="136" y="164" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 2 (SDA1)</text>
+  <text x="154" y="164" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">3</text>
+  <text x="186" y="164" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">4</text>
+  <text x="204" y="164" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">5 V</text>
+
+  <!-- ROW 3: GPIO3 / GND -->
+  <rect x="140" y="182" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <rect x="172" y="182" width="28" height="22" fill="#374151" rx="4"/>
+  <text x="136" y="197" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 3 (SCL1)</text>
+  <text x="154" y="197" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">5</text>
+  <text x="186" y="197" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">6</text>
+  <text x="204" y="197" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GND</text>
+
+  <!-- ROW 4: GPIO4 / GPIO14 -->
+  <rect x="140" y="215" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <rect x="172" y="215" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="230" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 4</text>
+  <text x="154" y="230" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">7</text>
+  <text x="186" y="230" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">8</text>
+  <text x="204" y="230" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 14 (TXD)</text>
+
+  <!-- ROW 5: GND / GPIO15 -->
+  <rect x="140" y="248" width="28" height="22" fill="#374151" rx="4"/>
+  <rect x="172" y="248" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="263" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GND</text>
+  <text x="154" y="263" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">9</text>
+  <text x="186" y="263" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">10</text>
+  <text x="204" y="263" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 15 (RXD)</text>
+
+  <!-- ROW 6: GPIO17 / GPIO18 -->
+  <rect x="140" y="281" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <rect x="172" y="281" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="296" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 17 ★</text>
+  <text x="154" y="296" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">11</text>
+  <text x="186" y="296" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">12</text>
+  <text x="204" y="296" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 18 (PWM0)</text>
+
+  <!-- ROW 7: GPIO27 / GND -->
+  <rect x="140" y="314" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <rect x="172" y="314" width="28" height="22" fill="#374151" rx="4"/>
+  <text x="136" y="329" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 27 ✦</text>
+  <text x="154" y="329" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">13</text>
+  <text x="186" y="329" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">14</text>
+  <text x="204" y="329" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GND</text>
+
+  <!-- ROW 8: GPIO22 / GPIO23 -->
+  <rect x="140" y="347" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <rect x="172" y="347" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <text x="136" y="362" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 22</text>
+  <text x="154" y="362" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">15</text>
+  <text x="186" y="362" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">16</text>
+  <text x="204" y="362" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 23</text>
+
+  <!-- ROW 9: 3.3V / GPIO24 -->
+  <rect x="140" y="380" width="28" height="22" fill="#f97316" rx="4"/>
+  <rect x="172" y="380" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <text x="136" y="395" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">3.3 V</text>
+  <text x="154" y="395" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">17</text>
+  <text x="186" y="395" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">18</text>
+  <text x="204" y="395" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 24</text>
+
+  <!-- ROW 10: GPIO10 / GND -->
+  <rect x="140" y="413" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <rect x="172" y="413" width="28" height="22" fill="#374151" rx="4"/>
+  <text x="136" y="428" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 10 (MOSI)</text>
+  <text x="154" y="428" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">19</text>
+  <text x="186" y="428" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">20</text>
+  <text x="204" y="428" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GND</text>
+
+  <!-- ROW 11: GPIO9 / GPIO25 -->
+  <rect x="140" y="446" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <rect x="172" y="446" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <text x="136" y="461" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 9 (MISO)</text>
+  <text x="154" y="461" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">21</text>
+  <text x="186" y="461" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">22</text>
+  <text x="204" y="461" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 25</text>
+
+  <!-- ROW 12: GPIO11 / GPIO8 -->
+  <rect x="140" y="479" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <rect x="172" y="479" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="494" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 11 (SCLK)</text>
+  <text x="154" y="494" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">23</text>
+  <text x="186" y="494" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">24</text>
+  <text x="204" y="494" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 8 (CE0)</text>
+
+  <!-- ROW 13: GND / GPIO7 -->
+  <rect x="140" y="512" width="28" height="22" fill="#374151" rx="4"/>
+  <rect x="172" y="512" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="527" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GND</text>
+  <text x="154" y="527" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">25</text>
+  <text x="186" y="527" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">26</text>
+  <text x="204" y="527" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 7 (CE1)</text>
+
+  <!-- ROW 14: GPIO0 / GPIO1 -->
+  <rect x="140" y="545" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <rect x="172" y="545" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="560" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 0 (ID_SD)</text>
+  <text x="154" y="560" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">27</text>
+  <text x="186" y="560" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">28</text>
+  <text x="204" y="560" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 1 (ID_SC)</text>
+
+  <!-- ROW 15: GPIO5 / GND -->
+  <rect x="140" y="578" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <rect x="172" y="578" width="28" height="22" fill="#374151" rx="4"/>
+  <text x="136" y="593" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 5</text>
+  <text x="154" y="593" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">29</text>
+  <text x="186" y="593" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">30</text>
+  <text x="204" y="593" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GND</text>
+
+  <!-- ROW 16: GPIO6 / GPIO12 -->
+  <rect x="140" y="611" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <rect x="172" y="611" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="626" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 6</text>
+  <text x="154" y="626" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">31</text>
+  <text x="186" y="626" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">32</text>
+  <text x="204" y="626" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 12 (PWM0)</text>
+
+  <!-- ROW 17: GPIO13 / GND -->
+  <rect x="140" y="644" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <rect x="172" y="644" width="28" height="22" fill="#374151" rx="4"/>
+  <text x="136" y="659" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 13 (PWM1)</text>
+  <text x="154" y="659" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">33</text>
+  <text x="186" y="659" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">34</text>
+  <text x="204" y="659" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GND</text>
+
+  <!-- ROW 18: GPIO19 / GPIO16 -->
+  <rect x="140" y="677" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <rect x="172" y="677" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <text x="136" y="692" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 19 (MISO)</text>
+  <text x="154" y="692" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">35</text>
+  <text x="186" y="692" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">36</text>
+  <text x="204" y="692" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 16</text>
+
+  <!-- ROW 19: GPIO26 / GPIO20 -->
+  <rect x="140" y="710" width="28" height="22" fill="#6d28d9" rx="4"/>
+  <rect x="172" y="710" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="725" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GPIO 26</text>
+  <text x="154" y="725" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">37</text>
+  <text x="186" y="725" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">38</text>
+  <text x="204" y="725" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 20 (MOSI)</text>
+
+  <!-- ROW 20: GND / GPIO21 -->
+  <rect x="140" y="743" width="28" height="22" fill="#374151" rx="4"/>
+  <rect x="172" y="743" width="28" height="22" fill="#0ea5a4" rx="4"/>
+  <text x="136" y="758" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="end">GND</text>
+  <text x="154" y="758" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">39</text>
+  <text x="186" y="758" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">40</text>
+  <text x="204" y="758" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="start">GPIO 21 (SCLK)</text>
+
+  <!-- Legend notes -->
+  <text x="340" y="790" font-family="sans-serif" font-size="12" fill="#6d28d9" text-anchor="middle">★ GPIO 17 = Project 1 (LED) · ✦ GPIO 27 = Project 2 (Button)</text>
+  <!-- Pin 1 marker -->
+  <text x="128" y="131" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="end" font-weight="bold">▶ PIN 1</text>
+
+  <!-- Board edge indicator -->
+  <rect x="132" y="108" width="76" height="666" fill="none" stroke="#6d28d9" stroke-width="2" stroke-dasharray="5,3" rx="4"/>
+</svg>
+<figcaption>The 40-pin GPIO header. Physical pin 1 (top-left, marked ▶) is closest to the board corner. ★ = GPIO 17 used in Project 1 (LED). ✦ = GPIO 27 used in Project 2 (button).</figcaption>
+</figure>
+
+<div class="tip"><strong>Tip:</strong> A handy trick to identify pin 1 on your actual board: look at the corner of the header nearest the microSD card slot — pin 1 is on that end, in the left-hand row when the board is oriented with the GPIO header at the top. Pin 1 also usually has a slightly squared-off pad on the underside of the board.</div>
+
+<h3>A Quick Tour of the Pin Types</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Pin type</th>
+      <th>Voltage</th>
+      <th>What it's for</th>
+      <th>Example physical pins</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3.3 V power</td>
+      <td>3.3 V</td>
+      <td>Supply power to 3.3 V components</td>
+      <td>1, 17</td>
+    </tr>
+    <tr>
+      <td>5 V power</td>
+      <td>5 V</td>
+      <td>Supply power to 5 V components (never feed this into a GPIO input)</td>
+      <td>2, 4</td>
+    </tr>
+    <tr>
+      <td>Ground (GND)</td>
+      <td>0 V</td>
+      <td>Complete the circuit — the return path for current</td>
+      <td>6, 9, 14, 20, 25, 30, 34, 39</td>
+    </tr>
+    <tr>
+      <td>GPIO (general)</td>
+      <td>0–3.3 V</td>
+      <td>Programmable: set HIGH/LOW or read HIGH/LOW</td>
+      <td>11 (GPIO 17), 13 (GPIO 27), etc.</td>
+    </tr>
+    <tr>
+      <td>GPIO (special function)</td>
+      <td>0–3.3 V</td>
+      <td>Same as above, but also supports a hardware protocol (SPI, I²C, UART, PWM)</td>
+      <td>8 (GPIO 14/TXD), 19 (GPIO 10/MOSI), etc.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> GPIO pin numbers can be confusing because there are two numbering systems. The <em>physical pin number</em> is the position on the header (1–40). The <em>GPIO number</em> (also called the BCM number) is the internal label used in software. In this chapter, and in the <code>gpiozero</code> library, we always use <strong>GPIO (BCM) numbers</strong> in code — so <code>LED(17)</code> means GPIO 17, which is physical pin 11.</div>
+
+<h2 id="electricity-for-absolute-beginners">Electricity for Absolute Beginners</h2>
+
+<p>You do not need an engineering degree to use GPIO safely, but understanding three basic ideas — voltage, current, and resistance — will stop you damaging things.</p>
+
+<h3>The Water Analogy</h3>
+
+<p>Imagine electricity flowing through a wire just like water flowing through a pipe.</p>
+
+<ul>
+  <li><strong>Voltage (measured in Volts, V)</strong> is the pressure pushing the water through the pipe. A higher voltage pushes harder. Your Pi's GPIO pins provide 3.3 V "pressure".</li>
+  <li><strong>Current (measured in Amperes, A, or milliamps, mA)</strong> is how much water is actually flowing per second. Too much current through a small wire (or a GPIO pin) will overheat it.</li>
+  <li><strong>Resistance (measured in Ohms, Ω)</strong> is how narrow the pipe is — it slows the flow down. Adding resistance reduces the current.</li>
+</ul>
+
+<p>These three are tied together by <strong>Ohm's Law</strong>: <em>Current = Voltage ÷ Resistance</em>. If you know two of the values, you can always work out the third. You will use this to calculate safe resistor values.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <strong>LED</strong> (Light-Emitting Diode) is a tiny lamp that only lets electricity flow in one direction. It lights up when current flows through it from its longer leg (the positive side, called the <em>anode</em>) to its shorter leg (the negative side, called the <em>cathode</em>). Fitting one in backwards means no light — but also no damage.</div>
+
+<h3>Why Every LED Needs a Resistor</h3>
+
+<p>An LED has almost no resistance of its own. If you connect it directly to 3.3 V and GND without anything to slow the current down, too much electricity flows through it, and it burns out immediately — sometimes taking the GPIO pin with it.</p>
+
+<p>A <strong>series resistor</strong> is placed in the same wire as the LED to limit the current to a safe level. "Series" just means in a chain, one after the other.</p>
+
+<p>A typical red, yellow, or green LED needs about 10–20 mA (milliamps) of current and "uses up" about 2 V of the supply. Here is how to work out the resistor value:</p>
+
+<ol>
+  <li>Start with the supply voltage: <strong>3.3 V</strong></li>
+  <li>Subtract the LED's forward voltage (roughly 2 V for a standard red LED): <strong>3.3 − 2 = 1.3 V</strong> left for the resistor.</li>
+  <li>Choose a target current — 10 mA (= 0.01 A) is safe and bright enough. Divide: <strong>1.3 V ÷ 0.01 A = 130 Ω</strong>.</li>
+  <li>Round up to the nearest <em>standard</em> resistor value. The closest common value above 130 Ω is <strong>270 Ω</strong> or the even safer <strong>330 Ω</strong>. Either works perfectly. A 330 Ω resistor is the standard beginner choice.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> When in doubt, use a <strong>330 Ω resistor</strong> for any standard LED connected to a 3.3 V GPIO pin. The LED will be slightly less bright than its theoretical maximum, but it will last for years.</div>
+
+<h3>Reading Resistor Colour Bands</h3>
+
+<p>Resistors are colour-coded. A 330 Ω resistor has four colour bands: <strong>Orange – Orange – Brown – Gold</strong>. You can also just check the label on its plastic bag if it came in a starter kit — this is the quickest approach.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg">
+  <rect width="500" height="120" fill="#f3f0ff" rx="10"/>
+  <text x="250" y="22" font-family="sans-serif" font-size="14" font-weight="bold" fill="#1f2933" text-anchor="middle">How to read a 330 Ω resistor</text>
+  <!-- Resistor body -->
+  <!-- Lead left -->
+  <line x1="60" y1="65" x2="130" y2="65" stroke="#888" stroke-width="3"/>
+  <!-- Body -->
+  <rect x="130" y="48" width="160" height="34" fill="#d4a372" rx="8" stroke="#1f2933" stroke-width="1.5"/>
+  <!-- Band 1: Orange -->
+  <rect x="145" y="48" width="18" height="34" fill="#f97316" rx="3"/>
+  <!-- Band 2: Orange -->
+  <rect x="172" y="48" width="18" height="34" fill="#f97316" rx="3"/>
+  <!-- Band 3: Brown -->
+  <rect x="199" y="48" width="18" height="34" fill="#92400e" rx="3"/>
+  <!-- Band 4: Gold (tolerance, gap then gold) -->
+  <rect x="254" y="48" width="18" height="34" fill="#ca8a04" rx="3"/>
+  <!-- Lead right -->
+  <line x1="290" y1="65" x2="360" y2="65" stroke="#888" stroke-width="3"/>
+  <!-- Labels -->
+  <text x="154" y="100" font-family="sans-serif" font-size="11" fill="#f97316" text-anchor="middle" font-weight="bold">Orange</text>
+  <text x="154" y="112" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">3</text>
+  <text x="181" y="100" font-family="sans-serif" font-size="11" fill="#f97316" text-anchor="middle" font-weight="bold">Orange</text>
+  <text x="181" y="112" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">3</text>
+  <text x="208" y="100" font-family="sans-serif" font-size="11" fill="#92400e" text-anchor="middle" font-weight="bold">Brown</text>
+  <text x="208" y="112" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">×10</text>
+  <text x="263" y="100" font-family="sans-serif" font-size="11" fill="#ca8a04" text-anchor="middle" font-weight="bold">Gold</text>
+  <text x="263" y="112" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">±5%</text>
+  <!-- Result -->
+  <text x="390" y="62" font-family="sans-serif" font-size="14" font-weight="bold" fill="#6d28d9" text-anchor="middle">= 330 Ω</text>
+  <text x="390" y="78" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">3 × 3 × 10</text>
+</svg>
+<figcaption>A 330 Ω resistor has bands Orange – Orange – Brown – Gold. The first two bands give the digits (3, 3), the third is the multiplier (×10), and the gold band means ±5% tolerance.</figcaption>
+</figure>
+
+<h2 id="what-is-a-breadboard">What Is a Breadboard?</h2>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>breadboard</strong> is a plastic board full of tiny holes. Inside, metal strips connect certain holes together so you can plug in components and wire them up without any soldering. You simply push wires and component legs into the holes, and the metal inside makes the electrical connection.</div>
+
+<p>A standard half-size breadboard is divided like this:</p>
+
+<ul>
+  <li>Two long rows along the top and bottom edges, labelled <strong>+</strong> and <strong>−</strong>, running the full length. These are called <em>power rails</em> — all holes in the same rail are connected together.</li>
+  <li>A large central area with numbered rows (usually 1–30). Each row is split into two halves (a–e on the left, f–j on the right) by a gap down the middle. Every hole in the same half-row (e.g., 1a, 1b, 1c, 1d, 1e) is connected together, but the left half and right half are NOT connected to each other across the gap.</li>
+</ul>
+
+<p>So if you push an LED's leg into hole 10e and a wire into hole 10c, they are connected. But a wire in 10f is not connected to 10e — it is on the other side of the gap.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 560 200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="560" height="200" fill="#f3f0ff" rx="10"/>
+  <text x="280" y="22" font-family="sans-serif" font-size="14" font-weight="bold" fill="#1f2933" text-anchor="middle">How a breadboard is connected inside</text>
+  <!-- Board background -->
+  <rect x="20" y="35" width="520" height="145" fill="#e8e4d9" rx="8" stroke="#c9b89a" stroke-width="2"/>
+  <!-- Power rails top -->
+  <rect x="25" y="40" width="510" height="18" fill="#fecaca" rx="4" opacity="0.7"/>
+  <text x="30" y="53" font-family="sans-serif" font-size="11" fill="#dc2626" font-weight="bold">+ power rail (all holes connected along the full length)</text>
+  <rect x="25" y="60" width="510" height="18" fill="#bfdbfe" rx="4" opacity="0.7"/>
+  <text x="30" y="73" font-family="sans-serif" font-size="11" fill="#1d4ed8" font-weight="bold">− power rail</text>
+  <!-- Centre gap -->
+  <rect x="25" y="117" width="510" height="10" fill="#1f2933" rx="2" opacity="0.15"/>
+  <text x="280" y="125" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">── Centre gap: left and right sides NOT connected ──</text>
+  <!-- Left rows (a-e) -->
+  <rect x="25" y="83" width="255" height="30" fill="#d1fae5" rx="4" opacity="0.8"/>
+  <text x="150" y="103" font-family="sans-serif" font-size="11" fill="#065f46" text-anchor="middle">Rows a–e: each row is connected left↔right within this half</text>
+  <!-- Right rows (f-j) -->
+  <rect x="282" y="83" width="253" height="30" fill="#d1fae5" rx="4" opacity="0.8"/>
+  <text x="408" y="103" font-family="sans-serif" font-size="11" fill="#065f46" text-anchor="middle">Rows f–j: separate from the a–e half</text>
+  <!-- Bottom power rails -->
+  <rect x="25" y="130" width="510" height="18" fill="#fecaca" rx="4" opacity="0.7"/>
+  <text x="30" y="143" font-family="sans-serif" font-size="11" fill="#dc2626" font-weight="bold">+ power rail</text>
+  <rect x="25" y="150" width="510" height="18" fill="#bfdbfe" rx="4" opacity="0.7"/>
+  <text x="30" y="163" font-family="sans-serif" font-size="11" fill="#1d4ed8" font-weight="bold">− power rail</text>
+  <!-- Arrows showing row connections -->
+  <line x1="25" y1="98" x2="280" y2="98" stroke="#059669" stroke-width="2" stroke-dasharray="4,3"/>
+  <line x1="282" y1="98" x2="535" y2="98" stroke="#059669" stroke-width="2" stroke-dasharray="4,3"/>
+</svg>
+<figcaption>Inside the breadboard, holes along each coloured rail are connected all the way along. Within the central area, holes in the same numbered half-row share a connection — but the left and right halves are separated by the centre gap.</figcaption>
+</figure>
+
+<h2 id="project-1-blink-an-led">Project 1 — Blink an LED</h2>
+
+<p>This is the "Hello, World!" of physical computing: making an LED flash on and off under the Pi's control. It proves that your software can talk to the real world.</p>
+
+<h3>What You Need</h3>
+
+<ul>
+  <li>A Raspberry Pi 5 (already set up and running Raspberry Pi OS)</li>
+  <li>1 × LED (any colour — red is traditional)</li>
+  <li>1 × 330 Ω resistor (orange-orange-brown-gold bands)</li>
+  <li>2 × jumper wires (short wires with push-on connectors — female-to-male: the female end fits a GPIO pin, the male end fits a breadboard hole)</li>
+  <li>1 × mini breadboard</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> <strong>Power off your Pi before wiring anything.</strong> Shut down from the desktop (click the Raspberry Pi menu &gt; Shutdown), wait for all the green lights to go out, then remove the power lead. Wiring with the power on is the most common way to accidentally damage a GPIO pin. Only plug the power back in once you are confident your wiring is correct.</div>
+
+<h3>Wiring Diagram</h3>
+
+<figure class="fig">
+<svg viewBox="0 0 600 390" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="390" fill="#f3f0ff" rx="12"/>
+  <text x="300" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Project 1 — LED Blink Wiring Diagram</text>
+
+  <!-- Pi GPIO header (simplified) -->
+  <rect x="20" y="60" width="90" height="210" fill="#1f2933" rx="6"/>
+  <text x="65" y="52" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
+  <!-- Pin 11 = GPIO17 -->
+  <rect x="24" y="100" width="16" height="12" fill="#6d28d9" rx="2"/>
+  <text x="44" y="111" font-family="sans-serif" font-size="10" fill="#f3f0ff">Pin 11 (GPIO 17)</text>
+  <!-- Pin 6 = GND -->
+  <rect x="24" y="145" width="16" height="12" fill="#374151" rx="2"/>
+  <text x="44" y="156" font-family="sans-serif" font-size="10" fill="#9ca3af">Pin 6 (GND)</text>
+
+  <!-- Wire from GPIO17 to resistor: purple -->
+  <line x1="40" y1="106" x2="200" y2="106" stroke="#6d28d9" stroke-width="3"/>
+  <!-- Resistor body -->
+  <rect x="200" y="96" width="54" height="20" fill="#d4a372" stroke="#1f2933" stroke-width="1.5" rx="4"/>
+  <!-- Resistor colour bands -->
+  <rect x="209" y="96" width="5" height="20" fill="#f97316"/>
+  <rect x="218" y="96" width="5" height="20" fill="#f97316"/>
+  <rect x="227" y="96" width="5" height="20" fill="#92400e"/>
+  <rect x="241" y="96" width="5" height="20" fill="#ca8a04"/>
+  <text x="227" y="88" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">330 Ω</text>
+  <!-- Wire from resistor to LED anode: purple -->
+  <line x1="254" y1="106" x2="330" y2="106" stroke="#6d28d9" stroke-width="3"/>
+
+  <!-- LED body -->
+  <rect x="330" y="91" width="16" height="32" fill="#ef4444" stroke="#1f2933" stroke-width="1.5" rx="3"/>
+  <ellipse cx="338" cy="91" rx="8" ry="5" fill="#ef4444" stroke="#1f2933" stroke-width="1.5"/>
+  <!-- LED legs: long leg (anode, left) connects toward resistor; short leg (cathode, right) goes to GND -->
+  <line x1="333" y1="123" x2="333" y2="155" stroke="#1f2933" stroke-width="2"/>
+  <line x1="343" y1="123" x2="343" y2="165" stroke="#1f2933" stroke-width="2"/>
+  <!-- LED label -->
+  <text x="338" y="185" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">LED</text>
+  <text x="322" y="148" font-family="sans-serif" font-size="10" fill="#6d28d9" text-anchor="end">+long</text>
+  <text x="322" y="161" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="end">−short</text>
+
+  <!-- Wire from LED cathode (short leg) to GND: dark -->
+  <line x1="343" y1="165" x2="343" y2="250" stroke="#374151" stroke-width="3"/>
+  <line x1="343" y1="250" x2="40" y2="250" stroke="#374151" stroke-width="3"/>
+  <line x1="40" y1="250" x2="40" y2="152" stroke="#374151" stroke-width="3"/>
+
+  <!-- Glow effect -->
+  <ellipse cx="375" cy="106" rx="18" ry="13" fill="#fef08a" opacity="0.6"/>
+  <ellipse cx="375" cy="106" rx="10" ry="7" fill="#fde047" opacity="0.8"/>
+
+  <!-- Breadboard hint box -->
+  <rect x="158" y="73" width="200" height="195" fill="#e8e4d9" stroke="#c9b89a" stroke-width="1.5" rx="6" opacity="0.35"/>
+  <text x="258" y="278" font-family="sans-serif" font-size="11" fill="#92400e" text-anchor="middle">Breadboard</text>
+
+  <!-- Legend labels -->
+  <text x="300" y="312" font-family="sans-serif" font-size="12" fill="#6d28d9" text-anchor="middle">Purple wire: GPIO 17 (pin 11) → 330 Ω resistor → LED long leg (+)</text>
+  <text x="300" y="330" font-family="sans-serif" font-size="12" fill="#374151" text-anchor="middle">Dark wire: LED short leg (−) → GND (pin 6)</text>
+  <text x="300" y="353" font-family="sans-serif" font-size="13" fill="#dc2626" text-anchor="middle" font-weight="bold">Current flows: GPIO 17 → Resistor → LED → GND</text>
+</svg>
+<figcaption>Wiring for Project 1. The purple path carries current from GPIO 17 through the 330 Ω resistor into the LED's long leg (anode). The dark path returns from the LED's short leg (cathode) to a GND pin. The breadboard holds everything in place.</figcaption>
+</figure>
+
+<h3>Step-by-Step Wiring Instructions</h3>
+
+<div class="warn"><strong>Careful:</strong> Your Pi must be fully shut down and unplugged from power for all wiring steps. Do not plug it back in until step 8.</div>
+
+<ol class="steps">
+  <li><strong>Prepare your breadboard.</strong> Place the mini breadboard on a flat surface in front of you with the numbered rows visible. You will use rows 5 and 6 in this project — but any two adjacent rows work fine.</li>
+  <li><strong>Insert the LED.</strong> Push the LED's two legs into the breadboard so that the <em>long leg</em> (anode, positive) goes into hole <strong>6e</strong> and the <em>short leg</em> (cathode, negative) goes into hole <strong>6f</strong>. Because the centre gap separates e from f, each leg is in its own separate electrical group — perfect.</li>
+  <li><strong>Insert the resistor.</strong> Push one leg of the 330 Ω resistor into hole <strong>6b</strong> (the same row as the LED's long leg, so they are connected by the breadboard's internal strip). Push the other resistor leg into hole <strong>4b</strong> (a different row, which gives you a free connection point for the GPIO wire).</li>
+  <li><strong>Connect the GPIO wire.</strong> Take a female-to-male jumper wire. Push the <em>female</em> end (the socket) firmly onto <strong>physical pin 11</strong> on the Pi's GPIO header — that is GPIO 17, left column, sixth pin from the top. Push the <em>male</em> end (the pin) into hole <strong>4a</strong> — the same row as the free leg of the resistor.</li>
+  <li><strong>Connect the GND wire.</strong> Take a second female-to-male jumper wire. Push the female end onto <strong>physical pin 6</strong> on the GPIO header — that is a GND pin, right column, third from the top. Push the male end into hole <strong>6g</strong> — the same row as the LED's short leg on the right-hand side of the breadboard.</li>
+  <li><strong>Trace the full circuit.</strong> Follow the path: GPIO 17 (pin 11) → jumper wire → hole 4a → resistor → hole 6b → LED long leg (6e) → LED short leg (6f) → hole 6g → jumper wire → GND (pin 6). Every step should be connected, with no wires touching each other except where intended.</li>
+  <li><strong>Check the LED orientation.</strong> The long leg must connect toward the GPIO side (via the resistor). The short leg must connect toward GND. Getting this backwards simply means the LED will not light — it will not damage anything. If the LED does not come on, try pulling it out and turning it around.</li>
+  <li><strong>Only now, plug in your Pi's power lead</strong> and let it boot to the desktop.</li>
+</ol>
+
+<h3>Writing the Python Program</h3>
+
+<p>The Pi's recommended Python library for GPIO is called <strong>gpiozero</strong>. It comes pre-installed on Raspberry Pi OS Bookworm and uses the <code>lgpio</code> backend on the Pi 5 — so there is nothing to download.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>library</strong> is a collection of ready-written code that you can use in your own programs. Instead of writing dozens of lines to control a GPIO pin from scratch, you import gpiozero and use its simple commands like <code>LED(17)</code>.</div>
+
+<p>Open <strong>Thonny</strong> (click the Raspberry Pi menu → Programming → Thonny Python IDE). You will see a blank editor area at the top. Type the following program exactly as shown:</p>
+
+<pre class="code"><code>from gpiozero import LED
+from signal import pause
+
+led = LED(17)
+led.blink()
+pause()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import LED</code>:</strong> The <code>gpiozero</code> library contains ready-made objects for common components. This line pulls in the <code>LED</code> object so we can use it. Think of it as fetching the right tool from a toolbox.</p>
+  <p><strong>Line 2 — <code>from signal import pause</code>:</strong> Brings in a helper called <code>pause()</code> that keeps the program running and waiting. Without it, the program would finish and close in an instant before the LED had a chance to blink.</p>
+  <p><strong>Line 4 — <code>led = LED(17)</code>:</strong> Creates a software object representing the LED connected to GPIO pin 17. The number 17 is the GPIO (BCM) number, which corresponds to physical pin 11 on the header.</p>
+  <p><strong>Line 5 — <code>led.blink()</code>:</strong> Tells the LED to start blinking — on for one second, off for one second, repeating forever. You can customise the speed (see the Tip below).</p>
+  <p><strong>Line 6 — <code>pause()</code>:</strong> Keeps the program alive indefinitely so the blinking continues. The program will stay here until you stop it.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> You can control the blink speed by passing arguments to <code>blink()</code>. For example, <code>led.blink(on_time=0.2, off_time=0.8)</code> makes the LED flash quickly (on for 0.2 seconds, off for 0.8 seconds). Try different values and experiment!</div>
+
+<h3>Running the Program</h3>
+
+<ol class="steps">
+  <li>In Thonny, click <strong>File → Save</strong> and save the file as <code>blink.py</code> in your home folder.</li>
+  <li>Click the green <strong>Run</strong> button (the triangle ▶) at the top of Thonny, or press <strong>F5</strong>.</li>
+  <li>Watch your LED — it should start blinking on and off once per second. If it does not, check your wiring: most likely the LED is backwards (swap it around), or a jumper wire is not pushed in firmly.</li>
+  <li>To stop the program, click the red <strong>Stop</strong> button in Thonny (the square ◼). The LED will go off and stay off.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> If Thonny shows a pin-factory error such as <code>No module named 'lgpio'</code>, the lgpio backend may need to be installed. Open a terminal and run <code>sudo apt install python3-lgpio</code>, then close and reopen Thonny. If you see a permissions error, make sure your user account is in the <code>gpio</code> group (see the section "Checking GPIO Access" later in this chapter).</div>
+
+<p>Congratulations — you have just written a program that controls a physical object in the real world. That is the essence of physical computing.</p>
+
+<h2 id="project-2-read-a-push-button">Project 2 — Read a Push Button</h2>
+
+<p>In Project 1, your Pi was the boss — it sent signals out. In Project 2 you flip it around: you will tell the Pi to <em>listen</em> for a signal coming in from a push button you press with your finger. Press the button, the LED comes on. Release it, the LED goes off.</p>
+
+<h3>What You Need</h3>
+
+<ul>
+  <li>Everything from Project 1 (LED + 330 Ω resistor + breadboard still wired up)</li>
+  <li>1 × push button (a small tactile switch — four legs, fits a breadboard)</li>
+  <li>1 × additional female-to-male jumper wire</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> Shut down and unplug your Pi before adding the button wiring.</div>
+
+<h3>How a Push Button Works</h3>
+
+<p>A small tactile push button has four legs, but electrically it only has two connections: one pair of legs on one side, and one pair on the opposite side. When you press the button, the two sides connect. When you release it, they disconnect again.</p>
+
+<p>To use a button with gpiozero, you connect one side to a GPIO pin and the other side to the 3.3 V power pin. The gpiozero <code>Button</code> object automatically switches on an internal <strong>pull-down resistor</strong> inside the Pi. This invisible resistor gently pulls the GPIO pin to LOW (0 V) whenever the button is open. When you press the button, 3.3 V flows into the pin and it reads HIGH. You do not need any external resistor for the button — gpiozero handles it all.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>pull-down resistor</strong> is a resistor connected between a GPIO pin and GND. It ensures the pin reads a definite LOW (0 V) when nothing else is driving it. Without it, the pin would "float" — picking up electrical noise and randomly reading HIGH or LOW. The Pi 5 has these built in, and gpiozero enables them automatically when you create a <code>Button</code> object.</div>
+
+<h3>Wiring the Button</h3>
+
+<p>Push the button across the centre gap of the breadboard (its legs straddle the gap) in a new area of rows, away from the LED circuit — for example rows 12–13.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 580 300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="580" height="300" fill="#f3f0ff" rx="12"/>
+  <text x="290" y="26" font-family="sans-serif" font-size="14" font-weight="bold" fill="#1f2933" text-anchor="middle">Project 2 — Button Wiring (adds to Project 1 setup)</text>
+
+  <!-- Pi header -->
+  <rect x="20" y="50" width="90" height="200" fill="#1f2933" rx="6"/>
+  <text x="65" y="43" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
+  <!-- Pin 13 = GPIO27 -->
+  <rect x="24" y="90" width="16" height="12" fill="#6d28d9" rx="2"/>
+  <text x="44" y="101" font-family="sans-serif" font-size="10" fill="#f3f0ff">Pin 13 (GPIO 27)</text>
+  <!-- Pin 1 = 3.3V -->
+  <rect x="24" y="140" width="16" height="12" fill="#f97316" rx="2"/>
+  <text x="44" y="151" font-family="sans-serif" font-size="10" fill="#f3f0ff">Pin 1 (3.3 V)</text>
+
+  <!-- Breadboard area -->
+  <rect x="200" y="60" width="260" height="180" fill="#e8e4d9" stroke="#c9b89a" stroke-width="1.5" rx="8" opacity="0.5"/>
+  <text x="330" y="252" font-family="sans-serif" font-size="11" fill="#92400e" text-anchor="middle">Breadboard (rows 12–13)</text>
+
+  <!-- Button body -->
+  <rect x="290" y="120" width="40" height="40" fill="#374151" rx="4" stroke="#1f2933" stroke-width="2"/>
+  <rect x="303" y="133" width="14" height="14" fill="#6d28d9" rx="7"/>
+  <text x="310" y="178" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Button</text>
+  <!-- Button legs: left side pins and right side pins -->
+  <line x1="294" y1="120" x2="294" y2="105" stroke="#1f2933" stroke-width="2"/>
+  <line x1="326" y1="120" x2="326" y2="105" stroke="#1f2933" stroke-width="2"/>
+  <line x1="294" y1="160" x2="294" y2="178" stroke="#1f2933" stroke-width="2"/>
+  <line x1="326" y1="160" x2="326" y2="178" stroke="#1f2933" stroke-width="2"/>
+  <!-- Left side label (GPIO 27 side) -->
+  <text x="248" y="100" font-family="sans-serif" font-size="10" fill="#6d28d9" text-anchor="middle">GPIO 27 side</text>
+  <!-- Right side label (3.3V side) -->
+  <text x="370" y="100" font-family="sans-serif" font-size="10" fill="#f97316" text-anchor="middle">3.3 V side</text>
+
+  <!-- Wire: GPIO 27 (pin 13) to left side of button -->
+  <line x1="40" y1="96" x2="294" y2="96" stroke="#6d28d9" stroke-width="3"/>
+
+  <!-- Wire: 3.3V (pin 1) to right side of button -->
+  <line x1="40" y1="146" x2="326" y2="146" stroke="#f97316" stroke-width="3"/>
+  <!-- Bend the 3.3V wire up to the right side top -->
+  <line x1="326" y1="146" x2="326" y2="105" stroke="#f97316" stroke-width="3"/>
+
+  <!-- Labels -->
+  <text x="160" y="88" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">Purple: GPIO 27</text>
+  <text x="160" y="138" font-family="sans-serif" font-size="11" fill="#f97316" text-anchor="middle">Orange: 3.3 V</text>
+
+  <!-- Explanation box -->
+  <rect x="20" y="218" width="540" height="68" fill="white" rx="6" stroke="#6d28d9" stroke-width="1" opacity="0.85"/>
+  <text x="290" y="236" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">How it works:</text>
+  <text x="290" y="252" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Button released: GPIO 27 is pulled LOW by internal pull-down → LED off</text>
+  <text x="290" y="268" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Button pressed: 3.3 V drives GPIO 27 HIGH → LED on</text>
+  <text x="290" y="284" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">Only 2 wires needed — no external resistor required</text>
+</svg>
+<figcaption>Project 2 button wiring. One side of the button connects to GPIO 27 (pin 13, purple wire); the other side to 3.3 V (pin 1, orange wire). No GND wire is needed for the button — gpiozero's built-in pull-down handles that automatically.</figcaption>
+</figure>
+
+<ol class="steps">
+  <li><strong>Push the button across the breadboard centre gap</strong> — legs straddling the gap in rows 12–13 (or any spare rows). This keeps the two sides of the button electrically separate until it is pressed.</li>
+  <li><strong>Connect the GPIO 27 wire.</strong> Take a female-to-male jumper wire. Push the female end onto <strong>physical pin 13</strong> on the GPIO header — that is GPIO 27, left column, seventh pin from the top. Push the male end into the breadboard hole on the <em>left side</em> of the button (e.g., row 12, hole b).</li>
+  <li><strong>Connect the 3.3 V wire.</strong> Take another female-to-male jumper wire. Push the female end onto <strong>physical pin 1</strong> on the GPIO header — that is the 3.3 V pin, top-left corner of the header. Push the male end into the breadboard hole on the <em>right side</em> of the button (e.g., row 12, hole f — the other side of the centre gap).</li>
+  <li><strong>That is all for the button.</strong> You do not need a GND wire for the button itself — gpiozero enables a built-in pull-down resistor inside the Pi chip, which holds the GPIO 27 pin at LOW when the button is not pressed. The LED circuit from Project 1 stays exactly as it is.</li>
+  <li><strong>Double-check, then reconnect power</strong> and let the Pi boot up.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> The left and right sides of a tactile button are defined by looking at it from above. Two legs on one side are always connected together; the other two legs on the opposite side are always connected together. When you press the button, the left pair connects to the right pair. If your button is in a 4-hole square arrangement, left and right are the pairs that face each other across the longer axis.</div>
+
+<h3>The Button Program</h3>
+
+<p>Open a new file in Thonny (File → New) and type the following:</p>
+
+<pre class="code"><code>from gpiozero import LED, Button
+from signal import pause
+
+led = LED(17)
+button = Button(27)
+
+button.when_pressed = led.on
+button.when_released = led.off
+
+pause()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import LED, Button</code>:</strong> This time we import two objects from gpiozero: the same <code>LED</code> from Project 1, and a new one called <code>Button</code>.</p>
+  <p><strong>Line 2 — <code>from signal import pause</code>:</strong> Same as before — keeps the program alive so it can keep listening for button events.</p>
+  <p><strong>Line 4 — <code>led = LED(17)</code>:</strong> Represents our LED on GPIO 17, exactly as before.</p>
+  <p><strong>Line 5 — <code>button = Button(27)</code>:</strong> Represents the push button connected to GPIO 27. By default, gpiozero enables the built-in pull-down resistor, keeping the pin at LOW until the button is pressed — no extra wiring needed.</p>
+  <p><strong>Line 7 — <code>button.when_pressed = led.on</code>:</strong> Tells Python: "Whenever the button is pressed, run <code>led.on()</code>" — which switches the LED on. Notice there are no parentheses after <code>led.on</code>; you are handing the action to the button to call later, not calling it right now.</p>
+  <p><strong>Line 8 — <code>button.when_released = led.off</code>:</strong> Tells Python: "Whenever the button is released, run <code>led.off()</code>" — switching the LED off again.</p>
+  <p><strong>Line 10 — <code>pause()</code>:</strong> Keeps the script running indefinitely so it can respond to button events. Without this, the program would end immediately.</p>
+</div>
+
+<p>Save this as <code>button_led.py</code> and run it with the green button in Thonny. Now press your physical button — the LED should light up while you hold the button, and go off when you release it.</p>
+
+<div class="tip"><strong>Tip:</strong> You can make the button do anything you like. Instead of controlling an LED, you could make it print a message. Here is how to define your own action for the button:</div>
+
+<pre class="code"><code>def button_was_pressed():
+    print("Button was pressed!")
+
+button.when_pressed = button_was_pressed</code></pre>
+<div class="explain">
+  <p><strong>Lines 1–2 — <code>def button_was_pressed():</code> and <code>print(...)</code>:</strong> Define a new function called <code>button_was_pressed</code>. The indented <code>print</code> line below it is what happens when the function is called — it displays a message in the Thonny console.</p>
+  <p><strong>Line 4 — <code>button.when_pressed = button_was_pressed</code>:</strong> Hands this new function to the button object, so gpiozero calls it every time the button is pressed. Again, no parentheses — you are pointing at the function, not calling it yet.</p>
+</div>
+
+<h2 id="checking-gpio-access-in-bookworm">Checking GPIO Access in Bookworm</h2>
+
+<p>Raspberry Pi OS Bookworm manages GPIO permissions through user groups. Your user account is automatically added to the <code>gpio</code> group during first-time setup, so GPIO programs should work without any changes. If you ever get a "permission denied" error when running GPIO code, open a terminal and check which groups your account belongs to:</p>
+
+<pre class="code"><code>groups</code></pre>
+<div class="explain">
+  <p><strong><code>groups</code>:</strong> Prints all the user groups your account belongs to. Look for <code>gpio</code> in the output. If it is missing, run the command shown below to add yourself, then log out and back in for the change to take effect.</p>
+</div>
+
+<p>If <code>gpio</code> is not listed, run this to add your account:</p>
+
+<pre class="code"><code>sudo usermod -aG gpio $USER</code></pre>
+<div class="explain">
+  <p><strong><code>sudo</code>:</strong> Runs the command with administrator ("superuser") privileges — required for changing group memberships.</p>
+  <p><strong><code>usermod -aG gpio</code>:</strong> Modifies a user account (<code>usermod</code>) by appending (<code>-a</code>) them to an additional group (<code>-G gpio</code>). The <code>gpio</code> group is the one that grants access to GPIO pins.</p>
+  <p><strong><code>$USER</code>:</strong> A built-in variable that automatically expands to your current username, so you do not need to type it yourself.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> After running the command above, you must <strong>log out and log back in</strong> (or reboot the Pi) before the change takes effect. Group memberships are only read when you first log in.</div>
+
+<h2 id="going-further-sensors-the-camera-and-hats">Going Further: Sensors, the Camera, and HATs</h2>
+
+<p>Once you are comfortable with an LED and a button, a whole universe of electronics opens up. Here are the most popular next steps for Pi beginners.</p>
+
+<h3>Sensors</h3>
+
+<p>Sensors let your Pi sense the world around it. They all connect to the GPIO header (or sometimes via USB).</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Sensor</th>
+      <th>What it detects</th>
+      <th>Connection</th>
+      <th>Python library</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>PIR motion sensor (HC-SR501)</td>
+      <td>Movement (up to ~7 m)</td>
+      <td>Power, GND, 1 GPIO signal pin</td>
+      <td><code>MotionSensor</code> in gpiozero</td>
+    </tr>
+    <tr>
+      <td>DHT11 / DHT22</td>
+      <td>Temperature and humidity</td>
+      <td>Power, GND, 1 GPIO data pin</td>
+      <td><code>adafruit-circuitpython-dht</code></td>
+    </tr>
+    <tr>
+      <td>HC-SR04 ultrasonic</td>
+      <td>Distance to an object (like sonar)</td>
+      <td>Power, GND, 2 GPIO pins (trigger + echo)</td>
+      <td><code>DistanceSensor</code> in gpiozero</td>
+    </tr>
+    <tr>
+      <td>DS18B20 temperature probe</td>
+      <td>Precise temperature (waterproof version available)</td>
+      <td>1-Wire protocol, 1 GPIO pin + 4.7 kΩ resistor</td>
+      <td>Built into the OS kernel</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> Many sensors come with their own Python libraries. On Bookworm, install them with <code>sudo apt install python3-&lt;library-name&gt;</code> where possible — this uses the system's tested packages and does not conflict with anything. Alternatively, install inside a virtual environment with <code>pip install &lt;library-name&gt;</code>. Do not run plain <code>pip install</code> directly into the system Python on Bookworm — it will be blocked with an "externally managed environment" error, and bypassing it can break your system. See Chapter 11 for virtual environment guidance.</div>
+
+<h3>PIR Motion Sensor Example</h3>
+
+<p>A PIR (Passive Infrared) sensor detects heat from people and animals moving nearby — it is what triggers security lights. Wire it so its VCC pin goes to a 5 V power pin (most HC-SR501 PIRs need 5 V for their internal electronics), its GND pin to any GND pin, and its OUT signal pin to GPIO 4. Then:</p>
+
+<pre class="code"><code>from gpiozero import MotionSensor
+from signal import pause
+
+pir = MotionSensor(4)
+
+pir.when_motion = lambda: print("Motion detected!")
+pir.when_no_motion = lambda: print("All quiet.")
+
+pause()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import MotionSensor</code>:</strong> Imports the ready-made gpiozero object for PIR sensors.</p>
+  <p><strong>Line 4 — <code>pir = MotionSensor(4)</code>:</strong> Creates a MotionSensor object listening on GPIO 4 (physical pin 7). gpiozero reads the signal from the sensor and handles all the pin logic internally.</p>
+  <p><strong>Line 6 — <code>pir.when_motion = lambda: print("Motion detected!")</code>:</strong> <code>lambda</code> is a quick way to write a tiny, one-line function without giving it a name. This says: when motion is detected, print a message to the console. You could replace this with any action — flashing an LED, sending an email, starting a video recording.</p>
+  <p><strong>Line 7 — <code>pir.when_no_motion = lambda: print("All quiet.")</code>:</strong> The same pattern for when motion stops being detected.</p>
+  <p><strong>Line 9 — <code>pause()</code>:</strong> Keeps the script running indefinitely, waiting and listening for motion events.</p>
+</div>
+
+<h3>The Raspberry Pi Camera Module</h3>
+
+<p>The Pi 5 has two dedicated camera connectors (labelled <strong>CAM0</strong> and <strong>CAM1</strong>) — slim ribbon-cable sockets on the board. An official Raspberry Pi Camera Module v2 or v3 plugs in with a flat ribbon cable. Once connected, you can take photos and record video in Python using the <strong>picamera2</strong> library, which is pre-installed on Bookworm.</p>
+
+<div class="note"><strong>Note:</strong> On the Pi 5 with Bookworm, the camera works automatically as soon as the ribbon cable is connected — there is no enable toggle needed in settings. The <code>picamera2</code> library uses the modern <strong>libcamera</strong> stack. You can test that the camera is detected by opening a terminal and running <code>rpicam-hello</code>: a preview window should appear for a few seconds.</div>
+
+<pre class="code"><code>from picamera2 import Picamera2
+
+cam = Picamera2()
+cam.start()
+cam.capture_file("photo.jpg")
+cam.stop()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from picamera2 import Picamera2</code>:</strong> Imports the Picamera2 library that comes with Bookworm for controlling the camera hardware.</p>
+  <p><strong>Line 3 — <code>cam = Picamera2()</code>:</strong> Creates a camera control object. If no camera is detected, an error will appear here.</p>
+  <p><strong>Line 4 — <code>cam.start()</code>:</strong> Powers up the camera sensor and starts the image pipeline. There may be a brief warm-up pause.</p>
+  <p><strong>Line 5 — <code>cam.capture_file("photo.jpg")</code>:</strong> Takes a single photograph and saves it as <code>photo.jpg</code> in the current folder (usually your home folder when run from Thonny).</p>
+  <p><strong>Line 6 — <code>cam.stop()</code>:</strong> Powers the camera down neatly after the photo is taken.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> The Camera Module v3 has a motorised autofocus lens — it focuses automatically. The v2 has a fixed-focus lens. Both work with the same picamera2 code. Find the saved <code>photo.jpg</code> in the Files app (in your home folder) to view it.</div>
+
+<h3>HATs — Hardware Attached on Top</h3>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>HAT</strong> (Hardware Attached on Top) is an add-on board that plugs directly onto the full 40-pin GPIO header, sitting on top of the Pi like a hat on a head. HATs follow a standard design that allows the Pi to automatically identify what is connected.</div>
+
+<p>Popular HATs for beginners include:</p>
+
+<ul>
+  <li><strong>Sense HAT</strong> — contains an 8×8 LED matrix display, temperature, humidity, pressure and compass sensors, and a joystick, all in one board. A fantastic all-in-one learning tool — and the same board used on the International Space Station.</li>
+  <li><strong>Explorer HAT / Motor HAT</strong> — controls DC motors and stepper motors, great for robots.</li>
+  <li><strong>Pimoroni Unicorn HAT</strong> — a grid of colourful LEDs for light shows and animations.</li>
+  <li><strong>NVMe Base HAT</strong> — adds an M.2 NVMe SSD via the Pi 5's PCIe connector (this one goes underneath the Pi, not on the GPIO header).</li>
+</ul>
+
+<p>Each HAT comes with its own Python library and installation instructions. Most install with a single <code>sudo apt install</code> command or a one-line installer script from the manufacturer's website.</p>
+
+<div class="note"><strong>Note:</strong> The Pi 5 uses a new version of the HAT standard called <strong>HAT+</strong>. Most older HATs designed for the Pi 4 still fit physically, but always check the manufacturer's compatibility notes for the Pi 5 before buying.</div>
+
+<h2 id="gpio-safety-checklist">GPIO Safety Checklist</h2>
+
+<p>Before every session with the GPIO header, run through this quick checklist:</p>
+
+<ul>
+  <li><strong>Power off before wiring.</strong> Shut down the Pi fully (menu → Shutdown), wait for the green activity light to go out, then unplug the power lead. Only connect or change wiring with no power.</li>
+  <li><strong>Never feed 5 V into a GPIO input pin.</strong> The Pi 5 GPIO is 3.3 V logic only — 5 V will destroy the pin instantly and permanently.</li>
+  <li><strong>Never short two pins together.</strong> Letting two metal pins touch via a stray wire or misplaced component can instantly damage the Pi. Always check your wiring carefully before powering on.</li>
+  <li><strong>Always use a current-limiting resistor with LEDs.</strong> A bare LED with no resistor will burn out in seconds — and may take the GPIO pin with it.</li>
+  <li><strong>GPIO pins supply only a small current.</strong> Each GPIO pin can safely supply up to about 8–16 mA, and the total for all pins combined is limited. Do not try to power a motor, relay, or high-current buzzer directly from a GPIO pin — use a driver board or transistor circuit instead.</li>
+  <li><strong>Handle with care and avoid static.</strong> Avoid putting your fingers on the Pi's circuit board components while the power is on. Before handling the bare board, touch a grounded metal object (such as a radiator) to discharge any static electricity from your body.</li>
+</ul>
+
+
+<div class="widget-mount" data-widget="resistor"></div>
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>GPIO</strong> - General-Purpose Input/Output; the 40 programmable pins on the Pi that can communicate with electronic components.</li>
+  <li><strong>Header</strong> - The double row of 40 metal pins along the top edge of the Pi board.</li>
+  <li><strong>BCM number</strong> - The GPIO pin numbering system used in software (e.g., GPIO 17), as opposed to the physical position on the header (e.g., physical pin 11).</li>
+  <li><strong>Voltage (V)</strong> - Electrical "pressure", measured in Volts. The Pi's GPIO pins output 3.3 V.</li>
+  <li><strong>Current (A / mA)</strong> - The flow of electricity, measured in Amperes or milliamps. Each GPIO pin can safely supply around 8–16 mA.</li>
+  <li><strong>Resistance (Ω)</strong> - Opposition to current flow, measured in Ohms. A series resistor protects components from receiving too much current.</li>
+  <li><strong>Ohm's Law</strong> - The rule that Current = Voltage ÷ Resistance, used to calculate safe resistor values for LEDs and other components.</li>
+  <li><strong>LED</strong> - Light-Emitting Diode; a small efficient lamp that lights up when current flows through it in the correct direction.</li>
+  <li><strong>Anode</strong> - The positive leg of an LED (the longer one); current enters here.</li>
+  <li><strong>Cathode</strong> - The negative leg of an LED (the shorter one); current exits here toward GND.</li>
+  <li><strong>Series resistor</strong> - A resistor placed in-line with an LED to limit current to a safe level. 330 Ω is the standard beginner choice for a 3.3 V GPIO.</li>
+  <li><strong>Breadboard</strong> - A reusable plastic prototyping board with internal metal strips connecting rows of holes, allowing components to be connected without soldering.</li>
+  <li><strong>Pull-down resistor</strong> - A resistor connected between a GPIO input pin and GND that keeps the pin reading LOW when nothing else is driving it. The Pi 5 has these built in; gpiozero enables them automatically for buttons.</li>
+  <li><strong>gpiozero</strong> - A beginner-friendly Python library pre-installed on Raspberry Pi OS Bookworm that makes controlling GPIO components very simple. On Pi 5 it uses the lgpio backend.</li>
+  <li><strong>lgpio</strong> - The low-level GPIO library used as the backend by gpiozero on the Raspberry Pi 5 / Bookworm. Pre-installed; install with <code>sudo apt install python3-lgpio</code> if ever missing.</li>
+  <li><strong>PIR sensor</strong> - Passive Infrared sensor; detects movement by sensing changes in infrared (heat) radiation from warm bodies.</li>
+  <li><strong>picamera2</strong> - The Python library pre-installed on Bookworm for controlling the Raspberry Pi Camera Module using the libcamera stack.</li>
+  <li><strong>HAT</strong> - Hardware Attached on Top; an add-on board that plugs onto the 40-pin GPIO header and follows a standard that lets the Pi identify it automatically.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>The 40-pin GPIO header is the Pi's gateway to the physical world, providing 3.3 V and 5 V power pins, ground pins, and up to 26 programmable GPIO pins.</li>
+  <li>GPIO pins operate at 3.3 V logic only — feeding 5 V into them will permanently damage the Pi 5.</li>
+  <li>Always power off and unplug the Pi completely before connecting or changing any wiring.</li>
+  <li>An LED always needs a series resistor (330 Ω is the safe standard for a 3.3 V GPIO) to prevent it burning out.</li>
+  <li>A breadboard lets you prototype circuits quickly without soldering, using internal metal strip connections — left and right halves of each row are separated by a centre gap.</li>
+  <li>Software uses the BCM (GPIO) number, not the physical pin position; <code>LED(17)</code> controls GPIO 17 = physical pin 11.</li>
+  <li>The <code>gpiozero</code> library on Bookworm uses the <code>lgpio</code> backend on Pi 5; <code>LED(17)</code> and <code>Button(27)</code> work out of the box with no extra configuration.</li>
+  <li>Project 1 demonstrated output: blinking an LED by driving GPIO 17 HIGH and LOW in a repeating pattern with <code>led.blink()</code>.</li>
+  <li>Project 2 demonstrated input: reading a push button on GPIO 27 and using gpiozero's built-in pull-down resistor so that <code>button.when_pressed</code> and <code>button.when_released</code> trigger actions automatically.</li>
+  <li>The correct button circuit with gpiozero is: one button leg to GPIO pin, other leg to 3.3 V — just two wires, no external resistor required.</li>
+  <li>Sensors (PIR, DHT22, ultrasonic), the Camera Module (use <code>picamera2</code> on Bookworm), and HAT add-on boards are natural next steps that all build on the same GPIO foundation.</li>
+</ul>
+</div>

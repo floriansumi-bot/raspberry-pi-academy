@@ -1,0 +1,557 @@
+<p class="lead">Adverts and tracking scripts slow down web pages, clutter your screen, and quietly follow you around the internet. In this chapter you will turn your Raspberry Pi into a network-wide ad blocker called Pi-hole — a free, open-source tool that protects every phone, tablet, laptop, and smart TV in your home without installing anything on those devices.</p>
+
+<h2 id="how-the-internet-looks-up-websites-and-how-pi-ho">How the internet "looks up" websites — and how Pi-hole exploits that</h2>
+
+<p>Before you install anything, it helps to understand the clever trick that makes Pi-hole work.</p>
+
+<h3>DNS: the internet's phone book</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>DNS</strong> stands for Domain Name System. When you type <code>www.bbc.co.uk</code> into your browser, your computer does not actually know where that is. It first asks a special server — called a DNS resolver — to translate the human-readable name into a numerical address (like <code>151.101.0.81</code>). That numerical address is an <strong>IP address</strong> — the internet's equivalent of a postal code for a computer. Only once your device has that number can it actually connect to the site.</div>
+
+<p>Every time you load a web page, dozens of these look-ups happen in the blink of an eye — one for the main site, and more for every advert, tracking pixel, and analytics script the page tries to load. Your home router normally forwards all of these look-up requests out to a DNS server run by your internet provider (or Google, or Cloudflare).</p>
+
+<h3>What Pi-hole does differently</h3>
+
+<p>Pi-hole installs itself as your home network's DNS server. Instead of forwarding every request straight to the internet, it first checks each domain name against a list of known advertising and tracking domains. If the name is on the list, Pi-hole returns a harmless "not found" answer — so the advert or tracker simply never loads. If the name is legitimate (like <code>bbc.co.uk</code>), Pi-hole forwards the request normally and your browser gets the page.</p>
+
+<p>The beauty of this approach is that <strong>nothing needs to be installed on your phone, tablet, or smart TV</strong>. As long as those devices use your Pi as their DNS server, they are automatically protected. Pi-hole also keeps detailed logs, so you can see exactly what domains are being blocked — or which device in your home is the chattiest tracker-loader.</p>
+
+<figure class="fig">
+  <svg viewBox="0 0 660 340" xmlns="http://www.w3.org/2000/svg" role="img">
+    <title>Pi-hole network flow diagram</title>
+    <desc>Diagram showing home devices (phone, laptop, TV) sending DNS queries to the Pi-hole. Pi-hole blocks ad domains and forwards legitimate requests to the internet (upstream DNS).</desc>
+
+    <!-- Background -->
+    <rect x="0" y="0" width="660" height="340" fill="#faf9ff"/>
+
+    <!-- Home network area -->
+    <rect x="10" y="10" width="400" height="320" rx="14" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2" stroke-dasharray="6 3"/>
+    <text x="210" y="32" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#6d28d9" font-weight="bold">Your home network</text>
+
+    <!-- Device: Phone -->
+    <rect x="30" y="55" width="90" height="70" rx="8" fill="#6d28d9"/>
+    <text x="75" y="88" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">Phone</text>
+    <text x="75" y="104" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#d8b4fe">DNS query</text>
+
+    <!-- Device: Laptop -->
+    <rect x="30" y="145" width="90" height="70" rx="8" fill="#6d28d9"/>
+    <text x="75" y="178" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">Laptop</text>
+    <text x="75" y="194" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#d8b4fe">DNS query</text>
+
+    <!-- Device: TV -->
+    <rect x="30" y="235" width="90" height="70" rx="8" fill="#6d28d9"/>
+    <text x="75" y="268" text-anchor="middle" font-family="sans-serif" font-size="12" fill="white" font-weight="bold">Smart TV</text>
+    <text x="75" y="284" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#d8b4fe">DNS query</text>
+
+    <!-- Pi-hole box -->
+    <rect x="180" y="120" width="160" height="100" rx="12" fill="white" stroke="#6d28d9" stroke-width="3"/>
+    <text x="260" y="152" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#6d28d9" font-weight="bold">Pi-hole</text>
+    <text x="260" y="170" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#1f2933">(Raspberry Pi 5)</text>
+    <text x="260" y="190" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#0ea5a4">Checks blocklist</text>
+    <text x="260" y="205" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#0ea5a4">forwards safe queries</text>
+
+    <!-- Arrows from devices to Pi-hole -->
+    <line x1="120" y1="90" x2="180" y2="155" stroke="#6d28d9" stroke-width="1.8" marker-end="url(#arr)"/>
+    <line x1="120" y1="180" x2="180" y2="175" stroke="#6d28d9" stroke-width="1.8" marker-end="url(#arr)"/>
+    <line x1="120" y1="270" x2="180" y2="205" stroke="#6d28d9" stroke-width="1.8" marker-end="url(#arr)"/>
+
+    <!-- Arrow to internet (right) -->
+    <line x1="340" y1="170" x2="420" y2="170" stroke="#0ea5a4" stroke-width="2" marker-end="url(#arr2)"/>
+    <text x="380" y="162" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#0ea5a4">legitimate</text>
+    <text x="380" y="185" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#0ea5a4">domains only</text>
+
+    <!-- Blocked arrow (down) -->
+    <line x1="260" y1="220" x2="260" y2="290" stroke="#dc2626" stroke-width="2" marker-end="url(#arrRed)"/>
+    <rect x="195" y="290" width="130" height="34" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="260" y="308" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#dc2626" font-weight="bold">BLOCKED</text>
+    <text x="260" y="321" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#dc2626">ad/tracker domains</text>
+
+    <!-- Upstream DNS cloud -->
+    <ellipse cx="510" cy="120" rx="60" ry="30" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2"/>
+    <text x="510" y="116" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#0ea5a4" font-weight="bold">Upstream</text>
+    <text x="510" y="131" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#0ea5a4" font-weight="bold">DNS</text>
+
+    <!-- Internet sites cloud -->
+    <ellipse cx="510" cy="230" rx="60" ry="30" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2"/>
+    <text x="510" y="226" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#0ea5a4" font-weight="bold">Internet</text>
+    <text x="510" y="241" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#0ea5a4" font-weight="bold">sites</text>
+
+    <line x1="510" y1="150" x2="510" y2="200" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+    <line x1="430" y1="170" x2="450" y2="155" stroke="#0ea5a4" stroke-width="1.5"/>
+    <line x1="450" y1="155" x2="450" y2="125" stroke="#0ea5a4" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- Arrow defs -->
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6d28d9"/>
+      </marker>
+      <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#0ea5a4"/>
+      </marker>
+      <marker id="arrRed" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#dc2626"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Every device on your network sends DNS look-up requests to the Pi-hole. Pi-hole blocks known ad and tracker domains outright (shown in red) and only forwards legitimate requests to the real internet (shown in teal).</figcaption>
+</figure>
+
+<h2 id="before-you-start-what-you-need">Before you start: what you need</h2>
+
+<ul>
+  <li>Your Raspberry Pi 5, already set up with Raspberry Pi OS Bookworm and connected to your home network (wired Ethernet is strongly recommended — a Pi running a network service works best with a cable, not Wi-Fi).</li>
+  <li>Your Pi's current IP address. You can find this by opening a terminal and typing <code>hostname -I</code> — write it down, you will need it throughout this chapter.</li>
+  <li>Access to your router's settings page (usually by opening a browser and visiting <code>192.168.0.1</code> or <code>192.168.1.1</code>). If you do not know your router's address, look for it printed on the back of the router.</li>
+  <li>Your router's admin username and password (also usually on a sticker on the router).</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Running Pi-hole over a wired Ethernet connection is much more reliable than over Wi-Fi. If your router is in a different room, a <strong>powerline adapter</strong> (a pair of plugs that send network data through your house's mains wiring) is a cheap way to get a wired connection without running a cable across the floor.</div>
+
+<div class="note"><strong>Note — Pi-hole version:</strong> This chapter covers <strong>Pi-hole version 6</strong>, which became the default install from 2025 onwards and is the version you will get when following the instructions below on Raspberry Pi OS Bookworm. Pi-hole v6 has a modernised command-line interface and a refreshed web dashboard. If you find older guides online that use commands beginning with <code>pihole -a</code>, <code>pihole -g</code>, or <code>pihole -up</code>, those are Pi-hole v5 commands and will not work on a fresh install today.</div>
+
+<h2 id="step-1-give-your-pi-a-fixed-ip-address">Step 1 — Give your Pi a fixed IP address</h2>
+
+<p>Pi-hole is going to act as your network's DNS server. Every device in your home will be told to send its DNS requests to a specific IP address — the address of your Pi. If that address ever changes (which it can, because home routers normally hand out addresses at random), all those devices would suddenly lose the ability to look up websites. So the first job is to make sure your Pi always gets the same IP address.</p>
+
+<p>There are two common ways to do this:</p>
+
+<h3>Option A — Reserve the address in your router (recommended)</h3>
+
+<p>Most home routers let you look at the list of connected devices and "reserve" (or "pin") an address to a specific device's network identity (called its <strong>MAC address</strong> — a unique identifier permanently built into every network adapter). Once reserved, the router always gives that device the same address. This is called a <strong>DHCP reservation</strong> or a <strong>static lease</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>DHCP</strong> (Dynamic Host Configuration Protocol) is the system your router uses to automatically give IP addresses to devices that join the network. By default it hands them out however it likes, but you can tell it "always give <em>this</em> device <em>this</em> address". That is a DHCP reservation.</div>
+
+<p>The exact steps depend on your router's brand, but in general:</p>
+<ol class="steps">
+  <li>Log in to your router's admin page in a browser (for example <code>http://192.168.1.1</code>).</li>
+  <li>Look for a section called "Connected Devices", "LAN", "DHCP", or "IP &amp; MAC Binding".</li>
+  <li>Find your Raspberry Pi in the list (it may be labelled "raspberrypi" or show its current IP).</li>
+  <li>Click the option to reserve or pin that IP address to the Pi's MAC address.</li>
+  <li>Save the settings. Your Pi will keep that address from now on.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> If your router does not have this feature (some very basic models do not), you can set a static IP directly on the Pi itself using the Raspberry Pi OS network settings. Right-click the network icon in the top-right corner of the desktop, choose "Wireless &amp; Wired Network Settings", select your connection, and fill in a fixed IP address, the router's address as the gateway, and a DNS server (use <code>8.8.8.8</code> temporarily — you can update this later once Pi-hole is running). Check your router's documentation or look at the addresses your router is currently handing out to choose an address that will not clash with other devices.</div>
+
+<h3>Option B — Set a static IP on the Pi using the terminal (alternative)</h3>
+
+<p>If you prefer to configure the static IP from the Pi's terminal rather than the router interface, open a terminal and use the NetworkManager command-line tool. Type each of the following commands one at a time, pressing Enter after each.</p>
+
+<pre class="code"><code>nmcli con show</code></pre>
+<div class="explain">
+  <p>Lists all network connections that NetworkManager knows about on your Pi. Look for the name of your wired connection (typically something like <code>Wired connection 1</code>) — you will use that exact name in the next command.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> The long command below is split across several lines using the <code>\</code> backslash character at the end of each line. This just means "the command continues on the next line" — it is one single command. Type it exactly as shown, including the backslashes, or paste it all in one go.</div>
+
+<pre class="code"><code>sudo nmcli con mod "Wired connection 1" \
+  ipv4.addresses 192.168.1.100/24 \
+  ipv4.gateway 192.168.1.1 \
+  ipv4.dns 8.8.8.8 \
+  ipv4.method manual</code></pre>
+<div class="explain">
+  <p><code>sudo</code> — runs the command with administrator (superuser) privileges, which are needed to change network settings.</p>
+  <p><code>nmcli con mod "Wired connection 1"</code> — tells NetworkManager to modify the named connection. Replace the name in quotes with whatever your connection is actually called (as shown by the previous <code>nmcli con show</code> command).</p>
+  <p><code>ipv4.addresses 192.168.1.100/24</code> — sets the fixed IP address you want. Replace <code>192.168.1.100</code> with an address that is on your network but not already in use. The <code>/24</code> is the network mask — it means this is a typical home network where the first three numbers are shared and the last can range from 1 to 254.</p>
+  <p><code>ipv4.gateway 192.168.1.1</code> — tells the Pi the address of your router (the gateway to the wider internet). Adjust this to match your actual router address.</p>
+  <p><code>ipv4.dns 8.8.8.8</code> — sets a temporary DNS server (Google's public DNS) so the Pi can look up websites during the Pi-hole installation. You will point this at Pi-hole itself later.</p>
+  <p><code>ipv4.method manual</code> — switches this connection from "automatic" (DHCP) to "manual" (static), meaning it will use the values you just provided instead of asking the router for an address.</p>
+</div>
+
+<pre class="code"><code>sudo nmcli con up "Wired connection 1"</code></pre>
+<div class="explain">
+  <p>Activates the updated connection settings so the change takes effect immediately, without needing to reboot the Pi. Replace the name in quotes with the actual name of your connection if it is different.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> If you change the Pi's IP address while connected remotely over SSH, your SSH session will disconnect because the Pi is now at a different address. You will need to reconnect using the new IP address. If you are working directly at the Pi with a keyboard and screen attached, this is not a problem.</div>
+
+<h2 id="step-2-install-pi-hole">Step 2 — Install Pi-hole</h2>
+
+<p>Pi-hole has an official automated installer. It is a <strong>shell script</strong> — a file containing a sequence of commands — that is downloaded from the internet and run on your Pi. The installer handles everything: it installs all the required software, sets up Pi-hole as a background service, and prepares the web dashboard.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>shell script</strong> is simply a text file full of commands, just like the ones you type in a terminal. Instead of typing them one by one, you run the whole file at once. The Pi-hole installer is a very long shell script maintained by the Pi-hole team.</div>
+
+<div class="note"><strong>Note — should you trust piping a script to bash?</strong> The install command below uses a pattern called "piping to bash": it downloads a script and immediately runs it. You should only ever do this for software from a project you trust, from its official website, and over a secure <code>https://</code> connection. Pi-hole is a well-known, open-source project maintained by a large community; its installer is publicly readable on GitHub; and the download uses HTTPS. If you are uneasy, you can download the script first with <code>curl -O https://install.pi-hole.net/install.sh</code>, inspect it with <code>nano install.sh</code>, and then run it manually with <code>bash install.sh</code>. For most beginners, running the one-liner from the official documentation is perfectly reasonable.</div>
+
+<ol class="steps">
+  <li>
+    <p>Open a terminal on your Raspberry Pi (or SSH into it from your Windows machine — see Chapter 10 if you need a reminder of how to do this).</p>
+  </li>
+  <li>
+    <p>Make sure your Pi's software is up to date before installing:</p>
+    <pre class="code"><code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code></pre>
+    <div class="explain">
+      <p><code>sudo apt update</code> — refreshes the list of available software packages from the internet.</p>
+      <p><code>&amp;&amp;</code> — means "only run the next command if the previous one succeeded".</p>
+      <p><code>sudo apt full-upgrade -y</code> — installs all available updates. The <code>-y</code> flag answers "yes" automatically to any prompts, so you do not have to watch it.</p>
+    </div>
+  </li>
+  <li>
+    <p>Run the Pi-hole installer:</p>
+    <pre class="code"><code>curl -sSL https://install.pi-hole.net | sudo bash</code></pre>
+    <div class="explain">
+      <p><code>curl</code> — a command-line tool for downloading files from the internet.</p>
+      <p><code>-sSL</code> — three options combined: <code>-s</code> runs silently (hides the progress bar), <code>-S</code> still shows errors if something goes wrong, <code>-L</code> follows any web redirects automatically.</p>
+      <p><code>https://install.pi-hole.net</code> — the official Pi-hole installer URL, served securely over HTTPS.</p>
+      <p><code>|</code> — the "pipe" symbol; it takes the output of the command on the left (the downloaded script text) and passes it directly as input to the command on the right.</p>
+      <p><code>sudo bash</code> — runs the received script as an administrator using the bash shell. Administrator access is necessary because the installer needs to change system settings, install packages, and configure background services.</p>
+    </div>
+  </li>
+  <li>
+    <p>The installer will print progress messages as it works — downloading components, configuring the DNS service, and setting up the web interface. This usually takes two to five minutes depending on your internet speed. You do not need to interact with it during this time.</p>
+    <div class="note"><strong>Note:</strong> Pi-hole version 6 (the current version) runs its installer entirely in the background without interrupting you with dialogue boxes. When it is finished, it will print a short summary including your Pi's IP address and a temporary admin password. <strong>Copy or write down that password immediately</strong> — you will need it to log in to the dashboard for the first time.</div>
+  </li>
+  <li>
+    <p>When the installer finishes, it prints something like this (with your actual IP address and a different password):</p>
+    <pre class="code"><code>  [✓] Installation complete!
+
+  Pi-hole Web Interface: http://192.168.1.100/admin
+  Admin password:        AbCd1234XyZ</code></pre>
+    <div class="explain">
+      <p>This is a summary message printed by the installer — not a command you type. It tells you the address of your Pi-hole dashboard and the randomly generated password for the admin account. Write both down now.</p>
+    </div>
+  </li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> If you miss the password or scroll past it, do not worry — you can reset it at any time using <code>pihole setpassword</code> in the terminal, which is covered later in this chapter.</div>
+
+<h2 id="step-3-complete-the-initial-setup-in-the-web-das">Step 3 — Complete the initial setup in the web dashboard</h2>
+
+<p>Pi-hole v6 completes its configuration through its own web interface rather than during the installer. Open a browser on any device on your home network and go to:</p>
+
+<pre class="code"><code>http://192.168.1.100/admin</code></pre>
+<div class="explain">
+  <p>Replace <code>192.168.1.100</code> with the actual IP address of your Pi — the one you noted down or fixed in Step 1. This opens Pi-hole's administration dashboard in your browser.</p>
+</div>
+
+<p>Log in with the temporary password shown by the installer. Once logged in, the dashboard will walk you through a short setup wizard. Here is what each step asks and what to choose:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Setup step</th>
+      <th>What it is asking</th>
+      <th>What to choose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Network interface</td>
+      <td>Which network connection should Pi-hole listen on?</td>
+      <td>Choose <code>eth0</code> for wired Ethernet (recommended). If you are using Wi-Fi only, choose <code>wlan0</code>.</td>
+    </tr>
+    <tr>
+      <td>Upstream DNS provider</td>
+      <td>When a domain is not blocked, which DNS server should Pi-hole forward requests to?</td>
+      <td>Choose <strong>Cloudflare</strong> (<code>1.1.1.1</code> — fast and privacy-respecting) or <strong>Google</strong> (<code>8.8.8.8</code>). Either works well; you can change this later in Settings.</td>
+    </tr>
+    <tr>
+      <td>Blocklists</td>
+      <td>Which default list of ad/tracker domains should Pi-hole use?</td>
+      <td>Leave the default list enabled (StevenBlack's unified list) — it is a well-maintained, comprehensive starting point blocking around 150,000 known ad and tracker domains.</td>
+    </tr>
+    <tr>
+      <td>Query logging</td>
+      <td>Should Pi-hole keep a log of every DNS look-up?</td>
+      <td>Leave this <strong>on</strong> — it is very useful for spotting what is being blocked and why, and for troubleshooting when a site stops working.</td>
+    </tr>
+    <tr>
+      <td>Privacy mode</td>
+      <td>How much detail should the log show about individual clients?</td>
+      <td>Choose <strong>Show everything</strong> — since this is your own home network, full detail is helpful for troubleshooting.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>After the wizard, you may also want to change the admin password to something more memorable. Go to <strong>Settings → Web Interface</strong> (or use the terminal command described later in this chapter).</p>
+
+<h2 id="step-4-point-your-router-s-dns-at-pi-hole">Step 4 — Point your router's DNS at Pi-hole</h2>
+
+<p>Pi-hole is now installed and running on your Pi, but your other devices do not know it exists yet. You need to tell your router to use the Pi as its DNS server. Once you do that, the router will pass on the Pi's address to every device on the network, so they all automatically use Pi-hole.</p>
+
+<div class="jargon"><strong>In plain words:</strong> Your router acts like a post room for your home network. When a device joins, the router tells it several things: "Here is your address, here is where the gateway to the internet is, and here is the phone-book server (DNS) you should use." By changing that last item to your Pi's address, all devices automatically use Pi-hole as their phone book — without you needing to do anything on each device individually.</div>
+
+<ol class="steps">
+  <li>Log in to your router's admin page (for example <code>http://192.168.1.1</code>) using your router's admin username and password.</li>
+  <li>Find the DHCP settings. These are often under a section called "LAN", "DHCP Server", "Network Settings", or "Advanced".</li>
+  <li>Find the field labelled "Primary DNS" (sometimes called "DNS Server 1").</li>
+  <li>Change that field to your Pi's fixed IP address (for example <code>192.168.1.100</code>).</li>
+  <li>For the "Secondary DNS" (or "DNS Server 2") field, consider leaving it blank. If you enter a secondary DNS server (such as <code>8.8.8.8</code>), some devices may bypass Pi-hole and use the secondary server directly — especially if your Pi is slow to respond. Leaving it blank means every DNS request goes through Pi-hole, though it also means that if your Pi is powered off, internet browsing will stop working for all devices until the Pi comes back on.</li>
+  <li>Save and apply the settings. Some routers need a restart. Wait a minute, then test that the internet still works on another device (your phone, for example).</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Changes to DHCP settings only take effect on a device after it renews its "lease" — essentially, after it asks the router for its settings again. This usually happens automatically within a day, but you can speed it up immediately: on Windows, open a Command Prompt and type <code>ipconfig /release</code> followed by <code>ipconfig /renew</code>. On a phone, turn Wi-Fi off and back on, or forget the network and reconnect.</div>
+
+<h3>Alternative: set DNS per device instead</h3>
+
+<p>If you do not have access to your router (for example if it belongs to a landlord or a shared household), you can instead set the DNS server individually on each device you want to protect. On Windows 11, go to <strong>Settings → Network &amp; Internet → Wi-Fi → [Your network] → Properties</strong> and set DNS to "Manual" with your Pi's IP. On iPhone/iPad, tap the (i) next to your Wi-Fi network, then tap "Configure DNS" and switch to "Manual". On Android, go to Wi-Fi settings, long-press your network, and look for "Advanced options" where you can set a Static IP and DNS.</p>
+
+<h2 id="step-5-confirm-that-it-is-working">Step 5 — Confirm that it is working</h2>
+
+<ol class="steps">
+  <li>On any device on your home network, open a browser and go to <code>http://192.168.1.100/admin</code> (using your Pi's IP address). The Pi-hole admin dashboard should appear.</li>
+  <li>Log in with the admin password.</li>
+  <li>Browse to a few websites on your phone or laptop. Return to the Pi-hole dashboard and watch the query counter go up and the live graph begin to show activity — this confirms those devices are now routing their DNS look-ups through Pi-hole.</li>
+  <li>If nothing appears in the dashboard, the device has not yet received the new DNS setting from the router. Try turning Wi-Fi off and on, or use the <code>ipconfig /release</code> / <code>ipconfig /renew</code> trick on Windows.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> On the Pi-hole dashboard home page you will see a figure like "23% of queries blocked" after a few minutes of browsing. Most homes settle somewhere between 15% and 40%, depending on which sites and apps are in use. The higher the percentage, the more ads and trackers were silently trying to reach your devices.</div>
+
+<h2 id="using-the-admin-dashboard">Using the admin dashboard</h2>
+
+<p>The Pi-hole admin dashboard at <code>http://&lt;your-pi-ip&gt;/admin</code> is your control centre. Here is a quick tour of the main sections:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Dashboard section</th>
+      <th>What it shows / lets you do</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Summary (home page)</td>
+      <td>Total queries today, percentage blocked, number of domains on the blocklist, and a live traffic graph.</td>
+    </tr>
+    <tr>
+      <td>Query Log</td>
+      <td>A real-time list of every DNS look-up made by every device. Green = allowed, red = blocked. Click any entry to add that domain to your allowlist or denylist instantly.</td>
+    </tr>
+    <tr>
+      <td>Top Blocked Domains</td>
+      <td>The ad/tracker domains being blocked most often — often reveals hundreds of hidden trackers you never knew about.</td>
+    </tr>
+    <tr>
+      <td>Allowlist / Denylist</td>
+      <td>Manually add domains you want to always allow (allowlist, formerly "whitelist") or always block (denylist, formerly "blacklist"), beyond the automatic blocklists.</td>
+    </tr>
+    <tr>
+      <td>Group Management</td>
+      <td>Create groups of devices and apply different blocklists to each group — for example, a stricter content-filtering list for a child's tablet.</td>
+    </tr>
+    <tr>
+      <td>Lists</td>
+      <td>Add additional blocklists (many are maintained by the community) and update or disable existing ones.</td>
+    </tr>
+    <tr>
+      <td>Settings</td>
+      <td>Change the upstream DNS provider, manage Pi-hole's own IP, configure logging, change the admin password, and more.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="resetting-or-changing-the-admin-password">Resetting or changing the admin password</h2>
+
+<p>If you lose the password or just want to set something more memorable, open a terminal on the Pi and run:</p>
+
+<pre class="code"><code>pihole setpassword</code></pre>
+<div class="explain">
+  <p><code>pihole</code> — the Pi-hole command-line management tool, installed automatically as part of the Pi-hole setup.</p>
+  <p><code>setpassword</code> — prompts you to type a new password for the web admin interface (you will be asked to type it twice to confirm). If you just press Enter twice without typing anything, Pi-hole removes the password requirement entirely — useful on a private home network where you are not concerned about other household members accessing the dashboard.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> You can also change the password through the dashboard itself: go to <strong>Settings → Web Interface</strong> and look for the password change option.</div>
+
+<h2 id="allowing-a-domain-when-something-breaks">Allowing a domain when something breaks</h2>
+
+<p>Occasionally Pi-hole will block a domain that a website or app genuinely needs, and things will stop working in an unexpected way. Symptoms include: a website that loads with missing images or buttons, a video service that will not start, or an app that cannot connect to its servers. When this happens, Pi-hole is the first thing to check.</p>
+
+<h3>How to diagnose and fix a blocked domain</h3>
+
+<ol class="steps">
+  <li>Open the Pi-hole dashboard and click <strong>Query Log</strong>.</li>
+  <li>Try using the broken website or app again, then immediately look at the query log. Filter by your device's IP address if needed. Look for red (blocked) entries that appeared at the same moment as the problem. The domain name shown is the one being blocked.</li>
+  <li>To allow that domain, click the green circle-with-plus icon next to it in the query log, or go to <strong>Allowlist</strong>, type the domain, and click "Add to Allowlist".</li>
+  <li>Refresh the page or restart the app that was broken — it should now work normally.</li>
+</ol>
+
+<p>You can also add a domain to the allowlist from the command line:</p>
+
+<pre class="code"><code>pihole allow example.com</code></pre>
+<div class="explain">
+  <p><code>pihole</code> — the Pi-hole management tool.</p>
+  <p><code>allow</code> — adds the specified domain to the allowlist (the list of domains that will always be permitted through, regardless of any blocklist).</p>
+  <p><code>example.com</code> — replace this with the actual domain name you want to permit, for example <code>cdn.somesite.com</code>.</p>
+</div>
+
+<p>To permanently block a specific domain that is not on any blocklist (for example, a distracting social media site):</p>
+
+<pre class="code"><code>pihole deny example.com</code></pre>
+<div class="explain">
+  <p><code>pihole</code> — the Pi-hole management tool.</p>
+  <p><code>deny</code> — adds the specified domain to the denylist, which means Pi-hole will always block it, even if it does not appear on any of the subscribed blocklists.</p>
+  <p><code>example.com</code> — replace this with the domain you want to block, for example <code>www.tiktok.com</code>.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> If you suspect Pi-hole is causing a problem but are not sure, you can temporarily pause it from the dashboard by clicking <strong>Disable</strong> on the home page (options include 10 seconds, 30 seconds, 5 minutes, or indefinitely). If things start working with Pi-hole disabled, Pi-hole is responsible — use the query log to find out which domain to add to the allowlist.</div>
+
+<h2 id="keeping-pi-hole-up-to-date">Keeping Pi-hole up to date</h2>
+
+<p>The list of ad and tracker domains that Pi-hole blocks is constantly being updated by the community, and Pi-hole itself receives software improvements. Updating is a single command:</p>
+
+<pre class="code"><code>pihole update</code></pre>
+<div class="explain">
+  <p><code>pihole</code> — the Pi-hole management tool.</p>
+  <p><code>update</code> — checks for a newer version of Pi-hole itself and installs it if available. It will print progress messages as it works and usually finishes within a minute or two.</p>
+</div>
+
+<p>To refresh your blocklists (making Pi-hole download the latest versions of all the ad-domain lists you have subscribed to):</p>
+
+<pre class="code"><code>pihole gravity</code></pre>
+<div class="explain">
+  <p><code>pihole</code> — the Pi-hole management tool.</p>
+  <p><code>gravity</code> — runs Pi-hole's "gravity" process: it downloads the latest version of every blocklist you have subscribed to, combines them, removes duplicate entries, and builds an efficient lookup database. Pi-hole calls this process "gravity" because it pulls in all your lists and compresses them into one. Pi-hole runs this automatically on a weekly schedule, but you can run it manually at any time — for example after adding a new blocklist.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Pi-hole automatically updates its blocklists on a schedule, so you do not need to run <code>pihole gravity</code> every day. Running <code>pihole update</code> once a month is plenty to keep the core software current.</div>
+
+<h2 id="adding-more-blocklists">Adding more blocklists</h2>
+
+<p>The default blocklist (StevenBlack's unified list) is a solid starting point. But the community maintains many more lists you can add for broader or more specific protection:</p>
+
+<ul>
+  <li><strong>OISD Big list</strong> — a very comprehensive, actively maintained list. URL: <code>https://big.oisd.nl</code></li>
+  <li><strong>HAGEZI DNS Blocklists</strong> — multiple tiers from light to ultra-aggressive. Find them at <code>https://github.com/hagezi/dns-blocklists</code></li>
+  <li><strong>Malware and phishing domain lists</strong> — many lists exist that block known malicious sites, adding a useful security layer on top of ad blocking.</li>
+</ul>
+
+<p>To add a list, go to <strong>Lists</strong> in the Pi-hole dashboard, paste the URL into the "Address" field, and click "Add". Then run the gravity update to download the new list and incorporate it into the blocklist:</p>
+
+<pre class="code"><code>pihole gravity</code></pre>
+<div class="explain">
+  <p>Same as above — downloads and merges all your subscribed blocklists into the active blocking database. Any new list you just added in the dashboard will be included.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> Adding very large or very aggressive blocklists can accidentally block websites or services you legitimately use. Start with one or two extra lists and monitor the query log for unexpected breakage before adding more.</div>
+
+<h2 id="honest-limits-what-pi-hole-cannot-block">Honest limits: what Pi-hole cannot block</h2>
+
+<p>Pi-hole is genuinely impressive, but it is important to understand what it cannot do, so you are not disappointed:</p>
+
+<ul>
+  <li><strong>YouTube adverts:</strong> YouTube (and the YouTube app on phones and TVs) serves its adverts from the same domain as the actual videos. Pi-hole cannot block those adverts without also blocking the videos themselves. For YouTube ad-blocking you need a browser extension like uBlock Origin (in a desktop browser) or a modified app on mobile devices.</li>
+  <li><strong>Adverts embedded in apps:</strong> Some apps serve adverts from their own servers on the same domain as their content, making it impossible for Pi-hole to tell an advert from legitimate app data.</li>
+  <li><strong>Encrypted DNS (DNS over HTTPS / DoH):</strong> Newer devices and apps can sometimes use DNS over HTTPS, which routes DNS requests through an encrypted channel that bypasses Pi-hole entirely. You can configure your router to block DoH if this becomes a concern, though it requires additional steps beyond this chapter.</li>
+  <li><strong>It is not a VPN or firewall:</strong> Pi-hole only operates on DNS look-ups. It does not encrypt your internet traffic, hide your IP address, or block non-DNS connections to tracking servers.</li>
+  <li><strong>Brand-new advertising domains:</strong> Domains that have not yet been added to any blocklist will slip through until the community adds them and you run a gravity update.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> Despite these limits, most users find that Pi-hole blocks 20–30% of all network requests in their home. Pages load noticeably faster, many types of cross-site tracking are stopped entirely, and some smart-TV channels that previously interrupted viewing with adverts become much cleaner. It is not a silver bullet, but it is one of the most effective and easy-to-maintain privacy tools available.</div>
+
+<h2 id="useful-pi-hole-commands-at-a-glance">Useful Pi-hole commands at a glance</h2>
+
+<p>All of these commands are typed in a terminal on the Raspberry Pi itself.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>pihole status</code></td>
+      <td>Shows whether Pi-hole is running and actively blocking, or has been paused.</td>
+    </tr>
+    <tr>
+      <td><code>pihole enable</code></td>
+      <td>Re-enables blocking if you previously disabled or paused it.</td>
+    </tr>
+    <tr>
+      <td><code>pihole disable</code></td>
+      <td>Disables blocking indefinitely (DNS requests are still answered, but nothing is blocked). Use <code>pihole enable</code> to turn blocking back on.</td>
+    </tr>
+    <tr>
+      <td><code>pihole disable 5m</code></td>
+      <td>Disables blocking for 5 minutes, then automatically re-enables. Replace <code>5m</code> with <code>30s</code> for 30 seconds or <code>1h</code> for one hour.</td>
+    </tr>
+    <tr>
+      <td><code>pihole setpassword</code></td>
+      <td>Set or reset the admin dashboard password.</td>
+    </tr>
+    <tr>
+      <td><code>pihole allow domain.com</code></td>
+      <td>Add a domain to the allowlist (always let it through, even if it is on a blocklist).</td>
+    </tr>
+    <tr>
+      <td><code>pihole deny domain.com</code></td>
+      <td>Add a domain to the denylist (always block it, even if it is not on any blocklist).</td>
+    </tr>
+    <tr>
+      <td><code>pihole update</code></td>
+      <td>Update the Pi-hole software itself to the latest version.</td>
+    </tr>
+    <tr>
+      <td><code>pihole gravity</code></td>
+      <td>Download and apply the latest versions of all subscribed blocklists.</td>
+    </tr>
+    <tr>
+      <td><code>pihole tail</code></td>
+      <td>Show a live stream of DNS queries in the terminal as they happen (press Ctrl+C to stop).</td>
+    </tr>
+    <tr>
+      <td><code>pihole restartdns</code></td>
+      <td>Restart the Pi-hole DNS service — useful if you have changed settings and want them to take effect immediately.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="troubleshooting-common-problems">Troubleshooting common problems</h2>
+
+<h3>The internet stopped working after setting up Pi-hole</h3>
+<p>First, check that the Pi is powered on and connected to the network. Open a terminal on the Pi and run <code>pihole status</code> — if Pi-hole itself is not running, restart it with <code>pihole restartdns</code> or reboot the Pi with <code>sudo reboot</code>. If the Pi is powered off, any device that has no secondary DNS server configured will lose the ability to browse the internet until the Pi comes back. As a short-term fix, you can temporarily put your router's original DNS address back in the router's DHCP settings while you investigate.</p>
+
+<h3>Devices are still not using Pi-hole</h3>
+<p>Force a DHCP renewal: on the affected device, disconnect from Wi-Fi and reconnect. On Windows, run the following two commands in a Command Prompt (not a terminal on the Pi — this is done on the Windows machine):</p>
+
+<pre class="code"><code>ipconfig /release
+ipconfig /renew</code></pre>
+<div class="explain">
+  <p>These are Windows commands, not Pi commands — type them into a Command Prompt on your Windows PC.</p>
+  <p><code>ipconfig /release</code> — tells Windows to give up its current IP address and network settings (including the DNS server address).</p>
+  <p><code>ipconfig /renew</code> — asks the router to issue fresh network settings, which should now include your Pi's IP address as the DNS server.</p>
+</div>
+
+<p>After renewing, open the Pi-hole query log in your browser — if queries from that device now appear there, it is correctly using Pi-hole.</p>
+
+<h3>A specific website is partially broken</h3>
+<p>Open the Pi-hole query log and search for your device's IP address in the client column. Look for red blocked entries that appeared at the same moment you loaded the broken page. Whitelist — or in Pi-hole v6, <em>allow</em> — the blocked domain and reload the page. Many news and media sites rely on sub-domains (for example <code>cdn.example.com</code>) that can end up on blocklists even though they serve legitimate content rather than adverts.</p>
+
+<h3>I forgot the Pi-hole admin password</h3>
+<p>Open a terminal on the Pi and run <code>pihole setpassword</code> to set a new one.</p>
+
+<h3>Pi-hole says it is running but blocking percentage stays at 0%</h3>
+<p>This usually means your devices are not yet using Pi-hole as their DNS server. Check the router's DHCP settings again to make sure the Pi's IP address is set as the Primary DNS, and force a DHCP renewal on your devices as described above.</p>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>DNS (Domain Name System)</strong> — the internet's phone book; it translates human-readable domain names (like <code>bbc.co.uk</code>) into numerical IP addresses that computers use to find each other on the internet.</li>
+    <li><strong>IP address</strong> — a numerical label (such as <code>192.168.1.100</code>) that uniquely identifies a device on a network, like a postal address for a computer.</li>
+    <li><strong>Pi-hole</strong> — free, open-source software that acts as a DNS server for your home network, automatically blocking known advertising and tracking domains before they can load on any device.</li>
+    <li><strong>Blocklist</strong> — a list of domain names that Pi-hole refuses to answer look-up requests for, causing ads and trackers that use those domains to simply never load.</li>
+    <li><strong>Allowlist (formerly whitelist)</strong> — a list of domains that Pi-hole always allows through, even if they appear on a blocklist; used to restore access to sites accidentally broken by over-enthusiastic blocking.</li>
+    <li><strong>Denylist (formerly blacklist)</strong> — a list of domains you manually tell Pi-hole to always block, even if they do not appear on any subscribed blocklist.</li>
+    <li><strong>DHCP (Dynamic Host Configuration Protocol)</strong> — the system your router uses to automatically assign IP addresses and settings (including the DNS server address) to devices that connect to your network.</li>
+    <li><strong>DHCP reservation (static lease)</strong> — a router setting that always gives a specific device the same IP address, identified by the device's unique MAC address.</li>
+    <li><strong>MAC address</strong> — a permanent, unique identifier built into every network adapter (Wi-Fi card or Ethernet socket), used by the router to recognise individual devices.</li>
+    <li><strong>Upstream DNS</strong> — the external DNS server that Pi-hole forwards legitimate (non-blocked) queries on to; common choices are Cloudflare (<code>1.1.1.1</code>) or Google (<code>8.8.8.8</code>).</li>
+    <li><strong>Gravity</strong> — Pi-hole's term for the process of downloading and combining all subscribed blocklists into a single, efficient local lookup database.</li>
+    <li><strong>DNS over HTTPS (DoH)</strong> — a modern protocol that encrypts DNS requests so they are invisible to intermediate servers including Pi-hole; some devices and browsers use it automatically, potentially bypassing Pi-hole.</li>
+    <li><strong>Shell script</strong> — a text file containing a sequence of terminal commands that can be run all at once; the Pi-hole installer is a shell script.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Pi-hole works by placing itself between your home devices and the internet as a DNS server, silently blocking look-ups for known advertising and tracking domains before they even reach the internet.</li>
+    <li>Every device on your network benefits automatically once you point your router's DNS setting at the Pi's IP address — nothing needs to be installed on phones, tablets, or smart TVs.</li>
+    <li>Giving the Pi a fixed (static) IP address — either via a DHCP reservation in the router or by setting a static IP on the Pi itself using <code>nmcli</code> — is essential before installing Pi-hole.</li>
+    <li>The official installer is launched with a single <code>curl -sSL https://install.pi-hole.net | sudo bash</code> command; note the randomly generated admin password it displays when it finishes.</li>
+    <li>Pi-hole v6 (the current version on Bookworm) uses a web-based setup wizard at <code>http://&lt;pi-ip&gt;/admin</code> and a modernised command line: <code>pihole allow</code>, <code>pihole deny</code>, <code>pihole update</code>, <code>pihole gravity</code>, and <code>pihole setpassword</code>.</li>
+    <li>The admin dashboard provides real-time graphs, a query log showing every DNS look-up, and tools for managing allowlists, denylists, and additional blocklists.</li>
+    <li>Pi-hole cannot block YouTube in-app adverts or ads served from the same domain as legitimate content, but it typically blocks 20–30% of all home network requests, noticeably speeding up page loads.</li>
+    <li>When a site breaks, check the Query Log for red entries at the time of the breakage and use <code>pihole allow domain.com</code> to restore access to that domain.</li>
+  </ul>
+</div>

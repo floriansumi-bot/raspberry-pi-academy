@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch02",
+  "title": "Your Kit, Unboxed",
+  "questions": [
+    {
+      "q": "You want to copy files quickly to an external USB drive. Which port on the Raspberry Pi 5 is the best choice?",
+      "choices": [
+        "A black USB 2.0 port, because it works with any device",
+        "The USB-C port on the bottom edge",
+        "A blue USB 3.0 port, because it transfers data much faster",
+        "The Ethernet port, because it runs at 1 Gbps"
+      ],
+      "answer": 2,
+      "explain": "The blue USB 3.0 ports are about ten times faster than the black USB 2.0 ports for data transfer, making them the right choice for a fast drive. The USB-C port on the Pi 5 is power-only and cannot transfer data at all."
+    },
+    {
+      "q": "What happens if you use a standard phone charger instead of the supplied 27 W power supply with the Raspberry Pi 5?",
+      "choices": [
+        "The Pi will not turn on at all",
+        "The Pi will display a yellow lightning bolt warning and slow itself down",
+        "The Pi will run normally but the Active Cooler will not work",
+        "The Pi will start a backup shutdown to protect its files"
+      ],
+      "answer": 1,
+      "explain": "A phone charger cannot supply enough current, causing the voltage to drop. The Pi responds by showing a yellow lightning bolt icon and throttling the processor to use less power, making it run noticeably slower. It will still turn on, so option 0 is wrong."
+    },
+    {
+      "q": "Which part of the Raspberry Pi 5 acts as the computer's short-term memory, holding whatever it is working on right now — and is completely cleared every time you switch the power off?",
+      "choices": [
+        "The microSD card, which stores all running programs",
+        "The SoC (BCM2712 chip), which processes and remembers all current tasks",
+        "The RAM (16 GB LPDDR4X), which is fast but volatile",
+        "The RTC battery, which keeps data alive when the power is removed"
+      ],
+      "answer": 2,
+      "explain": "RAM is the Pi's fast, temporary workspace — it holds whatever is being processed right now, but loses everything the moment power is cut. The microSD card is long-term storage (it keeps files after power off); the SoC is the processor, not memory; and the RTC battery only keeps the clock ticking, not your data."
+    },
+    {
+      "q": "The Raspberry Pi 5 has two micro-HDMI ports. If you are connecting a single monitor for the first time, which port should you use?",
+      "choices": [
+        "Port 1, the one closer to the USB-C power socket",
+        "Either port — they behave identically for a single monitor",
+        "The DSI port, which is designed for display output",
+        "Port 0, the one nearer the centre of the board"
+      ],
+      "answer": 3,
+      "explain": "The chapter states you should always use micro-HDMI port 0 for a single monitor. Port 0 is the one closer to the centre of the board. DSI is a completely different connector used only for the official Pi Touchscreen ribbon cable."
+    },
+    {
+      "q": "What is the correct order for connecting a Raspberry Pi 5 for the very first time?",
+      "choices": [
+        "Plug in the power first so the Pi is ready to detect devices as you connect them",
+        "Connect the monitor, keyboard, and mouse first, then plug in power last",
+        "Connect the microSD card last, after the Pi has booted, so it mounts cleanly",
+        "It does not matter — you can connect everything in any order"
+      ],
+      "answer": 1,
+      "explain": "The chapter is explicit: connect all peripherals (monitor, keyboard, mouse, network cable) before applying power. Plugging in a monitor after the Pi has booted can result in the display not being detected and a blank screen appearing."
+    }
+  ]
+}

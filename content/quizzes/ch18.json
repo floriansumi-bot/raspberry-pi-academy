@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch18",
+  "title": "Host a Website & Docker",
+  "questions": [
+    {
+      "q": "You run `python3 -m http.server 8080` on your Pi and then close the Terminal window. What happens to the web server?",
+      "choices": [
+        "It keeps running in the background as a service.",
+        "It stops, because the Python server only runs while the Terminal is open.",
+        "It restarts automatically when you reopen the Terminal.",
+        "It switches to port 80 and continues serving."
+      ],
+      "answer": 1,
+      "explain": "The Python one-liner is a temporary server tied to the Terminal session — closing the Terminal kills it. Nginx, by contrast, runs as a background service that survives Terminal closures and reboots."
+    },
+    {
+      "q": "After installing Nginx, where should you put your HTML files so Nginx serves them to visitors?",
+      "choices": [
+        "/var/www/html/",
+        "/home/pi/my-website/",
+        "/etc/nginx/sites-enabled/",
+        "/usr/share/nginx/"
+      ],
+      "answer": 0,
+      "explain": "Nginx's web root on Raspberry Pi OS is /var/www/html/. Any HTML, CSS, or image files placed there are immediately available to browsers on the network. The other paths are configuration or system directories, not served content."
+    },
+    {
+      "q": "In the Docker run command for Uptime Kuma, what does the flag `-v uptime-kuma-data:/app/data` do?",
+      "choices": [
+        "It sets the version of the Uptime Kuma image to download.",
+        "It maps port 3001 on the Pi to port 3001 inside the container.",
+        "It gives the container a human-readable name.",
+        "It stores the app's data in a Docker-managed volume so it is not lost when the container is restarted or updated."
+      ],
+      "answer": 3,
+      "explain": "The -v flag creates a named volume that persists outside the container. Without it, all monitoring history and settings would be wiped every time the container is stopped or replaced. Port mapping is done with -p, and naming is done with --name."
+    },
+    {
+      "q": "What is the difference between a Docker image and a Docker container?",
+      "choices": [
+        "An image is a running instance of an app; a container is the downloadable package.",
+        "They are two names for the same thing — Docker uses both words interchangeably.",
+        "An image is the sealed, downloadable package; a container is the live, running instance created from that image.",
+        "A container holds multiple images stacked on top of each other."
+      ],
+      "answer": 2,
+      "explain": "The chapter uses the analogy of a recipe (image) versus a baked cake (container). You download an image once and can run it multiple times to create multiple separate containers, each independent of the others."
+    },
+    {
+      "q": "Why does the chapter warn against using port forwarding to expose your Pi to the internet?",
+      "choices": [
+        "Automated bots constantly scan the internet for open ports and can compromise an unprotected Pi within hours or days.",
+        "It makes your Pi visible only on the home network, not on the internet.",
+        "Port forwarding requires a paid router subscription to work.",
+        "Port forwarding permanently disables Nginx and Docker on the Pi."
+      ],
+      "answer": 0,
+      "explain": "Opening a raw port on your home router exposes the Pi to the entire internet, where bots actively probe for vulnerable services. The chapter recommends safer alternatives like Tailscale or Cloudflare Tunnel, which create encrypted tunnels without opening any router ports."
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch13",
+  "title": "Media Centre",
+  "questions": [
+    {
+      "q": "You want your Raspberry Pi to be used for many different tasks, but you also want to stream your film collection to your phone and tablet around the house. Which option best fits this situation?",
+      "choices": ["LibreELEC", "Kodi on Raspberry Pi OS", "Jellyfin on Raspberry Pi OS", "Plex Pass"],
+      "answer": 2,
+      "explain": "Jellyfin runs as a background server on top of Raspberry Pi OS, so your Pi keeps its normal desktop for other tasks while streaming your library to any device on your network. LibreELEC replaces Raspberry Pi OS entirely, leaving you with a dedicated media box and nothing else."
+    },
+    {
+      "q": "After installing Jellyfin, you run 'sudo systemctl enable --now jellyfin'. What does the '--now' part of this command do?",
+      "choices": ["It starts the Jellyfin service right away without needing a reboot.", "It forces Jellyfin to scan your media library immediately.", "It downloads the latest version of Jellyfin immediately.", "It enables automatic updates for Jellyfin."],
+      "answer": 0,
+      "explain": "The '--now' flag tells systemctl to start the service immediately in addition to registering it to start at every future boot. Without it, the service would only start after the next reboot."
+    },
+    {
+      "q": "Your USB drive is formatted as exFAT. What must you do before Raspberry Pi OS Bookworm can reliably read it?",
+      "choices": ["Reformat the drive as FAT32, since exFAT is not supported.", "No extra steps are needed — exFAT works out of the box on Bookworm.", "Run 'sudo apt install ntfs-3g -y' to add exFAT support.", "Run 'sudo apt install exfatprogs -y' to install exFAT support."],
+      "answer": 3,
+      "explain": "Raspberry Pi OS Bookworm can handle exFAT drives only after the 'exfatprogs' package is installed. The 'ntfs-3g' package is for NTFS drives, not exFAT. FAT32 and ext4 work without any extra package, but exFAT does require one."
+    },
+    {
+      "q": "Why is a UUID used instead of a device name like 'sda1' when adding a drive to /etc/fstab?",
+      "choices": ["Because the UUID changes every time you reboot, keeping things secure.", "Because /etc/fstab does not support device names at all.", "Because device names like sda1 are too long to type reliably.", "Because the UUID is permanent and identifies the drive regardless of which USB port it is plugged into."],
+      "answer": 3,
+      "explain": "A UUID is a permanent unique identifier assigned when the drive is formatted. Unlike 'sda1', which can change if you plug the drive into a different port or add another drive, the UUID always points to the same specific drive — making your fstab entry reliable."
+    },
+    {
+      "q": "A 4K film encoded in HEVC is playing from your Pi via Jellyfin to a smart TV that supports HEVC natively. How does Jellyfin handle the video in this situation?",
+      "choices": ["It must use V4L2 hardware transcoding to handle 4K at all.", "It transcodes the 4K stream to 1080p before sending it to the TV.", "It uses direct play, sending the file in its original format with no conversion.", "It streams the film through the internet rather than your home network."],
+      "answer": 2,
+      "explain": "When the client device supports HEVC natively, Jellyfin uses direct play — the file is sent as-is without any conversion. This is the most efficient mode and barely loads the Pi. Transcoding is only needed when the client cannot play the original format."
+    }
+  ]
+}

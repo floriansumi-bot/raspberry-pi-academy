@@ -1,0 +1,751 @@
+<p class="lead">Your Raspberry Pi 5 is a sturdy little machine, but like any computer it benefits from a small amount of regular care — and every computer occasionally misbehaves. This chapter gives you everything you need to keep your Pi running smoothly, understand what its warning lights mean, and solve the most common problems without needing to call anyone for help.</p>
+
+<h2 id="routine-care-keeping-your-pi-healthy">Routine Care: Keeping Your Pi Healthy</h2>
+
+<p>A well-maintained Raspberry Pi can run continuously for years. The three pillars of routine care are keeping the software up to date, watching the temperature, and making sure the storage card is treated gently. None of this takes more than a few minutes a week.</p>
+
+<h3>Keeping Software Up to Date</h3>
+
+<p>Raspberry Pi OS receives regular updates that fix security holes, squash bugs, and occasionally add new features. Applying them is a two-command process that you can run from the Terminal application any time.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>package</em> is a bundle of software that your Pi can install, update, or remove. The <em>package manager</em> (<code>apt</code>) is the tool that fetches and installs those bundles automatically, handling all the complicated dependency juggling behind the scenes.</div>
+
+<pre class="code"><code>sudo apt update
+sudo apt full-upgrade -y</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>sudo apt update</code>:</strong> Asks your Pi to download a fresh list of available packages from the internet. It does <em>not</em> install anything yet; it just refreshes the catalogue so the next command knows what is new.</p>
+  <p><strong>Line 2 — <code>sudo apt full-upgrade -y</code>:</strong> Downloads and installs every update that is now available. The <code>full-upgrade</code> variant (rather than the older <code>upgrade</code>) is recommended for Raspberry Pi OS because it is allowed to remove or replace packages when needed to apply a complex update. The <code>-y</code> flag answers "yes" automatically to any confirmation prompts so you do not have to sit and watch.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Run these two commands roughly once a week, or at least once a month. Good moments to remember: before starting a new project, or just after you turn the Pi on for the day.</div>
+
+<p>After a major upgrade you may see a message saying a reboot is needed. If so, type:</p>
+
+<pre class="code"><code>sudo reboot</code></pre>
+<div class="explain">
+  <p>Tells the Pi to restart cleanly. All running programs close gracefully, the system powers down, and then boots back up with the new software active.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> You can also check whether a reboot is pending by looking for the file <code>/run/reboot-required</code>. If that file exists after an upgrade, a reboot is needed. You can check with: <code>test -f /run/reboot-required &amp;&amp; echo "Reboot needed" || echo "No reboot needed"</code>.</div>
+
+<h3>Checking the Temperature</h3>
+
+<p>The Pi 5's processor is powerful, and under heavy work it generates heat. The Active Cooler clipped to your board — the little heatsink-and-fan combination — handles this well, but it is good to know how to check the temperature yourself.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Throttling</em> means the processor deliberately slows itself down to avoid overheating. It is a safety mechanism, not a failure — but it does make your Pi feel sluggish, so you want to avoid it.</div>
+
+<pre class="code"><code>vcgencmd measure_temp</code></pre>
+<div class="explain">
+  <p>Reads the temperature sensor built into the Pi's processor chip and prints it to the screen. A typical result looks like <code>temp=47.2'C</code>. The <code>vcgencmd</code> command is a special Raspberry Pi utility for querying the hardware directly.</p>
+</div>
+
+<p>Here is a quick guide to what the temperature readings mean:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Temperature</th>
+      <th>What it means</th>
+      <th>Action needed</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Below 60 °C</td>
+      <td>Cool and happy</td>
+      <td>None — all is well</td>
+    </tr>
+    <tr>
+      <td>60–75 °C</td>
+      <td>Warm under load</td>
+      <td>Normal during intensive tasks; no action needed if it drops when idle</td>
+    </tr>
+    <tr>
+      <td>75–80 °C</td>
+      <td>Getting hot</td>
+      <td>Check airflow around the case; make sure the fan is spinning</td>
+    </tr>
+    <tr>
+      <td>Above 80 °C</td>
+      <td>Throttling will occur</td>
+      <td>Improve cooling; see the Troubleshooting section below</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> You can watch the temperature update in real time every two seconds by running: <code>watch -n 2 vcgencmd measure_temp</code>. Press <code>Ctrl + C</code> to stop.</div>
+
+<h3>Checking for Throttling and Undervoltage</h3>
+
+<p>The Pi reports throttling events in a special status register. You can read it with one command:</p>
+
+<pre class="code"><code>vcgencmd get_throttled</code></pre>
+<div class="explain">
+  <p>Reads a hidden status word from the Pi's hardware and prints a hexadecimal (base-16) number. The most reassuring result is <code>throttled=0x0</code>, which means nothing bad has happened since the last reboot.</p>
+</div>
+
+<p>The number returned is a <em>bitmask</em> — a code where each digit position carries a separate meaning. You do not need to memorise the arithmetic; just use this table:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Result value</th>
+      <th>What it means</th>
+      <th>Likely cause</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x0</code></td>
+      <td>All clear — no throttling ever recorded</td>
+      <td>Everything is fine</td>
+    </tr>
+    <tr>
+      <td>Bit 0 set (e.g. <code>0x1</code>)</td>
+      <td>Undervoltage <em>right now</em></td>
+      <td>Power supply is too weak or cable is poor quality</td>
+    </tr>
+    <tr>
+      <td>Bit 1 set (e.g. <code>0x2</code>)</td>
+      <td>Arm frequency capped right now</td>
+      <td>Temperature or voltage is borderline</td>
+    </tr>
+    <tr>
+      <td>Bit 2 set (e.g. <code>0x4</code>)</td>
+      <td>Currently throttled</td>
+      <td>Too hot — check cooling</td>
+    </tr>
+    <tr>
+      <td>Bit 16 set (e.g. <code>0x10000</code>)</td>
+      <td>Undervoltage occurred since last reboot</td>
+      <td>Power dip happened at some point</td>
+    </tr>
+    <tr>
+      <td>Bit 18 set (e.g. <code>0x40000</code>)</td>
+      <td>Throttling occurred since last reboot</td>
+      <td>Temperature spike happened at some point</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Values can be combined — for example <code>0x50005</code> means undervoltage and throttling are happening <em>right now</em> and both have also occurred since last boot.</p>
+
+<h4>The Lightning-Bolt Warning Icon</h4>
+
+<p>On the Raspberry Pi OS desktop you may occasionally see a small yellow lightning-bolt icon appear in the top-right corner of the screen. This is the desktop's visual alert for undervoltage — the Pi is not receiving enough power. It is the graphical equivalent of the bits above. The good news: your iRasptek kit includes an official-style 27 W USB-C power supply (5.1 V / 5 A) specifically chosen for the Pi 5, and using it correctly prevents virtually all undervoltage warnings. If you do see the lightning bolt:</p>
+
+<ul>
+  <li>Make sure you are using the power supply that came with your kit, not a phone charger.</li>
+  <li>Check that the USB-C cable is pushed firmly into both the Pi and the power supply.</li>
+  <li>Avoid using a USB hub to power the Pi — it must be powered directly from its own supply.</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> Persistent undervoltage can cause data corruption on your microSD card. If you see the lightning bolt regularly, fix the power supply before doing anything else.</div>
+
+<h3>Checking Free Storage Space</h3>
+
+<p>Your microSD card has a finite amount of space. If it fills up, programs start behaving strangely or refusing to run.</p>
+
+<pre class="code"><code>df -h</code></pre>
+<div class="explain">
+  <p><strong><code>df</code></strong> stands for "disk free". The <strong><code>-h</code></strong> flag means "human-readable", so sizes are shown in megabytes (MB) and gigabytes (GB) rather than raw byte counts. The output shows every storage area ("filesystem") mounted on your Pi, how big it is, how much is used, and how much is free. The line you care about most is the one whose "Mounted on" column reads <code>/</code> — that is your main microSD card.</p>
+</div>
+
+<p>A typical healthy result looks like this:</p>
+
+<pre class="code"><code>Filesystem      Size  Used Avail Use% Mounted on
+/dev/mmcblk0p2   58G   12G   43G  22% /</code></pre>
+<div class="explain">
+  <p>This example shows a 64 GB card with 12 GB used and 43 GB free — plenty of headroom. If the "Use%" column climbs above 85–90%, it is time to tidy up. The device name <code>/dev/mmcblk0p2</code> refers to the second partition on your microSD card — this is normal and expected.</p>
+</div>
+
+<h3>Tidying Up: Freeing Disk Space</h3>
+
+<p>Over time, packages you install leave behind cached files and old versions. Two commands clean most of this up safely:</p>
+
+<pre class="code"><code>sudo apt autoremove -y
+sudo apt clean</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>sudo apt autoremove -y</code>:</strong> Removes packages that were installed automatically as dependencies of something else but are no longer needed by anything. These orphaned packages are safe to delete.</p>
+  <p><strong>Line 2 — <code>sudo apt clean</code>:</strong> Deletes the downloaded package files that <code>apt</code> keeps in a cache folder after installation. The software itself is still installed; only the now-unnecessary installer files are removed. This can reclaim hundreds of megabytes.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Combine all four maintenance commands into one tidy habit: <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y &amp;&amp; sudo apt autoremove -y &amp;&amp; sudo apt clean</code>. The <code>&amp;&amp;</code> symbol means "run the next command only if the previous one succeeded".</div>
+
+<h3>Checking CPU and Memory Usage</h3>
+
+<p>If your Pi feels sluggish, it is useful to see what is using the processor and memory. The simplest way is the <code>htop</code> tool — a live, colourful dashboard of everything running on the Pi.</p>
+
+<pre class="code"><code>htop</code></pre>
+<div class="explain">
+  <p>Opens an interactive view showing all running processes, how much processor time each one is using (%), and how much memory each one is consuming. The bars at the top show overall CPU usage across all four processor cores and total memory use. Press <code>Q</code> to quit back to the terminal. If <code>htop</code> is not installed, run <code>sudo apt install htop</code> first.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> If you want a quick, non-interactive snapshot of the top resource users without opening a live view, type <code>top -b -n 1 | head -20</code>. This prints a one-shot summary of the twenty busiest processes and exits immediately.</div>
+
+<h2 id="understanding-your-pi-s-status-leds">Understanding Your Pi's Status LEDs</h2>
+
+<p>The Raspberry Pi 5 has a red LED and a green LED on the board. Learning what they signal is often the fastest way to diagnose a problem.</p>
+
+<figure class="fig">
+  <svg viewBox="0 0 560 230" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+    <!-- Board outline -->
+    <rect x="30" y="40" width="180" height="150" rx="10" ry="10" fill="#f3f0ff" stroke="#1f2933" stroke-width="2"/>
+    <!-- Pi label -->
+    <text x="120" y="62" text-anchor="middle" font-size="13" fill="#1f2933" font-weight="bold">Raspberry Pi 5</text>
+
+    <!-- Red LED -->
+    <circle cx="75" cy="100" r="13" fill="#ef4444" stroke="#1f2933" stroke-width="1.5"/>
+    <text x="75" y="104" text-anchor="middle" font-size="11" fill="white" font-weight="bold">PWR</text>
+
+    <!-- Green LED -->
+    <circle cx="135" cy="100" r="13" fill="#22c55e" stroke="#1f2933" stroke-width="1.5"/>
+    <text x="135" y="104" text-anchor="middle" font-size="11" fill="white" font-weight="bold">ACT</text>
+
+    <!-- Connector line from red LED to callout -->
+    <line x1="88" y1="100" x2="250" y2="80" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+    <!-- Connector line from green LED to callout -->
+    <line x1="148" y1="100" x2="250" y2="160" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+    <!-- Red LED callout box -->
+    <rect x="250" y="30" width="280" height="90" rx="6" fill="#fef2f2" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="264" y="52" font-size="13" fill="#1f2933" font-weight="bold">Red LED (PWR)</text>
+    <text x="264" y="72" font-size="12" fill="#1f2933">Solid ON = power is good (normal)</text>
+    <text x="264" y="90" font-size="12" fill="#1f2933">OFF or flickering = power problem</text>
+    <text x="264" y="108" font-size="12" fill="#1f2933">Check cable and power supply</text>
+
+    <!-- Green LED callout box -->
+    <rect x="250" y="135" width="280" height="90" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+    <text x="264" y="157" font-size="13" fill="#1f2933" font-weight="bold">Green LED (ACT)</text>
+    <text x="264" y="177" font-size="12" fill="#1f2933">Irregular flashing = reading/writing SD card</text>
+    <text x="264" y="197" font-size="12" fill="#1f2933">Solid ON or no flash at all = boot problem</text>
+    <text x="264" y="215" font-size="12" fill="#1f2933">Repeating blink pattern = boot error code</text>
+  </svg>
+  <figcaption>The two status LEDs on the Raspberry Pi 5 board and what they tell you.</figcaption>
+</figure>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>LED colour</th>
+      <th>Behaviour</th>
+      <th>What it means</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Red (PWR)</td>
+      <td>Solid on</td>
+      <td>Power supply is good — normal</td>
+    </tr>
+    <tr>
+      <td>Red (PWR)</td>
+      <td>Off entirely</td>
+      <td>No power reaching the board; check the cable and supply</td>
+    </tr>
+    <tr>
+      <td>Red (PWR)</td>
+      <td>Flickering</td>
+      <td>Undervoltage — power supply is struggling</td>
+    </tr>
+    <tr>
+      <td>Green (ACT)</td>
+      <td>Irregular flashing</td>
+      <td>Actively reading or writing to the microSD card — normal during boot and use</td>
+    </tr>
+    <tr>
+      <td>Green (ACT)</td>
+      <td>Steady on or off after initial flash</td>
+      <td>Boot has stalled — corrupted card, wrong image, or card not seated properly</td>
+    </tr>
+    <tr>
+      <td>Green (ACT)</td>
+      <td>Specific blink patterns (e.g. 4 flashes, pause)</td>
+      <td>A boot error code — count the flashes; see the Boot Error Codes table below</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Boot Error Codes (Green LED Blink Patterns)</h3>
+
+<p>If the green LED flashes in a regular repeating pattern during boot rather than irregularly, count the flashes between the pauses. Each number points to a specific problem:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Flash count</th>
+      <th>What it means</th>
+      <th>What to do</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3 flashes</td>
+      <td>start.elf not found or corrupted</td>
+      <td>Re-flash the microSD card with Raspberry Pi Imager</td>
+    </tr>
+    <tr>
+      <td>4 flashes</td>
+      <td>start.elf cannot be launched</td>
+      <td>Re-flash the microSD card with Raspberry Pi Imager</td>
+    </tr>
+    <tr>
+      <td>7 flashes</td>
+      <td>kernel.img not found</td>
+      <td>Re-flash the microSD card with Raspberry Pi Imager</td>
+    </tr>
+    <tr>
+      <td>8 flashes</td>
+      <td>SDRAM (memory) not recognised</td>
+      <td>Try a different microSD card; if that fails, the board may need checking</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> All single-digit blink-code problems are almost always fixed by re-flashing the microSD card. The Pi 5's bootloader is very reliable; what fails is usually the card or the image written to it.</div>
+
+<h2 id="reading-logs-what-is-the-pi-telling-you">Reading Logs: What Is the Pi Telling You?</h2>
+
+<p>When something goes wrong, your Pi keeps a record of what happened in its <em>system logs</em>. You do not need to understand everything in them — just knowing how to glance at the end of the log is often enough to find a clear error message.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>log</em> is like a diary that the operating system writes automatically. Every time a service starts, crashes, or encounters a problem, it writes a timestamped entry. Reading logs is the first step professionals take when diagnosing any Linux system.</div>
+
+<h3>Viewing Recent Log Entries</h3>
+
+<pre class="code"><code>journalctl -xe</code></pre>
+<div class="explain">
+  <p><strong><code>journalctl</code></strong> is the command for reading the system journal (log). The <strong><code>-x</code></strong> flag adds helpful explanatory text around error entries. The <strong><code>-e</code></strong> flag jumps to the <em>end</em> of the log (the most recent entries) rather than starting from the beginning. Use the arrow keys to scroll up and down; press <code>Q</code> to quit.</p>
+</div>
+
+<h3>Viewing Boot Messages</h3>
+
+<pre class="code"><code>dmesg | tail -30</code></pre>
+<div class="explain">
+  <p><strong><code>dmesg</code></strong> prints the <em>kernel ring buffer</em> — the messages the Linux kernel itself generated, especially during boot. The <strong><code>|</code></strong> symbol (called a "pipe") sends that output to the next command. <strong><code>tail -30</code></strong> shows only the last 30 lines, which are usually the most relevant. Look for lines containing the words <code>error</code>, <code>fail</code>, or <code>warning</code>.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> If you see an unfamiliar error message, copy the exact text and search for it in a web browser. The Raspberry Pi forums at <code>forums.raspberrypi.com</code> and general Linux Q&amp;A sites almost always have someone who has seen the same thing before.</div>
+
+<h3>Viewing Logs for a Specific Service</h3>
+
+<p>If a particular program (called a <em>service</em> when it runs in the background) is misbehaving, you can read just its log:</p>
+
+<pre class="code"><code>journalctl -u ssh -n 50</code></pre>
+<div class="explain">
+  <p>Shows the last 50 log lines specifically for the <code>ssh</code> service (the remote-access tool). Replace <code>ssh</code> with the name of any other service — for example <code>bluetooth</code> or <code>NetworkManager</code> — to see its log instead. The <code>-u</code> flag means "unit" (the systemd name for a service) and <code>-n 50</code> means "show the last 50 lines".</p>
+</div>
+
+<h2 id="the-raspi-config-configuration-tool">The <code>raspi-config</code> Configuration Tool</h2>
+
+<p>Raspberry Pi OS includes a dedicated configuration tool called <code>raspi-config</code>. It gives you a simple menu-driven interface for changing the most important system settings without needing to edit any configuration files by hand.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>configuration file</em> is a plain text file that tells the operating system how to behave. Editing them directly requires care. <code>raspi-config</code> does the editing for you safely.</div>
+
+<pre class="code"><code>sudo raspi-config</code></pre>
+<div class="explain">
+  <p>Opens the Raspberry Pi Configuration menu in the terminal. Use the arrow keys to move up and down, <code>Enter</code> to select, and <code>Tab</code> or the left/right arrows to move between the menu buttons at the bottom (such as &lt;Select&gt; and &lt;Finish&gt;). Press <code>Escape</code> or choose &lt;Finish&gt; to exit. Changes often take effect after a reboot.</p>
+</div>
+
+<p>The most useful things you can do in <code>raspi-config</code>:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Menu section</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>System Options &gt; Password</td>
+      <td>Change your login password</td>
+    </tr>
+    <tr>
+      <td>System Options &gt; Hostname</td>
+      <td>Give your Pi a memorable name on the network (e.g. <code>mypi</code>)</td>
+    </tr>
+    <tr>
+      <td>Interface Options &gt; SSH</td>
+      <td>Enable or disable remote terminal access</td>
+    </tr>
+    <tr>
+      <td>Interface Options &gt; VNC</td>
+      <td>Enable graphical remote desktop access</td>
+    </tr>
+    <tr>
+      <td>Localisation Options &gt; Timezone</td>
+      <td>Set the correct local time zone</td>
+    </tr>
+    <tr>
+      <td>Localisation Options &gt; WLAN Country</td>
+      <td>Set the Wi-Fi country code (required for Wi-Fi to work)</td>
+    </tr>
+    <tr>
+      <td>Advanced Options &gt; Expand Filesystem</td>
+      <td>Make the OS use all available space on the microSD card</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> Raspberry Pi Imager normally expands the filesystem automatically when it writes the card. However, if you ever re-flash manually and notice the available space seems smaller than expected, run <code>sudo raspi-config</code> and choose Advanced Options &gt; Expand Filesystem.</div>
+
+<h2 id="troubleshooting-the-big-reference-table">Troubleshooting: The Big Reference Table</h2>
+
+<p>Below is a comprehensive table of the most common Raspberry Pi problems, their likely causes, and how to fix them. Work through the "Fix" steps in order — the simplest checks come first.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Problem</th>
+      <th>Likely cause(s)</th>
+      <th>Fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Nothing on the screen — blank display</strong></td>
+      <td>Wrong micro-HDMI port used; monitor on wrong input; cable not fully inserted; Pi not booted yet</td>
+      <td>See detailed steps below the table</td>
+    </tr>
+    <tr>
+      <td><strong>Pi will not boot (green LED solid or wrong blink pattern)</strong></td>
+      <td>Corrupted microSD card; card not seated properly; wrong OS image written to card</td>
+      <td>See detailed steps below the table</td>
+    </tr>
+    <tr>
+      <td><strong>No Wi-Fi — cannot connect to any network</strong></td>
+      <td>Wi-Fi country not set; or trying to connect before country was configured in the imager</td>
+      <td>See detailed steps below the table</td>
+    </tr>
+    <tr>
+      <td><strong>Cannot SSH — "connection refused" or "host not found"</strong></td>
+      <td>SSH not enabled; wrong hostname or IP address; not on the same network</td>
+      <td>See detailed steps below the table</td>
+    </tr>
+    <tr>
+      <td><strong>Pi running hot or feeling slow</strong></td>
+      <td>Throttling due to heat or poor power; fan not spinning; case blocking airflow</td>
+      <td>See detailed steps below the table</td>
+    </tr>
+    <tr>
+      <td><strong>microSD card corruption / Pi freezes randomly</strong></td>
+      <td>Sudden power loss; poor-quality power supply; card wear</td>
+      <td>See detailed steps below the table</td>
+    </tr>
+    <tr>
+      <td><strong>"externally-managed-environment" error when using pip</strong></td>
+      <td>Bookworm protects the system Python from pip by default</td>
+      <td>See detailed steps below the table</td>
+    </tr>
+    <tr>
+      <td><strong>App will not install / "package not found"</strong></td>
+      <td>Package list is stale; package name wrong; package not in default repositories</td>
+      <td>Always run <code>sudo apt update</code> first, then retry the install command</td>
+    </tr>
+    <tr>
+      <td><strong>No sound from HDMI monitor</strong></td>
+      <td>Monitor speakers not selected as audio output; monitor has no speakers</td>
+      <td>Right-click the speaker icon in the taskbar and select the HDMI audio device; or use USB speakers</td>
+    </tr>
+    <tr>
+      <td><strong>Pi loses the correct time after a power cut</strong></td>
+      <td>No RTC battery installed; NTP time sync not working</td>
+      <td>Connect to the internet to sync time automatically; or fit a real-time clock battery to the RTC connector</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Nothing on the Screen / Blank Display</h3>
+
+<p>This is the most common beginner shock. Work through these steps in order:</p>
+
+<ol class="steps">
+  <li><strong>Check which micro-HDMI port you are using.</strong> The Pi 5 has <em>two</em> micro-HDMI sockets side by side. The primary port is the one closest to the USB-C power socket (labelled HDMI 0 on the board). Plug your cable into that port first. If you are already in it, try the other one.</li>
+  <li><strong>Check your monitor's input source.</strong> Most monitors have multiple inputs (HDMI 1, HDMI 2, DisplayPort, etc.). Use your monitor's menu button or input-select button to switch to the HDMI input your cable is connected to. This is the single most common reason for a blank screen.</li>
+  <li><strong>Check the cable is seated firmly.</strong> The micro-HDMI connector is small — push it in until it clicks. Do the same at the monitor end.</li>
+  <li><strong>Wait for the Pi to finish booting.</strong> The first boot after a fresh installation can take 60–90 seconds before the desktop appears. Watch the green ACT LED: if it is flashing, the Pi is working. Be patient.</li>
+  <li><strong>Try a different HDMI cable or a different monitor.</strong> Cables do fail. If you have another monitor or TV in the house, try plugging in there.</li>
+  <li><strong>Look at the green LED.</strong> If it shows a repeating pattern of short flashes (for example, 4 flashes then a pause), count them — each pattern is a boot error code. See the Boot Error Codes table above. In most cases, re-flashing the card (see the section on re-flashing below) will fix it.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> There is no 3.5 mm headphone socket on the Pi 5. Audio output is via HDMI or USB. If your monitor has no built-in speakers, you will need USB speakers or a USB audio adapter for sound.</div>
+
+<h3>Pi Will Not Boot</h3>
+
+<ol class="steps">
+  <li><strong>Reseat the microSD card.</strong> Power the Pi off by unplugging it. Remove the microSD card from its slot on the underside of the board, then push it back in firmly until you feel it click. Reconnect power.</li>
+  <li><strong>Check whether the card is recognised.</strong> During boot the green LED should flash irregularly. If it does not flash at all after 30 seconds, the Pi cannot read the card.</li>
+  <li><strong>Re-flash the microSD card.</strong> Connect the card (using the USB card reader that came with your kit) to your Windows 11 computer. Use the Raspberry Pi Imager application (download free from <code>raspberrypi.com/software</code>) to write a fresh copy of Raspberry Pi OS to the card. This takes about 5–10 minutes. Then reinsert the card in the Pi and try again. <em>Re-flashing erases the card but is completely safe and free — it is the fastest fix for most boot problems.</em></li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Re-flashing erases everything on the microSD card. If there are files on it you want to keep, copy them to your Windows PC first using the USB card reader. See the "Backing Up Your Files" section later in this chapter.</div>
+
+<h3>No Wi-Fi</h3>
+
+<p>The Pi 5 has built-in dual-band Wi-Fi, but it will refuse to connect if the country code has not been set. This is a legal requirement — Wi-Fi radios must operate within the power limits of the country they are in.</p>
+
+<ol class="steps">
+  <li>Click the Raspberry Pi menu (top-left), go to <strong>Preferences &gt; Raspberry Pi Configuration</strong>.</li>
+  <li>Click the <strong>Localisation</strong> tab.</li>
+  <li>Click <strong>Set WiFi Country</strong> and choose your country (United Kingdom, France, Germany, etc.).</li>
+  <li>Click OK, then reboot when prompted.</li>
+  <li>After rebooting, click the Wi-Fi icon in the top-right corner of the taskbar and select your network.</li>
+</ol>
+
+<p>You can also set the country from the Terminal:</p>
+
+<pre class="code"><code>sudo raspi-config nonint do_wifi_country GB
+sudo reboot</code></pre>
+<div class="explain">
+  <p><strong>Line 1:</strong> Runs the Raspberry Pi configuration tool in non-interactive (command-line) mode and sets the Wi-Fi country to the United Kingdom (<code>GB</code>). Replace <code>GB</code> with your two-letter country code: <code>FR</code> for France, <code>DE</code> for Germany, <code>CH</code> for Switzerland, <code>NL</code> for the Netherlands, and so on.</p>
+  <p><strong>Line 2:</strong> Reboots the Pi so the new country setting takes effect. Wi-Fi will be available after the restart.</p>
+</div>
+
+<h3>Cannot SSH (Remote Access)</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <em>SSH</em> (Secure Shell) lets you control your Pi's terminal from another computer over the network, without needing a monitor plugged into the Pi at all.</div>
+
+<ol class="steps">
+  <li><strong>Make sure SSH is enabled.</strong> On the Pi desktop, go to <strong>Preferences &gt; Raspberry Pi Configuration &gt; Interfaces</strong> and ensure SSH is set to <strong>Enabled</strong>. Alternatively, in the Terminal:</li>
+</ol>
+
+<pre class="code"><code>sudo raspi-config nonint do_ssh 0</code></pre>
+<div class="explain">
+  <p>Enables SSH using <code>raspi-config</code> in non-interactive mode. The <code>0</code> means "enable" (and <code>1</code> would mean "disable"). After running this, SSH is active immediately — no reboot required.</p>
+</div>
+
+<ol class="steps" start="2">
+  <li><strong>Check you are on the same network.</strong> Your Pi and your Windows laptop must be connected to the same router — either both on the same Wi-Fi, or the Pi on Ethernet into the same router. SSH will not work across different networks.</li>
+  <li><strong>Find the Pi's IP address.</strong> Run the following command on the Pi (when you have a monitor and keyboard connected), then use the printed address when connecting from Windows.</li>
+</ol>
+
+<pre class="code"><code>hostname -I</code></pre>
+<div class="explain">
+  <p>Prints the Pi's current IP address (or addresses) on the network. The first number (e.g. <code>192.168.1.42</code>) is the one to use when connecting from another computer. You can then connect from Windows by opening a Command Prompt or PowerShell window and typing <code>ssh yourusername@192.168.1.42</code>.</p>
+</div>
+
+<ol class="steps" start="4">
+  <li><strong>Use the right hostname.</strong> If you do not have a monitor available, try connecting using the Pi's hostname: <code>ssh yourusername@raspberrypi.local</code>. If you changed the hostname in <code>raspi-config</code>, use that name instead (e.g. <code>ssh yourusername@mypi.local</code>).</li>
+  <li><strong>Check for a firewall.</strong> By default, Raspberry Pi OS does not run a firewall, so this is rarely the problem. But if you installed one, make sure port 22 is allowed.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> You can verify your internet connection from the Pi's terminal at any time with:</div>
+
+<pre class="code"><code>ping -c 4 raspberrypi.com</code></pre>
+<div class="explain">
+  <p>Sends four small test packets to the Raspberry Pi website and waits for replies. If you see responses with times in milliseconds, the internet connection is working. If you see "Network unreachable" or "Name or service not known", the Pi is not online — check your Wi-Fi or Ethernet connection first.</p>
+</div>
+
+<h3>Running Hot or Feeling Slow</h3>
+
+<ol class="steps">
+  <li><strong>Check the temperature</strong> with <code>vcgencmd measure_temp</code> and the throttle status with <code>vcgencmd get_throttled</code>. A non-zero throttle value confirms the Pi has slowed down.</li>
+  <li><strong>Check the fan is spinning.</strong> The Active Cooler fan should spin when the Pi is warm. Listen for it, or look through any ventilation slots in the case. If the fan is silent when the Pi is hot, it may not be connected properly — the fan connector attaches to a small header on the Pi's board. Power the Pi off and reseat the connector.</li>
+  <li><strong>Check for airflow.</strong> Make sure the case's ventilation slots are not blocked by books, walls, or fabric. The Pi needs air to flow over it.</li>
+  <li><strong>Check the power supply.</strong> Throttling can be caused by undervoltage, not just heat. Confirm you are using the included 27 W supply (not a phone charger), and the cable is undamaged.</li>
+  <li><strong>Check what is using resources.</strong> Run <code>htop</code> to see which programs are consuming the most CPU or memory, and close what you do not need. You can also use the System Monitor application in the Raspberry Pi menu under Accessories.</li>
+</ol>
+
+<h3>microSD Card Corruption</h3>
+
+<p>The microSD card is the most fragile part of the Pi setup. Corruption — where files become garbled or unreadable — usually happens when the card loses power while it is in the middle of writing data.</p>
+
+<p><strong>Symptoms include:</strong> the Pi freezes randomly, refuses to boot, shows a "kernel panic" message, or the file system appears read-only.</p>
+
+<p><strong>How to prevent it:</strong></p>
+<ul>
+  <li>Always shut down properly using the desktop menu (<strong>Raspberry Pi menu &gt; Shutdown &gt; Shutdown</strong>) or the terminal command <code>sudo shutdown -h now</code>. Wait for the green LED to stop flashing before disconnecting power.</li>
+  <li>Use the physical power button on the Pi 5 board: a single press triggers a clean shutdown.</li>
+  <li>Use a good-quality power supply (your kit's 27 W supply is correct). Cheap phone chargers that struggle to deliver enough power cause micro-dropouts that corrupt cards.</li>
+  <li>Consider upgrading to an NVMe SSD on the PCIe connector for projects that involve heavy disk writing — SSDs are far more durable than microSD cards.</li>
+</ul>
+
+<p><strong>How to fix it:</strong> If the card is already corrupted, the quickest fix is to re-flash it using Raspberry Pi Imager on your Windows PC as described in the section below. Before you do, if the Pi still boots at all, back up your files first.</p>
+
+<div class="tip"><strong>Tip:</strong> If the Pi boots but reports the filesystem is read-only, you may be able to check and repair it without re-flashing. Shut the Pi down cleanly, remove the microSD card, insert it into your Windows PC, and run the Windows disk error-checking tool on it (right-click the drive in File Explorer &gt; Properties &gt; Tools &gt; Check). This sometimes fixes minor corruption.</div>
+
+<h3>The "externally-managed-environment" Error with pip</h3>
+
+<p>On Raspberry Pi OS Bookworm, if you try to install a Python library directly with <code>pip install something</code>, you will see an error like:</p>
+
+<pre class="code"><code>error: externally-managed-environment</code></pre>
+<div class="explain">
+  <p>This is not a bug. Raspberry Pi OS Bookworm deliberately blocks <code>pip</code> from installing packages into the system Python environment, to protect the operating system from accidentally broken libraries. This is the correct and intentional behaviour.</p>
+</div>
+
+<p>You have three safe ways around this:</p>
+
+<p><strong>Option 1 — Use apt (best for well-known libraries):</strong></p>
+<pre class="code"><code>sudo apt install python3-requests</code></pre>
+<div class="explain">
+  <p>Many popular Python libraries are available as official Raspberry Pi OS packages with the prefix <code>python3-</code>. Replace <code>requests</code> with the name of the library you need (for example <code>python3-numpy</code> or <code>python3-pillow</code>). This is the safest and most reliable method because the package has been tested to work with your exact version of Python.</p>
+</div>
+
+<p><strong>Option 2 — Use a virtual environment (best for projects):</strong></p>
+<pre class="code"><code>python3 -m venv myproject-env
+source myproject-env/bin/activate
+pip install requests</code></pre>
+<div class="explain">
+  <p><strong>Line 1:</strong> Creates a self-contained Python environment in a new folder called <code>myproject-env</code>. This environment is completely separate from the system Python, so nothing you install inside it can break the operating system. You only need to do this once per project.</p>
+  <p><strong>Line 2:</strong> "Activates" the environment — from this point on, <code>python3</code> and <code>pip</code> refer to the versions inside this folder, not the system ones. You will see the environment name appear in brackets at the start of your prompt: <code>(myproject-env)</code>. You need to run this activation line each time you open a new terminal and want to work on this project.</p>
+  <p><strong>Line 3:</strong> Now that the virtual environment is active, <code>pip install</code> works normally and installs only into this safe, isolated folder. To deactivate the environment when you are done, simply type <code>deactivate</code>.</p>
+</div>
+
+<p><strong>Option 3 — Use Thonny (easiest for beginners):</strong> The pre-installed Thonny code editor manages its own Python environment separately from the system. Open Thonny, go to <strong>Tools &gt; Manage packages</strong>, and search for the library you want. Thonny installs it into its own space without triggering the error.</p>
+
+<h3>An App Will Not Install</h3>
+
+<ol class="steps">
+  <li><strong>Always run <code>sudo apt update</code> first.</strong> If your package list is more than a few days old, <code>apt</code> may look for a package version that no longer exists and fail with a confusing error. Refresh the list first, then retry.</li>
+  <li><strong>Search for the correct package name.</strong> Package names are case-sensitive and sometimes use hyphens where you might expect underscores. Use the search command below to find matching packages.</li>
+  <li><strong>Check your internet connection.</strong> Run the ping command shown earlier in this chapter to confirm you are online. If there is no response, fix your network first.</li>
+</ol>
+
+<pre class="code"><code>apt-cache search image viewer</code></pre>
+<div class="explain">
+  <p>Searches the local package catalogue for any package whose name or description contains the words "image viewer". This is useful when you know what kind of software you want but are not sure of the exact package name. No internet connection is needed — it searches the already-downloaded list. Replace the search words with whatever you are looking for.</p>
+</div>
+
+<h2 id="backing-up-your-files">Backing Up Your Files</h2>
+
+<p>The simplest backup is to copy your important files to a USB drive or to your Windows PC. For whole-system backups — a complete snapshot of everything on the card — you have two practical options.</p>
+
+<h3>Copying Files to a USB Drive</h3>
+
+<p>First, plug a USB drive into any of the Pi's USB ports. It will appear in the file manager automatically. Then, to copy your documents folder to it from the terminal, use:</p>
+
+<pre class="code"><code>cp -r /home/yourname/Documents /media/yourname/MYUSBDRIVE/</code></pre>
+<div class="explain">
+  <p><strong><code>cp</code></strong> is the copy command. The <strong><code>-r</code></strong> flag means "recursive" — it copies a folder and everything inside it, including any sub-folders. Replace <code>yourname</code> with your actual username (the name you created when you set up the Pi). Replace <code>MYUSBDRIVE</code> with the actual name of your USB drive, which you can see in the file manager when you plug it in. The path <code>/media/yourname/MYUSBDRIVE/</code> is where Raspberry Pi OS automatically makes USB drives accessible.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> To find out your exact username, type <code>whoami</code> in the terminal and press Enter. The Pi will print your username.</div>
+
+<h3>Whole-Card Image Backup (from Windows)</h3>
+
+<p>The most thorough backup is a complete image of the entire microSD card, made from your Windows 11 PC. This captures the operating system, all installed programs, and all your files — so you can restore everything exactly as it was if the card ever fails.</p>
+
+<ol class="steps">
+  <li>Shut down the Pi cleanly (<strong>Raspberry Pi menu &gt; Shutdown</strong>), wait for the green LED to stop flashing, then remove the microSD card.</li>
+  <li>Insert the card into the USB card reader and plug it into your Windows PC.</li>
+  <li>Download and install <strong>Win32 Disk Imager</strong> (free, from <code>sourceforge.net/projects/win32diskimager</code>). Open it, choose an image file name and location to save to (e.g. <code>pi-backup-2025-06.img</code> on your desktop or an external drive), select the correct drive letter for your microSD card, then click <strong>Read</strong>.</li>
+  <li>Wait for the read operation to complete. The result is a single <code>.img</code> file that is an exact copy of your card.</li>
+  <li>Store this <code>.img</code> file somewhere safe — an external hard drive or cloud storage. If your Pi's card ever fails, you can use Win32 Disk Imager's <strong>Write</strong> button (or Raspberry Pi Imager's "Use custom" option) to write this image back to a new card and restore everything.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> When using Win32 Disk Imager, make absolutely sure you select the correct drive letter for your microSD card. Selecting the wrong drive and clicking Read will overwrite a different disk with your card's image, potentially destroying data. Double-check the drive letter in Windows File Explorer before proceeding.</div>
+
+<div class="note"><strong>Note:</strong> The <code>.img</code> backup file will be the same size as your microSD card (e.g. 64 GB). Make sure the destination has enough free space.</div>
+
+<h2 id="when-a-clean-re-flash-is-the-fastest-fix">When a Clean Re-Flash Is the Fastest Fix</h2>
+
+<p>Experienced Raspberry Pi users have learnt that re-flashing the card — wiping it and starting fresh — is often the fastest solution to a stubbornly misbehaving Pi. Do not be afraid of it. Here is why it is not as drastic as it sounds:</p>
+
+<ul>
+  <li><strong>It is free and takes about 10 minutes</strong> using Raspberry Pi Imager.</li>
+  <li><strong>Your personal files are easy to back up first</strong> — just copy the contents of <code>/home/yourname/</code> to a USB drive or your Windows PC before you re-flash.</li>
+  <li><strong>A fresh system has no accumulated clutter,</strong> broken configurations, or partial updates — it is a clean slate.</li>
+  <li><strong>Raspberry Pi Imager lets you pre-configure</strong> your username, password, Wi-Fi credentials, and SSH settings before writing, so the re-flashed Pi comes up connected and ready to use.</li>
+</ul>
+
+<p>If you have spent more than an hour trying to fix a problem and are going in circles, take a step back, back up your files, and re-flash. You will almost certainly solve the problem in less time than you have already spent on it, and you will feel a satisfying sense of a fresh start.</p>
+
+<div class="note"><strong>Note:</strong> Re-flashing is not a defeat. It is a professional technique. Even experienced Linux administrators re-image systems to fix stubborn problems. The difference between a beginner and an expert is often just knowing when to take this shortcut.</div>
+
+<h2 id="a-maintenance-checklist">A Maintenance Checklist</h2>
+
+<p>Pin this list somewhere convenient as a quick reminder of good habits:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>How often</th>
+      <th>Task</th>
+      <th>Command or action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Weekly (or before a new project)</td>
+      <td>Update all software</td>
+      <td><code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code></td>
+    </tr>
+    <tr>
+      <td>Monthly</td>
+      <td>Clean up old packages and cache</td>
+      <td><code>sudo apt autoremove -y &amp;&amp; sudo apt clean</code></td>
+    </tr>
+    <tr>
+      <td>Monthly</td>
+      <td>Check free disk space</td>
+      <td><code>df -h</code></td>
+    </tr>
+    <tr>
+      <td>Any time it feels slow</td>
+      <td>Check temperature and throttling</td>
+      <td><code>vcgencmd measure_temp</code> and <code>vcgencmd get_throttled</code></td>
+    </tr>
+    <tr>
+      <td>Any time it feels slow</td>
+      <td>Check CPU and memory usage</td>
+      <td><code>htop</code></td>
+    </tr>
+    <tr>
+      <td>Before any risky change</td>
+      <td>Back up personal files</td>
+      <td>Copy <code>/home/yourname/</code> to USB drive or Windows PC</td>
+    </tr>
+    <tr>
+      <td>Occasionally</td>
+      <td>Full card image backup</td>
+      <td>Win32 Disk Imager &gt; Read, from Windows PC</td>
+    </tr>
+    <tr>
+      <td>Every session</td>
+      <td>Shut down cleanly</td>
+      <td>Raspberry Pi menu &gt; Shutdown, or <code>sudo shutdown -h now</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>apt</strong> — the package manager for Raspberry Pi OS; it installs, updates, and removes software.</li>
+    <li><strong>Throttling</strong> — the processor deliberately running slower than normal to avoid overheating or to cope with insufficient power.</li>
+    <li><strong>Undervoltage</strong> — when the Pi is not receiving enough electrical voltage, usually due to a weak power supply or poor-quality cable.</li>
+    <li><strong>vcgencmd</strong> — a Raspberry Pi-specific command-line tool for querying hardware status, including temperature and throttling.</li>
+    <li><strong>journalctl</strong> — the command for reading the system journal (log) on Raspberry Pi OS and other modern Linux systems.</li>
+    <li><strong>dmesg</strong> — displays messages from the Linux kernel, especially those generated during startup.</li>
+    <li><strong>SSH (Secure Shell)</strong> — a method of remotely controlling a computer's terminal over a network using an encrypted connection.</li>
+    <li><strong>Virtual environment (venv)</strong> — a self-contained Python installation that is separate from the system Python, making it safe to install any libraries without risk of breaking the OS.</li>
+    <li><strong>externally-managed-environment</strong> — the Bookworm-era protection that prevents <code>pip</code> from installing directly into the system Python; solved by using a venv, apt, or Thonny.</li>
+    <li><strong>ACT LED</strong> — the green activity LED on the Pi board; irregular flashing means the microSD card is being read or written.</li>
+    <li><strong>PWR LED</strong> — the red power LED on the Pi board; solid on means power is good; flickering or off means a power problem.</li>
+    <li><strong>Re-flashing</strong> — erasing a microSD card and writing a fresh operating system image to it; the fastest fix for many boot problems.</li>
+    <li><strong>df -h</strong> — a command that shows how much disk space is used and free on each storage device, in human-readable sizes.</li>
+    <li><strong>htop</strong> — an interactive terminal program that shows a live view of CPU and memory usage for every process running on the Pi.</li>
+    <li><strong>raspi-config</strong> — a menu-driven tool built into Raspberry Pi OS for changing system settings such as the hostname, Wi-Fi country, and enabled interfaces.</li>
+    <li><strong>Win32 Disk Imager</strong> — a free Windows program that can read an entire microSD card into a single backup image file, and write that image back to a card to restore it.</li>
+    <li><strong>Boot error code</strong> — a repeating pattern of green LED flashes during startup that points to a specific hardware or software problem; almost always fixed by re-flashing the card.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Run <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code> weekly to keep your Pi secure and up to date.</li>
+    <li>Use <code>vcgencmd measure_temp</code> to check temperature and <code>vcgencmd get_throttled</code> to check for throttling; a result of <code>0x0</code> means all is well.</li>
+    <li>The yellow lightning-bolt icon on the desktop means undervoltage — always use the included 27 W power supply, not a phone charger.</li>
+    <li>Check free disk space with <code>df -h</code> and clean up with <code>sudo apt autoremove -y &amp;&amp; sudo apt clean</code>.</li>
+    <li>Use <code>htop</code> to see which programs are consuming the most CPU or memory when the Pi feels slow.</li>
+    <li>The red LED shows power status; the green LED shows microSD card activity — a frozen green LED or a regular blink pattern during boot points to a card problem.</li>
+    <li>A blank screen is most often caused by the wrong micro-HDMI port, the wrong monitor input, or a loose cable — not a broken Pi.</li>
+    <li>No Wi-Fi almost always means the Wi-Fi country has not been set; fix it in Raspberry Pi Configuration under Localisation, or with <code>sudo raspi-config</code>.</li>
+    <li>The "externally-managed-environment" pip error is intentional; use <code>apt install python3-packagename</code>, a virtual environment, or Thonny instead.</li>
+    <li>Always shut down cleanly to protect the microSD card from corruption; the physical power button on the Pi 5 triggers a safe shutdown.</li>
+    <li>Use Win32 Disk Imager on your Windows PC to make a complete image backup of your microSD card; store it somewhere safe.</li>
+    <li>Re-flashing the microSD card with Raspberry Pi Imager is free, takes ten minutes, and fixes the vast majority of stubborn problems — back up your files first, then do not hesitate.</li>
+  </ul>
+</div>

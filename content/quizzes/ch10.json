@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch10",
+  "title": "Storage, Backups & SSD",
+  "questions": [
+    {
+      "q": "Why is it important to always shut down the Raspberry Pi properly before cutting the power?",
+      "choices": [
+        "To save electricity and reduce wear on the power supply",
+        "To prevent filesystem corruption caused by an interrupted write operation",
+        "To give the RAM time to transfer its contents to the microSD card",
+        "To update the bootloader before the next startup"
+      ],
+      "answer": 1,
+      "explain": "If the Pi is writing a file when power is suddenly cut, that file — and sometimes nearby parts of the filesystem — can become scrambled and unreadable. RAM empties itself on power-off and does not transfer to the card, so that option is incorrect."
+    },
+    {
+      "q": "You run 'df -h' and see that your main partition shows 'Use%' at 85%. What should you do?",
+      "choices": [
+        "Nothing — the Pi works best when the card is nearly full",
+        "Run 'lsblk' to reformat the partition and free up space",
+        "Delete unwanted files, move data to an external drive, or upgrade to a bigger card or SSD",
+        "Increase RAM so the filesystem has more room to grow"
+      ],
+      "answer": 2,
+      "explain": "The chapter advises keeping disk usage below 80%. When it climbs above that, the recommended actions are to delete files, move data to an external drive, or upgrade storage. RAM and the filesystem are separate — adding RAM does not create more storage space."
+    },
+    {
+      "q": "What is the main advantage of using 'rsync -av' for backups instead of the 'cp' command?",
+      "choices": [
+        "rsync only copies files that are new or have changed, making repeat backups much faster",
+        "rsync creates a compressed .img file that takes up less space",
+        "rsync can back up to a Windows PC over the network without any setup",
+        "rsync automatically verifies each file with a checksum and re-copies any errors"
+      ],
+      "answer": 0,
+      "explain": "Unlike 'cp', which always copies everything from scratch, 'rsync' compares source and destination and only transfers what has changed. This makes the second and subsequent backup runs much quicker for large folders."
+    },
+    {
+      "q": "When using SD Card Copier to clone your microSD card, why should you tick 'New Partition UUIDs'?",
+      "choices": [
+        "It speeds up the cloning process by skipping empty sectors",
+        "It gives the cloned card its own unique identity so the Pi does not get confused if both cards are plugged in at the same time",
+        "It formats the destination card as exFAT so it can also be read on Windows",
+        "It enables the cloned card to boot without needing a bootloader update"
+      ],
+      "answer": 1,
+      "explain": "A UUID (Unique Identifier) is how the Pi tells drives apart. If both cards have the same UUID, the system can get confused when both are connected. Ticking 'New Partition UUIDs' gives the clone its own identity, preventing that conflict."
+    },
+    {
+      "q": "Before fitting an NVMe HAT and SSD to the Raspberry Pi 5, what is the first thing you should do — and why?",
+      "choices": [
+        "Format the SSD as exFAT so the Pi can read it immediately after installation",
+        "Set the boot order in raspi-config to NVMe/USB Boot before the HAT is connected",
+        "Clone the microSD card to a USB drive first, because the HAT physically blocks the card slot",
+        "Update the Pi's bootloader using 'sudo rpi-eeprom-update -a' and reboot, so NVMe boot is fully supported"
+      ],
+      "answer": 3,
+      "explain": "Older bootloader versions may not support NVMe boot at all. Updating the EEPROM (bootloader chip) before fitting the HAT ensures the Pi can recognise and boot from the new SSD. Formatting, boot-order changes, and cloning all come later in the process."
+    }
+  ]
+}

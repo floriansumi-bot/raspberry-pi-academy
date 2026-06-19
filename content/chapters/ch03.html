@@ -1,0 +1,521 @@
+<p class="lead">Before you press a single button, it helps to understand what is actually happening inside the little computer sitting on your desk. This chapter builds up a mental picture — using everyday analogies — of the key ideas you will meet again and again: operating systems, RAM, storage, booting, Linux, the terminal, files, users, and a few other concepts that sound technical but are really quite simple once you see them clearly.</p>
+
+<h2 id="what-is-an-operating-system">What Is an Operating System?</h2>
+
+<p>Imagine a large restaurant kitchen. Ingredients sit in the fridge and cupboards. The hobs, ovens, and knives are the tools. But without a <em>head chef</em> who decides which ingredients to fetch, which chef cooks which dish, and how the orders from the dining room are handled, the kitchen would be chaos. The operating system is that head chef — it is the software that manages every piece of your computer's hardware and makes sure all the programs you run get what they need, without treading on each other's toes.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <strong>operating system</strong> (OS) is the master program that runs invisibly in the background whenever the computer is on. It handles the screen, the keyboard, the memory, the storage, and every other program you open. Without it, the hardware is just expensive metal.</div>
+
+<p>Your Windows 11 laptop runs Microsoft Windows as its operating system. Your Raspberry Pi 5 runs <strong>Raspberry Pi OS</strong> — a version of Linux specially designed for the Pi. It handles everything the same way Windows does, but it looks different and behaves slightly differently in places.</p>
+
+<div class="note"><strong>Note:</strong> Raspberry Pi OS is free to download and free to use — forever. You do not need a licence key or a subscription.</div>
+
+<h2 id="hardware-versus-software">Hardware Versus Software</h2>
+
+<p>These two words are used constantly, so it is worth being crystal clear about them before going any further.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Hardware</strong> is anything you can physically touch — the circuit board, the RAM chips, the microSD card, the case, the cables. <strong>Software</strong> is the set of instructions stored on the hardware that tells it what to do — the operating system, apps, games, and any programs you write yourself.</div>
+
+<p>A useful analogy: hardware is the DVD player; software is the film on the disc. The player cannot do anything interesting without a disc, and a disc without a player is just a shiny circle. They need each other.</p>
+
+<h2 id="ram-versus-storage-a-crucial-distinction">RAM Versus Storage — A Crucial Distinction</h2>
+
+<p>People sometimes confuse RAM and storage because both are measured in gigabytes and both sound like "memory". They serve completely different purposes.</p>
+
+<h3>RAM — Your Desk</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>RAM</strong> (Random Access Memory) is your computer's working space — like the surface of a desk. When you open a program, the computer loads it from storage onto the desk so it can work with it quickly. The bigger the desk, the more things you can have open at once without things slowing down.</div>
+
+<p>Your Raspberry Pi 5 has 16 GB of RAM. That is an unusually generous amount for a Pi — it means you can run a web browser, a code editor, a music player, and several other programs all at the same time without the computer struggling.</p>
+
+<p>Here is the critical thing about RAM: <strong>it is wiped clean every time you turn the power off</strong>. Whatever was on the desk gets swept onto the floor the moment the lights go out. That is why you must save your work to a file before switching off.</p>
+
+<h3>Storage — Your Filing Cabinet</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Storage</strong> is where files live permanently — like a filing cabinet. Unlike RAM, storage keeps its contents when the power is off. On a typical laptop, the filing cabinet is an internal hard drive or SSD. On your Raspberry Pi 5, the filing cabinet is the <strong>microSD card</strong>.</div>
+
+<p>The microSD card in your iRasptek kit (64, 128, or 256 GB depending on which version you have) plays the role that a hard drive plays in a laptop. Raspberry Pi OS itself is installed on it, and every file you create, every program you install, and every setting you change is stored there.</p>
+
+<div class="warn"><strong>Careful:</strong> MicroSD cards are tougher than they look, but they can still be damaged by being pulled out while the Pi is running. Always shut down properly before removing the card. You will learn how to shut down safely in Chapter 4.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <!-- Background -->
+  <rect width="680" height="320" fill="#f9f8ff" rx="12"/>
+
+  <!-- DESK (RAM) -->
+  <rect x="40" y="60" width="240" height="190" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="160" y="50" text-anchor="middle" font-size="14" font-weight="bold" fill="#6d28d9">RAM (Your Desk)</text>
+  <!-- items on desk -->
+  <rect x="60" y="80" width="90" height="44" rx="6" fill="#6d28d9" opacity="0.8"/>
+  <text x="105" y="106" text-anchor="middle" font-size="12" fill="#fff">Web Browser</text>
+  <rect x="165" y="80" width="90" height="44" rx="6" fill="#6d28d9" opacity="0.6"/>
+  <text x="210" y="106" text-anchor="middle" font-size="12" fill="#fff">Code Editor</text>
+  <rect x="60" y="138" width="90" height="44" rx="6" fill="#6d28d9" opacity="0.5"/>
+  <text x="105" y="164" text-anchor="middle" font-size="12" fill="#fff">Music Player</text>
+  <rect x="165" y="138" width="90" height="44" rx="6" fill="#6d28d9" opacity="0.3"/>
+  <text x="210" y="157" text-anchor="middle" font-size="11" fill="#1f2933">Other</text>
+  <text x="210" y="173" text-anchor="middle" font-size="11" fill="#1f2933">Program</text>
+  <text x="160" y="220" text-anchor="middle" font-size="12" fill="#1f2933" font-style="italic">Fast. Wiped when power off.</text>
+  <text x="160" y="238" text-anchor="middle" font-size="12" fill="#6d28d9" font-weight="bold">16 GB on your Pi 5</text>
+
+  <!-- Arrow -->
+  <line x1="310" y1="155" x2="350" y2="155" stroke="#0ea5a4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <text x="330" y="148" text-anchor="middle" font-size="11" fill="#0ea5a4">loads</text>
+  <line x1="350" y1="175" x2="310" y2="175" stroke="#0ea5a4" stroke-width="2.5" marker-end="url(#arr2)"/>
+  <text x="330" y="192" text-anchor="middle" font-size="11" fill="#0ea5a4">saves</text>
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#0ea5a4"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+      <path d="M8,0 L8,6 L0,3 z" fill="#0ea5a4"/>
+    </marker>
+  </defs>
+
+  <!-- FILING CABINET (Storage) -->
+  <rect x="360" y="60" width="270" height="190" rx="10" fill="#e0fdf4" stroke="#0ea5a4" stroke-width="2"/>
+  <text x="495" y="50" text-anchor="middle" font-size="14" font-weight="bold" fill="#0ea5a4">Storage (Filing Cabinet)</text>
+  <!-- drawers -->
+  <rect x="380" y="80" width="230" height="38" rx="5" fill="#0ea5a4" opacity="0.7"/>
+  <text x="495" y="104" text-anchor="middle" font-size="12" fill="#fff">Raspberry Pi OS</text>
+  <rect x="380" y="126" width="230" height="38" rx="5" fill="#0ea5a4" opacity="0.5"/>
+  <text x="495" y="150" text-anchor="middle" font-size="12" fill="#fff">Your Files &amp; Documents</text>
+  <rect x="380" y="172" width="230" height="38" rx="5" fill="#0ea5a4" opacity="0.3"/>
+  <text x="495" y="196" text-anchor="middle" font-size="12" fill="#1f2933">Installed Programs</text>
+  <text x="495" y="220" text-anchor="middle" font-size="12" fill="#1f2933" font-style="italic">Permanent. Survives power off.</text>
+  <text x="495" y="238" text-anchor="middle" font-size="12" fill="#0ea5a4" font-weight="bold">microSD card — your Pi's hard drive</text>
+
+  <!-- Labels at bottom -->
+  <text x="160" y="278" text-anchor="middle" font-size="13" fill="#6d28d9">Working space — temporary</text>
+  <text x="495" y="278" text-anchor="middle" font-size="13" fill="#0ea5a4">Long-term storage — permanent</text>
+</svg>
+<figcaption>RAM is the desk where the computer does its work; the microSD card is the filing cabinet where everything is stored permanently. Programs are loaded from the filing cabinet onto the desk to run, then saved back when you are done.</figcaption>
+</figure>
+
+<h2 id="what-does-64-bit-mean">What Does "64-bit" Mean?</h2>
+
+<p>You will notice that Raspberry Pi OS is described as a <strong>64-bit</strong> operating system. This comes up often enough that it is worth a brief explanation.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Bits</strong> are the smallest unit of information a computer works with — think of them as on/off switches. A <strong>64-bit</strong> processor can handle 64 switches at a time; an older 32-bit processor handled only 32 at a time. More bits at once means the processor can address far more memory, work with bigger numbers in one step, and generally run modern software more efficiently.</div>
+
+<p>Your Pi 5 has a 64-bit ARM processor, and the version of Raspberry Pi OS on your card is the 64-bit edition. This is the recommended version for all Pi 5 boards. In practice, you will rarely need to think about this — just know that if a website ever offers you a choice between a 32-bit and 64-bit download for Linux, always pick 64-bit for your Pi 5.</p>
+
+<h2 id="what-does-booting-mean">What Does "Booting" Mean?</h2>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Booting</strong> (or "starting up") is the process the computer goes through from the moment you switch it on until it is ready for you to use. The word comes from the old phrase "pulling yourself up by your bootstraps" — the computer is loading the instructions it needs to load more instructions, step by step, until the full operating system is running.</div>
+
+<p>Here is what happens when you plug in your Raspberry Pi 5:</p>
+
+<ol>
+  <li>Power flows to the board. A tiny built-in chip (the bootloader) wakes up.</li>
+  <li>The bootloader looks at the microSD card and finds Raspberry Pi OS.</li>
+  <li>It loads the OS into RAM and hands over control.</li>
+  <li>Raspberry Pi OS starts all its background services (Wi-Fi, screen, keyboard, and so on).</li>
+  <li>The desktop appears and you can start working.</li>
+</ol>
+
+<p>On the Pi 5, this process takes roughly 20–30 seconds from power-on to a usable desktop. You will see a rainbow square briefly, then a bouncing Raspberry Pi logo, and then the desktop.</p>
+
+<div class="tip"><strong>Tip:</strong> The rainbow square is completely normal — it just means the GPU (graphics chip) has started. It disappears after a second or two.</div>
+
+<h2 id="two-ways-to-talk-to-the-computer">Two Ways to Talk to the Computer</h2>
+
+<p>There are two fundamentally different ways of giving your Raspberry Pi instructions, and you will use both of them throughout this book.</p>
+
+<h3>The Graphical Way (Desktop)</h3>
+
+<p>This is the one that looks like Windows. You see a wallpaper, icons, a taskbar, windows that open and close. You use a mouse to click on things. Everything you want to do has a visual representation — a picture of a file, a button to press, a menu to open.</p>
+
+<p>Raspberry Pi OS's graphical desktop is called <strong>PIXEL</strong> (which stands for "Pi Improved Xwindows Environment, Lightweight" — but you will never need to remember that). It looks clean and simple, with the Raspberry Pi logo in the top-left corner as the main menu button.</p>
+
+<div class="note"><strong>Note:</strong> If you have used Windows or a Mac before, the desktop will feel familiar within a few minutes. The icons and menus work in the same way, even if they are in slightly different places.</div>
+
+<h3>The Terminal Way (Typing Commands)</h3>
+
+<div class="jargon"><strong>In plain words:</strong> The <strong>terminal</strong> (also called the <em>command line</em>, <em>command prompt</em>, or <em>shell</em>) is a text window where you type instructions and the computer types back its response. There are no icons or buttons — just text. It looks old-fashioned, but it is extraordinarily powerful and is the method that most Pi projects and guides (including much of this book) rely on.</div>
+
+<p>You open the terminal on Raspberry Pi OS by clicking the black rectangle icon on the taskbar, or by going to the Raspberry Pi menu &rarr; Accessories &rarr; Terminal.</p>
+
+<p>When the terminal opens, you will see something like this:</p>
+
+<pre class="code"><code>pi@raspberrypi:~ $</code></pre>
+<div class="explain">This line is called the <strong>prompt</strong> — the terminal's way of saying "I am ready, what would you like me to do?" It tells you four things at a glance: <code>pi</code> is your username (the name of the account you are logged in as); <code>raspberrypi</code> is the computer's name (its "hostname" on the network); <code>~</code> means you are currently in your home folder (the tilde character is a shortcut for your personal folder); and <code>$</code> is the signal that you can now type a command. If your username is something other than <code>pi</code> — which is possible if the card was set up with a different name — you will see that name instead.</div>
+
+<p>You type a command and press <kbd>Enter</kbd>. The computer carries it out and shows the result. For example:</p>
+
+<pre class="code"><code>date</code></pre>
+<div class="explain">The command <code>date</code> asks the computer to display the current date and time. After pressing Enter, the terminal will print something like <code>Fri 19 Jun 2026 10:30:05 BST</code> and then show the prompt again, ready for the next command. This is harmless — a good first command to try the moment your terminal is open.</div>
+
+<p>Neither the graphical way nor the terminal way is "better" — they are two tools for two slightly different jobs. The desktop is convenient for browsing, opening documents, and adjusting settings. The terminal is faster and more precise for installing software, configuring the Pi, and running projects. This book teaches you both, so you will always choose the right tool for the task.</p>
+
+<h2 id="what-is-linux">What Is Linux?</h2>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Linux</strong> is a family of operating systems. Just as there are many brands of car (all with four wheels, a steering wheel, and an engine), there are many versions of Linux — they share the same core but look and behave a little differently. Ubuntu, Debian, Fedora, and Raspberry Pi OS are all members of the Linux family.</div>
+
+<p>Linux was created in 1991 by a Finnish student named Linus Torvalds. He made the source code — the recipe for how it works — publicly available so that anyone could read it, improve it, and share their improvements. Decades later, this collaborative effort has produced one of the most reliable, secure, and widely used operating systems in the world. Linux runs most of the world's web servers, every Android phone, and almost every supercomputer.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Open source</strong> means the recipe (source code) is published for anyone to read, use, modify, and share. <strong>Free software</strong> in the Linux world usually means free as in <em>freedom</em> — you have the right to study and change it — as well as free as in <em>no cost</em>. Raspberry Pi OS is both.</div>
+
+<p>Raspberry Pi OS is built on top of <strong>Debian</strong>, one of the oldest and most stable Linux distributions. The version currently installed on your Pi is called <strong>Bookworm</strong> (Debian 12, released 2023). Debian names its releases after characters from the film <em>Toy Story</em>.</p>
+
+<div class="tip"><strong>Tip:</strong> Because Linux is open source, there is a huge community of people who have solved the same problems you will encounter. Searching "Raspberry Pi [your question] Bookworm" on the web almost always finds a working answer.</div>
+
+<h2 id="what-is-arm-and-why-does-it-occasionally-matter">What Is ARM? And Why Does It Occasionally Matter?</h2>
+
+<p>Your Windows 11 laptop almost certainly uses a processor made by Intel or AMD. Your Raspberry Pi 5 uses a completely different type of processor designed around something called the <strong>ARM architecture</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A processor's <strong>architecture</strong> is the language it speaks internally — the set of instructions it understands. Just as a French speaker and a Japanese speaker cannot understand each other without a translator, a program built for Intel/AMD will not run directly on an ARM chip. The program must be compiled (built) specifically for the architecture it will run on.</div>
+
+<p>ARM stands for "Advanced RISC Machine" — but you never need to remember that. What matters is that ARM chips are designed to be extremely energy-efficient, which is why they are used in phones, tablets, and single-board computers like the Pi. The Pi 5's processor (Broadcom BCM2712, with four Arm Cortex-A76 cores running at 2.4 GHz) is powerful enough to run a full desktop operating system while drawing very little power.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Intel / AMD (typical Windows PC)</th>
+      <th>ARM (Raspberry Pi 5)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Architecture</td>
+      <td>x86-64</td>
+      <td>AArch64 (64-bit ARM)</td>
+    </tr>
+    <tr>
+      <td>Power use</td>
+      <td>65–125 W (desktop) / 15–45 W (laptop)</td>
+      <td>5–15 W (typical Pi 5 use)</td>
+    </tr>
+    <tr>
+      <td>Typical use</td>
+      <td>Desktop PCs, laptops</td>
+      <td>Phones, tablets, embedded projects, Pi</td>
+    </tr>
+    <tr>
+      <td>Software</td>
+      <td>Windows .exe files (built for x86-64)</td>
+      <td>ARM binaries (built for AArch64)</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>In practice, for everyday tasks on the Pi — browsing the web, writing documents, running Python programs — you will never notice the difference. Raspberry Pi OS and its software repository already contain ARM-compiled versions of everything you are likely to need. The only time it matters is if you try to download a program as a Windows <code>.exe</code> file or find a Linux program that was only compiled for Intel — in which case it simply will not run. The solution is always to install software through Raspberry Pi OS's built-in package manager (covered in Chapter 6), which automatically gives you the right version for your chip.</p>
+
+<h2 id="files-folders-and-paths">Files, Folders, and Paths</h2>
+
+<p>You are probably familiar with files and folders from Windows. The concept is identical on Linux, but there are a few important differences in how they are organised and written about.</p>
+
+<h3>Files and Folders</h3>
+
+<p>A <strong>file</strong> is a named collection of data stored on the microSD card — a document, a photo, a program, a piece of music. A <strong>folder</strong> (also called a <strong>directory</strong> on Linux) is a container that holds files and other folders, letting you organise things into a hierarchy, just like real folders in a real filing cabinet.</p>
+
+<h3>The Root and Your Home Folder</h3>
+
+<p>On Windows, each storage drive gets a letter: <code>C:\</code>, <code>D:\</code>, and so on. Linux works differently. There is one single tree starting from a folder called the <strong>root</strong>, written simply as <code>/</code>. Everything — all your files, all installed programs, all the operating system itself — hangs off this single root.</p>
+
+<div class="jargon"><strong>In plain words:</strong> On Linux, <code>/</code> (a single forward slash) is the very top of the file system — the trunk of a tree from which all other folders branch. It is called the <strong>root directory</strong>.</div>
+
+<p>Inside the root, there are several important folders. The one you will use most is your <strong>home folder</strong>: <code>/home/pi</code> (or <code>/home/yourname</code> if you chose a different username during setup). This is your personal space — think of it as My Documents on Windows. When you open the terminal, you start here automatically. The tilde symbol <code>~</code> is a shortcut that always means your home folder, so <code>~/Documents</code> is the same as <code>/home/pi/Documents</code>.</p>
+
+<div class="note"><strong>Note:</strong> On Raspberry Pi OS Bookworm, if the microSD card was pre-installed for you (as in most iRasptek kits), your username and home folder may already be set to <code>pi</code>. If you set up the card yourself using Raspberry Pi Imager, you chose your own username. Either way, <code>~</code> always points to the right place, whatever your username is.</div>
+
+<h3>Paths</h3>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>path</strong> is the full address of a file or folder — the set of directions that tells the computer exactly where to find something, starting from the root and working down through the folder tree.</div>
+
+<p>Paths on Linux use forward slashes <code>/</code>, not the backslashes <code>\</code> you may be used to from Windows. For example:</p>
+
+<ul>
+  <li><code>/home/pi/Documents/hello.txt</code> — a file called <code>hello.txt</code> inside the <code>Documents</code> folder inside your home folder.</li>
+  <li><code>/usr/bin/python3</code> — the Python 3 program, stored in the system's program folder.</li>
+  <li><code>~/Pictures/holiday.jpg</code> — a photo in your Pictures folder (using the <code>~</code> shortcut).</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> Linux file names are <strong>case-sensitive</strong>. A file named <code>Hello.txt</code> and a file named <code>hello.txt</code> are treated as two different files. Windows ignores case; Linux does not. This trips up many beginners — if a command complains it cannot find a file, check the capitalisation first.</div>
+
+<h3>A Quick Look at the Folder Tree</h3>
+
+<p>Here are the folders you are most likely to encounter. You do not need to memorise them all — just keep this table as a reference.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Folder</th>
+      <th>What it contains</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/</code></td>
+      <td>The root — the very top of the file system</td>
+    </tr>
+    <tr>
+      <td><code>/home/pi</code></td>
+      <td>Your personal files (documents, pictures, projects). Replace <code>pi</code> with your own username if different.</td>
+    </tr>
+    <tr>
+      <td><code>/home/pi/Desktop</code></td>
+      <td>Files and shortcuts that appear on the desktop</td>
+    </tr>
+    <tr>
+      <td><code>/etc</code></td>
+      <td>Configuration files for the whole system</td>
+    </tr>
+    <tr>
+      <td><code>/usr/bin</code></td>
+      <td>Programs installed for all users</td>
+    </tr>
+    <tr>
+      <td><code>/tmp</code></td>
+      <td>Temporary files — wiped on every reboot</td>
+    </tr>
+    <tr>
+      <td><code>/boot/firmware</code></td>
+      <td>Files the Pi needs to start up (on Bookworm the boot files live in this subfolder — not in <code>/boot</code> directly)</td>
+    </tr>
+    <tr>
+      <td><code>/media/pi</code></td>
+      <td>Where USB drives and other external storage appear when you plug them in</td>
+    </tr>
+    <tr>
+      <td><code>/var/log</code></td>
+      <td>System log files — useful when something goes wrong</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> You can explore these folders visually using the file manager on the desktop (the folder icon on the taskbar), just as you would in Windows Explorer. There is no need to use the terminal to browse files unless you prefer to.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 600 420" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <rect width="600" height="420" fill="#f9f8ff" rx="12"/>
+  <text x="300" y="30" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f2933">The Linux File System Tree</text>
+
+  <!-- Root -->
+  <rect x="250" y="50" width="100" height="36" rx="6" fill="#6d28d9"/>
+  <text x="300" y="73" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">/  (root)</text>
+
+  <!-- Lines from root -->
+  <line x1="300" y1="86" x2="300" y2="110" stroke="#6d28d9" stroke-width="1.5"/>
+  <line x1="300" y1="110" x2="80" y2="130" stroke="#6d28d9" stroke-width="1.5"/>
+  <line x1="300" y1="110" x2="200" y2="130" stroke="#6d28d9" stroke-width="1.5"/>
+  <line x1="300" y1="110" x2="300" y2="130" stroke="#6d28d9" stroke-width="1.5"/>
+  <line x1="300" y1="110" x2="400" y2="130" stroke="#6d28d9" stroke-width="1.5"/>
+  <line x1="300" y1="110" x2="520" y2="130" stroke="#6d28d9" stroke-width="1.5"/>
+
+  <!-- Level 1 folders -->
+  <rect x="30" y="130" width="100" height="32" rx="5" fill="#8b5cf6"/>
+  <text x="80" y="151" text-anchor="middle" font-size="12" fill="#fff">/home</text>
+
+  <rect x="150" y="130" width="100" height="32" rx="5" fill="#8b5cf6"/>
+  <text x="200" y="151" text-anchor="middle" font-size="12" fill="#fff">/etc</text>
+
+  <rect x="260" y="130" width="80" height="32" rx="5" fill="#8b5cf6"/>
+  <text x="300" y="151" text-anchor="middle" font-size="12" fill="#fff">/usr</text>
+
+  <rect x="355" y="130" width="90" height="32" rx="5" fill="#8b5cf6"/>
+  <text x="400" y="151" text-anchor="middle" font-size="12" fill="#fff">/boot</text>
+
+  <rect x="460" y="130" width="100" height="32" rx="5" fill="#8b5cf6"/>
+  <text x="510" y="151" text-anchor="middle" font-size="12" fill="#fff">/media</text>
+
+  <!-- Level 2 from /home -->
+  <line x1="80" y1="162" x2="80" y2="200" stroke="#0ea5a4" stroke-width="1.5"/>
+  <rect x="30" y="200" width="100" height="32" rx="5" fill="#0ea5a4"/>
+  <text x="80" y="221" text-anchor="middle" font-size="12" fill="#fff">/home/pi</text>
+
+  <!-- Level 3 from /home/pi -->
+  <line x1="80" y1="232" x2="80" y2="260" stroke="#0ea5a4" stroke-width="1.5"/>
+  <line x1="80" y1="260" x2="30" y2="278" stroke="#0ea5a4" stroke-width="1.5"/>
+  <line x1="80" y1="260" x2="80" y2="278" stroke="#0ea5a4" stroke-width="1.5"/>
+  <line x1="80" y1="260" x2="130" y2="278" stroke="#0ea5a4" stroke-width="1.5"/>
+
+  <rect x="4" y="278" width="52" height="28" rx="4" fill="#e0fdf4" stroke="#0ea5a4" stroke-width="1"/>
+  <text x="30" y="297" text-anchor="middle" font-size="11" fill="#1f2933">Desktop</text>
+
+  <rect x="56" y="278" width="52" height="28" rx="4" fill="#e0fdf4" stroke="#0ea5a4" stroke-width="1"/>
+  <text x="82" y="297" text-anchor="middle" font-size="11" fill="#1f2933">Documents</text>
+
+  <rect x="108" y="278" width="52" height="28" rx="4" fill="#e0fdf4" stroke="#0ea5a4" stroke-width="1"/>
+  <text x="134" y="297" text-anchor="middle" font-size="11" fill="#1f2933">Pictures</text>
+
+  <!-- Level 2 from /usr -->
+  <line x1="300" y1="162" x2="300" y2="200" stroke="#0ea5a4" stroke-width="1.5"/>
+  <rect x="260" y="200" width="80" height="32" rx="5" fill="#0ea5a4"/>
+  <text x="300" y="221" text-anchor="middle" font-size="12" fill="#fff">/usr/bin</text>
+  <text x="300" y="248" text-anchor="middle" font-size="11" fill="#1f2933">programs</text>
+
+  <!-- Level 2 from /boot -->
+  <line x1="400" y1="162" x2="400" y2="200" stroke="#0ea5a4" stroke-width="1.5"/>
+  <rect x="345" y="200" width="110" height="32" rx="5" fill="#0ea5a4"/>
+  <text x="400" y="221" text-anchor="middle" font-size="12" fill="#fff">/boot/firmware</text>
+  <text x="400" y="248" text-anchor="middle" font-size="11" fill="#1f2933">Pi boot files</text>
+
+  <!-- Level 2 from /media -->
+  <line x1="510" y1="162" x2="510" y2="200" stroke="#0ea5a4" stroke-width="1.5"/>
+  <rect x="460" y="200" width="100" height="32" rx="5" fill="#0ea5a4"/>
+  <text x="510" y="221" text-anchor="middle" font-size="12" fill="#fff">/media/pi</text>
+  <text x="510" y="248" text-anchor="middle" font-size="11" fill="#1f2933">USB drives</text>
+
+  <!-- Legend note -->
+  <rect x="30" y="330" width="540" height="72" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1"/>
+  <text x="300" y="350" text-anchor="middle" font-size="12" fill="#6d28d9" font-weight="bold">Key: ~ (tilde) = your home folder = /home/pi</text>
+  <text x="300" y="370" text-anchor="middle" font-size="12" fill="#1f2933">So ~/Documents is exactly the same as /home/pi/Documents</text>
+  <text x="300" y="390" text-anchor="middle" font-size="12" fill="#1f2933">All paths start from / and use forward slashes — not backslashes like Windows</text>
+</svg>
+<figcaption>The Linux file system is a single tree rooted at <code>/</code>. Your personal space lives inside <code>/home/pi</code>. On Bookworm, the boot files are in <code>/boot/firmware</code>, not <code>/boot</code> directly.</figcaption>
+</figure>
+
+<h2 id="users-the-administrator-and-sudo">Users, the Administrator, and sudo</h2>
+
+<p>Linux was designed from the very beginning to be used by many people at once (on a shared computer or server). Even though you are the only person using your Pi, Linux still thinks in terms of <em>users</em>.</p>
+
+<h3>Your User Account</h3>
+
+<p>When Raspberry Pi OS first starts on a pre-installed card, it either sets up a default account named <strong>pi</strong>, or — if you used Raspberry Pi Imager to prepare the card yourself — the username you chose during setup. You are logged in as that account whenever you are using the desktop or the terminal.</p>
+
+<p>Your user account can do almost everything you need day-to-day: create files, browse the web, run programs, write code. But certain things — installing software system-wide, changing core settings, or modifying files outside your home folder — require special permission.</p>
+
+<h3>The Administrator (Root)</h3>
+
+<div class="jargon"><strong>In plain words:</strong> On Linux, the all-powerful administrator account is called <strong>root</strong>. Root can do literally anything to the system — delete every file, break the operating system, install anything. Because of this power, you almost never log in directly as root. Instead, you use a command called <code>sudo</code> to temporarily borrow root's powers for a single command.</div>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>sudo</strong> stands for "superuser do". You put it in front of a command to run that one command with administrator privileges. Think of it as showing your ID at a secure door — you do not move into the secure area permanently, you just get access for that one moment.</div>
+
+<p>You will see <code>sudo</code> constantly in Pi guides. Here is an example — updating the list of available software:</p>
+
+<pre class="code"><code>sudo apt update</code></pre>
+<div class="explain">Line by line: <code>sudo</code> — run the following command with administrator (root) powers; <code>apt</code> — this is the <strong>package manager</strong>, the built-in program that installs and updates software on Raspberry Pi OS; <code>update</code> — tells apt to download the latest list of available software packages from the internet, so your Pi knows what is available and what version is current. Without <code>sudo</code>, this command would be refused because only an administrator can modify system-wide software lists. You will run this command frequently throughout the book.</div>
+
+<div class="warn"><strong>Careful:</strong> Because <code>sudo</code> gives you full administrator power, a typo in a sudo command can cause real damage. Always double-check a command before pressing Enter when <code>sudo</code> is involved. Never copy a <code>sudo</code> command from an unknown website without understanding what it does.</div>
+
+<p>When you first use <code>sudo</code> in a terminal session, Raspberry Pi OS will ask for your password. Type it and press Enter. (The characters will not appear on screen as you type — this is intentional and is a security feature, not a bug.)</p>
+
+<div class="note"><strong>Note:</strong> Your everyday account (for example, <code>pi</code>) is a member of a group called <code>sudo</code>, which is what grants it permission to use the <code>sudo</code> command at all. You are already in this group on any standard Raspberry Pi OS setup — you do not need to do anything to enable it.</div>
+
+<h3>Users and Groups — A Brief Mention</h3>
+
+<p>Linux also organises users into <strong>groups</strong>. Groups are used to grant shared permissions — for example, the <code>gpio</code> group grants access to the Pi's physical pins, and the <code>audio</code> group grants access to audio devices. Your account is already added to all the groups it needs by default, so this is mostly invisible to you. You may occasionally encounter it in more advanced projects, and at that point the project's instructions will tell you exactly what to do.</p>
+
+<h2 id="open-source-and-free-software-what-these-actuall">Open Source and "Free" Software — What These Actually Mean</h2>
+
+<p>You will see the words "free" and "open source" everywhere in the Raspberry Pi community. They are worth understanding properly because they affect how you can use, share, and build on the software.</p>
+
+<h3>Free as in Freedom</h3>
+
+<p>In the computing world, "free software" does not just mean zero cost (though it usually is zero cost). It means you have four essential freedoms:</p>
+
+<ol>
+  <li><strong>Freedom to use</strong> the software for any purpose.</li>
+  <li><strong>Freedom to study</strong> how it works (by reading the source code).</li>
+  <li><strong>Freedom to share</strong> copies with others.</li>
+  <li><strong>Freedom to improve</strong> it and share your improvements.</li>
+</ol>
+
+<p>Raspberry Pi OS, Linux, Python, the LibreOffice suite, the Firefox web browser, and thousands of other programs you will use on the Pi are all free in this sense. Nobody can take them away from you, charge you a subscription, or prevent you from looking under the bonnet.</p>
+
+<h3>Open Source</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Source code</strong> is the human-readable set of instructions that a programmer writes. <strong>Open source</strong> means that source code is published publicly, so anyone can read, learn from, verify, and improve it. The opposite is <em>proprietary</em> or <em>closed-source</em> software, where the recipe is a trade secret (like Windows or macOS).</div>
+
+<p>Open source matters for practical reasons beyond philosophy. Because thousands of developers worldwide can inspect the code, bugs and security vulnerabilities are spotted and fixed faster. No single company can abandon the project and leave you stranded. And the huge library of open-source software available for Linux means there is almost always a free, capable alternative to any commercial program you might need.</p>
+
+<div class="tip"><strong>Tip:</strong> The Raspberry Pi Foundation itself publishes most of its tools as open source. If you ever become curious about how something works under the hood, the code is there for you to read.</div>
+
+<h2 id="putting-it-all-together-a-layers-picture">Putting It All Together — A Layers Picture</h2>
+
+<figure class="fig">
+<svg viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <!-- Background -->
+  <rect width="600" height="380" fill="#f9f8ff" rx="12"/>
+  <text x="300" y="30" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f2933">How Your Raspberry Pi 5 Is Organised — The Layers</text>
+
+  <!-- Layer 5: You -->
+  <rect x="140" y="50" width="320" height="44" rx="8" fill="#6d28d9"/>
+  <text x="300" y="77" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">YOU — clicking, typing, creating</text>
+
+  <!-- Arrow -->
+  <line x1="300" y1="94" x2="300" y2="110" stroke="#1f2933" stroke-width="2"/>
+  <polygon points="294,110 306,110 300,120" fill="#1f2933"/>
+
+  <!-- Layer 4: Apps -->
+  <rect x="100" y="120" width="400" height="44" rx="8" fill="#8b5cf6"/>
+  <text x="300" y="147" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Applications — browser, editor, Python, games…</text>
+
+  <!-- Arrow -->
+  <line x1="300" y1="164" x2="300" y2="180" stroke="#1f2933" stroke-width="2"/>
+  <polygon points="294,180 306,180 300,190" fill="#1f2933"/>
+
+  <!-- Layer 3: Raspberry Pi OS (Linux) -->
+  <rect x="60" y="190" width="480" height="44" rx="8" fill="#0ea5a4"/>
+  <text x="300" y="217" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Raspberry Pi OS (Linux) — the operating system</text>
+
+  <!-- Arrow -->
+  <line x1="300" y1="234" x2="300" y2="250" stroke="#1f2933" stroke-width="2"/>
+  <polygon points="294,250 306,250 300,260" fill="#1f2933"/>
+
+  <!-- Layer 2: Firmware -->
+  <rect x="80" y="260" width="440" height="44" rx="8" fill="#0891b2"/>
+  <text x="300" y="287" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Firmware / Bootloader — starts up the Pi</text>
+
+  <!-- Arrow -->
+  <line x1="300" y1="304" x2="300" y2="320" stroke="#1f2933" stroke-width="2"/>
+  <polygon points="294,320 306,320 300,330" fill="#1f2933"/>
+
+  <!-- Layer 1: Hardware -->
+  <rect x="40" y="330" width="520" height="38" rx="8" fill="#1f2933"/>
+  <text x="300" y="353" text-anchor="middle" font-size="14" font-weight="bold" fill="#f3f0ff">Hardware — processor, RAM, microSD, GPIO pins…</text>
+</svg>
+<figcaption>Every computer works in layers. The hardware at the bottom does the actual work; the firmware wakes it up; the operating system (Raspberry Pi OS / Linux) manages everything; applications sit on top; and you interact with the applications. Each layer only needs to talk to the one directly below it.</figcaption>
+</figure>
+
+<p>Keep this picture in mind as you work through the rest of this book. When something goes wrong, you can often work out which layer the problem is in — is the hardware not responding? Is the OS confused? Is the app misbehaving? — and that points you towards the right solution.</p>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Operating system (OS)</strong> — the master program that manages all of a computer's hardware and software.</li>
+  <li><strong>Raspberry Pi OS</strong> — the official Linux-based operating system for the Raspberry Pi, based on Debian Bookworm.</li>
+  <li><strong>Hardware</strong> — the physical components of a computer (circuit board, chips, cables, case).</li>
+  <li><strong>Software</strong> — programs and data; the instructions that hardware follows.</li>
+  <li><strong>RAM</strong> — fast, temporary working memory; wiped when power is off.</li>
+  <li><strong>Storage</strong> — permanent memory (the microSD card on the Pi) that survives power-off.</li>
+  <li><strong>64-bit</strong> — a processor (and OS) that handles 64 data switches at once; gives access to more memory and runs modern software more efficiently than older 32-bit systems. The Pi 5 and Raspberry Pi OS Bookworm are both 64-bit.</li>
+  <li><strong>Booting</strong> — the start-up process from power-on to a ready desktop.</li>
+  <li><strong>Terminal / command line</strong> — a text window where you type commands instead of clicking.</li>
+  <li><strong>Prompt</strong> — the text the terminal shows (e.g. <code>pi@raspberrypi:~ $</code>) to indicate it is ready for a command.</li>
+  <li><strong>PIXEL</strong> — the name of the graphical desktop environment used by Raspberry Pi OS.</li>
+  <li><strong>Linux</strong> — a family of open-source operating systems; Raspberry Pi OS is a member.</li>
+  <li><strong>Debian Bookworm</strong> — the specific version of Linux that Raspberry Pi OS is based on (version 12, released 2023).</li>
+  <li><strong>ARM</strong> — the processor architecture used by the Raspberry Pi 5; different from the x86-64 architecture in most Windows PCs.</li>
+  <li><strong>Architecture</strong> — the internal instruction language of a processor; software must be built for the right architecture to run.</li>
+  <li><strong>Root directory (/)</strong> — the very top of the Linux file system, from which all folders branch.</li>
+  <li><strong>Home folder (~)</strong> — your personal folder on Linux, typically <code>/home/pi</code> (or <code>/home/yourname</code> if you chose a different username).</li>
+  <li><strong>Path</strong> — the full address of a file or folder (e.g. <code>/home/pi/Documents/hello.txt</code>).</li>
+  <li><strong>Case-sensitive</strong> — Linux treats <code>Hello.txt</code> and <code>hello.txt</code> as different files; capitalisation matters.</li>
+  <li><strong>root (user)</strong> — the all-powerful administrator account on Linux.</li>
+  <li><strong>sudo</strong> — a command prefix that runs a single command with administrator (root) privileges.</li>
+  <li><strong>apt</strong> — the package manager on Raspberry Pi OS; the built-in tool for installing and updating software.</li>
+  <li><strong>Open source</strong> — software whose source code is published for anyone to read, use, and improve.</li>
+  <li><strong>Source code</strong> — the human-readable instructions a programmer writes to create a program.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>The <strong>operating system</strong> is the head chef of the computer — it manages all hardware and software; your Pi runs <strong>Raspberry Pi OS</strong>, a friendly Linux based on Debian Bookworm.</li>
+  <li><strong>RAM</strong> is fast, temporary working space (like a desk); the <strong>microSD card</strong> is permanent storage (like a filing cabinet) and acts as the Pi's hard drive.</li>
+  <li>Raspberry Pi OS Bookworm is <strong>64-bit</strong>, matching the Pi 5's 64-bit ARM processor — always choose 64-bit software downloads for your Pi.</li>
+  <li><strong>Booting</strong> is the automatic start-up sequence from power-on to ready desktop, taking about 20–30 seconds on the Pi 5.</li>
+  <li>You can control the Pi two ways: the <strong>graphical desktop</strong> (the PIXEL environment — click with the mouse) or the <strong>terminal</strong> (type commands); both are valid and useful.</li>
+  <li><strong>Linux</strong> is an open-source OS family; Raspberry Pi OS is built on <strong>Debian Bookworm</strong> and is free to use, study, and share.</li>
+  <li>The Pi 5 uses an <strong>ARM</strong> processor (AArch64), which is different from the Intel/AMD chips in most Windows PCs; software must be built for the right architecture to run.</li>
+  <li>Linux organises files in a single tree starting from <code>/</code> (root); your personal folder is <code>/home/pi</code> (written as <code>~</code>); paths use forward slashes and are <strong>case-sensitive</strong>. On Bookworm, boot files live in <code>/boot/firmware</code>.</li>
+  <li>Your everyday user account (e.g. <code>pi</code>) is in the <code>sudo</code> group; for administrator tasks you prefix commands with <strong>sudo</strong> to temporarily borrow root's powers for that one command.</li>
+  <li><strong>Open source</strong> means the recipe (source code) is public — anyone can read, improve, and share it; most Pi software is both open source and free of charge.</li>
+</ul>
+</div>

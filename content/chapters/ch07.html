@@ -1,0 +1,713 @@
+<p class="lead">Your Raspberry Pi holds everything — programs, settings, photos, scripts — as files organised into folders. In this chapter you will learn to create, view, copy, move and delete files confidently from the terminal, explore the important folders that make up your Pi's filing system, and then unravel one of Linux's most important ideas: the permission system that decides who is allowed to read, change or run each file. By the end you will know exactly what that cryptic <code>drwxr-xr-x</code> string means, and why your Pi sometimes asks "are you sure you're allowed to do that?"</p>
+
+<h2 id="the-filing-cabinet-in-your-pi">The Filing Cabinet in Your Pi</h2>
+
+<p>Think of your Pi's storage as a giant filing cabinet. At the very top is a single folder called the <strong>root</strong> of the filesystem, written as a lone forward-slash <code>/</code>. Every other folder and file lives somewhere inside that root, connected in a tree of branches — similar to the folder tree you see in Windows Explorer, just with different names. When you open a terminal you land in your <strong>home folder</strong>, which is <code>/home/pi</code> (assuming your username is <code>pi</code>, the default on Raspberry Pi OS).</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>filesystem</em> is just the organised layout of all files and folders on your storage card — the same idea as the folders you see in Windows, just with a forward-slash at the top instead of a drive letter like <code>C:\</code>.</div>
+
+<p>You already met the <code>cd</code> (change directory) and <code>ls</code> (list) commands in Chapter 6. This chapter builds on those foundations.</p>
+
+<h2 id="important-system-folders">Important System Folders</h2>
+
+<p>Linux uses a standard set of top-level folders that every Raspberry Pi shares. You do not need to memorise all of them, but knowing the main ones prevents confusion when commands refer to them.</p>
+
+<figure class="fig">
+  <svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+    <!-- background -->
+    <rect x="0" y="0" width="700" height="380" fill="#f3f0ff" rx="10"/>
+
+    <!-- Root node -->
+    <rect x="300" y="16" width="100" height="36" rx="8" fill="#6d28d9"/>
+    <text x="350" y="39" fill="white" text-anchor="middle" font-weight="bold" font-size="16">/</text>
+    <text x="350" y="60" fill="#6d28d9" text-anchor="middle" font-size="11">(root of everything)</text>
+
+    <!-- Trunk line -->
+    <line x1="350" y1="52" x2="350" y2="75" stroke="#6d28d9" stroke-width="2"/>
+    <!-- Horizontal spreader -->
+    <line x1="70" y1="75" x2="630" y2="75" stroke="#6d28d9" stroke-width="2"/>
+
+    <!-- /home -->
+    <line x1="70" y1="75" x2="70" y2="100" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="24" y="100" width="92" height="34" rx="6" fill="#6d28d9"/>
+    <text x="70" y="117" fill="white" text-anchor="middle" font-size="13">/home</text>
+    <text x="70" y="131" fill="#6d28d9" text-anchor="middle" font-size="10">Your files live here</text>
+    <!-- /home/pi sub-node -->
+    <line x1="70" y1="134" x2="70" y2="155" stroke="#0ea5a4" stroke-width="1.5"/>
+    <rect x="30" y="155" width="80" height="28" rx="5" fill="#0ea5a4"/>
+    <text x="70" y="173" fill="white" text-anchor="middle" font-size="12">/home/pi</text>
+
+    <!-- /etc -->
+    <line x1="190" y1="75" x2="190" y2="100" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="144" y="100" width="92" height="34" rx="6" fill="#6d28d9"/>
+    <text x="190" y="117" fill="white" text-anchor="middle" font-size="13">/etc</text>
+    <text x="190" y="131" fill="#6d28d9" text-anchor="middle" font-size="10">System config files</text>
+
+    <!-- /usr -->
+    <line x1="310" y1="75" x2="310" y2="100" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="264" y="100" width="92" height="34" rx="6" fill="#6d28d9"/>
+    <text x="310" y="117" fill="white" text-anchor="middle" font-size="13">/usr</text>
+    <text x="310" y="131" fill="#6d28d9" text-anchor="middle" font-size="10">Installed programs</text>
+
+    <!-- /var -->
+    <line x1="430" y1="75" x2="430" y2="100" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="384" y="100" width="92" height="34" rx="6" fill="#6d28d9"/>
+    <text x="430" y="117" fill="white" text-anchor="middle" font-size="13">/var</text>
+    <text x="430" y="131" fill="#6d28d9" text-anchor="middle" font-size="10">Logs &amp; variable data</text>
+
+    <!-- /tmp -->
+    <line x1="550" y1="75" x2="550" y2="100" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="504" y="100" width="92" height="34" rx="6" fill="#6d28d9"/>
+    <text x="550" y="117" fill="white" text-anchor="middle" font-size="13">/tmp</text>
+    <text x="550" y="131" fill="#6d28d9" text-anchor="middle" font-size="10">Temporary files</text>
+
+    <!-- /boot -->
+    <line x1="630" y1="75" x2="630" y2="100" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="584" y="100" width="92" height="34" rx="6" fill="#1f2933"/>
+    <text x="630" y="117" fill="white" text-anchor="middle" font-size="13">/boot</text>
+    <text x="630" y="131" fill="#94a3b8" text-anchor="middle" font-size="10">Bootloader files</text>
+
+    <!-- Legend / description table -->
+    <rect x="20" y="210" width="660" height="155" rx="8" fill="#1f2933"/>
+    <text x="36" y="232" fill="#a78bfa" font-weight="bold" font-size="13">Folder</text>
+    <text x="160" y="232" fill="#a78bfa" font-weight="bold" font-size="13">What lives there</text>
+    <text x="460" y="232" fill="#a78bfa" font-weight="bold" font-size="13">Safe to edit?</text>
+    <line x1="24" y1="238" x2="676" y2="238" stroke="#4b5563" stroke-width="1"/>
+
+    <text x="36" y="256" fill="#e2e8f0" font-size="12">/home/pi</text>
+    <text x="160" y="256" fill="#e2e8f0" font-size="12">Your personal documents, scripts and projects</text>
+    <text x="460" y="256" fill="#6ee7b7" font-size="12">Yes — it is yours</text>
+
+    <text x="36" y="276" fill="#e2e8f0" font-size="12">/etc</text>
+    <text x="160" y="276" fill="#e2e8f0" font-size="12">System-wide configuration files (network, users, etc.)</text>
+    <text x="460" y="276" fill="#fcd34d" font-size="12">With sudo only</text>
+
+    <text x="36" y="296" fill="#e2e8f0" font-size="12">/usr</text>
+    <text x="160" y="296" fill="#e2e8f0" font-size="12">Installed programs and their support files</text>
+    <text x="460" y="296" fill="#fcd34d" font-size="12">With sudo only</text>
+
+    <text x="36" y="316" fill="#e2e8f0" font-size="12">/var/log</text>
+    <text x="160" y="316" fill="#e2e8f0" font-size="12">Log files written by the system and services</text>
+    <text x="460" y="316" fill="#fcd34d" font-size="12">Read freely; write with sudo</text>
+
+    <text x="36" y="336" fill="#e2e8f0" font-size="12">/tmp</text>
+    <text x="160" y="336" fill="#e2e8f0" font-size="12">Scratch space — cleared on every reboot</text>
+    <text x="460" y="336" fill="#6ee7b7" font-size="12">Yes — wiped on restart</text>
+
+    <text x="36" y="356" fill="#e2e8f0" font-size="12">/boot/firmware</text>
+    <text x="160" y="356" fill="#e2e8f0" font-size="12">Low-level startup files (config.txt, kernel)</text>
+    <text x="460" y="356" fill="#f87171" font-size="12">Only if you know why</text>
+  </svg>
+  <figcaption>The top-level folders (directories) in your Pi's filesystem. Your everyday work happens in <code>/home/pi</code>. The others are system territory — readable but edited only with care.</figcaption>
+</figure>
+
+<div class="note"><strong>Note:</strong> On Raspberry Pi OS Bookworm the boot configuration file lives at <code>/boot/firmware/config.txt</code> (not the older location <code>/boot/config.txt</code>). If you ever need to tweak the Pi's hardware settings, that is the right file to edit with <code>sudo nano /boot/firmware/config.txt</code>.</div>
+
+<h2 id="editing-text-files-with-nano">Editing Text Files with nano</h2>
+
+<p>The terminal text editor that comes pre-installed on Raspberry Pi OS and is easiest for beginners is called <strong>nano</strong>. It works entirely inside the terminal window — no mouse needed — and shows its most important keyboard shortcuts along the bottom of the screen at all times.</p>
+
+<h3>Opening or Creating a File</h3>
+
+<p>To open an existing file, or to create a new one if it does not exist yet, type <code>nano</code> followed by the filename:</p>
+
+<pre class="code"><code>nano mynotes.txt</code></pre>
+<div class="explain">Opens <code>mynotes.txt</code> in the nano editor. If the file does not exist yet, nano creates a blank one for you. The file is not actually saved to disk until you explicitly save it.</div>
+
+<p>Once inside nano, you can type normally. The cursor moves with your arrow keys. The very bottom of the screen shows a list of shortcuts — the <code>^</code> symbol means the <kbd>Ctrl</kbd> key.</p>
+
+<h3>The Essential nano Shortcuts</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Shortcut</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><kbd>Ctrl</kbd> + <kbd>O</kbd></td><td>Write Out (save). nano asks you to confirm the filename — just press <kbd>Enter</kbd> to accept.</td></tr>
+    <tr><td><kbd>Enter</kbd> (after Ctrl-O)</td><td>Confirms the filename and writes the file to disk.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> + <kbd>X</kbd></td><td>Exit nano. If you have unsaved changes, nano asks whether to save them first.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Cut the current line (stores it in a clipboard).</td></tr>
+    <tr><td><kbd>Ctrl</kbd> + <kbd>U</kbd></td><td>Paste the cut line back.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> + <kbd>W</kbd></td><td>Search (Where is?). Type a word and press Enter to find it.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> + <kbd>G</kbd></td><td>Open the help screen with a full list of shortcuts.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> + <kbd>_</kbd></td><td>Go to a specific line number (useful when an error message says "line 42").</td></tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> The workflow to remember is: <strong>type your text → Ctrl-O → Enter → Ctrl-X</strong>. That is "save then quit". You will do this hundreds of times.</div>
+
+<h3>A Quick Practice Run</h3>
+
+<ol class="steps">
+  <li>Open a terminal and type <code>nano hello.txt</code> then press <kbd>Enter</kbd>.</li>
+  <li>Type a sentence, for example: <code>Hello from my Raspberry Pi!</code></li>
+  <li>Press <kbd>Ctrl</kbd> + <kbd>O</kbd>. A prompt appears at the bottom asking "File Name to Write: hello.txt".</li>
+  <li>Press <kbd>Enter</kbd> to confirm. You will see "[ Wrote 1 line ]" at the bottom.</li>
+  <li>Press <kbd>Ctrl</kbd> + <kbd>X</kbd> to exit back to the normal terminal prompt.</li>
+  <li>Type <code>ls</code> and you will see <code>hello.txt</code> is now in your folder.</li>
+</ol>
+
+<h2 id="viewing-files-without-editing-them">Viewing Files Without Editing Them</h2>
+
+<p>Sometimes you just want to read a file, not change it. Linux gives you several commands for this, each suited to different situations.</p>
+
+<h3>cat — Print the Whole File</h3>
+
+<pre class="code"><code>cat hello.txt</code></pre>
+<div class="explain">Prints every line of <code>hello.txt</code> straight to the screen. "cat" is short for "concatenate" — it was originally designed to join files together, but it is most commonly used to quickly view short files.</div>
+
+<div class="tip"><strong>Tip:</strong> <code>cat</code> is best for short files. If the file is hundreds of lines long, the text will scroll past faster than you can read it. Use <code>less</code> instead.</div>
+
+<h3>less — Scroll Through a Long File</h3>
+
+<pre class="code"><code>less /etc/os-release</code></pre>
+<div class="explain">Opens the file <code>/etc/os-release</code> (which contains information about the operating system version) in a scrollable viewer. Use the arrow keys or <kbd>Page Up</kbd> / <kbd>Page Down</kbd> to scroll. Press <kbd>Q</kbd> to quit and return to the terminal.</div>
+
+<div class="jargon"><strong>In plain words:</strong> <code>less</code> is like a reading mode for the terminal — the file stays still on screen until you choose to scroll or quit. The name is a tongue-in-cheek joke: an older tool was called <code>more</code>, and <code>less</code> can do more than <code>more</code>.</div>
+
+<h3>head and tail — See the Beginning or End</h3>
+
+<pre class="code"><code>head -n 10 /etc/os-release
+tail -n 10 /etc/os-release</code></pre>
+<div class="explain">
+  Line 1: Shows only the first 10 lines of the file. The <code>-n 10</code> part means "10 lines" — you can change the number to whatever you need.<br>
+  Line 2: Shows only the last 10 lines of the file. This is especially useful for log files, where the most recent events appear at the bottom.
+</div>
+
+<div class="tip"><strong>Tip:</strong> If something goes wrong and you want to check the system log, the best command on Raspberry Pi OS Bookworm is <code>journalctl -n 50</code> — this shows the last 50 log entries from the system journal. (Older guides may say <code>tail /var/log/syslog</code>; that file only exists if you have installed extra logging software.)</div>
+
+<h3>Identifying a File's Type</h3>
+
+<p>On Linux, file extensions like <code>.txt</code> are just a naming convention — the system does not rely on them. If you are ever unsure what kind of file something is, use the <code>file</code> command:</p>
+
+<pre class="code"><code>file hello.txt
+file /bin/ls</code></pre>
+<div class="explain">
+  Line 1: Analyses <code>hello.txt</code> and reports something like "ASCII text" — confirming it is a plain text file you can read safely.<br>
+  Line 2: Analyses the <code>ls</code> program and reports it as an "ELF 64-bit LSB executable" — a compiled program, not a text file. You would never try to read this with <code>cat</code>.
+</div>
+
+<h2 id="creating-empty-files-with-touch">Creating Empty Files with touch</h2>
+
+<p>Sometimes you want to create a blank file without opening an editor — for example to mark a placeholder in a folder or to quickly test a command. The <code>touch</code> command does exactly this:</p>
+
+<pre class="code"><code>touch myfile.txt</code></pre>
+<div class="explain">Creates an empty file called <code>myfile.txt</code> in the current folder. If the file already exists, <code>touch</code> simply updates its "last modified" timestamp without changing its contents. The file is harmless and can be deleted any time.</div>
+
+<h2 id="copying-moving-renaming-and-deleting-files">Copying, Moving, Renaming and Deleting Files</h2>
+
+<h3>Copying Files — cp</h3>
+
+<pre class="code"><code>cp hello.txt hello_backup.txt</code></pre>
+<div class="explain">Makes an exact copy of <code>hello.txt</code> and calls the copy <code>hello_backup.txt</code>. Both files now exist side by side.</div>
+
+<p>To copy a file into a different folder:</p>
+
+<pre class="code"><code>cp hello.txt Documents/hello.txt</code></pre>
+<div class="explain">Copies <code>hello.txt</code> into your <code>Documents</code> folder. The original file stays where it is.</div>
+
+<p>To copy an entire folder and everything inside it, add the <code>-r</code> flag (which means "recursive" — go into every sub-folder too):</p>
+
+<pre class="code"><code>cp -r myproject myproject_backup</code></pre>
+<div class="explain">Copies the folder <code>myproject</code> and all its contents into a new folder called <code>myproject_backup</code>.</div>
+
+<h3>Moving and Renaming — mv</h3>
+
+<p>The <code>mv</code> command does double duty: it both <em>moves</em> a file to a new location and <em>renames</em> it. Linux treats these as the same action — a rename is simply moving a file to the same folder but with a new name.</p>
+
+<pre class="code"><code>mv hello.txt greetings.txt</code></pre>
+<div class="explain">Renames <code>hello.txt</code> to <code>greetings.txt</code>. The file itself does not move — only its name changes.</div>
+
+<pre class="code"><code>mv greetings.txt Documents/greetings.txt</code></pre>
+<div class="explain">Moves <code>greetings.txt</code> into the <code>Documents</code> folder. It disappears from the current folder.</div>
+
+<div class="warn"><strong>Careful:</strong> <code>mv</code> does not ask for confirmation. If you move a file to a location where another file with the same name already exists, the existing file is silently overwritten and cannot be recovered. Double-check your target path before pressing Enter.</div>
+
+<h3>Deleting Files — rm</h3>
+
+<pre class="code"><code>rm hello_backup.txt</code></pre>
+<div class="explain">Permanently deletes <code>hello_backup.txt</code>. There is no Recycle Bin on the Linux command line — once deleted, the file is gone.</div>
+
+<div class="warn"><strong>Careful:</strong> The Linux terminal has no undo and no Recycle Bin. Files deleted with <code>rm</code> are gone immediately and permanently. Always double-check the filename before pressing Enter. As a beginner, consider making copies of important files before experimenting.</div>
+
+<p>To delete a folder and everything inside it:</p>
+
+<pre class="code"><code>rm -r myproject_backup</code></pre>
+<div class="explain">Deletes the <code>myproject_backup</code> folder and every file and sub-folder inside it. The <code>-r</code> flag means "recursive" — without it, <code>rm</code> refuses to delete a folder.</div>
+
+<div class="warn"><strong>Careful:</strong> Never type <code>rm -rf /</code> or <code>rm -rf *</code> in your home folder. The <code>-f</code> flag means "force" and skips all warnings. Combined with a wide pattern, this can erase your entire system. If you ever see instructions online asking you to run a command like that, stop and ask someone you trust first.</div>
+
+<h3>Creating Folders — mkdir</h3>
+
+<pre class="code"><code>mkdir myprojects
+mkdir -p myprojects/python/lesson1</code></pre>
+<div class="explain">
+  Line 1: Creates a new folder called <code>myprojects</code> inside the current directory.<br>
+  Line 2: Creates the full path <code>myprojects/python/lesson1</code> in one go, even if none of those folders exist yet. The <code>-p</code> flag means "make parent folders as needed".
+</div>
+
+<h2 id="finding-files-with-find">Finding Files with find</h2>
+
+<p>As your Pi accumulates files it becomes harder to remember exactly where something is. The <code>find</code> command searches for files and folders matching a pattern.</p>
+
+<pre class="code"><code>find ~ -name "hello.txt"</code></pre>
+<div class="explain">Searches your entire home folder (the <code>~</code> shortcut) for anything named exactly <code>hello.txt</code>. The result is the full path to every matching file, for example <code>/home/pi/hello.txt</code>.</div>
+
+<pre class="code"><code>find ~ -name "*.txt"</code></pre>
+<div class="explain">Searches your home folder for every file whose name ends with <code>.txt</code>. The quotes around <code>"*.txt"</code> are important — without them the shell might expand the <code>*</code> before <code>find</code> sees it, giving unexpected results.</div>
+
+<pre class="code"><code>find ~ -name "*.py" -type f</code></pre>
+<div class="explain">Searches for files (not folders) ending in <code>.py</code> (Python scripts). The <code>-type f</code> part means "only match regular files", which stops <code>find</code> from listing folder names that happen to end in <code>.py</code>.</div>
+
+<div class="tip"><strong>Tip:</strong> <code>find</code> can be slow if you search the entire system starting from <code>/</code>. Narrow the search by starting from your home folder (<code>~</code>) or a specific sub-folder whenever possible.</div>
+
+<h2 id="using-wildcards-safely">Using Wildcards Safely</h2>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>wildcard</em> is a special character that stands in for "anything". The most common one is the asterisk <code>*</code>, which matches any number of any characters in a filename.</div>
+
+<p>Wildcards let you work with many files at once without typing each name:</p>
+
+<pre class="code"><code>ls *.txt
+cp *.txt Documents/
+rm *.log</code></pre>
+<div class="explain">
+  Line 1: Lists every file in the current folder whose name ends with <code>.txt</code>.<br>
+  Line 2: Copies all <code>.txt</code> files into your <code>Documents</code> folder.<br>
+  Line 3: Deletes every file whose name ends with <code>.log</code>.
+</div>
+
+<div class="warn"><strong>Careful:</strong> Always run <code>ls *.log</code> (or whatever pattern you plan to use) <em>before</em> running <code>rm *.log</code>. This way you can see exactly which files match the pattern before you commit to deleting them.</div>
+
+<h2 id="hidden-files-dotfiles">Hidden Files — Dotfiles</h2>
+
+<p>In Linux, any file or folder whose name starts with a dot (<code>.</code>) is hidden. These are called <strong>dotfiles</strong>, and they usually store personal settings and configuration for programs. They are hidden simply to keep your home folder looking tidy — there is nothing secret about them.</p>
+
+<p>A plain <code>ls</code> does not show hidden files. To see them:</p>
+
+<pre class="code"><code>ls -a
+ls -la</code></pre>
+<div class="explain">
+  Line 1: The <code>-a</code> flag means "all" — lists every file including hidden ones. You will see entries like <code>.bashrc</code>, <code>.profile</code>, and the special entries <code>.</code> (the current folder itself) and <code>..</code> (the parent folder).<br>
+  Line 2: Combines <code>-l</code> (long listing with details) and <code>-a</code> (all files). This is the most complete picture of a folder's contents.
+</div>
+
+<div class="note"><strong>Note:</strong> The file <code>.bashrc</code> in your home folder is one of the most important dotfiles — it runs automatically every time you open a new terminal and is where you can add your own shortcuts and settings. You will meet it again in the scripting chapter.</div>
+
+<h2 id="symbolic-links-shortcuts-on-the-command-line">Symbolic Links — Shortcuts on the Command Line</h2>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>symbolic link</em> (or <em>symlink</em>) is exactly like a Windows shortcut — it is a tiny file that points to another file or folder somewhere else. When you open or run the symlink, the system automatically follows it to the real file.</div>
+
+<p>You will see symlinks in <code>ls -l</code> output because they show as type <code>l</code> (lowercase L) at the start of the permission string, like this:</p>
+
+<pre class="code"><code>lrwxrwxrwx 1 pi pi 20 Jun 15 10:30 myscript -&gt; /home/pi/scripts/myscript.sh</code></pre>
+<div class="explain">This is sample output from <code>ls -l</code>, not a command to type. The <code>l</code> at the start shows it is a symlink. The arrow (<code>-&gt;</code>) shows where it points: typing <code>./myscript</code> will actually run <code>/home/pi/scripts/myscript.sh</code>.</div>
+
+<p>To create your own symlink:</p>
+
+<pre class="code"><code>ln -s /home/pi/scripts/myscript.sh ~/myscript</code></pre>
+<div class="explain">Creates a symlink called <code>myscript</code> in your home folder that points to the real file at <code>/home/pi/scripts/myscript.sh</code>. The <code>-s</code> flag means "symbolic" — without it you would create a different (harder to manage) type of link.</div>
+
+<h2 id="understanding-permissions">Understanding Permissions</h2>
+
+<p>Every file and folder on your Pi has a set of <strong>permissions</strong> — rules that say who is allowed to read it, change it, or run it as a program. This is how Linux keeps your personal files private and prevents one program from accidentally (or maliciously) damaging another.</p>
+
+<h3>Users and Groups</h3>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>user</em> is an account on the computer — like your <code>pi</code> account. A <em>group</em> is a named collection of users who share certain permissions, for example a group called <code>audio</code> for everyone allowed to use the sound hardware.</div>
+
+<p>Every file has three categories of people its permissions apply to:</p>
+
+<ul>
+  <li><strong>Owner</strong> — the specific user who owns the file (usually whoever created it).</li>
+  <li><strong>Group</strong> — a named group of users. The file's group might be <code>pi</code>, <code>audio</code>, <code>video</code>, and so on.</li>
+  <li><strong>Others</strong> — everyone else on the system who is not the owner and not in the group.</li>
+</ul>
+
+<h3>Read, Write and Execute</h3>
+
+<p>For each of those three categories, there are three possible permissions:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Permission</th>
+      <th>Letter</th>
+      <th>For a file</th>
+      <th>For a folder</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Read</td><td><code>r</code></td><td>You can view/open the file's contents.</td><td>You can list what is inside the folder.</td></tr>
+    <tr><td>Write</td><td><code>w</code></td><td>You can change or delete the file.</td><td>You can add, rename or delete files inside.</td></tr>
+    <tr><td>Execute</td><td><code>x</code></td><td>You can run the file as a program or script.</td><td>You can enter (cd into) the folder.</td></tr>
+  </tbody>
+</table>
+
+<p>When a permission is absent, a dash <code>-</code> appears in its place. So <code>rw-</code> means "read and write, but not execute".</p>
+
+<h3>Reading an ls -l Line</h3>
+
+<p>Run <code>ls -l</code> in any folder and you will see something like this:</p>
+
+<pre class="code"><code>ls -l</code></pre>
+<div class="explain">Shows a detailed listing of files in the current folder, one file per line, with permissions, owner, size and date.</div>
+
+<p>A typical output line looks like this (this is example output, not a command to type):</p>
+
+<pre class="code"><code>-rw-r--r-- 1 pi pi 1024 Jun 15 10:30 hello.txt</code></pre>
+<div class="explain">This single line describes the file <code>hello.txt</code>. Every part has a specific meaning — the diagram below decodes it field by field.</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 720 310" xmlns="http://www.w3.org/2000/svg" font-family="monospace" font-size="13">
+    <!-- Background -->
+    <rect x="0" y="0" width="720" height="310" fill="#f3f0ff" rx="10"/>
+
+    <!-- The raw ls -l line -->
+    <rect x="20" y="18" width="680" height="36" rx="6" fill="#1f2933"/>
+    <text x="36" y="42" fill="#e2e8f0" font-size="15" letter-spacing="1">-rw-r--r--  1  pi  pi  1024  Jun 15 10:30  hello.txt</text>
+
+    <!-- Field 1: type+permissions (-rw-r--r--) -->
+    <line x1="52" y1="54" x2="52" y2="90" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="52" y1="90" x2="120" y2="90" stroke="#6d28d9" stroke-width="1.5"/>
+    <rect x="28" y="98" width="180" height="50" rx="6" fill="#6d28d9"/>
+    <text x="38" y="116" fill="white" font-size="12" font-family="sans-serif">- rw- r-- r--</text>
+    <text x="38" y="132" fill="#e2e8f0" font-size="11" font-family="sans-serif">Type + permissions</text>
+    <text x="38" y="146" fill="#c4b5fd" font-size="10" font-family="sans-serif">(see detail below)</text>
+
+    <!-- Field 2: links (1) -->
+    <line x1="148" y1="54" x2="148" y2="200" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <rect x="122" y="208" width="80" height="40" rx="6" fill="#0ea5a4"/>
+    <text x="162" y="224" fill="white" font-size="12" font-family="sans-serif" text-anchor="middle">1</text>
+    <text x="162" y="240" fill="white" font-size="10" font-family="sans-serif" text-anchor="middle">Hard links</text>
+
+    <!-- Field 3: owner (pi) -->
+    <line x1="178" y1="54" x2="178" y2="75" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="178" y1="75" x2="280" y2="75" stroke="#6d28d9" stroke-width="1.5"/>
+    <rect x="240" y="83" width="90" height="40" rx="6" fill="#6d28d9"/>
+    <text x="285" y="99" fill="white" font-size="12" font-family="sans-serif" text-anchor="middle">pi</text>
+    <text x="285" y="115" fill="#e2e8f0" font-size="10" font-family="sans-serif" text-anchor="middle">Owner (user)</text>
+
+    <!-- Field 4: group (pi) -->
+    <line x1="210" y1="54" x2="210" y2="155" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="210" y1="155" x2="360" y2="155" stroke="#0ea5a4" stroke-width="1.5"/>
+    <rect x="325" y="163" width="90" height="40" rx="6" fill="#0ea5a4"/>
+    <text x="370" y="179" fill="white" font-size="12" font-family="sans-serif" text-anchor="middle">pi</text>
+    <text x="370" y="195" fill="white" font-size="10" font-family="sans-serif" text-anchor="middle">Group name</text>
+
+    <!-- Field 5: size (1024) -->
+    <line x1="248" y1="54" x2="248" y2="220" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="248" y1="220" x2="440" y2="220" stroke="#6d28d9" stroke-width="1.5"/>
+    <rect x="410" y="228" width="90" height="40" rx="6" fill="#6d28d9"/>
+    <text x="455" y="244" fill="white" font-size="12" font-family="sans-serif" text-anchor="middle">1024</text>
+    <text x="455" y="260" fill="#e2e8f0" font-size="10" font-family="sans-serif" text-anchor="middle">Size (bytes)</text>
+
+    <!-- Field 6: date -->
+    <line x1="330" y1="54" x2="330" y2="168" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="330" y1="168" x2="550" y2="168" stroke="#0ea5a4" stroke-width="1.5"/>
+    <rect x="505" y="176" width="120" height="40" rx="6" fill="#0ea5a4"/>
+    <text x="565" y="192" fill="white" font-size="11" font-family="sans-serif" text-anchor="middle">Jun 15 10:30</text>
+    <text x="565" y="208" fill="white" font-size="10" font-family="sans-serif" text-anchor="middle">Last modified</text>
+
+    <!-- Field 7: filename -->
+    <line x1="642" y1="54" x2="642" y2="100" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line x1="605" y1="100" x2="642" y2="100" stroke="#6d28d9" stroke-width="1.5"/>
+    <rect x="602" y="108" width="100" height="40" rx="6" fill="#6d28d9"/>
+    <text x="652" y="124" fill="white" font-size="12" font-family="sans-serif" text-anchor="middle">hello.txt</text>
+    <text x="652" y="140" fill="#e2e8f0" font-size="10" font-family="sans-serif" text-anchor="middle">Filename</text>
+
+    <!-- Permission detail strip at bottom -->
+    <rect x="20" y="260" width="680" height="40" rx="6" fill="#1f2933"/>
+    <text x="36" y="277" fill="#a78bfa" font-size="12" font-family="sans-serif" font-weight="bold">-</text>
+    <text x="50" y="277" fill="white" font-size="12" font-family="sans-serif">= file  |</text>
+    <text x="126" y="277" fill="#6ee7b7" font-size="12" font-family="sans-serif" font-weight="bold">rw-</text>
+    <text x="155" y="277" fill="white" font-size="12" font-family="sans-serif">= owner: read+write  |</text>
+    <text x="318" y="277" fill="#fcd34d" font-size="12" font-family="sans-serif" font-weight="bold">r--</text>
+    <text x="347" y="277" fill="white" font-size="12" font-family="sans-serif">= group: read only  |</text>
+    <text x="498" y="277" fill="#f87171" font-size="12" font-family="sans-serif" font-weight="bold">r--</text>
+    <text x="527" y="277" fill="white" font-size="12" font-family="sans-serif">= others: read only</text>
+    <text x="36" y="294" fill="#94a3b8" font-size="11" font-family="sans-serif">10 characters: [type][owner rwx][group rwx][others rwx]</text>
+  </svg>
+  <figcaption>Decoding a typical <code>ls -l</code> output line. The first character shows the file type (<code>-</code> = regular file, <code>d</code> = directory, <code>l</code> = symlink). The next nine characters are three groups of three, showing permissions for the owner, the group, and everyone else.</figcaption>
+</figure>
+
+<h3>The Permission String in Detail</h3>
+
+<p>Let us decode <code>-rw-r--r--</code> character by character:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Position</th>
+      <th>Character</th>
+      <th>Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td><code>-</code></td><td>File type: <code>-</code> = ordinary file, <code>d</code> = folder (directory), <code>l</code> = symlink (a shortcut)</td></tr>
+    <tr><td>2</td><td><code>r</code></td><td>Owner can <strong>read</strong> the file</td></tr>
+    <tr><td>3</td><td><code>w</code></td><td>Owner can <strong>write</strong> (change) the file</td></tr>
+    <tr><td>4</td><td><code>-</code></td><td>Owner cannot execute the file (dash = permission absent)</td></tr>
+    <tr><td>5</td><td><code>r</code></td><td>Group members can <strong>read</strong> the file</td></tr>
+    <tr><td>6</td><td><code>-</code></td><td>Group members cannot write</td></tr>
+    <tr><td>7</td><td><code>-</code></td><td>Group members cannot execute</td></tr>
+    <tr><td>8</td><td><code>r</code></td><td>Others (everyone else) can <strong>read</strong> the file</td></tr>
+    <tr><td>9</td><td><code>-</code></td><td>Others cannot write</td></tr>
+    <tr><td>10</td><td><code>-</code></td><td>Others cannot execute</td></tr>
+  </tbody>
+</table>
+
+<h2 id="changing-permissions-with-chmod">Changing Permissions with chmod</h2>
+
+<div class="jargon"><strong>In plain words:</strong> <code>chmod</code> stands for "change mode" — "mode" is the old Unix word for permissions. It lets you add or remove read, write and execute permissions from a file.</div>
+
+<h3>The Symbolic (Friendly) Form</h3>
+
+<p>The easiest way to use <code>chmod</code> is with letters and symbols. The format is: <strong>who</strong> + <strong>action</strong> + <strong>permission</strong>.</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Letter</th><th>Stands for</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>u</code></td><td>User (the owner)</td></tr>
+    <tr><td><code>g</code></td><td>Group</td></tr>
+    <tr><td><code>o</code></td><td>Others</td></tr>
+    <tr><td><code>a</code></td><td>All three (u + g + o)</td></tr>
+    <tr><td><code>+</code></td><td>Add a permission</td></tr>
+    <tr><td><code>-</code></td><td>Remove a permission</td></tr>
+    <tr><td><code>=</code></td><td>Set exactly these permissions (replacing whatever was there)</td></tr>
+  </tbody>
+</table>
+
+<p>Here are the most common things you will do:</p>
+
+<pre class="code"><code>chmod +x myscript.sh
+chmod -x myscript.sh
+chmod u+x myscript.sh
+chmod go-w hello.txt
+chmod a+r photo.jpg</code></pre>
+<div class="explain">
+  Line 1: Adds the execute permission for <em>everyone</em> — makes <code>myscript.sh</code> runnable as a program. This is the command you will use most often when you write your own scripts.<br>
+  Line 2: Removes the execute permission from everyone.<br>
+  Line 3: Adds execute permission for the <em>owner only</em> (leaving group and others unchanged).<br>
+  Line 4: Removes write permission from the group (<code>g</code>) and from others (<code>o</code>), so only the owner can change the file.<br>
+  Line 5: Adds read permission for absolutely everyone.
+</div>
+
+<h3>The Numeric (Octal) Form</h3>
+
+<p>You will sometimes see permissions written as three digits, for example <code>755</code> or <code>644</code>. This is the older "numeric" or "octal" notation. Each digit is a sum of three values: <strong>4</strong> = read, <strong>2</strong> = write, <strong>1</strong> = execute. You add the values for each group:</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Number</th><th>Meaning</th><th>Equivalent</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>7</code></td><td>4+2+1 = read, write, execute</td><td><code>rwx</code></td></tr>
+    <tr><td><code>6</code></td><td>4+2+0 = read and write</td><td><code>rw-</code></td></tr>
+    <tr><td><code>5</code></td><td>4+0+1 = read and execute</td><td><code>r-x</code></td></tr>
+    <tr><td><code>4</code></td><td>4+0+0 = read only</td><td><code>r--</code></td></tr>
+    <tr><td><code>0</code></td><td>no permissions at all</td><td><code>---</code></td></tr>
+  </tbody>
+</table>
+
+<p>So <code>chmod 755 myscript.sh</code> means: owner gets 7 (rwx), group gets 5 (r-x), others get 5 (r-x). The owner can read, write and run it; everyone else can only read and run it.</p>
+
+<pre class="code"><code>chmod 755 myscript.sh
+chmod 644 hello.txt</code></pre>
+<div class="explain">
+  Line 1: Sets the classic permissions for an executable script — owner has full control (read, write, execute), everyone else can read and run but not modify.<br>
+  Line 2: Sets the classic permissions for a data file — owner can read and write, everyone else can only read.
+</div>
+
+<div class="tip"><strong>Tip:</strong> As a beginner, stick with the symbolic form (<code>chmod +x</code>) — it is much easier to read and remember. The numeric form is handy to recognise when you see it in tutorials online.</div>
+
+<h2 id="checking-detailed-file-information-with-stat">Checking Detailed File Information with stat</h2>
+
+<p><code>ls -l</code> gives you a quick summary, but if you want to see every detail about a file — its exact size in bytes, its precise timestamps, and all its permissions in one place — use the <code>stat</code> command:</p>
+
+<pre class="code"><code>stat hello.txt</code></pre>
+<div class="explain">Prints a detailed report about <code>hello.txt</code> including: its full size in bytes, the date it was created, last read, and last changed, and its permissions shown both in the <code>rwx</code> form and as a numeric (octal) code. This is especially useful when troubleshooting "why can't I open this file?" problems.</div>
+
+<h2 id="changing-ownership-with-chown">Changing Ownership with chown</h2>
+
+<div class="jargon"><strong>In plain words:</strong> <code>chown</code> stands for "change owner". It transfers ownership of a file from one user (or group) to another.</div>
+
+<pre class="code"><code>sudo chown pi hello.txt
+sudo chown pi:pi hello.txt</code></pre>
+<div class="explain">
+  Line 1: Makes the user <code>pi</code> the owner of <code>hello.txt</code>. The <code>sudo</code> at the front is needed because changing ownership is a privileged action (explained in the next section).<br>
+  Line 2: Makes <code>pi</code> both the owner <em>and</em> the group of the file. The format is <code>user:group</code>.
+</div>
+
+<p>You will rarely need <code>chown</code> in everyday use. The most common situation is when a file is created by a system command that runs as a different user, and you want to reclaim ownership so you can edit it freely.</p>
+
+<h2 id="sudo-root-and-why-your-password-is-asked">sudo, Root, and Why Your Password Is Asked</h2>
+
+<p>You have seen the word <code>sudo</code> appear in several commands. Now it is time to understand exactly what it means.</p>
+
+<h3>The Root User</h3>
+
+<p>Every Linux system has a special all-powerful user account called <strong>root</strong> (also sometimes called the superuser). Root has no restrictions — it can read, write, delete or change any file on the entire system, including system files that keep the Pi running.</p>
+
+<p>To protect the system from accidents, you do not normally log in as root. Instead, you log in as your ordinary <code>pi</code> account, which has limited powers. If you try to read or modify a system file as <code>pi</code>, Linux politely refuses with a "Permission denied" message.</p>
+
+<h3>What sudo Does</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <code>sudo</code> stands for "superuser do". Put it at the start of any command, and that command runs with full root powers — just for that one command. Then your account returns to being a normal user.</div>
+
+<pre class="code"><code>sudo apt update</code></pre>
+<div class="explain">Runs the <code>apt update</code> command (which refreshes the list of available software updates) with root privileges. Without <code>sudo</code>, this would fail with a "Permission denied" error because updating software requires writing to system folders that ordinary users cannot touch.</div>
+
+<p>When you type a command beginning with <code>sudo</code>, the terminal asks for <em>your own password</em> (the password for the <code>pi</code> account, not a root password). After you enter it correctly, sudo remembers for a few minutes, so you will not be asked again for every command in a row.</p>
+
+<div class="note"><strong>Note:</strong> When you type your password at a <code>sudo</code> prompt, nothing appears on the screen — no dots, no asterisks. This is intentional: it prevents someone nearby from seeing how long your password is. Just type it and press Enter.</div>
+
+<h3>The Difference Between pi and root</h3>
+
+<table class="tbl">
+  <thead>
+    <tr><th></th><th>pi (your normal account)</th><th>root (superuser)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Can read your own files</td><td>Yes</td><td>Yes</td></tr>
+    <tr><td>Can read other users' private files</td><td>No</td><td>Yes</td></tr>
+    <tr><td>Can install software</td><td>No (needs sudo)</td><td>Yes</td></tr>
+    <tr><td>Can edit system files</td><td>No (needs sudo)</td><td>Yes</td></tr>
+    <tr><td>Can accidentally break the system</td><td>Unlikely</td><td>Very easily</td></tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> Use <code>sudo</code> only when you genuinely need it — for installing software, editing system configuration files, or working with hardware. Do not get into the habit of putting <code>sudo</code> in front of everything. Running everyday commands as root is risky because a typo can do far more damage than it would as a normal user.</div>
+
+<h3>Switching to the Root Shell (and Why to Avoid It)</h3>
+
+<p>It is possible to open a shell that runs entirely as root with <code>sudo -i</code> or <code>sudo su</code>. Your prompt changes from a <code>$</code> to a <code>#</code>, which is the traditional signal that you are operating as root. Experienced administrators sometimes do this for a batch of system tasks, but as a beginner it is safer to use <code>sudo</code> one command at a time and then return to your safe <code>pi</code> account.</p>
+
+<div class="note"><strong>Note:</strong> The list of users who are allowed to use <code>sudo</code> is controlled by a special configuration file at <code>/etc/sudoers</code>. The default <code>pi</code> user on Raspberry Pi OS is already in that list, which is why <code>sudo</code> works for you out of the box. You should never edit this file with a plain text editor — always use <code>sudo visudo</code>, which checks for mistakes before saving.</div>
+
+<h2 id="making-a-script-executable">Making a Script Executable</h2>
+
+<p>In later chapters you will write your own shell scripts — text files full of commands that run one after another, like a recipe. Before the Pi will actually run a script, you need to mark it as executable. Here is a preview of that process:</p>
+
+<ol class="steps">
+  <li>Create a simple script file:
+    <pre class="code"><code>nano greet.sh</code></pre>
+    <div class="explain">Opens a new file called <code>greet.sh</code> in nano. The <code>.sh</code> extension is the convention for shell scripts, though Linux does not strictly require it.</div>
+  </li>
+  <li>Type these two lines inside nano:
+    <pre class="code"><code>#!/bin/bash
+echo "Hello from my Pi script!"</code></pre>
+    <div class="explain">
+      Line 1: This special first line is called a <em>shebang</em> (or hashbang). It tells the Pi which program should interpret the script — in this case <code>/bin/bash</code>, the standard command shell. It must always be the very first line of the file, with no blank line before it.<br>
+      Line 2: The <code>echo</code> command prints text to the screen. When you run the script, you will see this message.
+    </div>
+    Save with <kbd>Ctrl</kbd>+<kbd>O</kbd>, then <kbd>Enter</kbd>, then exit with <kbd>Ctrl</kbd>+<kbd>X</kbd>.
+  </li>
+  <li>Check the file's current permissions:
+    <pre class="code"><code>ls -l greet.sh</code></pre>
+    <div class="explain">Shows the permissions for <code>greet.sh</code>. You will see something like <code>-rw-r--r--</code> — no execute permission yet, so the Pi will not run it as a program.</div>
+  </li>
+  <li>Grant execute permission:
+    <pre class="code"><code>chmod +x greet.sh</code></pre>
+    <div class="explain">Adds the execute bit for everyone. Now the Pi knows this file is a runnable program. If you run <code>ls -l greet.sh</code> again you will see <code>-rwxr-xr-x</code>.</div>
+  </li>
+  <li>Run the script:
+    <pre class="code"><code>./greet.sh</code></pre>
+    <div class="explain">Runs the script. The <code>./</code> at the start means "look in the current folder" — you need this because the Pi does not automatically look in the current folder for programs to run (a safety measure to prevent accidentally running a malicious file placed in the current directory). You should see <code>Hello from my Pi script!</code> printed on screen.</div>
+  </li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> The <code>./</code> prefix is something beginners often forget. If you type just <code>greet.sh</code> without the dot-slash, the terminal will say "command not found" even though the file is right there. Always use <code>./scriptname.sh</code> to run a script in the current folder.</div>
+
+<h2 id="putting-it-all-together-a-practical-workflow">Putting It All Together — A Practical Workflow</h2>
+
+<p>Here is a short walkthrough that ties together everything in this chapter. Imagine you want to create a small project folder, write a note, protect it, and back it up.</p>
+
+<ol class="steps">
+  <li>Create a project folder:
+    <pre class="code"><code>mkdir ~/myproject</code></pre>
+    <div class="explain">Creates a folder called <code>myproject</code> directly inside your home folder. The <code>~</code> is a shortcut that always means "your home folder" — on a default Pi setup that is <code>/home/pi</code>.</div>
+  </li>
+  <li>Move into it and create a notes file:
+    <pre class="code"><code>cd ~/myproject
+nano notes.txt</code></pre>
+    <div class="explain">
+      Line 1: Changes into your new <code>myproject</code> folder.<br>
+      Line 2: Opens a new notes file in nano. Type something, save with <kbd>Ctrl</kbd>+<kbd>O</kbd> and exit with <kbd>Ctrl</kbd>+<kbd>X</kbd>.
+    </div>
+  </li>
+  <li>Check what you have:
+    <pre class="code"><code>ls -la</code></pre>
+    <div class="explain">Shows all files including hidden ones, with full permission details. You will see <code>notes.txt</code> listed with permissions like <code>-rw-r--r--</code>.</div>
+  </li>
+  <li>Make the notes file readable only by you:
+    <pre class="code"><code>chmod go-r notes.txt
+ls -l notes.txt</code></pre>
+    <div class="explain">
+      Line 1: Removes the read permission from the group (<code>g</code>) and from others (<code>o</code>). Now only the owner (<code>pi</code>) can read this file.<br>
+      Line 2: Confirms the change — you should now see <code>-rw-------</code> in the permissions column.
+    </div>
+  </li>
+  <li>Back up the whole folder:
+    <pre class="code"><code>cp -r ~/myproject ~/myproject_backup</code></pre>
+    <div class="explain">Makes a complete copy of your project folder (and everything inside it) with the name <code>myproject_backup</code> in your home folder.</div>
+  </li>
+  <li>Verify the backup exists and check its contents:
+    <pre class="code"><code>ls ~/myproject_backup</code></pre>
+    <div class="explain">Lists the contents of your backup folder to confirm that <code>notes.txt</code> (and any other files) made it across safely.</div>
+  </li>
+</ol>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Filesystem</strong> — the organised layout of all files and folders on your storage card; a single tree rooted at <code>/</code>.</li>
+    <li><strong>Home folder</strong> — your personal folder, <code>/home/pi</code> on a default Pi setup; the folder you land in when you open a terminal.</li>
+    <li><strong>nano</strong> — a simple, beginner-friendly text editor that runs inside the terminal; keyboard shortcuts are shown along the bottom of the screen.</li>
+    <li><strong>cat</strong> — a command that prints the entire contents of a file to the screen.</li>
+    <li><strong>less</strong> — a command that opens a file in a scrollable viewer; press <kbd>Q</kbd> to quit.</li>
+    <li><strong>head / tail</strong> — commands that show only the first or last few lines of a file.</li>
+    <li><strong>file</strong> — a command that identifies what type of data a file contains, regardless of its extension.</li>
+    <li><strong>touch</strong> — a command that creates an empty file, or updates the timestamp of an existing file without changing its contents.</li>
+    <li><strong>cp</strong> — the copy command; use <code>-r</code> to copy entire folders.</li>
+    <li><strong>mv</strong> — the move/rename command; there is no undo.</li>
+    <li><strong>rm</strong> — the delete command; files deleted with <code>rm</code> are gone permanently with no Recycle Bin.</li>
+    <li><strong>mkdir</strong> — creates a new folder; use <code>-p</code> to create several nested folders at once.</li>
+    <li><strong>find</strong> — searches for files and folders matching a name pattern, starting from a folder you specify.</li>
+    <li><strong>Wildcard (*)</strong> — a special character meaning "any number of any characters", used to match multiple filenames at once (e.g. <code>*.txt</code>).</li>
+    <li><strong>Dotfile</strong> — a file or folder whose name starts with a dot, making it hidden from ordinary <code>ls</code> listings; usually stores program settings.</li>
+    <li><strong>Symbolic link (symlink)</strong> — a file that acts as a shortcut pointing to another file or folder elsewhere; shown as type <code>l</code> in <code>ls -l</code> output.</li>
+    <li><strong>Permission</strong> — a rule controlling who can read (<code>r</code>), write (<code>w</code>), or execute (<code>x</code>) a file.</li>
+    <li><strong>Owner</strong> — the specific user account that owns a file (usually whoever created it).</li>
+    <li><strong>Group</strong> — a named collection of user accounts that share a set of permissions on files assigned to that group.</li>
+    <li><strong>chmod</strong> — the command to change a file's permissions; symbolic form (<code>chmod +x</code>) is easiest, numeric form (e.g. <code>chmod 755</code>) is also common.</li>
+    <li><strong>chown</strong> — the command to change which user and group owns a file.</li>
+    <li><strong>stat</strong> — a command that shows full details about a file including exact timestamps, size and permissions.</li>
+    <li><strong>root</strong> — the all-powerful system administrator account on Linux; it has no permission restrictions and can do anything on the system.</li>
+    <li><strong>sudo</strong> — a prefix that runs a single command with root (superuser) privileges, then immediately returns to your normal user account.</li>
+    <li><strong>Shebang</strong> — the special first line of a script (<code>#!/bin/bash</code>) that tells the system which interpreter should run the file.</li>
+    <li><strong>Executable</strong> — a file that has been given the execute (<code>x</code>) permission, meaning the system is allowed to run it as a program.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Your Pi's files are arranged in a single tree starting at <code>/</code>; your personal files live in <code>/home/pi</code>, and system files live in <code>/etc</code>, <code>/usr</code>, <code>/var</code> and other protected folders.</li>
+    <li>nano is the beginner's terminal text editor: open with <code>nano filename</code>, save with <kbd>Ctrl</kbd>+<kbd>O</kbd> then <kbd>Enter</kbd>, and exit with <kbd>Ctrl</kbd>+<kbd>X</kbd>.</li>
+    <li>Use <code>cat</code> for short files, <code>less</code> for long ones (press <kbd>Q</kbd> to quit), and <code>head</code>/<code>tail</code> to see just the start or end; use <code>file</code> to find out what type of data a file contains.</li>
+    <li><code>touch</code> creates an empty file; <code>mkdir</code> creates a folder; use <code>mkdir -p</code> to create a chain of nested folders in one step.</li>
+    <li><code>cp</code> copies, <code>mv</code> moves or renames, and <code>rm</code> permanently deletes — there is no undo or Recycle Bin for <code>rm</code>.</li>
+    <li>Use <code>find ~ -name "*.txt"</code> to search your home folder for files matching a pattern.</li>
+    <li>Wildcards like <code>*.txt</code> match multiple files; always preview with <code>ls</code> before using a wildcard with <code>rm</code>.</li>
+    <li>Hidden files (dotfiles) start with a dot and are only shown when you add <code>-a</code> to <code>ls</code>; symlinks (type <code>l</code>) act as shortcuts to another file.</li>
+    <li>Every file has three permission groups — owner, group, others — and three permission types: read (<code>r</code>), write (<code>w</code>), execute (<code>x</code>); <code>ls -l</code> shows the full 10-character string.</li>
+    <li><code>chmod +x file</code> makes a file executable; <code>chmod go-r file</code> removes read access from group and others; <code>chmod 755</code> is the classic permission for a shared script.</li>
+    <li>root is the all-powerful system account; <code>sudo</code> lets you run one command with root powers without switching accounts permanently — use it only when necessary.</li>
+    <li>Mark a script executable with <code>chmod +x</code> and run it with <code>./scriptname.sh</code> — the <code>./</code> prefix is required.</li>
+  </ul>
+</div>

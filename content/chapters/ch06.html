@@ -1,0 +1,667 @@
+<p class="lead">The terminal is probably the most misunderstood tool on any computer — it looks like something from a 1970s science-fiction film, but once you spend ten minutes with it you will wonder how you ever managed without it. This chapter strips away the mystery, teaches you how to read every part of the screen, walks you through the commands you will use every single day, and shows you how to edit files and run commands with administrator privileges — everything you need to feel genuinely at home in the Linux command line.</p>
+<div class="widget-mount" data-widget="terminal"></div>
+
+
+<h2 id="what-is-the-terminal-and-why-should-you-care">What is the Terminal, and Why Should You Care?</h2>
+
+<p>When you use a normal desktop application, you point at things and click. Behind the scenes, the computer is still receiving <em>text commands</em> — the graphical interface just hides them from you. The <strong>terminal</strong> (sometimes called the <strong>command line</strong> or <strong>console</strong>) lets you type those commands directly. There is no middleman.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>terminal</strong> is a window that accepts typed commands and shows their output as text. A <strong>shell</strong> is the program running <em>inside</em> that window — it reads what you type, runs it, and prints the result. Raspberry Pi OS uses a shell called <strong>Bash</strong> (Bourne Again SHell). Think of the terminal as the telephone handset, and Bash as the person answering at the other end.</div>
+
+<p>Why bother with it when there is already a desktop?</p>
+
+<ul>
+  <li><strong>Speed.</strong> A three-word command can do in one second what would take ten mouse-clicks.</li>
+  <li><strong>Power.</strong> Many tools — especially for programming, electronics, and servers — are only available from the command line.</li>
+  <li><strong>Precision.</strong> Commands do exactly what you say, every time, with no guessing.</li>
+  <li><strong>Automation.</strong> You can save a list of commands in a file and run them all at once.</li>
+  <li><strong>Remote control.</strong> You can control your Pi over the network without ever plugging in a keyboard or screen, using only text.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> Nothing you type in the terminal can hurt your Pi's hardware. The worst that can happen with the commands in this chapter is deleting a file you did not mean to delete — which we will flag clearly and show you how to avoid.</div>
+
+<h2 id="opening-the-terminal">Opening the Terminal</h2>
+
+<p>There are three easy ways to open a terminal window on Raspberry Pi OS:</p>
+
+<ol class="steps">
+  <li>Look at the <strong>taskbar</strong> (the bar at the top of the screen). You will see a small black rectangle icon that looks like a screen — click it. A terminal window opens instantly.</li>
+  <li>Click the <strong>Raspberry Pi menu</strong> (top-left corner, the raspberry icon) → <strong>Accessories</strong> → <strong>Terminal</strong>.</li>
+  <li>Press the keyboard shortcut <strong>Ctrl + Alt + T</strong> — if nothing happens, use method 1 instead.</li>
+</ol>
+
+<p>A dark window appears with some text and a blinking cursor. Do not worry about what it says yet — we will read it carefully in the next section.</p>
+
+<h2 id="reading-the-prompt-every-part-explained">Reading the Prompt — Every Part Explained</h2>
+
+<p>Before you can type anything, the shell prints a <strong>prompt</strong>: a short line of text that tells you who you are, which machine you are on, and where you are in the file system. It looks something like this:</p>
+
+<pre class="code"><code>pi@raspberrypi:~$</code></pre>
+<div class="explain">This is your prompt. It is made of four pieces joined together:<br>
+<strong>pi</strong> — your username (the account you are logged in as). The default user on Raspberry Pi OS is <code>pi</code>, though you may have chosen a different name when you first set up the Pi.<br>
+<strong>@</strong> — just the "at" symbol, meaning "logged in at".<br>
+<strong>raspberrypi</strong> — the <em>hostname</em> of the machine (its name on the network). You can change this in Settings.<br>
+<strong>:</strong> — a colon separating the machine name from the current folder.<br>
+<strong>~</strong> — a tilde symbol, which is a shortcut meaning "your home folder" (more on this in a moment).<br>
+<strong>$</strong> — the dollar sign signals "I am ready; type your command here." If you ever see a <code>#</code> instead, it means you are running as the all-powerful <em>root</em> administrator — proceed carefully.</div>
+
+<p>So the full prompt <code>pi@raspberrypi:~$</code> means: <em>"You are the user called pi, on the machine called raspberrypi, currently sitting in your home folder, and I am waiting for your command."</em></p>
+
+<figure class="fig">
+  <svg viewBox="0 0 620 120" xmlns="http://www.w3.org/2000/svg" font-family="monospace, sans-serif" font-size="15">
+    <!-- Background bar -->
+    <rect x="20" y="18" width="580" height="50" rx="8" fill="#1f2933"/>
+    <!-- Prompt text coloured segments -->
+    <text x="36" y="49" fill="#0ea5a4" font-size="18" font-weight="bold">pi</text>
+    <text x="66" y="49" fill="#ffffff" font-size="18">@</text>
+    <text x="82" y="49" fill="#6d28d9" font-size="18" font-weight="bold">raspberrypi</text>
+    <text x="218" y="49" fill="#ffffff" font-size="18">:</text>
+    <text x="230" y="49" fill="#0ea5a4" font-size="18" font-weight="bold">~</text>
+    <text x="248" y="49" fill="#f3f0ff" font-size="18" font-weight="bold">$</text>
+    <text x="264" y="49" fill="#aaaaaa" font-size="18">&#x2588;</text>
+
+    <!-- Annotation lines and labels -->
+    <!-- username -->
+    <line x1="51"  y1="68" x2="51"  y2="90" stroke="#0ea5a4" stroke-width="1.5"/>
+    <text x="51"  y="108" text-anchor="middle" fill="#0ea5a4" font-size="12">username</text>
+
+    <!-- hostname -->
+    <line x1="150" y1="68" x2="150" y2="90" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="150" y="108" text-anchor="middle" fill="#6d28d9" font-size="12">machine name</text>
+
+    <!-- tilde -->
+    <line x1="236" y1="68" x2="236" y2="90" stroke="#0ea5a4" stroke-width="1.5"/>
+    <text x="236" y="108" text-anchor="middle" fill="#0ea5a4" font-size="12">current folder</text>
+
+    <!-- dollar -->
+    <line x1="252" y1="68" x2="290" y2="90" stroke="#f3f0ff" stroke-width="1.5"/>
+    <text x="320" y="108" text-anchor="middle" fill="#f3f0ff" font-size="12">ready for input</text>
+
+    <!-- cursor -->
+    <line x1="272" y1="68" x2="390" y2="90" stroke="#aaaaaa" stroke-width="1.5"/>
+    <text x="420" y="108" text-anchor="middle" fill="#aaaaaa" font-size="12">cursor</text>
+  </svg>
+  <figcaption>Anatomy of the Bash prompt. Each coloured segment tells you something different about your current session.</figcaption>
+</figure>
+
+<h2 id="the-filesystem-a-single-tree-starting-at">The Filesystem: a Single Tree Starting at /</h2>
+
+<p>On Windows your files live on drives such as <code>C:\</code> and <code>D:\</code>. Linux (and therefore Raspberry Pi OS) works differently: there is exactly <strong>one</strong> big tree, and everything hangs off a single root.</p>
+
+<div class="jargon"><strong>In plain words:</strong> The <strong>filesystem</strong> is the way your operating system organises files into folders. On Linux the entire structure is one big upside-down tree. The very top of that tree is called <strong>root</strong> and is written as a single forward slash: <code>/</code>. Every folder and every file on the system lives somewhere below that slash.</div>
+
+<p>The key folders you will encounter are:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Folder path</th>
+      <th>What lives there</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/</code></td>
+      <td>The very top of the tree — "root". Every path starts here.</td>
+    </tr>
+    <tr>
+      <td><code>/home</code></td>
+      <td>Personal folders for all user accounts on the machine.</td>
+    </tr>
+    <tr>
+      <td><code>/home/pi</code> (or your username)</td>
+      <td><em>Your</em> personal home folder. This is where your documents, downloads, and projects live. Also written as <code>~</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/etc</code></td>
+      <td>System-wide configuration files — Wi-Fi settings, user lists, service settings.</td>
+    </tr>
+    <tr>
+      <td><code>/var</code></td>
+      <td>"Variable" data: log files, print queues, emails — things that change while the system runs.</td>
+    </tr>
+    <tr>
+      <td><code>/usr</code></td>
+      <td>Installed programs and their shared files live here (think of it as the equivalent of <code>C:\Program Files</code>).</td>
+    </tr>
+    <tr>
+      <td><code>/tmp</code></td>
+      <td>Temporary files. The system wipes this on every reboot — never save anything important here.</td>
+    </tr>
+    <tr>
+      <td><code>/boot/firmware</code></td>
+      <td>Files the Pi reads when it first powers on, including the kernel and configuration. Leave this alone unless a guide specifically tells you to edit something here.</td>
+    </tr>
+    <tr>
+      <td><code>/dev</code></td>
+      <td>Device files — the terminal, USB drives, the GPIO pins, etc. Everything on Linux is treated as a file, including hardware.</td>
+    </tr>
+    <tr>
+      <td><code>/proc</code></td>
+      <td>A virtual folder showing live information about running processes and hardware. Not real files — they are generated on the fly by the kernel.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Here is a simplified picture of the tree:</p>
+
+<figure class="fig">
+  <svg viewBox="0 0 660 400" xmlns="http://www.w3.org/2000/svg" font-family="monospace, sans-serif" font-size="14">
+    <!-- Root node -->
+    <rect x="290" y="10" width="80" height="32" rx="6" fill="#6d28d9"/>
+    <text x="330" y="31" text-anchor="middle" fill="#ffffff" font-weight="bold">/</text>
+
+    <!-- Level 1 lines -->
+    <line x1="330" y1="42" x2="80"  y2="90" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="330" y1="42" x2="190" y2="90" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="330" y1="42" x2="300" y2="90" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="330" y1="42" x2="420" y2="90" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="330" y1="42" x2="520" y2="90" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="330" y1="42" x2="610" y2="90" stroke="#6d28d9" stroke-width="2"/>
+
+    <!-- Level 1 boxes -->
+    <rect x="30"  y="90" width="100" height="32" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="80"  y="111" text-anchor="middle" fill="#1f2933">/home</text>
+
+    <rect x="140" y="90" width="100" height="32" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="190" y="111" text-anchor="middle" fill="#1f2933">/etc</text>
+
+    <rect x="250" y="90" width="100" height="32" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="300" y="111" text-anchor="middle" fill="#1f2933">/usr</text>
+
+    <rect x="370" y="90" width="100" height="32" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="420" y="111" text-anchor="middle" fill="#1f2933">/var</text>
+
+    <rect x="470" y="90" width="100" height="32" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="520" y="111" text-anchor="middle" fill="#1f2933">/tmp</text>
+
+    <rect x="560" y="90" width="100" height="32" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="610" y="111" text-anchor="middle" fill="#1f2933">/boot</text>
+
+    <!-- Level 2 under /home -->
+    <line x1="80" y1="122" x2="80" y2="170" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="30" y="170" width="100" height="32" rx="6" fill="#0ea5a4"/>
+    <text x="80" y="191" text-anchor="middle" fill="#ffffff">/home/pi</text>
+    <text x="80" y="218" text-anchor="middle" fill="#1f2933" font-size="12">(your files, ≈ ~)</text>
+
+    <!-- Level 2 under /home/pi -->
+    <line x1="80" y1="202" x2="80" y2="260" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <rect x="20" y="260" width="80" height="28" rx="5" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="1.5"/>
+    <text x="60" y="279" text-anchor="middle" fill="#1f2933" font-size="12">Documents</text>
+    <line x1="80" y1="260" x2="120" y2="260" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <rect x="100" y="246" width="80" height="28" rx="5" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="1.5"/>
+    <text x="140" y="265" text-anchor="middle" fill="#1f2933" font-size="12">Downloads</text>
+
+    <!-- Level 2 under /var -->
+    <line x1="420" y1="122" x2="420" y2="170" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="370" y="170" width="100" height="32" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="420" y="191" text-anchor="middle" fill="#1f2933">/var/log</text>
+    <text x="420" y="218" text-anchor="middle" fill="#1f2933" font-size="12">(system logs)</text>
+
+    <!-- Level 2 under /boot -->
+    <line x1="610" y1="122" x2="610" y2="170" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="550" y="170" width="120" height="32" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="610" y="191" text-anchor="middle" fill="#1f2933">/boot/firmware</text>
+    <text x="610" y="218" text-anchor="middle" fill="#1f2933" font-size="12">(boot config)</text>
+
+    <!-- Legend -->
+    <rect x="20" y="340" width="16" height="16" rx="3" fill="#6d28d9"/>
+    <text x="42" y="353" fill="#1f2933" font-size="12">System folder</text>
+    <rect x="180" y="340" width="16" height="16" rx="3" fill="#0ea5a4"/>
+    <text x="202" y="353" fill="#1f2933" font-size="12">Your home folder</text>
+    <rect x="370" y="340" width="16" height="16" rx="3" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="392" y="353" fill="#1f2933" font-size="12">Sub-folder</text>
+  </svg>
+  <figcaption>The Linux filesystem tree. Everything starts at <code>/</code>. Your personal files live under <code>/home/pi</code>, which is also written as <code>~</code>.</figcaption>
+</figure>
+
+<h2 id="the-anatomy-of-a-command">The Anatomy of a Command</h2>
+
+<p>Every command you type follows the same pattern:</p>
+
+<pre class="code"><code>command  -options  argument(s)</code></pre>
+<div class="explain">
+<strong>command</strong> — the name of the program you want to run (e.g. <code>ls</code>, <code>cp</code>, <code>mkdir</code>).<br>
+<strong>-options</strong> (also called <em>flags</em>) — extra instructions that modify how the command behaves. They usually start with a hyphen and a single letter (<code>-l</code>) or two hyphens and a word (<code>--help</code>). They are optional.<br>
+<strong>argument(s)</strong> — the thing(s) the command should act on: a filename, a folder path, some text. Also optional depending on the command.
+</div>
+
+<p>For example: <code>ls -l /home/pi</code> — the command is <code>ls</code> (list files), the option is <code>-l</code> (long format), and the argument is <code>/home/pi</code> (the folder to list).</p>
+
+<figure class="fig">
+  <svg viewBox="0 0 580 110" xmlns="http://www.w3.org/2000/svg" font-family="monospace, sans-serif" font-size="15">
+    <!-- Command word -->
+    <rect x="30"  y="20" width="80" height="36" rx="6" fill="#6d28d9"/>
+    <text x="70"  y="44" text-anchor="middle" fill="#ffffff" font-weight="bold">ls</text>
+
+    <!-- Option word -->
+    <rect x="130" y="20" width="80" height="36" rx="6" fill="#0ea5a4"/>
+    <text x="170" y="44" text-anchor="middle" fill="#ffffff" font-weight="bold">-l</text>
+
+    <!-- Argument word -->
+    <rect x="230" y="20" width="180" height="36" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="320" y="44" text-anchor="middle" fill="#1f2933" font-weight="bold">/home/pi</text>
+
+    <!-- Labels -->
+    <text x="70"  y="80" text-anchor="middle" fill="#6d28d9" font-size="13">command</text>
+    <text x="170" y="80" text-anchor="middle" fill="#0ea5a4" font-size="13">option / flag</text>
+    <text x="320" y="80" text-anchor="middle" fill="#1f2933" font-size="13">argument</text>
+
+    <!-- Arrows -->
+    <line x1="70"  y1="56" x2="70"  y2="68" stroke="#6d28d9" stroke-width="1.5"/>
+    <line x1="170" y1="56" x2="170" y2="68" stroke="#0ea5a4" stroke-width="1.5"/>
+    <line x1="320" y1="56" x2="320" y2="68" stroke="#1f2933" stroke-width="1.5"/>
+
+    <text x="480" y="44" fill="#1f2933" font-size="13">"list /home/pi</text>
+    <text x="480" y="62" fill="#1f2933" font-size="13">in long format"</text>
+  </svg>
+  <figcaption>Every Linux command follows the same three-part pattern: the command name, optional flags, and the thing to act on.</figcaption>
+</figure>
+
+<div class="tip"><strong>Tip:</strong> Linux is <strong>case-sensitive</strong>. <code>ls</code> and <code>LS</code> are two different things. File names work the same way: <code>Notes.txt</code> and <code>notes.txt</code> are different files. Always type commands in lower case unless told otherwise.</div>
+
+<h2 id="your-first-commands">Your First Commands</h2>
+
+<h3>pwd — Where Am I?</h3>
+
+<p><code>pwd</code> stands for <strong>Print Working Directory</strong>. It answers the question "which folder am I currently in?"</p>
+
+<pre class="code"><code>pwd</code></pre>
+<div class="explain">
+<strong>pwd</strong> — prints the full path of the folder you are currently in. When you first open the terminal this will be your home folder, so the output will be something like <code>/home/pi</code>.
+</div>
+
+<h3>ls — List What is in a Folder</h3>
+
+<p><code>ls</code> stands for <strong>list</strong>. It shows you the contents of a folder, just like opening a folder in the file manager but in text form.</p>
+
+<pre class="code"><code>ls
+ls -l
+ls -a
+ls -lah</code></pre>
+<div class="explain">
+<strong>ls</strong> — lists all visible files and folders in your current folder. Folders are usually shown in a different colour (blue by default).<br>
+<strong>ls -l</strong> — long format. Shows one item per line with extra detail: permissions, owner, file size, and the date it was last changed.<br>
+<strong>ls -a</strong> — shows <em>all</em> files, including hidden ones. Hidden files have names that start with a dot (e.g. <code>.bashrc</code>). They are hidden by default to keep the home folder tidy.<br>
+<strong>ls -lah</strong> — combines three flags at once: long format (<code>-l</code>), all files (<code>-a</code>), and human-readable file sizes (<code>-h</code>, so you see "4.0K" instead of "4096"). You can combine most single-letter flags like this.
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Permissions</strong> are rules that control who is allowed to read, change, or run a file. You will see a string like <code>-rwxr-xr-x</code> at the start of each line in <code>ls -l</code> output. For now, just know they exist — Chapter 8 covers them fully.</div>
+
+<h3>cd — Change Directory (Move Between Folders)</h3>
+
+<p><code>cd</code> is how you "walk" through the filesystem tree. Think of it as double-clicking a folder, but in text form.</p>
+
+<pre class="code"><code>cd Documents
+cd /home/pi/Downloads
+cd ~
+cd ..
+cd -</code></pre>
+<div class="explain">
+<strong>cd Documents</strong> — move into the <code>Documents</code> folder that is inside your current folder. This is a <em>relative</em> path (relative to where you already are).<br>
+<strong>cd /home/pi/Downloads</strong> — move to <code>Downloads</code> using an <em>absolute</em> path (starting from <code>/</code>, the very top of the tree). Absolute paths always work regardless of where you currently are.<br>
+<strong>cd ~</strong> — go straight back to your home folder, no matter where you are. The tilde (<code>~</code>) always means "my home folder". Typing <code>cd</code> with no argument does the same thing.<br>
+<strong>cd ..</strong> — go up one level to the parent folder. Two dots (<code>..</code>) always means "the folder above this one". Type it twice (<code>cd ../..</code>) to go up two levels.<br>
+<strong>cd -</strong> — go back to wherever you just were. A hyphen on its own means "the previous folder". Very handy when you are jumping between two distant locations.
+</div>
+
+<div class="tip"><strong>Tip:</strong> After every <code>cd</code>, type <code>pwd</code> to confirm you are where you expected to be, until the habit becomes second nature.</div>
+
+<h3>clear — Tidy the Screen</h3>
+
+<pre class="code"><code>clear</code></pre>
+<div class="explain">
+<strong>clear</strong> — scrolls all the previous output off the screen so you have a clean slate. Nothing is deleted; you can still scroll up to see the old output. The keyboard shortcut <strong>Ctrl + L</strong> does exactly the same thing.
+</div>
+
+<h3>mkdir — Make a New Folder</h3>
+
+<pre class="code"><code>mkdir projects
+mkdir -p projects/python/hello</code></pre>
+<div class="explain">
+<strong>mkdir projects</strong> — creates a new folder called <code>projects</code> inside your current folder. The name can be anything you like (avoid spaces — use underscores or hyphens instead, e.g. <code>my-projects</code>).<br>
+<strong>mkdir -p projects/python/hello</strong> — the <code>-p</code> flag means "create parent folders too, if they do not already exist". Without <code>-p</code>, this would fail if <code>projects</code> or <code>projects/python</code> did not already exist. With <code>-p</code>, all three folders are created in one go.
+</div>
+
+<h3>touch — Create an Empty File</h3>
+
+<pre class="code"><code>touch hello.txt</code></pre>
+<div class="explain">
+<strong>touch hello.txt</strong> — creates a new, completely empty file called <code>hello.txt</code> in the current folder. If the file already exists, <code>touch</code> simply updates its "last modified" timestamp without changing its contents. It is the quickest way to create a blank file ready to be edited.
+</div>
+
+<h3>echo — Print Text (and Put it in a File)</h3>
+
+<pre class="code"><code>echo Hello, Raspberry Pi!
+echo Hello, world! &gt; hello.txt
+echo Another line &gt;&gt; hello.txt</code></pre>
+<div class="explain">
+<strong>echo Hello, Raspberry Pi!</strong> — prints the text <code>Hello, Raspberry Pi!</code> to the screen. Useful for checking values and for simple messages in scripts.<br>
+<strong>echo Hello, world! &gt; hello.txt</strong> — the <code>&gt;</code> symbol is called a <em>redirect</em>. It sends the output into a file instead of printing it to the screen. This creates (or <em>overwrites</em>) <code>hello.txt</code> with the text <code>Hello, world!</code>.<br>
+<strong>echo Another line &gt;&gt; hello.txt</strong> — a double <code>&gt;&gt;</code> means "append": add this text to the end of the file without destroying what is already there.
+</div>
+
+<div class="warn"><strong>Careful:</strong> A single <code>&gt;</code> will <strong>erase</strong> the existing contents of a file and replace them. Use <code>&gt;&gt;</code> if you want to add to the file instead. There is no undo.</div>
+
+<h3>cat — Read a File</h3>
+
+<pre class="code"><code>cat hello.txt</code></pre>
+<div class="explain">
+<strong>cat hello.txt</strong> — prints the entire contents of <code>hello.txt</code> straight to the screen. The name comes from "concatenate" (join together) — you can pass multiple filenames and it will print them one after another. It is perfect for short files but impractical for long ones (see <code>less</code> below).
+</div>
+
+<h3>less — Read a Long File One Page at a Time</h3>
+
+<pre class="code"><code>less /etc/os-release</code></pre>
+<div class="explain">
+<strong>less /etc/os-release</strong> — opens the file <code>/etc/os-release</code> (which contains information about your OS version) in a scrollable viewer. Navigate with: <strong>Space bar</strong> to scroll down one page, <strong>B</strong> to go back up, the <strong>arrow keys</strong> to move line by line, and <strong>Q</strong> to quit and return to the prompt.
+</div>
+
+<div class="tip"><strong>Tip:</strong> Inside <code>less</code>, you can also search: press <strong>/</strong>, type the word you are looking for, and press Enter. Press <strong>N</strong> to jump to the next match.</div>
+
+<h3>cp — Copy a File or Folder</h3>
+
+<pre class="code"><code>cp hello.txt hello-backup.txt
+cp hello.txt Documents/
+cp -r projects/ projects-backup/</code></pre>
+<div class="explain">
+<strong>cp hello.txt hello-backup.txt</strong> — makes a copy of <code>hello.txt</code> called <code>hello-backup.txt</code> in the same folder. The original is untouched.<br>
+<strong>cp hello.txt Documents/</strong> — copies <code>hello.txt</code> into the <code>Documents</code> folder. The destination ends in <code>/</code> to make it clear it is a folder.<br>
+<strong>cp -r projects/ projects-backup/</strong> — the <code>-r</code> flag stands for <em>recursive</em>: copy the folder <em>and everything inside it</em>, including sub-folders. Without <code>-r</code>, <code>cp</code> refuses to copy a folder.
+</div>
+
+<h3>mv — Move or Rename a File or Folder</h3>
+
+<pre class="code"><code>mv hello.txt greetings.txt
+mv greetings.txt Documents/</code></pre>
+<div class="explain">
+<strong>mv hello.txt greetings.txt</strong> — renames <code>hello.txt</code> to <code>greetings.txt</code>. There is no separate "rename" command in Linux — moving a file to a new name in the same folder is the same thing.<br>
+<strong>mv greetings.txt Documents/</strong> — moves <code>greetings.txt</code> into the <code>Documents</code> folder. Unlike <code>cp</code>, the original is gone from its current location.
+</div>
+
+<h3>rm — Delete a File or Folder</h3>
+
+<div class="warn"><strong>Careful:</strong> The <code>rm</code> command <strong>permanently deletes</strong> files. There is no Recycle Bin, no undo, and no "are you sure?" prompt by default. Once you run <code>rm</code>, the file is gone. Always double-check your command before pressing Enter. When in doubt, move the file somewhere else with <code>mv</code> rather than deleting it outright.</div>
+
+<pre class="code"><code>rm hello-backup.txt
+rm -r old-projects/</code></pre>
+<div class="explain">
+<strong>rm hello-backup.txt</strong> — permanently deletes the file <code>hello-backup.txt</code>. No second chance.<br>
+<strong>rm -r old-projects/</strong> — deletes the folder <code>old-projects</code> and <em>everything inside it</em> recursively. This is the most powerful (and dangerous) form of the command. Triple-check the folder name before pressing Enter.
+</div>
+
+<div class="tip"><strong>Tip:</strong> Add the <code>-i</code> flag to make <code>rm</code> ask "are you sure?" before each deletion: <code>rm -i hello-backup.txt</code>. Type <code>y</code> and Enter to confirm, or <code>n</code> and Enter to skip. Recommended while you are still learning.</div>
+
+<h2 id="editing-files-in-the-terminal-with-nano">Editing Files in the Terminal with nano</h2>
+
+<p>Sometimes you need to create or edit a text file without leaving the terminal — for example when following a guide that says "edit this configuration file". The easiest text editor built into Raspberry Pi OS is called <strong>nano</strong>. Unlike some other terminal editors, nano tells you what every key does at the bottom of the screen, so you never feel lost.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>nano</strong> is a terminal-based text editor. It opens a file inside the terminal window itself, lets you type and edit like a basic notepad, and saves the file when you tell it to — all without using a mouse.</div>
+
+<h3>Opening and Editing a File with nano</h3>
+
+<pre class="code"><code>nano notes.txt</code></pre>
+<div class="explain">
+<strong>nano notes.txt</strong> — opens (or creates, if it does not exist) a file called <code>notes.txt</code> in the nano editor. The terminal screen changes: the file contents appear in the middle, your cursor is at the top, and two rows of keyboard shortcuts appear at the bottom. The caret symbol (<code>^</code>) in those shortcuts means <strong>Ctrl</strong> — so <code>^X</code> means Ctrl + X.
+</div>
+
+<p>Once nano is open, the essential key combinations are:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Arrow keys</strong></td><td>Move the cursor around</td></tr>
+    <tr><td><strong>Ctrl + O</strong> then Enter</td><td>Save the file ("Write Out")</td></tr>
+    <tr><td><strong>Ctrl + X</strong></td><td>Exit nano (it will ask you to save if you made changes)</td></tr>
+    <tr><td><strong>Ctrl + K</strong></td><td>Cut the current line</td></tr>
+    <tr><td><strong>Ctrl + U</strong></td><td>Paste the cut line</td></tr>
+    <tr><td><strong>Ctrl + W</strong></td><td>Search for text (type your search word, then press Enter)</td></tr>
+    <tr><td><strong>Ctrl + G</strong></td><td>Open the full help page inside nano</td></tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> The simplest way to save and exit is: press <strong>Ctrl + X</strong>, then when nano asks "Save modified buffer?", press <strong>Y</strong>, then press <strong>Enter</strong> to confirm the filename. Three key presses and you are done.</div>
+
+<h3>A Quick nano Practice</h3>
+
+<ol class="steps">
+  <li>Type <code>nano mynote.txt</code> and press Enter. Nano opens with a blank file.</li>
+  <li>Type a few lines of text — anything you like.</li>
+  <li>Press <strong>Ctrl + O</strong> to save. Nano shows the filename at the bottom — press <strong>Enter</strong> to confirm.</li>
+  <li>Press <strong>Ctrl + X</strong> to exit. You are back at the normal prompt.</li>
+  <li>Type <code>cat mynote.txt</code> to verify the file was saved correctly.</li>
+</ol>
+
+<h2 id="sudo-running-commands-as-administrator">sudo — Running Commands as Administrator</h2>
+
+<p>Some tasks on your Pi — installing software, changing system settings, editing configuration files outside your home folder — require <strong>administrator privileges</strong>. On Raspberry Pi OS, the way to do this is to put the word <code>sudo</code> in front of your command.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>sudo</strong> stands for "superuser do". It temporarily grants your command the power of the <em>root</em> (system administrator) account. Without <code>sudo</code>, the system refuses to touch files that belong to it. With <code>sudo</code>, you become, for just that one command, the most powerful user on the machine.</div>
+
+<div class="warn"><strong>Careful:</strong> <code>sudo</code> bypasses all normal safety checks. A <code>sudo</code> command can delete system files, change passwords, or break the operating system if used incorrectly. Only use <code>sudo</code> when a guide or command specifically requires it, and always double-check what you are typing before you press Enter.</div>
+
+<h3>How sudo Works</h3>
+
+<pre class="code"><code>sudo apt update</code></pre>
+<div class="explain">
+<strong>sudo</strong> — run the following command with administrator (root) privileges.<br>
+<strong>apt update</strong> — refresh the Pi's list of available software packages from the internet. This command is explained fully in Chapter 7, but it serves as a perfect example: it needs to write to system folders, so it requires <code>sudo</code>.<br>
+The first time you use <code>sudo</code> in a session, the terminal will ask for <strong>your own password</strong> (not a separate admin password). Type it and press Enter — the characters will not appear on screen as you type, which is normal. Your password is remembered for a few minutes, so you will not be asked again immediately.
+</div>
+
+<div class="note"><strong>Note:</strong> On Raspberry Pi OS, the default user (the account you set up on first boot) is automatically granted <code>sudo</code> access. You do not need to do anything special to enable it.</div>
+
+<h3>Editing a System File with sudo nano</h3>
+
+<p>A very common pattern in Pi guides is using <code>sudo</code> together with <code>nano</code> to edit a configuration file that belongs to the system:</p>
+
+<pre class="code"><code>sudo nano /etc/hostname</code></pre>
+<div class="explain">
+<strong>sudo</strong> — open the following file with administrator rights, so nano is allowed to save changes to it.<br>
+<strong>nano /etc/hostname</strong> — opens the file <code>/etc/hostname</code>, which contains a single line: your Pi's network name. Without <code>sudo</code>, nano would open the file but refuse to save it, because ordinary users are not allowed to change system files. With <code>sudo</code>, you can edit and save it normally. Use the same Ctrl + O / Ctrl + X steps as before.
+</div>
+
+<div class="tip"><strong>Tip:</strong> If you ever see a message like <code>Permission denied</code> when running a command, the fix is usually to put <code>sudo</code> in front of it. But think first: does it make sense for this command to need administrator access? If you are just editing a file in your home folder, <code>Permission denied</code> usually means you typed the wrong path instead.</div>
+
+<h2 id="pipes-and-grep-connecting-commands-together">Pipes and grep — Connecting Commands Together</h2>
+
+<p>One of the most powerful features of the Linux terminal is the ability to chain commands together so that the output of one command flows directly into the next. The symbol that joins them is called the <strong>pipe</strong>: <code>|</code> (the vertical bar on your keyboard, usually above the backslash key).</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>pipe</strong> is a connection between two commands. Whatever the first command would normally print to the screen is instead handed directly to the second command as its input. You can chain as many commands as you like with pipes.</div>
+
+<h3>grep — Search for Text</h3>
+
+<p><code>grep</code> searches for a word or pattern in a file (or in output piped to it) and prints only the matching lines. It is one of the most useful commands in the terminal.</p>
+
+<pre class="code"><code>grep "raspberry" /etc/os-release
+grep -i "raspberry" /etc/os-release</code></pre>
+<div class="explain">
+<strong>grep "raspberry" /etc/os-release</strong> — search the file <code>/etc/os-release</code> for lines that contain the word "raspberry" (case-sensitive) and print only those lines.<br>
+<strong>grep -i "raspberry" /etc/os-release</strong> — the <code>-i</code> flag makes the search case-insensitive, so it matches "raspberry", "Raspberry", "RASPBERRY", etc. Quote your search word if it contains spaces.
+</div>
+
+<h3>Using Pipes to Filter Output</h3>
+
+<p>Now combine <code>ls</code> with <code>grep</code> using a pipe:</p>
+
+<pre class="code"><code>ls /usr/bin | grep python</code></pre>
+<div class="explain">
+<strong>ls /usr/bin</strong> — lists everything in the <code>/usr/bin</code> folder, which contains hundreds of installed programs. On its own, the output would scroll off the screen.<br>
+<strong>|</strong> — the pipe: sends that long list to the next command instead of printing it.<br>
+<strong>grep python</strong> — filters the list, printing only the lines that contain the word "python". This lets you instantly see which Python-related programs are installed, without scrolling through hundreds of lines.
+</div>
+
+<pre class="code"><code>history | grep sudo</code></pre>
+<div class="explain">
+<strong>history</strong> — produces your full command history as a list of lines.<br>
+<strong>|</strong> — pipes that list to grep.<br>
+<strong>grep sudo</strong> — shows only the lines from your history that contained the word "sudo". Useful for finding a complex command you typed earlier.
+</div>
+
+<h2 id="getting-help-at-any-time">Getting Help at Any Time</h2>
+
+<h3>--help — Quick Reference</h3>
+
+<p>Almost every command accepts a <code>--help</code> flag that prints a short summary of what it does and which options are available.</p>
+
+<pre class="code"><code>ls --help</code></pre>
+<div class="explain">
+<strong>ls --help</strong> — prints a concise description of the <code>ls</code> command and all its flags, right in the terminal. Scroll up to read it all. Replace <code>ls</code> with any other command name to get help for that command instead.
+</div>
+
+<h3>man — The Full Manual</h3>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>man page</strong> (short for <em>manual page</em>) is the built-in documentation for a command. Every standard Linux command has one. They are detailed and sometimes quite technical, but they are always accurate.</div>
+
+<pre class="code"><code>man ls</code></pre>
+<div class="explain">
+<strong>man ls</strong> — opens the full manual page for <code>ls</code>. Navigate it the same way as <code>less</code>: Space to scroll down, B to go back, / to search, Q to quit. Replace <code>ls</code> with any command name to read its manual.
+</div>
+
+<div class="note"><strong>Note:</strong> Man pages can look intimidating because they are written for experienced users. Scroll past the dense "SYNOPSIS" section at the top and look for the "DESCRIPTION" and "EXAMPLES" sections — those are usually much more readable.</div>
+
+<h2 id="working-smarter-shortcuts-that-save-typing">Working Smarter: Shortcuts That Save Typing</h2>
+
+<p>The terminal has several built-in features that make typing much faster. Use these from your very first session — they become automatic very quickly.</p>
+
+<h3>Tab Auto-completion</h3>
+
+<p>This is perhaps the single most useful feature in the terminal. When you start typing a command or a filename and press the <strong>Tab</strong> key, the shell tries to complete it for you automatically.</p>
+
+<pre class="code"><code>cd Doc</code></pre>
+<div class="explain">
+Type <code>cd Doc</code> and then press <strong>Tab</strong> (do not press Enter yet). If there is only one folder starting with "Doc", the shell will complete it to <code>cd Documents</code> instantly. If there are several matches (say <code>Documents</code> and <code>Downloads</code>), press Tab a <em>second</em> time to see a list of all options. Then type enough extra letters to make it unique and press Tab once more.
+</div>
+
+<div class="tip"><strong>Tip:</strong> Tab-completion works for command names too, not just file and folder names. Type <code>mk</code> and press Tab twice to see all commands that start with "mk".</div>
+
+<h3>The Up Arrow — Command History</h3>
+
+<p>The shell remembers every command you have typed in this session (and across sessions). Press the <strong>Up arrow</strong> key to scroll back through previous commands. Press <strong>Down arrow</strong> to go forward again. Press <strong>Enter</strong> to run the selected command, or edit it first if you want to change something.</p>
+
+<h3>history — See Your Full Command History</h3>
+
+<pre class="code"><code>history
+history 20</code></pre>
+<div class="explain">
+<strong>history</strong> — prints a numbered list of all the commands you have typed, most recent at the bottom. Each line has a number on the left.<br>
+<strong>history 20</strong> — shows only the last 20 commands. Replace 20 with any number you like.
+</div>
+
+<div class="tip"><strong>Tip:</strong> You can re-run any command from the history list by typing <code>!</code> followed by its number. For example, if command number 42 was <code>ls -lah Documents</code>, typing <code>!42</code> and pressing Enter runs it again instantly. Or type <code>!!</code> to repeat the very last command.</div>
+
+<h3>Ctrl + C — Stop a Running Command</h3>
+
+<p>Sometimes a command gets stuck, takes too long, or you just change your mind. <strong>Ctrl + C</strong> sends a "stop" signal to whatever is currently running in the terminal and returns you to the prompt.</p>
+
+<pre class="code"><code>ping google.com</code></pre>
+<div class="explain">
+<strong>ping google.com</strong> — checks whether your Pi can reach google.com over the internet, printing one line per second indefinitely. To stop it, press <strong>Ctrl + C</strong>. You will see a summary line and then your prompt returns. Ctrl + C is safe to use on any command that has "gone quiet" or seems stuck.
+</div>
+
+<div class="note"><strong>Note:</strong> Ctrl + C in the terminal is completely different from Ctrl + C in Windows (which copies selected text). In the terminal, <strong>copying</strong> selected text is usually done with <strong>Ctrl + Shift + C</strong>, and <strong>pasting</strong> is <strong>Ctrl + Shift + V</strong>.</div>
+
+<h2 id="putting-it-all-together-a-practice-session">Putting it All Together: A Practice Session</h2>
+
+<p>The best way to learn these commands is to use them. Open a terminal and follow these steps — you cannot break anything here:</p>
+
+<ol class="steps">
+  <li>Open the terminal. Check where you are: type <code>pwd</code> and press Enter. You should see <code>/home/pi</code> (or your username).</li>
+  <li>List what is already in your home folder: type <code>ls</code> and press Enter. Then try <code>ls -lah</code> to see hidden files and file sizes.</li>
+  <li>Create a practice folder: type <code>mkdir terminal-practice</code> and press Enter.</li>
+  <li>Move into it: type <code>cd ter</code> then press <strong>Tab</strong> to auto-complete, then Enter.</li>
+  <li>Confirm you are inside it: type <code>pwd</code>. You should see <code>/home/pi/terminal-practice</code>.</li>
+  <li>Create a file with echo: type <code>echo My first terminal file &gt; notes.txt</code> and press Enter.</li>
+  <li>Read it back: type <code>cat notes.txt</code>. You should see <code>My first terminal file</code>.</li>
+  <li>Add a second line: type <code>echo A second line &gt;&gt; notes.txt</code> then <code>cat notes.txt</code> again.</li>
+  <li>Open the file in nano: type <code>nano notes.txt</code>. Add a third line, then press <strong>Ctrl + O</strong>, Enter to save, then <strong>Ctrl + X</strong> to exit.</li>
+  <li>Search inside the file: type <code>grep "line" notes.txt</code> to see only the lines containing the word "line".</li>
+  <li>Make a copy: type <code>cp notes.txt notes-backup.txt</code>. Then <code>ls</code> to see both files.</li>
+  <li>Rename the backup: type <code>mv notes-backup.txt backup.txt</code>. Then <code>ls</code> again.</li>
+  <li>Delete the backup: type <code>rm backup.txt</code>. Then <code>ls</code> to confirm it is gone.</li>
+  <li>Go back to your home folder: type <code>cd ~</code>.</li>
+  <li>Clear the screen: press <strong>Ctrl + L</strong>.</li>
+</ol>
+
+<p>If you made it through all of those without an error message, you already know more about the Linux command line than many people who use computers every day. Well done.</p>
+
+<h2 id="quick-reference-commands-at-a-glance">Quick Reference: Commands at a Glance</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+      <th>Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>pwd</code></td><td>Print current folder path</td><td><code>pwd</code></td></tr>
+    <tr><td><code>ls</code></td><td>List files in a folder</td><td><code>ls -lah</code></td></tr>
+    <tr><td><code>cd</code></td><td>Change current folder</td><td><code>cd Documents</code></td></tr>
+    <tr><td><code>clear</code></td><td>Clear the screen</td><td><code>clear</code> or Ctrl + L</td></tr>
+    <tr><td><code>mkdir</code></td><td>Create a new folder</td><td><code>mkdir projects</code></td></tr>
+    <tr><td><code>touch</code></td><td>Create an empty file</td><td><code>touch notes.txt</code></td></tr>
+    <tr><td><code>echo</code></td><td>Print text or write to a file</td><td><code>echo hi &gt; file.txt</code></td></tr>
+    <tr><td><code>cat</code></td><td>Print file contents</td><td><code>cat notes.txt</code></td></tr>
+    <tr><td><code>less</code></td><td>Scroll through a long file</td><td><code>less bigfile.txt</code></td></tr>
+    <tr><td><code>nano</code></td><td>Edit a file in the terminal</td><td><code>nano notes.txt</code></td></tr>
+    <tr><td><code>cp</code></td><td>Copy a file or folder</td><td><code>cp a.txt b.txt</code></td></tr>
+    <tr><td><code>mv</code></td><td>Move or rename</td><td><code>mv old.txt new.txt</code></td></tr>
+    <tr><td><code>rm</code></td><td>Delete (no undo!)</td><td><code>rm old.txt</code></td></tr>
+    <tr><td><code>sudo</code></td><td>Run as administrator</td><td><code>sudo apt update</code></td></tr>
+    <tr><td><code>grep</code></td><td>Search for text in output or a file</td><td><code>grep "word" file.txt</code></td></tr>
+    <tr><td><code>|</code></td><td>Pipe output into another command</td><td><code>ls | grep python</code></td></tr>
+    <tr><td><code>history</code></td><td>Show command history</td><td><code>history 20</code></td></tr>
+    <tr><td><code>man</code></td><td>Open full manual</td><td><code>man ls</code></td></tr>
+    <tr><td><code>--help</code></td><td>Quick command summary</td><td><code>ls --help</code></td></tr>
+    <tr><td>Tab</td><td>Auto-complete name</td><td>Type <code>cd Doc</code> + Tab</td></tr>
+    <tr><td>↑ / ↓</td><td>Scroll command history</td><td>(press arrow key)</td></tr>
+    <tr><td>Ctrl + C</td><td>Stop running command</td><td>(press together)</td></tr>
+  </tbody>
+</table>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Terminal</strong> — a window in which you type commands and read their text output.</li>
+    <li><strong>Shell</strong> — the program that runs inside the terminal, reads your commands, and executes them. Raspberry Pi OS uses Bash.</li>
+    <li><strong>Bash</strong> — the most common Linux shell; the one you are using on your Pi.</li>
+    <li><strong>Prompt</strong> — the line of text the shell prints before your cursor, showing your username, machine name, and current folder.</li>
+    <li><strong>Root (<code>/</code>)</strong> — the very top of the Linux filesystem tree. Every path starts here.</li>
+    <li><strong>Home folder (<code>~</code>)</strong> — your personal folder, usually <code>/home/pi</code>. The tilde is a shortcut for it.</li>
+    <li><strong>Path</strong> — the address of a file or folder. An absolute path starts with <code>/</code>; a relative path starts from wherever you currently are.</li>
+    <li><strong>Flag / option</strong> — a modifier added to a command (e.g. <code>-l</code>, <code>--help</code>) that changes its behaviour.</li>
+    <li><strong>Argument</strong> — the thing a command acts on — usually a file name or folder path.</li>
+    <li><strong>Tab completion</strong> — pressing Tab to let the shell finish typing a filename or command for you.</li>
+    <li><strong>man page</strong> — the built-in manual for a command, opened with <code>man &lt;commandname&gt;</code>.</li>
+    <li><strong>Redirect (<code>&gt;</code>, <code>&gt;&gt;</code>)</strong> — sending a command's output into a file instead of the screen. <code>&gt;</code> overwrites; <code>&gt;&gt;</code> appends.</li>
+    <li><strong>Pipe (<code>|</code>)</strong> — connects two commands so the output of the first becomes the input of the second.</li>
+    <li><strong>grep</strong> — a command that searches text for lines matching a word or pattern, printing only the matching lines.</li>
+    <li><strong>nano</strong> — a beginner-friendly text editor that runs inside the terminal. Save with Ctrl + O, exit with Ctrl + X.</li>
+    <li><strong>sudo</strong> — a prefix that runs a command with full administrator (root) privileges. Use only when required.</li>
+    <li><strong>Ctrl + C</strong> — the keyboard shortcut to stop any running command and return to the prompt.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>The terminal is a text window where you type commands directly; Bash is the shell (the "brain") that runs inside it.</li>
+    <li>The prompt tells you your username, machine name, and current folder; the <code>$</code> sign means "ready for input".</li>
+    <li>The entire Linux filesystem is one tree starting at <code>/</code>; your personal files live in <code>/home/pi</code>, written as <code>~</code>.</li>
+    <li>Every command follows the pattern: <code>command -options arguments</code>.</li>
+    <li>The essential navigation commands are <code>pwd</code> (where am I?), <code>ls</code> (what is here?), and <code>cd</code> (take me somewhere).</li>
+    <li>You can create files with <code>touch</code> and <code>echo</code>, read them with <code>cat</code> and <code>less</code>, edit them with <code>nano</code>, copy with <code>cp</code>, move/rename with <code>mv</code>, and delete with <code>rm</code> — but remember <code>rm</code> has no undo.</li>
+    <li>Use <code>sudo</code> in front of a command when you need administrator privileges; your own password will be requested and remembered briefly.</li>
+    <li>The pipe character <code>|</code> connects commands together; <code>grep</code> filters output to show only matching lines — together they are incredibly powerful.</li>
+    <li>Tab auto-completion and the Up arrow key save enormous amounts of typing; use them from day one.</li>
+    <li>Get help for any command with <code>--help</code> for a quick summary or <code>man &lt;command&gt;</code> for the full manual.</li>
+    <li>Press Ctrl + C to stop any command that is running or seems stuck.</li>
+  </ul>
+</div>

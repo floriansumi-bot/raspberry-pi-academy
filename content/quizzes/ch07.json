@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch07",
+  "title": "Files, Folders & Permissions",
+  "questions": [
+    {
+      "q": "You save a file in nano and then exit. Which sequence of shortcuts does that correctly?",
+      "choices": [
+        "Ctrl+X to save, then Ctrl+O to exit.",
+        "Ctrl+S to save, then Ctrl+Q to exit.",
+        "Ctrl+W to save, then Ctrl+X to exit.",
+        "Ctrl+O then Enter to save, then Ctrl+X to exit."
+      ],
+      "answer": 3,
+      "explain": "In nano the workflow is: Ctrl+O (Write Out) to save, press Enter to confirm the filename, then Ctrl+X to exit. Ctrl+S is not a nano shortcut, and Ctrl+W opens the search bar."
+    },
+    {
+      "q": "You run ls -l and see the permission string -rw-r--r-- on a file. What can the file's group members do with it?",
+      "choices": [
+        "Read the file only.",
+        "Read and write the file, but not execute it.",
+        "Read, write, and execute the file.",
+        "Nothing — they have no permissions at all."
+      ],
+      "answer": 0,
+      "explain": "The 10-character string breaks down as: file type (-), owner permissions (rw-), group permissions (r--), others permissions (r--). The group section r-- means read only — no write, no execute."
+    },
+    {
+      "q": "You delete a file with the rm command in the terminal. Where does it go?",
+      "choices": [
+        "It moves to a hidden .trash folder you can restore it from.",
+        "It is compressed and stored in /var/log until the next reboot.",
+        "It is gone immediately and permanently — there is no undo.",
+        "It is moved to /tmp and wiped only when you restart the Pi."
+      ],
+      "answer": 2,
+      "explain": "The Linux terminal has no Recycle Bin. rm removes files instantly and permanently. /tmp is scratch space that is cleared on reboot, but rm does not send files there — it simply deletes them."
+    },
+    {
+      "q": "What is the difference between the cp and mv commands?",
+      "choices": [
+        "cp moves a file permanently; mv makes a temporary copy that disappears on reboot.",
+        "cp and mv do the same thing — both rename the file in place.",
+        "cp removes the original file after copying; mv keeps the original in place.",
+        "cp leaves the original file in place and creates a duplicate; mv removes the original from its current location."
+      ],
+      "answer": 3,
+      "explain": "cp (copy) leaves the source file where it is and creates a new copy. mv (move/rename) removes the file from its current location and places it at the destination — or simply renames it if the destination is the same folder."
+    },
+    {
+      "q": "What does the sudo command do when placed before another command?",
+      "choices": [
+        "It permanently switches your session to the root account for the rest of the terminal window.",
+        "It asks the root user to approve the command before it runs.",
+        "It runs just that one command with full root privileges, then your account returns to normal.",
+        "It backs up any files that will be changed before the command runs."
+      ],
+      "answer": 2,
+      "explain": "sudo (superuser do) grants root-level power for a single command only. Once that command finishes, your session is back to the normal pi account. To stay as root for multiple commands you would need sudo -i, which the chapter warns beginners to avoid."
+    }
+  ]
+}

@@ -1,0 +1,583 @@
+<p class="lead">Your Raspberry Pi 5 is a surprisingly powerful little games machine — capable of running arcade classics, 16-bit console favourites, and even early 3D games without breaking a sweat. In this chapter you will choose a retro-gaming platform, get it running, connect a controller, add your games, and start playing — all without needing any technical background.</p>
+
+<h2 id="what-is-retro-gaming-on-the-pi">What Is Retro Gaming on the Pi?</h2>
+
+<p>Before the modern era of online gaming and downloads, people played games on dedicated consoles (Nintendo, Sega, Sony) or in arcades. Those original machines are now decades old, but a technique called <em>emulation</em> lets your Pi pretend to be one of those old machines in software.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <em>emulator</em> is a program that mimics an old games console so that game files designed for that console can run on your Pi. A <em>ROM</em> is the digital copy of a game cartridge or disc — the file that the emulator loads and plays.</div>
+
+<p>Two layers of software work together to make this happen:</p>
+
+<ul>
+  <li><strong>EmulationStation</strong> — the graphical front-end (the menu you see on screen, organised by console, with artwork for each game).</li>
+  <li><strong>RetroArch / libretro</strong> — the engine underneath that actually runs the emulators. You rarely interact with it directly; it just works.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> Think of EmulationStation as the TV remote control — it lets you browse and pick games — while RetroArch is the television itself, doing the actual work of playing them.</div>
+
+<h2 id="choosing-your-platform">Choosing Your Platform</h2>
+
+<p>Three popular choices exist, each with a different philosophy:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Platform</th>
+      <th>What it is</th>
+      <th>Best for</th>
+      <th>Pi 5 support</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Batocera</strong></td>
+      <td>A complete, standalone operating system dedicated to gaming. You flash it to a separate card; it replaces Pi OS entirely on that card.</td>
+      <td>Beginners who want a plug-and-play games console experience with the least fuss.</td>
+      <td>Excellent. First-class Pi 5 image available; automatic controller detection.</td>
+    </tr>
+    <tr>
+      <td><strong>RetroPie</strong></td>
+      <td>A package that adds emulation on top of your existing Raspberry Pi OS. You keep everything you already set up.</td>
+      <td>People who want Pi OS for other things <em>and</em> gaming on the same card.</td>
+      <td>Good. Community-supported; some manual steps needed on Pi 5 with Bookworm.</td>
+    </tr>
+    <tr>
+      <td><strong>Lakka</strong></td>
+      <td>Another standalone OS, based on LibreELEC. Very lightweight. Exposes RetroArch directly.</td>
+      <td>Experienced users who want to tune every emulator setting manually.</td>
+      <td>Good, but less polished on Pi 5 than Batocera at the time of writing.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> This guide recommends <strong>Batocera</strong> for beginners. It installs quickly, detects your controller automatically, looks beautiful on a TV, and needs almost no configuration. The guide covers Batocera in full first, then RetroPie as an advanced alternative at the end. Use a second microSD card (16 GB or larger) so your main Pi OS card is completely untouched.</div>
+
+<h2 id="the-legal-picture-please-read-first">The Legal Picture — Please Read First</h2>
+
+<div class="warn"><strong>Careful:</strong> Emulators themselves are legal. However, <strong>ROM files may be protected by copyright</strong>. Downloading ROMs for games you do not own is illegal in most countries, including the UK and across the EU, regardless of how old the game is. You may legally use ROMs of games you personally own (for example, by dumping your own cartridges with a purpose-built device). There are also <strong>legitimate freeware and homebrew sources</strong> — games specifically released for free by their creators. Searching for "freeware ROMs" or "homebrew games [console name]" will find legal downloads. This guide does not name or link to piracy sites. Playing legally protects you and supports the people who made those games.</div>
+
+<h2 id="what-you-will-need">What You Will Need</h2>
+
+<ul>
+  <li>A spare microSD card — 16 GB minimum, 32 GB or larger recommended (more space means more games).</li>
+  <li>The USB card reader that came with your kit.</li>
+  <li>Your Windows 11 PC to flash the image.</li>
+  <li>A USB or Bluetooth game controller. Almost any USB gamepad works out of the box; Xbox One/Series and PlayStation 4/5 controllers are recognised automatically. A USB keyboard can be used temporarily if you have no controller yet.</li>
+  <li>Your Pi connected to a monitor or TV via the micro-HDMI cable.</li>
+  <li>An internet connection (for downloading cover art and updates later).</li>
+</ul>
+
+<figure class="fig">
+  <svg viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cards-title cards-desc">
+    <title id="cards-title">Two microSD cards diagram</title>
+    <desc id="cards-desc">Two microSD cards shown side by side — the left card labelled "Main card: Raspberry Pi OS" and the right labelled "Spare card: Batocera". An arrow between them shows they are swapped in and out of the Pi.</desc>
+    <!-- Left card -->
+    <rect x="30" y="50" width="200" height="110" rx="14" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2.5"/>
+    <rect x="30" y="50" width="200" height="30" rx="14" fill="#6d28d9"/>
+    <rect x="30" y="64" width="200" height="16" fill="#6d28d9"/>
+    <text x="130" y="72" text-anchor="middle" fill="#ffffff" font-size="13" font-family="sans-serif" font-weight="bold">Main card</text>
+    <text x="130" y="102" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">Raspberry Pi OS</text>
+    <text x="130" y="122" text-anchor="middle" fill="#1f2933" font-size="11" font-family="sans-serif">(your desktop, projects)</text>
+    <text x="130" y="148" text-anchor="middle" fill="#6d28d9" font-size="11" font-family="sans-serif" font-weight="bold">Label it!</text>
+    <!-- Arrow -->
+    <text x="310" y="112" text-anchor="middle" fill="#0ea5a4" font-size="28" font-family="sans-serif">⇄</text>
+    <text x="310" y="140" text-anchor="middle" fill="#1f2933" font-size="11" font-family="sans-serif">swap</text>
+    <!-- Right card -->
+    <rect x="390" y="50" width="200" height="110" rx="14" fill="#f3f0ff" stroke="#0ea5a4" stroke-width="2.5"/>
+    <rect x="390" y="50" width="200" height="30" rx="14" fill="#0ea5a4"/>
+    <rect x="390" y="64" width="200" height="16" fill="#0ea5a4"/>
+    <text x="490" y="72" text-anchor="middle" fill="#ffffff" font-size="13" font-family="sans-serif" font-weight="bold">Spare card</text>
+    <text x="490" y="102" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">Batocera</text>
+    <text x="490" y="122" text-anchor="middle" fill="#1f2933" font-size="11" font-family="sans-serif">(games console OS)</text>
+    <text x="490" y="148" text-anchor="middle" fill="#0ea5a4" font-size="11" font-family="sans-serif" font-weight="bold">Label it!</text>
+    <!-- Pi slot label -->
+    <rect x="230" y="90" width="160" height="30" rx="6" fill="none" stroke="#1f2933" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="310" y="170" text-anchor="middle" fill="#1f2933" font-size="11" font-family="sans-serif">Pi's microSD slot</text>
+    <line x1="310" y1="163" x2="310" y2="150" stroke="#1f2933" stroke-width="1.2" stroke-dasharray="3,2"/>
+  </svg>
+  <figcaption>Keep your two microSD cards clearly labelled. Swap them in the Pi's microSD slot to switch between Raspberry Pi OS and Batocera. The two systems never interfere with each other.</figcaption>
+</figure>
+
+<h2 id="step-1-download-batocera">Step 1 — Download Batocera</h2>
+
+<ol class="steps">
+  <li>On your Windows PC, open a web browser and search for <strong>Batocera Linux</strong>. The first result should be the official website at <code>batocera.linux</code>. Click through to that site.</li>
+  <li>Click <strong>Download</strong>, then choose <strong>Raspberry Pi 5</strong> from the list of devices.</li>
+  <li>Download the compressed image file. It will have a name like <code>batocera-bcm2712-rpi5-v40.img.gz</code>. The exact version number will be higher by the time you read this — that is fine, always download the latest.</li>
+  <li>Make a note of where the file saved (usually your <code>Downloads</code> folder).</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> The file ends in <code>.img.gz</code>, meaning it is a compressed disk image. Raspberry Pi Imager (which you used in Chapter 4) handles this format directly — you do not need to unzip it first.</div>
+
+<h2 id="step-2-flash-batocera-to-your-spare-card">Step 2 — Flash Batocera to Your Spare Card</h2>
+
+<p>This process is almost identical to what you did in Chapter 4 when you first installed Raspberry Pi OS. If you need a reminder of the steps, flip back there now.</p>
+
+<ol class="steps">
+  <li>Insert your spare microSD card into the USB card reader, then plug the reader into your Windows PC.</li>
+  <li>Open <strong>Raspberry Pi Imager</strong> (the blue raspberry icon on your desktop or in your Start menu).</li>
+  <li>Click <strong>Choose OS</strong>. Scroll to the bottom of the list and select <strong>Use custom</strong>.</li>
+  <li>Browse to your <code>Downloads</code> folder and select the Batocera <code>.img.gz</code> file.</li>
+  <li>Click <strong>Choose Storage</strong> and select your spare card. <strong>Double-check you are picking the correct one</strong> — everything on the chosen card will be erased.</li>
+  <li>Click <strong>Next</strong>. When Imager asks if you want to apply OS customisation, click <strong>No</strong> — Batocera has its own first-boot setup and does not use Imager's customisation.</li>
+  <li>Confirm the write and wait for it to finish (typically five to ten minutes depending on your card speed).</li>
+  <li>Once Imager says it is complete, eject the card safely from Windows: right-click the drive letter in File Explorer and choose <strong>Eject</strong> before removing it physically.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Make absolutely sure you select the spare card, not the card holding your main Raspberry Pi OS. Both cards may appear as drives in Imager. Label your cards with a sticky note or a piece of masking tape so you always know which is which — this takes ten seconds and could save you from accidentally wiping your work.</div>
+
+<h2 id="step-3-boot-into-batocera">Step 3 — Boot into Batocera</h2>
+
+<ol class="steps">
+  <li>Make sure the Pi is powered off. Remove the power cable.</li>
+  <li>Take out your main Raspberry Pi OS card from the Pi's microSD slot (on the underside of the board).</li>
+  <li>Insert the Batocera card into the Pi's microSD slot.</li>
+  <li>Plug in your HDMI cable and your USB game controller (or a keyboard if you have no controller yet).</li>
+  <li>Plug in the power cable. The Pi will start.</li>
+  <li>The first boot takes longer than usual — Batocera expands itself to fill the entire card. You will see text scrolling on screen, then a progress bar. This is completely normal; wait for it to finish (around two to three minutes).</li>
+  <li>After that first-boot process, the system restarts once more automatically.</li>
+  <li>You will arrive at the <strong>EmulationStation</strong> main menu — a colourful screen showing a list of game systems along the left.</li>
+</ol>
+
+<figure class="fig">
+  <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="es-title es-desc">
+    <title id="es-title">EmulationStation layout diagram</title>
+    <desc id="es-desc">Diagram showing the main areas of the EmulationStation interface: a left-hand system list, a centre game list, and a right-hand game info panel.</desc>
+    <!-- Screen border -->
+    <rect x="20" y="20" width="600" height="300" rx="12" fill="#1f2933" stroke="#6d28d9" stroke-width="3"/>
+    <!-- Top bar -->
+    <rect x="20" y="20" width="600" height="36" rx="12" fill="#6d28d9"/>
+    <rect x="20" y="44" width="600" height="12" fill="#6d28d9"/>
+    <text x="320" y="44" text-anchor="middle" fill="#ffffff" font-size="15" font-family="sans-serif" font-weight="bold">EmulationStation — Main Screen</text>
+    <!-- System list on left -->
+    <rect x="32" y="72" width="150" height="228" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="107" y="94" text-anchor="middle" fill="#6d28d9" font-size="12" font-family="sans-serif" font-weight="bold">SYSTEMS</text>
+    <rect x="44" y="100" width="126" height="26" rx="5" fill="#6d28d9"/>
+    <text x="107" y="118" text-anchor="middle" fill="#ffffff" font-size="12" font-family="sans-serif">&#9654; NES</text>
+    <rect x="44" y="132" width="126" height="26" rx="5" fill="#e5e7eb"/>
+    <text x="107" y="150" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">SNES</text>
+    <rect x="44" y="162" width="126" height="26" rx="5" fill="#e5e7eb"/>
+    <text x="107" y="180" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">Mega Drive</text>
+    <rect x="44" y="192" width="126" height="26" rx="5" fill="#e5e7eb"/>
+    <text x="107" y="210" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">Game Boy</text>
+    <rect x="44" y="222" width="126" height="26" rx="5" fill="#e5e7eb"/>
+    <text x="107" y="240" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">PlayStation</text>
+    <rect x="44" y="252" width="126" height="26" rx="5" fill="#e5e7eb"/>
+    <text x="107" y="270" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">Arcade (MAME)</text>
+    <!-- Game list in centre -->
+    <rect x="196" y="72" width="260" height="228" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="326" y="94" text-anchor="middle" fill="#6d28d9" font-size="12" font-family="sans-serif" font-weight="bold">GAME LIST</text>
+    <rect x="208" y="100" width="236" height="26" rx="5" fill="#6d28d9"/>
+    <text x="326" y="118" text-anchor="middle" fill="#ffffff" font-size="12" font-family="sans-serif">&#9654; My Homebrew Game</text>
+    <rect x="208" y="132" width="236" height="26" rx="5" fill="#e5e7eb"/>
+    <text x="326" y="150" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">Another Game</text>
+    <rect x="208" y="162" width="236" height="26" rx="5" fill="#e5e7eb"/>
+    <text x="326" y="180" text-anchor="middle" fill="#1f2933" font-size="12" font-family="sans-serif">And Another</text>
+    <!-- Info / art panel on right -->
+    <rect x="470" y="72" width="138" height="228" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="539" y="94" text-anchor="middle" fill="#6d28d9" font-size="12" font-family="sans-serif" font-weight="bold">GAME INFO</text>
+    <rect x="482" y="104" width="114" height="80" rx="4" fill="#0ea5a4" opacity="0.3"/>
+    <text x="539" y="150" text-anchor="middle" fill="#6d28d9" font-size="11" font-family="sans-serif">[Cover Art]</text>
+    <text x="539" y="202" text-anchor="middle" fill="#1f2933" font-size="11" font-family="sans-serif">Publisher:</text>
+    <text x="539" y="218" text-anchor="middle" fill="#1f2933" font-size="11" font-family="sans-serif">Year:</text>
+    <text x="539" y="234" text-anchor="middle" fill="#1f2933" font-size="11" font-family="sans-serif">Players:</text>
+    <!-- Bottom button bar -->
+    <rect x="20" y="295" width="600" height="25" rx="8" fill="#6d28d9" opacity="0.7"/>
+    <text x="60" y="311" fill="#ffffff" font-size="11" font-family="sans-serif">A = Select   B = Back   Start = Menu   Hotkey+Start = Quit game</text>
+  </svg>
+  <figcaption>The three main panels of EmulationStation: the system list on the left, the game list in the centre, and game information and cover art on the right. Common button shortcuts are shown in the bar at the bottom.</figcaption>
+</figure>
+
+<h2 id="step-4-configure-your-controller">Step 4 — Configure Your Controller</h2>
+
+<p>If you plugged in a USB controller before booting, Batocera almost certainly detected it automatically. Bluetooth controllers need to be paired first.</p>
+
+<h3>USB Controller</h3>
+
+<p>If EmulationStation shows a controller configuration screen on first boot, follow the on-screen prompts to map your buttons. The screen will ask you to press each button in turn (A, B, X, Y, triggers, and so on). Hold any button for a moment to skip a button your controller does not have. If no mapping screen appeared, your controller was recognised automatically and is already working — press a button to confirm.</p>
+
+<h3>Bluetooth Controller</h3>
+
+<ol class="steps">
+  <li>From the EmulationStation main menu, press <strong>Start</strong> (or <code>Enter</code> on a keyboard) to open the <strong>Main Menu</strong>.</li>
+  <li>Choose <strong>Controller &amp; Bluetooth Settings</strong>.</li>
+  <li>Select <strong>Pair a Bluetooth Device Automatically</strong>.</li>
+  <li>Put your controller into pairing mode:
+    <ul>
+      <li><strong>PS4 controller:</strong> hold the Share button and the PS button together until the light bar flashes rapidly.</li>
+      <li><strong>PS5 DualSense:</strong> hold the Create button and the PS button together until the light flashes.</li>
+      <li><strong>Xbox One/Series controller:</strong> hold the small Pair button on top of the controller until the Xbox logo flashes rapidly.</li>
+      <li><strong>8BitDo and other gamepads:</strong> check the manual — there is usually a dedicated pairing button or a Home + another button combination.</li>
+    </ul>
+  </li>
+  <li>Your controller should appear in the list on screen. Select it and wait for the "Paired" confirmation.</li>
+  <li>Press <strong>B</strong> (or <code>Backspace</code> on a keyboard) to go back to the main menu. Your controller is now ready.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Xbox One and Series controllers connected via USB cable require no setup at all in Batocera — they are recognised the moment you plug them in.</div>
+
+<h2 id="step-5-connect-to-your-network">Step 5 — Connect to Your Network</h2>
+
+<p>You need a network connection to copy games to Batocera over Wi-Fi (covered in the next section). You can also use an Ethernet cable plugged into the Pi's Ethernet port and skip this step entirely — wired is always more reliable.</p>
+
+<ol class="steps">
+  <li>Press <strong>Start</strong> to open the Main Menu.</li>
+  <li>Choose <strong>Network Settings</strong>.</li>
+  <li>Turn <strong>Enable Wi-Fi</strong> on.</li>
+  <li>Select <strong>Wi-Fi SSID</strong>, find your home network name in the list, and select it.</li>
+  <li>Enter your Wi-Fi password using the on-screen keyboard, then confirm.</li>
+  <li>After a few seconds, an IP address (a number like <code>192.168.1.50</code>) will appear next to the network name, confirming you are connected. Make a note of this number — you may need it later.</li>
+</ol>
+
+<div class="jargon"><strong>In plain words:</strong> An <em>IP address</em> is your Pi's unique address on your home network — like a house number on a street. Other devices on the same network use it to find your Pi.</div>
+
+<h2 id="step-6-copy-games-onto-batocera">Step 6 — Copy Games onto Batocera</h2>
+
+<p>Batocera creates a shared folder on your network automatically — this is called a <strong>Samba share</strong>. You can drag game files into it from your Windows PC exactly like copying files to a USB stick.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>Samba share</em> is a way for a Linux computer (like your Pi) to make a folder appear in Windows Explorer over your home network, so you can copy files into it as if it were just another folder on your PC.</div>
+
+<h3>Method A — Copy over the Network (Samba)</h3>
+
+<ol class="steps">
+  <li>On your Windows PC, open <strong>File Explorer</strong> (the folder icon in the taskbar).</li>
+  <li>Click in the address bar at the top, type <code>\\BATOCERA</code> and press <code>Enter</code>. Windows will connect to the Pi and show its shared folders.</li>
+  <li>Open the <strong>share</strong> folder, then open the <strong>roms</strong> folder inside it.</li>
+  <li>Inside <strong>roms</strong>, you will find a sub-folder for each system — for example <code>nes</code>, <code>snes</code>, <code>megadrive</code>, <code>psx</code> (PlayStation), <code>mame</code> (arcade), and many more.</li>
+  <li>Copy your legal ROM files into the correct console sub-folder. For example, a NES ROM (a file ending in <code>.nes</code>) goes into the <code>nes</code> folder.</li>
+  <li>Once copying is complete, go back to your Pi. Press <strong>Start</strong>, choose <strong>Game Settings</strong>, then <strong>Update Game Lists</strong>. Your games will now appear in the EmulationStation menu.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> If <code>\\BATOCERA</code> does not connect, try <code>\\batocera.local</code> instead. If that also fails, use the IP address you noted in Step 5 — for example <code>\\192.168.1.50</code>.</div>
+
+<h3>Method B — Copy by USB Drive</h3>
+
+<ol class="steps">
+  <li>Format a USB drive as <strong>FAT32</strong> or <strong>exFAT</strong> on your Windows PC: right-click the drive in File Explorer, choose <strong>Format</strong>, pick FAT32 or exFAT from the file system drop-down, and click <strong>Start</strong>.</li>
+  <li>On the USB drive, create a folder called <code>roms</code>. Inside it, create sub-folders matching the console names (for example <code>nes</code>, <code>snes</code>, <code>megadrive</code>). Copy your ROM files into the correct sub-folder.</li>
+  <li>Safely eject the USB drive from Windows, then plug it into one of the Pi's USB ports while Batocera is running.</li>
+  <li>Batocera will detect the USB drive and ask if you want to import games from it. Confirm, and your games will be copied to the microSD card.</li>
+  <li>Once the import finishes, you can unplug the USB drive. The games are now stored on your Batocera card.</li>
+</ol>
+
+<h3>Common ROM File Extensions</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Console</th>
+      <th>Folder name in Batocera</th>
+      <th>Typical file extension(s)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Nintendo NES</td><td><code>nes</code></td><td><code>.nes</code></td></tr>
+    <tr><td>Super Nintendo (SNES)</td><td><code>snes</code></td><td><code>.sfc</code> or <code>.smc</code></td></tr>
+    <tr><td>Sega Mega Drive / Genesis</td><td><code>megadrive</code></td><td><code>.md</code> or <code>.bin</code></td></tr>
+    <tr><td>Game Boy / Game Boy Colour</td><td><code>gb</code> / <code>gbc</code></td><td><code>.gb</code> / <code>.gbc</code></td></tr>
+    <tr><td>Game Boy Advance</td><td><code>gba</code></td><td><code>.gba</code></td></tr>
+    <tr><td>Sony PlayStation 1</td><td><code>psx</code></td><td><code>.bin</code> + <code>.cue</code></td></tr>
+    <tr><td>Nintendo 64</td><td><code>n64</code></td><td><code>.z64</code> or <code>.n64</code></td></tr>
+    <tr><td>Sega Saturn</td><td><code>saturn</code></td><td><code>.bin</code> + <code>.cue</code></td></tr>
+    <tr><td>Dreamcast</td><td><code>dreamcast</code></td><td><code>.gdi</code> or <code>.chd</code></td></tr>
+    <tr><td>Arcade (MAME)</td><td><code>mame</code></td><td><code>.zip</code></td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> PlayStation 1 (and Saturn) games usually come as a pair of files — a <code>.bin</code> file (the actual game data) and a <code>.cue</code> file (a short text file that describes the disc layout). You need <em>both</em> files in the same folder for the game to work. If you are missing either one, the game will not launch.</div>
+
+<h2 id="about-bios-files">About BIOS Files</h2>
+
+<p>Some older consoles require a special file called a <strong>BIOS</strong> before their emulator will work. A BIOS is a tiny program that was stored inside the original hardware and that the emulator needs to mimic the console accurately.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>BIOS file</em> is a small program that was built into the original console's chips. The emulator needs a copy of it to start up, in the same way a real console did. Without it, games for that system simply will not launch.</div>
+
+<p>Consoles that require a BIOS include:</p>
+
+<ul>
+  <li><strong>PlayStation 1</strong> — needs <code>scph1001.bin</code> (or a similar SCPH model file).</li>
+  <li><strong>Sega Saturn</strong> — needs a Saturn BIOS file.</li>
+  <li><strong>Sega CD / Mega CD</strong> — needs a Mega CD BIOS file.</li>
+  <li><strong>Game Boy Advance</strong> — the GBA BIOS improves compatibility (not always required, but recommended).</li>
+  <li><strong>Dreamcast</strong> — needs a Dreamcast BIOS set (a small folder of files).</li>
+</ul>
+
+<p>Consoles that do <em>not</em> need a BIOS include the NES, SNES, Mega Drive, Game Boy, Game Boy Colour, Nintendo 64, and most arcade games. These will work without any extra files.</p>
+
+<div class="warn"><strong>Careful:</strong> BIOS files are copyrighted by the companies that made the original consoles. Distributing or downloading them without owning the original hardware is technically illegal in most jurisdictions. You can legally dump BIOS files from hardware you own using specialist tools. This guide does not provide or link to BIOS file downloads.</div>
+
+<p>To install BIOS files in Batocera, copy them to the <code>bios</code> folder visible in the Samba share at <code>\\BATOCERA\share\bios</code>. The exact filenames and folder structure expected by each emulator are listed in Batocera's official documentation (visit the Batocera website and search for "BIOS").</p>
+
+<h2 id="step-7-playing-a-game">Step 7 — Playing a Game</h2>
+
+<ol class="steps">
+  <li>On the EmulationStation main screen, use the left and right arrows (or the left stick) to scroll through systems until you reach the one you want.</li>
+  <li>Press <strong>A</strong> (or <code>Enter</code> on a keyboard) to open the game list for that system.</li>
+  <li>Scroll up and down to highlight a game.</li>
+  <li>Press <strong>A</strong> to launch it. The emulator will load — usually in just one or two seconds.</li>
+  <li>Play as normal. Your controller buttons correspond to the original console's layout (as you mapped them in Step 4).</li>
+</ol>
+
+<h2 id="saving-and-loading-your-progress">Saving and Loading Your Progress</h2>
+
+<p>Retro consoles originally used battery-backed memory in cartridges, or removable memory cards. Emulators offer a far more convenient system called <strong>save states</strong> — an instant snapshot of the exact moment in the game, saved at any point you choose.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>save state</em> is like pressing a pause button that freezes the entire game — the screen, your position, your health, your score, everything — exactly as it is. You can come back to that frozen moment later, even if you died immediately afterwards.</div>
+
+<h3>In-Game Save vs Save State</h3>
+
+<p>Some games have their own built-in save system (you will see a "Save" option in the game's own menu). This works in emulators just as it did on real hardware. Save states are a separate, additional feature provided by the emulator — they work even in games that have no built-in save.</p>
+
+<h3>Hotkey Shortcuts</h3>
+
+<p>While a game is running, hold the <strong>Hotkey</strong> button (by default the <strong>Select</strong> button on your controller) and press another button to trigger a shortcut:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Action</th>
+      <th>Default shortcut (Hotkey = Select)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Save state (slot 1)</td><td>Hotkey + <strong>R1</strong></td></tr>
+    <tr><td>Load state (slot 1)</td><td>Hotkey + <strong>L1</strong></td></tr>
+    <tr><td>Next save-state slot</td><td>Hotkey + <strong>R2</strong></td></tr>
+    <tr><td>Previous save-state slot</td><td>Hotkey + <strong>L2</strong></td></tr>
+    <tr><td>Open RetroArch menu</td><td>Hotkey + <strong>B</strong></td></tr>
+    <tr><td>Quit game and return to EmulationStation</td><td>Hotkey + <strong>Start</strong></td></tr>
+    <tr><td>Take a screenshot</td><td>Hotkey + <strong>Y</strong></td></tr>
+    <tr><td>Fast-forward (hold)</td><td>Hotkey + <strong>X</strong></td></tr>
+    <tr><td>Rewind (if enabled)</td><td>Hotkey + <strong>Left</strong></td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> Save states are numbered — slot 1 is the default. You can maintain up to 999 separate save slots per game. Use Hotkey + R2 / L2 to cycle through slots before saving or loading, if you want to keep multiple snapshots of the same game at different points.</div>
+
+<h3>Opening the RetroArch Menu</h3>
+
+<p>If you need deeper options — changing screen filters, switching the emulator core, or viewing your save files — press <strong>Hotkey + B</strong> while a game is running. This opens the RetroArch overlay menu, a darker screen with many settings. To close it and return to your game without changing anything, press <strong>B</strong> a few times until the game is back. To quit the game entirely, choose <strong>Close Content</strong> from the RetroArch menu, or simply use <strong>Hotkey + Start</strong>.</p>
+
+<h2 id="performance-what-to-expect-on-the-pi-5">Performance — What to Expect on the Pi 5</h2>
+
+<p>The Pi 5's quad-core Arm Cortex-A76 processor running at 2.4 GHz is significantly faster than any previous Raspberry Pi. Here is a realistic guide to what runs at full speed in Batocera:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>System</th>
+      <th>Era</th>
+      <th>Pi 5 performance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Atari 2600 / 7800</td><td>Late 1970s–80s</td><td>Perfect. Near-zero CPU use.</td></tr>
+    <tr><td>NES / Game Boy / Master System</td><td>1980s</td><td>Perfect. Runs effortlessly.</td></tr>
+    <tr><td>SNES / Mega Drive / Game Boy Colour</td><td>Early 1990s</td><td>Perfect. No issues at all.</td></tr>
+    <tr><td>Game Boy Advance</td><td>Early 2000s</td><td>Excellent. Full speed on all games.</td></tr>
+    <tr><td>PlayStation 1 / Sega Saturn</td><td>Mid 1990s</td><td>Excellent. Full speed on virtually all games.</td></tr>
+    <tr><td>Nintendo 64</td><td>Late 1990s</td><td>Very good. Nearly all games at full speed.</td></tr>
+    <tr><td>Dreamcast</td><td>Late 1990s</td><td>Good. Most games playable; a few demanding titles may stutter.</td></tr>
+    <tr><td>PlayStation 2</td><td>Early 2000s</td><td>Mixed. Simpler games work well; complex 3D titles may need speed tweaks.</td></tr>
+    <tr><td>GameCube / Wii</td><td>2000s</td><td>Experimental. Some titles work; many are still too demanding.</td></tr>
+    <tr><td>PlayStation 3 / Xbox 360</td><td>2005–2013</td><td>Not feasible. Far too demanding for the Pi 5.</td></tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> If a game runs slowly, open the RetroArch menu (Hotkey + B) and try <strong>Quick Menu &rarr; Core Options</strong> — many emulators have a resolution or rendering option that can improve speed. Alternatively, try a different emulator core for that system under <strong>Quick Menu &rarr; Core</strong>.</div>
+
+<h2 id="audio-no-headphone-socket-on-the-pi-5">Audio — No Headphone Socket on the Pi 5</h2>
+
+<p>Unlike the Pi 4, the Pi 5 has <strong>no 3.5 mm headphone socket</strong>. Game audio comes through your HDMI cable to your monitor or TV's built-in speakers. If you would like to use headphones or external speakers, you have three options:</p>
+
+<ul>
+  <li><strong>HDMI audio:</strong> plug headphones into the headphone socket on your monitor or TV (if it has one).</li>
+  <li><strong>USB audio adapter:</strong> a small USB dongle with a 3.5 mm socket (costs around £5–10 / €6–12) plugged into any USB port on the Pi. Batocera detects these automatically.</li>
+  <li><strong>Bluetooth headphones or speaker:</strong> pair them via <strong>Main Menu &rarr; Controller &amp; Bluetooth Settings</strong>, just as you would pair a controller.</li>
+</ul>
+
+<h2 id="scraping-cover-art">Scraping Cover Art</h2>
+
+<p>Batocera can automatically download cover art, descriptions, and ratings for your games, turning a plain list of filenames into a beautiful visual library. This process is called <em>scraping</em>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Scraping</em> means Batocera looks up each of your game files in an online database (by filename and file size), then downloads the matching box art, description, release year, and ratings automatically.</div>
+
+<ol class="steps">
+  <li>Make sure your Pi is connected to the internet.</li>
+  <li>From the EmulationStation main menu, press <strong>Start</strong> to open the Main Menu.</li>
+  <li>Choose <strong>Scraper</strong>.</li>
+  <li>Select your source. <strong>ScreenScraper</strong> is the recommended choice — it is free, covers almost every console, and has high-quality artwork.</li>
+  <li>Optionally create a free account at the ScreenScraper website (search for "ScreenScraper" in your browser) to increase your daily download limit from 20 to several hundred images.</li>
+  <li>Press <strong>Scrape Now</strong>. Batocera will work through each game and download artwork. This may take several minutes if you have many games.</li>
+  <li>When it finishes, exit the menus. Your game lists will now show box art and descriptions rather than plain filenames.</li>
+</ol>
+
+<h2 id="troubleshooting-common-problems">Troubleshooting Common Problems</h2>
+
+<p>Here are the most common issues beginners encounter, and how to fix them.</p>
+
+<h3>Games Not Showing Up in the Menu</h3>
+
+<ul>
+  <li><strong>Wrong folder:</strong> check the ROM file is in the exact sub-folder for its system (for example <code>nes</code> for NES, not a folder you created yourself with a different name).</li>
+  <li><strong>Wrong file extension:</strong> some emulators are strict about file extensions. Check the table in the "Common ROM File Extensions" section above.</li>
+  <li><strong>Need to refresh:</strong> press <strong>Start &rarr; Game Settings &rarr; Update Game Lists</strong> after copying any new files.</li>
+  <li><strong>Compressed wrong:</strong> some ROMs are double-compressed (a <code>.zip</code> inside another <code>.zip</code>). Batocera can open a single <code>.zip</code>, but not one nested inside another. Unzip the outer layer first.</li>
+</ul>
+
+<h3>Controller Not Working In-Game</h3>
+
+<ul>
+  <li>If a controller that works in EmulationStation does not work once a game loads, the mapping may not have transferred to that specific emulator core. Open the RetroArch menu (<strong>Hotkey + B</strong>), go to <strong>Settings &rarr; Input</strong>, and remap your buttons for that core.</li>
+  <li>Bluetooth controllers can occasionally disconnect. If this happens, re-pair them (Step 4) or switch to a USB cable.</li>
+</ul>
+
+<h3>Game Runs Too Slowly</h3>
+
+<ul>
+  <li>Open the RetroArch menu (Hotkey + B) and check <strong>Core Options</strong> — lowering the internal resolution for 3D systems (PS2, N64) often helps significantly.</li>
+  <li>Make sure no other applications are running on the Pi at the same time.</li>
+  <li>For Dreamcast and PS2, try switching to a different emulator core (Quick Menu &rarr; Core) — some cores are better optimised for the Pi 5 than others.</li>
+</ul>
+
+<h3>No Sound</h3>
+
+<ul>
+  <li>Check the volume on your monitor or TV.</li>
+  <li>In Batocera, press <strong>Start &rarr; Sound Settings</strong> and confirm the correct audio output device is selected (HDMI, USB, or Bluetooth as appropriate).</li>
+  <li>If you are using a USB audio adapter, unplug it and re-insert it, then update the sound output setting.</li>
+</ul>
+
+<h3>Black Screen After Selecting a Game</h3>
+
+<ul>
+  <li>The game may need a BIOS file that is missing. Check the "About BIOS Files" section above.</li>
+  <li>The ROM file may be corrupted. Try a different copy.</li>
+  <li>Try launching the RetroArch menu straight after the black screen appears (press Hotkey + B) and check the log under <strong>Information &rarr; Log Viewer</strong> for a specific error message.</li>
+</ul>
+
+<h2 id="useful-tips-for-the-best-experience">Useful Tips for the Best Experience</h2>
+
+<ul>
+  <li><strong>Use a wired controller for zero lag.</strong> Bluetooth is convenient, but a USB connection gives the lowest possible input delay — important for fast action games where timing matters.</li>
+  <li><strong>Try CRT filters.</strong> In the RetroArch menu (Hotkey + B), go to <strong>Shaders</strong>. A CRT shader adds a scanline effect that makes pixel-art games look exactly as they did on an old television. Many people find this more atmospheric than the sharp, chunky pixel look on a modern screen.</li>
+  <li><strong>Enable rewind.</strong> RetroArch can let you hold a button to rewind a game by a few seconds — very useful if you just died. Enable it in the RetroArch menu under <strong>Settings &rarr; Frame Throttle &rarr; Rewind</strong>. Note that it uses extra memory and is not available for every emulator.</li>
+  <li><strong>Two players.</strong> Simply plug a second USB controller into another USB port before launching the game. EmulationStation assigns it as Player 2 automatically.</li>
+  <li><strong>Storage space tip.</strong> A 32 GB card comfortably holds a large library of 8-bit and 16-bit games (which are tiny — a few kilobytes each). PlayStation 1 and N64 games are bigger (a few hundred megabytes each), and PlayStation 2 games can be several gigabytes. If you want a large PS2 or Dreamcast library, consider a 64 GB or 128 GB card.</li>
+  <li><strong>Switch back to Pi OS.</strong> When you want to use your main Pi OS card again, power off the Pi, swap the card, and power back on. The two systems are completely independent — neither one can affect the other.</li>
+</ul>
+
+<h2 id="using-retropie-instead-advanced-option">Using RetroPie Instead (Advanced Option)</h2>
+
+<p>If you prefer to keep everything on one card — adding gaming on top of your existing Raspberry Pi OS rather than using a separate card — RetroPie is the alternative. The steps below assume you have Raspberry Pi OS Bookworm already running on your Pi. A desktop (GUI) installation is fine, though Raspberry Pi OS <em>Lite</em> (no desktop) leaves more resources free for gaming.</p>
+
+<div class="note"><strong>Note:</strong> This section is entirely optional. If you followed the Batocera path above, you do not need to do this. Skip ahead to the Key Terms section if Batocera is working for you.</div>
+
+<h3>Installing RetroPie on Raspberry Pi OS Bookworm</h3>
+
+<ol class="steps">
+  <li>Open a terminal on your Pi (click the black terminal icon on the taskbar, or connect via SSH as described in Chapter 9).</li>
+  <li>Update your system to make sure all existing packages are current:</li>
+</ol>
+
+<pre class="code"><code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code></pre>
+<div class="explain">
+  <p><code>sudo</code> — runs the command with administrator (superuser) privileges, which are needed to install software.</p>
+  <p><code>apt update</code> — downloads the latest list of available software packages from the internet. It does not install anything yet.</p>
+  <p><code>&amp;&amp;</code> — "only run the next command if the previous one succeeded without errors".</p>
+  <p><code>apt full-upgrade -y</code> — installs all available updates. <code>full-upgrade</code> (rather than just <code>upgrade</code>) is used here because RetroPie's dependencies sometimes require packages to be removed and replaced; <code>-y</code> automatically answers "yes" to any confirmation prompts so you do not have to type Y each time.</p>
+</div>
+
+<ol class="steps" start="3">
+  <li>Install the helper tools that RetroPie's installer needs:</li>
+</ol>
+
+<pre class="code"><code>sudo apt install -y git dialog unzip xmlstarlet</code></pre>
+<div class="explain">
+  <p><code>sudo apt install -y</code> — installs the listed packages, automatically confirming any prompts.</p>
+  <p><code>git</code> — a tool for downloading code from the internet (specifically from GitHub, where the RetroPie installer lives).</p>
+  <p><code>dialog</code> — provides the text-based, mouse-free menu screens you will see during the RetroPie installation.</p>
+  <p><code>unzip</code> — unpacks <code>.zip</code> compressed files, which several emulators use during their installation.</p>
+  <p><code>xmlstarlet</code> — reads and edits XML configuration files that some of RetroPie's components rely on.</p>
+</div>
+
+<ol class="steps" start="4">
+  <li>Download the RetroPie setup script from GitHub:</li>
+</ol>
+
+<pre class="code"><code>git clone --depth=1 https://github.com/RetroPie/RetroPie-Setup.git</code></pre>
+<div class="explain">
+  <p><code>git clone</code> — downloads a complete copy of the RetroPie setup files from the internet and puts them in a new folder called <code>RetroPie-Setup</code> in your current directory.</p>
+  <p><code>--depth=1</code> — tells git to download only the most recent version of the files, not the full change history. This is faster and uses far less storage.</p>
+  <p><code>https://github.com/RetroPie/RetroPie-Setup.git</code> — the official, verified address of the RetroPie setup repository on GitHub.</p>
+</div>
+
+<ol class="steps" start="5">
+  <li>Move into the newly downloaded folder and run the installer:</li>
+</ol>
+
+<pre class="code"><code>cd RetroPie-Setup
+sudo bash retropie_setup.sh</code></pre>
+<div class="explain">
+  <p><code>cd RetroPie-Setup</code> — moves you into the <code>RetroPie-Setup</code> folder that was just downloaded. (cd stands for "change directory".)</p>
+  <p><code>sudo bash retropie_setup.sh</code> — runs the RetroPie setup script with administrator privileges. A text-based menu will appear on screen with several options.</p>
+</div>
+
+<ol class="steps" start="6">
+  <li>In the menu that appears, choose <strong>Basic Install</strong>. This compiles and installs dozens of emulators from source code — a process that can take <strong>30 to 90 minutes</strong> on a Pi 5. Let it run; you can do something else in the meantime. The screen will show progress as each emulator is compiled.</li>
+  <li>When the installation finishes, choose <strong>Perform Reboot</strong> from the menu. After rebooting, EmulationStation will start automatically.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> RetroPie on Raspberry Pi OS Bookworm is a community effort and is actively developed. Some emulators may fail to compile on a 64-bit Bookworm system. If an emulator fails during the Basic Install, you can skip it and install other emulators individually from the <strong>Manage Packages</strong> menu later. The RetroPie forum at <code>retropie.org.uk/forum</code> is an excellent resource — search for your specific error message and you will almost always find a solution.</div>
+
+<p>Once RetroPie is running, you add ROMs by placing files in the <code>/home/pi/RetroPie/roms/</code> folder on the Pi. This folder is also accessible as a Samba network share from Windows at <code>\\RETROPIE\roms</code> — browse to it in File Explorer just as you did with Batocera.</p>
+
+<h2 id="keeping-batocera-up-to-date">Keeping Batocera Up to Date</h2>
+
+<p>Batocera receives regular updates that add new emulator cores, fix bugs, and improve performance. Updating is simple and never deletes your games or save files.</p>
+
+<ol class="steps">
+  <li>Make sure your Pi is connected to the internet.</li>
+  <li>Press <strong>Start</strong> from the EmulationStation main menu, then go to <strong>System Settings</strong>.</li>
+  <li>Select <strong>Updates &amp; Downloads</strong>.</li>
+  <li>Choose <strong>Start Update</strong>. Batocera will download and apply the latest update, then reboot automatically.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Your games, save states, BIOS files, and scraped artwork are stored in a separate <code>share</code> partition on the card and are never affected by a system update. You can update with confidence.</div>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Emulator</strong> — a program that mimics an old games console in software, allowing games designed for that console to run on different hardware.</li>
+    <li><strong>ROM</strong> — a digital copy of a game cartridge or disc; the file the emulator loads and plays.</li>
+    <li><strong>EmulationStation</strong> — the graphical menu system that organises your game library by console and lets you launch games.</li>
+    <li><strong>RetroArch</strong> — the engine that runs underneath EmulationStation, managing the individual emulators (called "cores") and providing features like save states, shaders, and rewind.</li>
+    <li><strong>Core</strong> — in RetroArch, a single emulator plugin; for example, the SNES emulator is one core, the Game Boy emulator is another. Multiple cores can exist for the same console.</li>
+    <li><strong>Batocera</strong> — a dedicated, standalone gaming operating system for the Raspberry Pi that combines EmulationStation and RetroArch in a ready-to-use package.</li>
+    <li><strong>RetroPie</strong> — an alternative that adds emulation software on top of an existing Raspberry Pi OS installation, keeping both on the same card.</li>
+    <li><strong>Save state</strong> — an instant snapshot of a running game that can be saved and restored at any point, allowing you to resume from exactly the frozen moment.</li>
+    <li><strong>Hotkey</strong> — a special button on your controller (usually Select) that, when held together with other buttons, triggers emulator shortcuts like saving, quitting, or opening the menu.</li>
+    <li><strong>Samba share</strong> — a network folder on the Pi that appears in Windows File Explorer, allowing you to copy files from your PC to the Pi over your home network.</li>
+    <li><strong>BIOS file</strong> — a small program originally built into a console's hardware chips, which certain emulators need in order to work correctly.</li>
+    <li><strong>Scraping</strong> — the process of automatically downloading cover art, descriptions, and game metadata from an online database to make your game library look polished.</li>
+    <li><strong>Homebrew</strong> — games created independently by hobbyists and often released free of charge; a legal and widely available source of ROM files.</li>
+    <li><strong>IP address</strong> — a unique numerical address (like 192.168.1.50) that identifies your Pi on the home network, used when Windows cannot find the Pi by name.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Your Pi 5 can emulate dozens of classic game systems — from the Atari 2600 right through to the PlayStation 2 — with excellent performance thanks to its powerful quad-core processor.</li>
+    <li>Batocera is the recommended beginner choice: flash it to a spare microSD card with Raspberry Pi Imager, insert the card, and boot into a ready-made games console.</li>
+    <li>Keep your two cards clearly labelled and swap them in the Pi's microSD slot to switch between Raspberry Pi OS and Batocera — the two systems are entirely independent.</li>
+    <li>ROMs are subject to copyright; you may only legally use files for games you personally own, or games released as freeware or homebrew.</li>
+    <li>Some consoles (PlayStation 1, Saturn, Dreamcast, GBA) require BIOS files to work; place them in the <code>\\BATOCERA\share\bios</code> network folder.</li>
+    <li>Copy games to Batocera via the Samba network share at <code>\\BATOCERA\share\roms</code> from Windows, or by importing from a USB drive.</li>
+    <li>Connect a USB or Bluetooth controller and map your buttons on first boot; most modern USB gamepads and Xbox/PlayStation controllers are detected automatically.</li>
+    <li>Save states (Hotkey + R1 to save, Hotkey + L1 to load) let you snapshot your progress at any moment; Hotkey + Start quits back to the EmulationStation menu.</li>
+    <li>The Pi 5 has no headphone socket; game audio comes through HDMI or via a USB audio adapter or Bluetooth headphones.</li>
+    <li>The scraper feature downloads cover art and descriptions automatically, turning a list of filenames into a visual games library.</li>
+    <li>RetroPie is an advanced alternative that sits on top of Raspberry Pi OS on the same card, but requires more setup time and technical patience.</li>
+  </ul>
+</div>

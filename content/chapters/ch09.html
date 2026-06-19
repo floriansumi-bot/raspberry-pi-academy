@@ -1,0 +1,634 @@
+<p class="lead">Your Raspberry Pi 5 becomes far more powerful the moment it can talk to the rest of your home network — and even more so when you can control it from your Windows PC without ever touching a keyboard or mouse connected to the Pi. This chapter walks you through networking basics in plain words, shows you how to find your Pi on your home network, and then takes you step by step through four ways to reach your Pi remotely: a command-line connection, a full remote desktop, a cloud-based browser link, and file copying.</p>
+
+<div class="warn"><strong>Careful:</strong> Before you enable any form of remote access, change the default password on your Raspberry Pi. Anyone on your home network — or, with some tools, anyone on the internet — could log in using the factory default. We cover this right at the start.</div>
+
+<h2 id="step-zero-change-your-password-first">Step Zero: Change Your Password First</h2>
+
+<p>If you set up your Pi using the Raspberry Pi Imager (covered in Chapter 3), you will have created a username and password during that process. If you did not, or if you are not sure, do the following before anything else in this chapter.</p>
+
+<ol class="steps">
+  <li>Open a Terminal on your Pi (the black screen icon on the taskbar, or go to <strong>Applications &gt; Accessories &gt; Terminal</strong>).</li>
+  <li>Type the command below and press <kbd>Enter</kbd>:
+    <pre class="code"><code>passwd</code></pre>
+    <div class="explain">This runs the <strong>passwd</strong> command, which lets you change the password for the account you are currently logged in to. It will ask for your current password first, then your new password twice. Nothing appears on screen as you type — that is completely normal.</div>
+  </li>
+  <li>Choose a password that is at least 12 characters long and that you will remember. A short phrase with a number works well — for example <code>BlueSky!Clouds7</code>.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Write the new password down and keep it somewhere safe. If you forget it and cannot log in, recovering access is possible but inconvenient (it requires booting from the microSD card on another computer to reset it).</div>
+
+<h2 id="networking-for-total-beginners">Networking for Total Beginners</h2>
+
+<p>Before we connect anything, let us understand what is actually happening when two devices talk to each other.</p>
+
+<h3>What a home network is</h3>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>network</strong> is simply a group of devices that can send information to each other. Your home network is the collection of phones, laptops, smart TVs, and other gadgets all connected through your internet router.</div>
+
+<p>At the centre of your home network sits a <strong>router</strong> — the box your internet provider gave you, or one you bought yourself. The router acts like a post office: every device on your network has its own address, and the router makes sure messages get to the right place.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <strong>IP address</strong> is the unique number that identifies a device on a network — just like a street address identifies a house. A typical home IP address looks like <code>192.168.1.42</code>. The numbers before the last dot (<code>192.168.1</code>) identify your local network; the last number (<code>42</code>) identifies the specific device.</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>hostname</strong> is a human-friendly name for a device, so you do not have to remember its number. Your Raspberry Pi's default hostname is <code>raspberrypi</code>. You can change it in settings.</div>
+
+<h3>How the Pi gets its address automatically (DHCP)</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>DHCP</strong> stands for Dynamic Host Configuration Protocol. It sounds complicated, but it just means "the router automatically hands out IP addresses to every device that connects." You do not need to do anything — when your Pi connects to your network, the router gives it a free address automatically, usually within a few seconds.</div>
+
+<p>The downside of DHCP is that the router might give your Pi a different number the next time it restarts. This matters for remote access because you need to know the address to connect. We will look at how to deal with this later in this chapter.</p>
+
+<h3>Wired Ethernet vs Wi-Fi</h3>
+
+<p>Your Pi 5 has two ways to join your home network:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>Speed</th>
+      <th>Reliability</th>
+      <th>Setup needed</th>
+      <th>Best for</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Wired Ethernet</strong></td>
+      <td>Up to 1,000 Mbps (Gigabit)</td>
+      <td>Excellent — no interference</td>
+      <td>Plug in a cable. Done.</td>
+      <td>Desks near a router; servers; anything that needs a stable connection</td>
+    </tr>
+    <tr>
+      <td><strong>Wi-Fi</strong></td>
+      <td>Up to ~300–600 Mbps (dual-band 2.4 / 5 GHz)</td>
+      <td>Good, but walls and distance reduce it</td>
+      <td>Choose your network and enter the password</td>
+      <td>Anywhere without a cable run; casual use</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> If you are going to use your Pi as a server or for regular remote access, a wired Ethernet cable is strongly recommended. It is faster, does not drop out, and does not need you to enter a Wi-Fi password again if you move the Pi.</div>
+
+<h3>Connecting via Ethernet</h3>
+
+<p>Plug one end of a standard network cable (also called an RJ45 or Ethernet cable — any cheap one from a shop or online works) into the Ethernet port on the Pi 5, and the other end into any spare port on your router or a network switch. That is all. You should see a small green or amber LED on the Pi's Ethernet port light up within a few seconds, and the network icon in the Pi's taskbar will change to show a wired connection.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <strong>Ethernet cable</strong> is the flat, rectangular-plugged cable you may have seen connecting computers to routers. The Pi 5's Ethernet socket gives you a full Gigabit connection — fast enough to stream video, copy large files, or run a home server with ease.</div>
+
+<h3>Connecting via Wi-Fi</h3>
+
+<ol class="steps">
+  <li>Look at the top-right corner of the Pi desktop. Click the <strong>network icon</strong> (it looks like two small arrows or a fan shape).</li>
+  <li>A list of available Wi-Fi networks appears. Click on your home network's name.</li>
+  <li>A small box asks for the <strong>Pre Shared Key</strong> — this is your Wi-Fi password. Type it in and click <strong>OK</strong>.</li>
+  <li>After a few seconds the icon changes to show signal bars, and the Pi is connected.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> The Pi 5 supports both 2.4 GHz and 5 GHz Wi-Fi bands. If your router shows two network names (for example <code>MyHome</code> and <code>MyHome_5G</code>), the 5 GHz one is faster but has a shorter range. Either will work fine for remote access.</div>
+
+<h3>Connecting to Wi-Fi without a screen (headless)</h3>
+
+<p>If your Pi has no monitor attached, you can still set up Wi-Fi by adding a configuration file to the microSD card before first boot. However, the easier method is to use Raspberry Pi Imager to pre-configure the Wi-Fi credentials when you write the OS to the card — this is covered in Chapter 3. If you already have the Pi running and just want to join a different network without a screen, use the command below in an SSH session (covered later in this chapter):</p>
+
+<pre class="code"><code>sudo nmtui</code></pre>
+<div class="explain">
+  <strong>sudo</strong> — runs the command with administrator privileges.<br>
+  <strong>nmtui</strong> — opens NetworkManager's Text User Interface, a simple menu-driven tool for managing network connections. Use the arrow keys to navigate, select "Activate a connection", choose your Wi-Fi network, enter the password, and confirm. No mouse needed.
+</div>
+
+<h2 id="how-your-home-network-fits-together">How Your Home Network Fits Together</h2>
+
+<figure class="fig">
+  <svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+
+    <!-- Internet cloud at top -->
+    <ellipse cx="350" cy="38" rx="90" ry="28" fill="#e0e7ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="350" y="43" text-anchor="middle" fill="#6d28d9" font-weight="bold" font-size="13">The Internet</text>
+
+    <!-- Arrow from internet down to router -->
+    <line x1="350" y1="66" x2="350" y2="108" stroke="#1f2933" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <polygon points="345,104 355,104 350,112" fill="#1f2933"/>
+
+    <!-- Router box -->
+    <rect x="270" y="112" width="160" height="64" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="305" y1="112" x2="295" y2="97" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="350" y1="112" x2="350" y2="96" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="395" y1="112" x2="405" y2="97" stroke="#6d28d9" stroke-width="2"/>
+    <text x="350" y="141" text-anchor="middle" fill="#1f2933" font-weight="bold">Home Router</text>
+    <text x="350" y="160" text-anchor="middle" fill="#6d28d9" font-size="11">e.g. 192.168.1.1</text>
+
+    <!-- Ethernet line from router to Pi (left) -->
+    <line x1="280" y1="176" x2="145" y2="248" stroke="#0ea5a4" stroke-width="3"/>
+    <polygon points="139,243 149,245 142,253" fill="#0ea5a4"/>
+    <text x="178" y="208" fill="#0ea5a4" font-size="12" text-anchor="middle" transform="rotate(-32,178,208)">Ethernet</text>
+
+    <!-- Wi-Fi arc from router to Windows PC (right) -->
+    <path d="M 420 176 Q 530 200 565 248" stroke="#6d28d9" stroke-width="2.5" fill="none" stroke-dasharray="5,4"/>
+    <polygon points="559,243 569,247 563,255" fill="#6d28d9"/>
+    <text x="520" y="208" fill="#6d28d9" font-size="12" text-anchor="middle">Wi-Fi</text>
+
+    <!-- Pi box -->
+    <rect x="30" y="255" width="185" height="74" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="122" y="277" text-anchor="middle" fill="#1f2933" font-weight="bold">Raspberry Pi 5</text>
+    <text x="122" y="295" text-anchor="middle" fill="#6d28d9" font-size="11">hostname: raspberrypi</text>
+    <text x="122" y="311" text-anchor="middle" fill="#0ea5a4" font-size="11">IP: 192.168.1.42</text>
+    <text x="122" y="325" text-anchor="middle" fill="#1f2933" font-size="11">raspberrypi.local</text>
+
+    <!-- Windows PC box -->
+    <rect x="490" y="255" width="185" height="74" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="582" y="277" text-anchor="middle" fill="#1f2933" font-weight="bold">Windows 11 PC</text>
+    <text x="582" y="295" text-anchor="middle" fill="#6d28d9" font-size="11">Your everyday laptop</text>
+    <text x="582" y="311" text-anchor="middle" fill="#0ea5a4" font-size="11">IP: 192.168.1.10</text>
+
+    <!-- SSH / VNC arrow between Pi and PC -->
+    <path d="M 215 295 Q 350 245 490 295" stroke="#1f2933" stroke-width="1.5" fill="none" stroke-dasharray="3,3"/>
+    <polygon points="487,290 497,294 488,300" fill="#1f2933"/>
+    <text x="350" y="255" text-anchor="middle" fill="#1f2933" font-size="12">SSH / VNC / SFTP</text>
+
+  </svg>
+  <figcaption>Figure 9-1: A typical home network. The router connects the Pi (via Ethernet cable) and your Windows PC (via Wi-Fi) and provides access to the internet. SSH, VNC, and file-copy tools let your PC talk directly to the Pi across this same local network.</figcaption>
+</figure>
+
+<h2 id="finding-your-pi-s-ip-address">Finding Your Pi's IP Address</h2>
+
+<p>You need to know your Pi's IP address (or its hostname) before you can connect to it remotely. Here are three ways to find it, from easiest to most involved.</p>
+
+<h3>Method 1: Ask the Pi directly (quickest)</h3>
+
+<p>If you have a keyboard and screen connected to your Pi, open a Terminal and type:</p>
+
+<pre class="code"><code>hostname -I</code></pre>
+<div class="explain">This prints the IP address (or addresses) currently assigned to your Pi. The first number is almost always the one you want — it will look something like <code>192.168.1.42</code>. The capital letter <code>-I</code> is a flag meaning "show all IP addresses this machine has right now."</div>
+
+<p>You can also find what hostname the Pi is announcing on the network:</p>
+
+<pre class="code"><code>hostname</code></pre>
+<div class="explain">This prints the short hostname — by default <code>raspberrypi</code>. On a local network you can usually reach the Pi by typing <code>raspberrypi.local</code> instead of its number, thanks to a technology called mDNS (explained below).</div>
+
+<h3>Method 2: The desktop network applet</h3>
+
+<p>On the Pi desktop, hover your mouse over the network icon in the top-right corner of the taskbar and leave it there for a second. A small tooltip appears showing the current IP address. Alternatively, right-click the network icon and choose <strong>Connection Information</strong> to see full details including the IP address, network speed, and MAC address.</p>
+
+<h3>Method 3: Check your router's device list</h3>
+
+<p>Every router has an admin page you can open in any browser. The address is usually printed on a sticker on the bottom of your router — common ones are <code>192.168.1.1</code>, <code>192.168.0.1</code>, or <code>10.0.0.1</code>. Open that address in a browser on your Windows PC, log in (credentials are also on the sticker), and look for a section called "Connected Devices", "DHCP Clients", or "LAN Clients". Your Pi should appear there with its current address.</p>
+
+<div class="tip"><strong>Tip:</strong> Once you find your Pi in the router's device list, many routers let you <strong>reserve</strong> that IP address so the Pi always gets the same number. Look for a button labelled "Reserve", "Static DHCP", "DHCP Reservation", or "Lease Binding" next to your Pi's entry. Once reserved, the Pi will have the same address every time it restarts — so you never need to look it up again.</div>
+
+<h2 id="the-magic-of-raspberrypi-local">The Magic of <code>raspberrypi.local</code></h2>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>mDNS</strong> (multicast DNS) is a trick that lets devices on a local network find each other by name — without needing a central server. On Raspberry Pi OS it is provided by a service called <strong>Avahi</strong>. On Windows 11, it works out of the box because modern Windows includes built-in support for mDNS.</div>
+
+<p>What this means in practice: instead of typing <code>ssh yourname@192.168.1.42</code>, you can type <code>ssh yourname@raspberrypi.local</code> and it just works — as long as both devices are on the same home network. The <code>.local</code> suffix tells your computer to look for the device by name on the local network rather than searching the internet.</p>
+
+<div class="note"><strong>Note:</strong> If you renamed your Pi's hostname to, say, <code>mypi</code>, you would use <code>mypi.local</code>. To change the hostname, open <strong>Raspberry Pi Configuration</strong> (from the Applications menu &gt; Preferences), go to the <strong>System</strong> tab, and edit the hostname field. Restart the Pi for the change to take effect.</div>
+
+<div class="note"><strong>Note:</strong> On rare occasions, <code>.local</code> addresses do not work — for example, on some business or school networks. If you type <code>raspberrypi.local</code> and get an error saying "could not resolve host", simply use the Pi's numeric IP address instead (for example <code>192.168.1.42</code>).</div>
+
+<h2 id="remote-access-option-a-ssh-command-line">Remote Access Option A: SSH — Command Line</h2>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>SSH</strong> stands for Secure Shell. It is a way to open a text-based window on your Pi from another computer, so you can type commands as if you were sitting right in front of it. Everything is encrypted, so nobody can eavesdrop on what you type — even on a shared network.</div>
+
+<p>SSH is powerful because it is lightweight (works even on a slow connection), is built directly into Windows 11 with no extra software to install, and gives you full control over your Pi.</p>
+
+<h3>Enabling SSH on the Pi</h3>
+
+<p>If you set up your Pi with Raspberry Pi Imager and ticked "Enable SSH" in the advanced settings, SSH is already on and you can skip to the next section. If you are not sure, you can enable it in one of two ways.</p>
+
+<p><strong>Using the graphical configuration tool</strong> (easiest):</p>
+
+<ol class="steps">
+  <li>Click the <strong>raspberry icon</strong> (top left) to open the Applications menu.</li>
+  <li>Go to <strong>Preferences &gt; Raspberry Pi Configuration</strong>.</li>
+  <li>Click the <strong>Interfaces</strong> tab.</li>
+  <li>Next to <strong>SSH</strong>, click <strong>Enable</strong>.</li>
+  <li>Click <strong>OK</strong>. SSH is now active and will start automatically on every boot.</li>
+</ol>
+
+<p><strong>Using the terminal</strong> (also works if you are already connected via SSH):</p>
+
+<pre class="code"><code>sudo systemctl enable --now ssh</code></pre>
+<div class="explain">
+  <strong>sudo</strong> — runs the command with administrator ("superuser") privileges, which is required for changing system services.<br>
+  <strong>systemctl enable</strong> — tells the system to start the SSH service automatically every time the Pi boots up.<br>
+  <strong>--now</strong> — also starts it immediately right now, without needing a reboot.<br>
+  <strong>ssh</strong> — the name of the SSH service on Raspberry Pi OS Bookworm (provided by the <code>openssh-server</code> package, which is pre-installed).
+</div>
+
+<p><strong>Using raspi-config</strong> (useful if you have no display — for example, connecting to a brand-new Pi via serial cable):</p>
+
+<pre class="code"><code>sudo raspi-config nonint do_ssh 0</code></pre>
+<div class="explain">
+  <strong>sudo raspi-config</strong> — runs the Raspberry Pi configuration tool with administrator rights.<br>
+  <strong>nonint</strong> — tells raspi-config to run without an interactive menu (just carry out the instruction and exit).<br>
+  <strong>do_ssh 0</strong> — enables SSH. (The <code>0</code> means "on"; <code>1</code> would mean "off".)
+</div>
+
+<div class="tip"><strong>Tip:</strong> You can also enable SSH permanently before first boot by placing a file called <code>ssh</code> (no extension, empty) in the <code>bootfs</code> partition of the microSD card when it is inserted into your Windows PC. The Raspberry Pi Imager does this automatically when you tick "Enable SSH" — so for most people, this is already done.</div>
+
+<h3>Connecting from Windows 11</h3>
+
+<p>Windows 11 includes a built-in SSH client. You do not need to install anything extra.</p>
+
+<ol class="steps">
+  <li>On your Windows PC, press <kbd>Windows key + X</kbd> and click <strong>Windows Terminal</strong> — or search for "Terminal" or "PowerShell" in the Start menu and open it.</li>
+  <li>Type the following, replacing <code>yourusername</code> with the username you set up on the Pi:
+    <pre class="code"><code>ssh yourusername@raspberrypi.local</code></pre>
+    <div class="explain">
+      <strong>ssh</strong> — the command that starts a Secure Shell connection.<br>
+      <strong>yourusername</strong> — the account name on the Pi you want to log in to. This is the username you created in Raspberry Pi Imager (commonly something like <code>pi</code> or your own first name).<br>
+      <strong>@raspberrypi.local</strong> — the address of your Pi on the local network. Replace <code>raspberrypi</code> with your Pi's hostname if you changed it. If the <code>.local</code> address does not work, use the Pi's numeric IP address instead (for example <code>ssh yourusername@192.168.1.42</code>).
+    </div>
+  </li>
+  <li>The first time you connect, you will see a message like this:
+    <pre class="code"><code>The authenticity of host 'raspberrypi.local (192.168.1.42)' can't be established.
+ED25519 key fingerprint is SHA256:AbCdEfGhIjKlMnOpQrStUvWxYz1234567890abcdef.
+Are you sure you want to continue connecting (yes/no/[fingerprint])?</code></pre>
+    <div class="explain">This is a one-time security check. Your PC is saying: "I have never talked to this device before. Here is its unique identity fingerprint. Do you trust it?" On your home network where you know the Pi is yours, it is safe to type <strong>yes</strong> and press Enter. Your PC saves this fingerprint and will not ask again next time.</div>
+  </li>
+  <li>Type <code>yes</code> and press <kbd>Enter</kbd>.</li>
+  <li>You will be asked for your Pi's password. Type it (nothing appears on screen as you type — that is normal) and press <kbd>Enter</kbd>.</li>
+  <li>You are now logged in to your Pi remotely. The prompt changes to show the Pi's hostname — for example <code>yourusername@raspberrypi:~ $</code>. Any command you type now runs on the Pi, not on your Windows PC.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> If you ever see the "authenticity" fingerprint warning on a connection you have made before (and you have not replaced or re-flashed the Pi), stop. This could indicate that something unexpected is happening on your network. Type <code>no</code> and investigate before proceeding.</div>
+
+<h3>Useful things to try once connected via SSH</h3>
+
+<pre class="code"><code>ls
+pwd
+df -h
+sudo apt update &amp;&amp; sudo apt upgrade -y
+exit</code></pre>
+<div class="explain">
+  <strong>ls</strong> — lists the files and folders in the current directory on the Pi (short for "list").<br>
+  <strong>pwd</strong> — shows the full path of the folder you are currently in. The letters stand for "Print Working Directory". After logging in you are normally in <code>/home/yourusername</code>.<br>
+  <strong>df -h</strong> — shows how much storage space is used and free on your Pi's microSD card. The <code>-h</code> flag makes the numbers human-readable (showing GB instead of raw bytes).<br>
+  <strong>sudo apt update &amp;&amp; sudo apt upgrade -y</strong> — fetches the latest list of available software updates (<code>update</code>), then installs all available updates without asking you to confirm each one (<code>upgrade -y</code>). The <code>&amp;&amp;</code> means "only run the second command if the first one succeeded."<br>
+  <strong>exit</strong> — closes the SSH session and returns you to your Windows terminal.
+</div>
+
+<h3>SSH connection diagram</h3>
+
+<figure class="fig">
+  <svg viewBox="0 0 660 200" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+
+    <!-- Windows PC -->
+    <rect x="20" y="60" width="180" height="80" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="110" y="90" text-anchor="middle" fill="#1f2933" font-weight="bold">Windows 11 PC</text>
+    <text x="110" y="110" text-anchor="middle" fill="#6d28d9" font-size="12">PowerShell / Terminal</text>
+    <text x="110" y="128" text-anchor="middle" fill="#0ea5a4" font-size="11">ssh user@raspberrypi.local</text>
+
+    <!-- Arrow: connection request -->
+    <line x1="200" y1="100" x2="290" y2="100" stroke="#6d28d9" stroke-width="2"/>
+    <polygon points="287,95 297,100 287,105" fill="#6d28d9"/>
+    <text x="245" y="88" text-anchor="middle" fill="#6d28d9" font-size="11">encrypted</text>
+    <text x="245" y="103" text-anchor="middle" fill="#6d28d9" font-size="11">SSH tunnel</text>
+    <!-- Arrow back -->
+    <line x1="290" y1="110" x2="200" y2="110" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <polygon points="203,105 193,110 203,115" fill="#0ea5a4"/>
+
+    <!-- Router in middle -->
+    <rect x="295" y="70" width="70" height="60" rx="6" fill="#e0e7ff" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="330" y="98" text-anchor="middle" fill="#6d28d9" font-size="12" font-weight="bold">Router</text>
+    <text x="330" y="118" text-anchor="middle" fill="#6d28d9" font-size="10">local</text>
+    <text x="330" y="130" text-anchor="middle" fill="#6d28d9" font-size="10">network</text>
+
+    <!-- Arrow to Pi -->
+    <line x1="365" y1="100" x2="455" y2="100" stroke="#6d28d9" stroke-width="2"/>
+    <polygon points="452,95 462,100 452,105" fill="#6d28d9"/>
+    <line x1="455" y1="110" x2="365" y2="110" stroke="#0ea5a4" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <polygon points="368,105 358,110 368,115" fill="#0ea5a4"/>
+
+    <!-- Pi -->
+    <rect x="460" y="60" width="180" height="80" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+    <text x="550" y="90" text-anchor="middle" fill="#1f2933" font-weight="bold">Raspberry Pi 5</text>
+    <text x="550" y="110" text-anchor="middle" fill="#6d28d9" font-size="12">SSH server (port 22)</text>
+    <text x="550" y="128" text-anchor="middle" fill="#0ea5a4" font-size="11">runs your commands</text>
+
+    <!-- Port 22 label -->
+    <text x="330" y="170" text-anchor="middle" fill="#1f2933" font-size="12">All traffic is encrypted end-to-end on port 22</text>
+
+  </svg>
+  <figcaption>Figure 9-2: How SSH works. Your Windows PC sends an encrypted connection request through the router to the Pi. The Pi's SSH server listens on port 22 and responds. Every command you type and every result you receive travels inside this encrypted tunnel.</figcaption>
+</figure>
+
+<h2 id="remote-access-option-b-full-remote-desktop-with-">Remote Access Option B: Full Remote Desktop with VNC</h2>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>VNC</strong> (Virtual Network Computing) lets you see and control the Pi's full graphical desktop from your Windows PC — icons, windows, menus and all. Instead of just a text prompt, you get the complete visual experience, as if you had a second screen and mouse plugged directly into the Pi.</div>
+
+<h3>How VNC changed in Raspberry Pi OS Bookworm</h3>
+
+<p>There is something important to know about VNC on Bookworm: the older version of Raspberry Pi OS came with RealVNC's server pre-installed. Bookworm moved to a newer display system called <strong>Wayland</strong>, and with it a new VNC server called <strong>wayvnc</strong>. This is what you get when you enable VNC through the graphical configuration tool.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Wayland</strong> is the modern system that draws the desktop (windows, icons, menus) on screen. It replaces the older "X11" system. You do not need to understand it deeply — just know that Bookworm uses Wayland by default, and the VNC server that goes with it is called <code>wayvnc</code>.</div>
+
+<h3>Enabling VNC on the Pi</h3>
+
+<p><strong>Using the graphical configuration tool</strong> (recommended):</p>
+
+<ol class="steps">
+  <li>Open <strong>Preferences &gt; Raspberry Pi Configuration</strong> from the Applications menu.</li>
+  <li>Click the <strong>Interfaces</strong> tab.</li>
+  <li>Next to <strong>VNC</strong>, click <strong>Enable</strong>.</li>
+  <li>Click <strong>OK</strong>. The <code>wayvnc</code> service starts automatically and will do so on every boot.</li>
+</ol>
+
+<p><strong>Or from the terminal:</strong></p>
+
+<pre class="code"><code>sudo systemctl enable --now wayvnc</code></pre>
+<div class="explain">
+  <strong>sudo systemctl enable</strong> — configures the <code>wayvnc</code> service to start automatically at login.<br>
+  <strong>--now</strong> — also starts it immediately without requiring a restart.<br>
+  <strong>wayvnc</strong> — the name of the VNC server for Wayland, which is the display system used by Raspberry Pi OS Bookworm.
+</div>
+
+<div class="note"><strong>Note:</strong> <code>wayvnc</code> only runs while someone is logged in to the Pi's desktop session. This is fine for most home uses. If you need VNC access on a Pi that is not logged in (a so-called "headless" server), Raspberry Pi Connect (Option C below) is a better choice.</div>
+
+<h3>Connecting from Windows 11 with RealVNC Viewer</h3>
+
+<p>You need a VNC viewer on your Windows PC. The official free option — <strong>RealVNC Viewer</strong> — is compatible with <code>wayvnc</code> and is simple to use:</p>
+
+<ol class="steps">
+  <li>On your Windows PC, open a browser and go to <code>realvnc.com/en/connect/download/viewer/</code>. Download and install the free VNC Viewer application.</li>
+  <li>Open VNC Viewer. In the address bar at the top, type <code>raspberrypi.local</code> (or the Pi's numeric IP address if <code>.local</code> does not work) and press <kbd>Enter</kbd>.</li>
+  <li>You will be asked for a username and password — use the same credentials you use to log in to the Pi desktop.</li>
+  <li>The Pi's full desktop appears in a window on your PC. You can use it just as if you were sitting in front of it — click, type, open applications, everything.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> In VNC Viewer you can press <kbd>F8</kbd> to open a menu with options to send special key combinations (like Ctrl+Alt+Del) to the Pi, change the screen quality, or go full screen so the Pi desktop fills your entire Windows display.</div>
+
+<div class="note"><strong>Note:</strong> VNC works best on your local home network. If you want to access your Pi from outside your home (from work or a coffee shop, for example), using Raspberry Pi Connect (Option C below) is much easier and more secure than trying to configure VNC over the internet.</div>
+
+<h2 id="remote-access-option-c-raspberry-pi-connect-acce">Remote Access Option C: Raspberry Pi Connect — Access from Anywhere</h2>
+
+<p>Raspberry Pi Connect is an official service from the Raspberry Pi Foundation. It lets you see and control your Pi's desktop — or open a terminal window — from any web browser, anywhere in the world, without any complicated network setup or router changes. It works through a secure relay server, so you do not need to know your home router's address or configure anything.</p>
+
+<div class="note"><strong>Note:</strong> Raspberry Pi Connect requires a free account at <code>connect.raspberrypi.com</code> and an internet connection on both the Pi and the device you are controlling from. It is free for personal use.</div>
+
+<h3>Setting up Raspberry Pi Connect</h3>
+
+<ol class="steps">
+  <li>On your Pi, open a Terminal and install Raspberry Pi Connect:
+    <pre class="code"><code>sudo apt update
+sudo apt install -y rpi-connect</code></pre>
+    <div class="explain">
+      <strong>sudo apt update</strong> — refreshes the Pi's list of available software packages from the internet.<br>
+      <strong>sudo apt install -y rpi-connect</strong> — downloads and installs the Raspberry Pi Connect software. The <code>-y</code> flag means "yes to all questions", so the installation runs without stopping to ask you to confirm.
+    </div>
+  </li>
+  <li>Start the Connect service so it runs automatically when you log in:
+    <pre class="code"><code>systemctl --user enable --now rpi-connect</code></pre>
+    <div class="explain">
+      <strong>systemctl --user</strong> — manages services that belong to your user account (not system-wide services).<br>
+      <strong>enable</strong> — tells the system to start this service automatically every time you log in to the Pi.<br>
+      <strong>--now</strong> — also starts it immediately right now, without needing to log out and back in.
+    </div>
+  </li>
+  <li>Link your Pi to your Raspberry Pi account:
+    <pre class="code"><code>rpi-connect signin</code></pre>
+    <div class="explain">This command prints a short URL in the terminal. Open that URL in any web browser — either on the Pi itself or on your Windows PC. Log in to your Raspberry Pi account (or create a free one if you do not have one yet). Once you do, your Pi will be securely linked to your account.</div>
+  </li>
+  <li>On your Windows PC (or any device with a browser), go to <code>connect.raspberrypi.com</code>, sign in, and you will see your Pi listed. Click <strong>Connect</strong>, then choose:
+    <ul>
+      <li><strong>Screen sharing</strong> — to see and control the full Pi desktop in your browser.</li>
+      <li><strong>Remote shell</strong> — to open a terminal window in your browser (like SSH but without any software to install).</li>
+    </ul>
+  </li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Raspberry Pi Connect is the easiest remote-access option for most beginners. It does not require any router changes, works even on restrictive hotel or school networks, and only takes a few minutes to set up. If you only need a terminal (not the full desktop), the "Remote shell" option is especially lightweight.</div>
+
+<h3>Checking whether rpi-connect is running</h3>
+
+<pre class="code"><code>rpi-connect status</code></pre>
+<div class="explain">This shows whether Raspberry Pi Connect is running and whether your Pi is signed in and visible at <code>connect.raspberrypi.com</code>. If it shows "not signed in", run <code>rpi-connect signin</code> again and follow the URL it gives you.</div>
+
+<h2 id="copying-files-between-windows-and-the-pi">Copying Files Between Windows and the Pi</h2>
+
+<p>Once you can connect remotely, you will often want to move files between your Windows PC and the Pi — perhaps to copy a photo from the Pi, or to send a script you wrote on Windows across to run on the Pi. Here are two practical ways to do this.</p>
+
+<h3>Method 1: scp — Secure Copy (command line)</h3>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>scp</strong> is like copying a file on your computer, but over an SSH connection to another machine. It uses the same security as SSH, and it is already available in Windows 11 — no extra software needed.</div>
+
+<p>Open Windows Terminal (or PowerShell) on your PC.</p>
+
+<p><strong>To copy a file FROM your Pi TO your Windows PC:</strong></p>
+
+<pre class="code"><code>scp yourusername@raspberrypi.local:/home/yourusername/photo.jpg C:\Users\YourName\Pictures\photo.jpg</code></pre>
+<div class="explain">
+  <strong>scp</strong> — the secure copy command.<br>
+  <strong>yourusername@raspberrypi.local:</strong> — connect to the Pi as this user. The colon at the very end separates the machine address from the file path on the Pi.<br>
+  <strong>/home/yourusername/photo.jpg</strong> — the full path to the file on the Pi you want to copy. Replace <code>yourusername</code> with your actual username on the Pi.<br>
+  <strong>C:\Users\YourName\Pictures\photo.jpg</strong> — where to save the file on your Windows PC. Replace <code>YourName</code> with your Windows username.
+</div>
+
+<p><strong>To copy a file FROM your Windows PC TO the Pi:</strong></p>
+
+<pre class="code"><code>scp C:\Users\YourName\Documents\script.py yourusername@raspberrypi.local:/home/yourusername/</code></pre>
+<div class="explain">
+  The source and destination are simply swapped compared to the previous example. Here the file <code>script.py</code> on your Windows PC is copied to the home folder on the Pi. The trailing <code>/</code> after the remote path means "put it inside this folder, keeping the same filename."
+</div>
+
+<p><strong>To copy an entire folder and everything inside it:</strong></p>
+
+<pre class="code"><code>scp -r yourusername@raspberrypi.local:/home/yourusername/myproject C:\Users\YourName\Desktop\</code></pre>
+<div class="explain">
+  <strong>-r</strong> — the "recursive" flag, which tells <code>scp</code> to copy a folder and everything inside it (all files and sub-folders). Without this flag, <code>scp</code> cannot copy folders — only individual files.<br>
+  <strong>myproject</strong> — the name of the folder on the Pi to copy.<br>
+  <strong>C:\Users\YourName\Desktop\</strong> — the destination on your Windows PC; the folder will appear on your Desktop.
+</div>
+
+<h3>Method 2: WinSCP — Graphical drag-and-drop file transfer</h3>
+
+<p>If you prefer to drag and drop files rather than type commands, <strong>WinSCP</strong> is a free program for Windows that gives you a two-panel file browser — your Windows PC on one side, your Pi on the other. You can drag files between them exactly like using Windows File Explorer.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>SFTP</strong> stands for SSH File Transfer Protocol. It is a secure way to browse and copy files over an SSH connection. WinSCP uses SFTP under the hood. Note: SFTP is completely different from the old "FTP" protocol — it is encrypted and safe.</div>
+
+<ol class="steps">
+  <li>On your Windows PC, download WinSCP from <code>winscp.net</code> and install it.</li>
+  <li>Open WinSCP. In the <strong>Login</strong> window that appears, fill in:
+    <ul>
+      <li><strong>File protocol:</strong> SFTP</li>
+      <li><strong>Host name:</strong> <code>raspberrypi.local</code> (or the Pi's IP address)</li>
+      <li><strong>User name:</strong> your Pi username</li>
+      <li><strong>Password:</strong> your Pi password</li>
+    </ul>
+  </li>
+  <li>Click <strong>Login</strong>. If you see a fingerprint prompt (similar to SSH), accept it — it is safe on your home network.</li>
+  <li>Two panels appear side by side. Navigate to any folder on either side and drag files across to copy them. You can also right-click to rename, delete, or create new folders.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> WinSCP can save your login details so you do not have to type them each time. Look for the "Save" button in the Login window. You can also tick "Remember password" if you are the only person who uses your Windows PC.</div>
+
+<h2 id="setting-up-ssh-key-authentication-optional-but-r">Setting Up SSH Key Authentication (Optional, but Recommended)</h2>
+
+<p>Every time you connect via SSH or SFTP, you currently have to type your password. SSH keys are a more convenient and more secure alternative: your Windows PC holds a secret "key" file, and the Pi holds the matching "lock". When you connect, the two match automatically and you are let in — no password typing needed.</p>
+
+<div class="note"><strong>Note:</strong> This section is optional. If you find typing the password tedious, or if you want to be able to automate tasks between your PC and your Pi, follow these steps. If you are happy typing the password, skip to the next section.</div>
+
+<h3>Step 1: Generate an SSH key pair on your Windows PC</h3>
+
+<p>Open Windows Terminal (PowerShell) on your PC and type:</p>
+
+<pre class="code"><code>ssh-keygen -t ed25519 -C "pi-access"</code></pre>
+<div class="explain">
+  <strong>ssh-keygen</strong> — the tool that creates an SSH key pair (a private key that stays on your PC, and a public key that goes to the Pi).<br>
+  <strong>-t ed25519</strong> — specifies the type of key to create. <code>ed25519</code> is a modern, compact, and very secure type. It is strongly preferred over the older <code>rsa</code> type.<br>
+  <strong>-C "pi-access"</strong> — a comment that labels this key. You can put anything here — it is just for your own reference, like a name tag on the key.
+</div>
+
+<p>When asked where to save the key, press <kbd>Enter</kbd> to accept the default location (<code>C:\Users\YourName\.ssh\id_ed25519</code>). When asked for a passphrase, you can press <kbd>Enter</kbd> twice to leave it empty (for convenience) or set a passphrase for extra security.</p>
+
+<h3>Step 2: Copy the public key to your Pi</h3>
+
+<p>Still in Windows Terminal, run:</p>
+
+<pre class="code"><code>type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh yourusername@raspberrypi.local "mkdir -p ~/.ssh &amp;&amp; cat &gt;&gt; ~/.ssh/authorized_keys &amp;&amp; chmod 600 ~/.ssh/authorized_keys"</code></pre>
+<div class="explain">
+  <strong>type $env:USERPROFILE\.ssh\id_ed25519.pub</strong> — reads your public key file from your Windows PC.<br>
+  <strong>| ssh yourusername@raspberrypi.local "..."</strong> — sends (pipes) that content over SSH to the Pi, where the quoted commands run on the Pi.<br>
+  <strong>mkdir -p ~/.ssh</strong> — creates the <code>.ssh</code> folder in your Pi home directory if it does not already exist. The <code>-p</code> flag means "no error if it already exists".<br>
+  <strong>cat &gt;&gt; ~/.ssh/authorized_keys</strong> — appends the public key to the Pi's list of trusted keys (<code>authorized_keys</code>). The <code>&gt;&gt;</code> means "add to the end" rather than overwriting anything already there.<br>
+  <strong>chmod 600 ~/.ssh/authorized_keys</strong> — sets the permissions on that file so only your user account can read it. SSH refuses to use the file if the permissions are too open.
+</div>
+
+<p>You will be asked for your Pi password this one last time. After this, SSH will use your key instead.</p>
+
+<h3>Step 3: Test it</h3>
+
+<pre class="code"><code>ssh yourusername@raspberrypi.local</code></pre>
+<div class="explain">Run the usual SSH command. If everything worked, you will be logged in immediately without being asked for a password. If you set a passphrase on your key in Step 1, you will be asked for that passphrase instead — which is shorter and faster than the Pi password and never travels over the network.</div>
+
+<div class="warn"><strong>Careful:</strong> Keep your private key file (<code>id_ed25519</code>, without the <code>.pub</code>) safe. Anyone who has that file can log in to your Pi without a password. Do not email it or put it in a shared folder.</div>
+
+<h2 id="keeping-your-pi-secure-on-the-network">Keeping Your Pi Secure on the Network</h2>
+
+<p>Enabling remote access is powerful but does carry some responsibility. Here is a short checklist of good habits:</p>
+
+<ul>
+  <li><strong>Use a strong, unique password.</strong> Not the default. Not your birthday. A phrase or a random string of at least 12 characters.</li>
+  <li><strong>Keep software updated.</strong> Run <code>sudo apt update &amp;&amp; sudo apt upgrade -y</code> regularly (or set a monthly reminder) to get security fixes.</li>
+  <li><strong>Only enable what you need.</strong> If you are not using VNC, leave it off. Fewer open services mean fewer potential entry points.</li>
+  <li><strong>Prefer Raspberry Pi Connect over opening ports.</strong> If you want to reach your Pi from outside your home, Raspberry Pi Connect is much safer than configuring your router to forward ports to the internet. Port-forwarded SSH and VNC are regularly scanned and attacked by automated bots. Raspberry Pi Connect avoids this entirely.</li>
+  <li><strong>Consider SSH key authentication.</strong> Setting up SSH keys (explained above) means no password is sent over the network at all. This is the gold standard for SSH security.</li>
+  <li><strong>There is no firewall to configure.</strong> Raspberry Pi OS Bookworm does not include a firewall turned on by default, and on a home network behind your router's NAT (which blocks unsolicited incoming connections from the internet), this is fine for most users. Your router is your first line of defence.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> On your home network, behind your router, your Pi is not directly reachable from the internet unless you deliberately configure your router to allow it. SSH and VNC connections on your local network are private to your home.</div>
+
+<h2 id="changing-or-checking-your-pi-s-hostname">Changing or Checking Your Pi's Hostname</h2>
+
+<p>If you have more than one Raspberry Pi on the same network, they cannot both be called <code>raspberrypi</code> — the <code>.local</code> addresses would clash. Here is how to give each Pi a unique name.</p>
+
+<pre class="code"><code>sudo hostnamectl set-hostname mypi5</code></pre>
+<div class="explain">
+  <strong>sudo hostnamectl</strong> — the tool for reading and changing the system's hostname, run with administrator rights.<br>
+  <strong>set-hostname mypi5</strong> — sets the hostname to <code>mypi5</code>. Replace <code>mypi5</code> with any name you like — use only letters, numbers, and hyphens; no spaces or special characters. After a reboot your Pi will be reachable at <code>mypi5.local</code>.
+</div>
+
+<div class="note"><strong>Note:</strong> You can also change the hostname graphically via <strong>Preferences &gt; Raspberry Pi Configuration &gt; System &gt; Hostname</strong>. Either method requires a restart for the change to take full effect.</div>
+
+<h2 id="quick-reference-all-connection-methods">Quick-Reference: All Connection Methods</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th>What you get</th>
+      <th>Works from outside home?</th>
+      <th>Extra software on PC?</th>
+      <th>Difficulty</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>SSH</strong> (built-in)</td>
+      <td>Text command line</td>
+      <td>Only with port forwarding (not recommended)</td>
+      <td>None — built into Windows 11</td>
+      <td>Easy</td>
+    </tr>
+    <tr>
+      <td><strong>VNC</strong> (wayvnc + RealVNC Viewer)</td>
+      <td>Full graphical desktop</td>
+      <td>Only with port forwarding (not recommended)</td>
+      <td>Free RealVNC Viewer</td>
+      <td>Easy</td>
+    </tr>
+    <tr>
+      <td><strong>Raspberry Pi Connect</strong></td>
+      <td>Desktop or terminal, in any browser</td>
+      <td>Yes — works anywhere in the world</td>
+      <td>None — just a web browser</td>
+      <td>Very easy</td>
+    </tr>
+    <tr>
+      <td><strong>scp</strong> (file copy)</td>
+      <td>Copy individual files or folders</td>
+      <td>Only with port forwarding (not recommended)</td>
+      <td>None — built into Windows 11</td>
+      <td>Moderate</td>
+    </tr>
+    <tr>
+      <td><strong>WinSCP / SFTP</strong></td>
+      <td>Graphical two-panel file browser</td>
+      <td>Only with port forwarding (not recommended)</td>
+      <td>Free WinSCP</td>
+      <td>Easy</td>
+    </tr>
+    <tr>
+      <td><strong>SSH keys</strong> (optional)</td>
+      <td>Password-free SSH login</td>
+      <td>Only with port forwarding (not recommended)</td>
+      <td>None — built into Windows 11</td>
+      <td>Moderate one-time setup</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> For most beginners, the recommended combination is: <strong>Raspberry Pi Connect</strong> for remote desktop access (especially from outside your home), and <strong>WinSCP</strong> for moving files. Both are free, graphical, and require no ongoing command-line knowledge after the initial setup. Use <strong>SSH</strong> when you need to run quick commands or update the system.</div>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Network</strong> — a group of devices connected so they can share information.</li>
+    <li><strong>Router</strong> — the box that connects your home devices to each other and to the internet; acts like a post office, directing traffic to the right address.</li>
+    <li><strong>IP address</strong> — a unique number that identifies a device on a network, like a street address (e.g. <code>192.168.1.42</code>).</li>
+    <li><strong>Hostname</strong> — a human-readable name for a device (e.g. <code>raspberrypi</code>).</li>
+    <li><strong>DHCP</strong> — the system by which a router automatically hands out IP addresses to devices when they connect.</li>
+    <li><strong>DHCP reservation</strong> — a router setting that ensures a specific device always receives the same IP address.</li>
+    <li><strong>mDNS</strong> — a technology that lets devices on a local network find each other by name, enabling convenient <code>.local</code> addresses like <code>raspberrypi.local</code>.</li>
+    <li><strong>SSH (Secure Shell)</strong> — a secure, encrypted way to run command-line instructions on a remote computer over a network.</li>
+    <li><strong>SSH key pair</strong> — a matched pair of files (a private key and a public key) that allow password-free SSH login; the private key stays on your PC, the public key goes to the Pi.</li>
+    <li><strong>Wayland</strong> — the modern system that draws the graphical desktop on Raspberry Pi OS Bookworm, replacing the older X11 system.</li>
+    <li><strong>VNC (Virtual Network Computing)</strong> — a system for viewing and controlling another computer's full graphical desktop remotely.</li>
+    <li><strong>wayvnc</strong> — the VNC server built for Wayland, used by Raspberry Pi OS Bookworm when you enable VNC.</li>
+    <li><strong>Raspberry Pi Connect</strong> — an official, free service from the Raspberry Pi Foundation that lets you access your Pi's desktop or a terminal from any web browser, anywhere in the world.</li>
+    <li><strong>scp</strong> — Secure Copy; a command-line tool for copying files securely over an SSH connection.</li>
+    <li><strong>SFTP</strong> — SSH File Transfer Protocol; a secure way to browse and transfer files, used by graphical tools like WinSCP.</li>
+    <li><strong>Fingerprint (SSH)</strong> — a unique code that identifies a device; checked the first time you connect via SSH to confirm you are talking to the right machine.</li>
+    <li><strong>Port forwarding</strong> — a router setting that lets external internet traffic reach a specific device inside your home network. Useful but carries security risks if not set up carefully.</li>
+    <li><strong>NAT</strong> — Network Address Translation; the mechanism your router uses to share a single internet address among all your home devices. It also acts as an automatic barrier against most unsolicited connections from the internet.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Always change your Pi's password before enabling any remote access — the default is not safe.</li>
+    <li>Your Pi joins your home network automatically via Ethernet (plug in a cable) or Wi-Fi (choose a network and enter the password); the router assigns an IP address automatically through DHCP.</li>
+    <li>Find your Pi's current IP address with <code>hostname -I</code> on the Pi, by hovering over the desktop network icon, or by checking the router's admin page.</li>
+    <li>You can usually reach your Pi by the convenient name <code>raspberrypi.local</code> instead of memorising its number, thanks to mDNS — this works on Windows 11 with no extra software.</li>
+    <li>Use DHCP reservation in your router's settings to give your Pi a permanent, fixed address so it never changes.</li>
+    <li>SSH (built into Windows 11) gives you a secure encrypted command-line connection to your Pi from PowerShell or Windows Terminal — type <code>ssh username@raspberrypi.local</code>.</li>
+    <li>VNC (using <code>wayvnc</code> on Bookworm, plus the free RealVNC Viewer on Windows) lets you see and control the full Pi desktop remotely over your home network.</li>
+    <li>Raspberry Pi Connect is the easiest remote-access option — it works from any web browser, anywhere in the world, without changing router settings, and only needs a free Raspberry Pi account.</li>
+    <li>Copy individual files with the command-line <code>scp</code> tool (already on Windows 11), or use the free graphical program WinSCP for drag-and-drop file transfers.</li>
+    <li>SSH key authentication lets you log in to the Pi without typing a password every time — more convenient and more secure than passwords.</li>
+    <li>For accessing your Pi from outside your home without complexity or security risk, Raspberry Pi Connect is the recommended choice for beginners.</li>
+  </ul>
+</div>

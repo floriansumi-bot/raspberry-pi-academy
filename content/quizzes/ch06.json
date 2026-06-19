@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch06",
+  "title": "The Terminal, Demystified",
+  "questions": [
+    {
+      "q": "In the prompt 'pi@raspberrypi:~$', what does the tilde (~) tell you?",
+      "choices": [
+        "You are logged in as the root administrator",
+        "You are currently in your personal home folder",
+        "The machine is connected to the network",
+        "The terminal is waiting for a sudo password"
+      ],
+      "answer": 1,
+      "explain": "The tilde (~) is a shortcut that always means 'your home folder' (e.g. /home/pi). Root access is indicated by a # sign instead of $ at the end of the prompt — not by the tilde."
+    },
+    {
+      "q": "You want to save a file and exit the nano editor. Which sequence of key presses does this correctly?",
+      "choices": [
+        "Ctrl + S, then Ctrl + Q",
+        "Ctrl + W, then Enter",
+        "Esc, then type :wq and Enter",
+        "Ctrl + O, then Enter, then Ctrl + X"
+      ],
+      "answer": 3,
+      "explain": "In nano, Ctrl + O writes (saves) the file — press Enter to confirm the filename — then Ctrl + X exits. Ctrl + S and :wq are shortcuts from other programs (Windows apps and Vim respectively), not nano."
+    },
+    {
+      "q": "Which command would you use to copy a folder and everything inside it?",
+      "choices": [
+        "cp myfolder/ backup/",
+        "cp -r myfolder/ backup/",
+        "mv myfolder/ backup/",
+        "mkdir -p backup/ myfolder/"
+      ],
+      "answer": 1,
+      "explain": "The -r flag (recursive) is required when copying a folder with cp. Without it, cp refuses to copy directories. mv would move rather than copy, and mkdir only creates new empty folders."
+    },
+    {
+      "q": "What happens when you run 'rm backup.txt' on Raspberry Pi OS?",
+      "choices": [
+        "The file is moved to a Recycle Bin and can be restored",
+        "The terminal asks 'are you sure?' before deleting",
+        "The file is permanently deleted with no undo",
+        "The command fails unless you add sudo first"
+      ],
+      "answer": 2,
+      "explain": "The rm command permanently deletes files with no Recycle Bin, no undo, and no confirmation prompt by default. You can add the -i flag to make it ask before each deletion, but this is not the default behaviour."
+    },
+    {
+      "q": "You run 'ls /usr/bin | grep python'. What does the pipe (|) do here?",
+      "choices": [
+        "It saves the output of ls to a file called grep",
+        "It runs ls and grep at the same time in parallel",
+        "It sends the output of ls directly into grep as its input, so grep can filter it",
+        "It tells ls to only list files whose names contain 'python'"
+      ],
+      "answer": 2,
+      "explain": "The pipe (|) connects two commands: the output that ls would normally print to the screen is instead handed to grep as input. grep then filters that list and prints only the lines containing 'python'."
+    }
+  ]
+}

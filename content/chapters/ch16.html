@@ -1,0 +1,684 @@
+<p class="lead">Your Raspberry Pi 5 is on all day and all night, quietly sipping just a few watts of electricity — so why not put it to work as a proper home server? In this chapter you will turn your Pi into a network file share that every Windows PC in your home can see, and then go a step further by installing your very own private cloud — your files, your photos, your calendar, all stored on hardware you own and control.</p>
+
+<div class="note"><strong>Note:</strong> This chapter has two independent parts. You can follow Part A (Samba file sharing) without ever doing Part B (Nextcloud), or do both. Read through a whole section before typing anything.</div>
+
+<h2 id="part-a-a-home-file-server-with-samba">Part A — A Home File Server with Samba</h2>
+
+<h3>What is a file server, and why do you want one?</h3>
+
+<p>Right now, if you want to move a photo from your Windows laptop to your Pi, you probably copy it to a USB stick and carry it across the room. A <em>file server</em> fixes that. Once it is running, a shared folder on the Pi appears inside Windows Explorer just like any other drive — you drag files in, you drag files out, across the home network, with no cable required.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>file server</em> is a computer that holds files and lets other computers on the same network open, save, and copy those files as if they were on a local drive. "Server" just means "the one that serves the others".</div>
+
+<p>The software that makes this possible on Linux is called <strong>Samba</strong>. Samba speaks the same file-sharing language that Windows uses (called SMB, or "Server Message Block"), so your Windows PC and your Pi understand each other perfectly.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Samba</em> is free, open-source software that lets a Linux computer speak Windows' own file-sharing language. It has been around since 1992 and is rock-solid.</div>
+
+<h3>What you will need</h3>
+<ul>
+  <li>Your Pi 5, connected to the same home router as your Windows PC (by Ethernet cable or Wi-Fi — either works, but a cable is faster and more reliable for a file server).</li>
+  <li>A USB hard drive or USB stick to use as the shared storage (optional but recommended — keeps the shared data off the microSD card and allows much larger capacity).</li>
+  <li>A terminal window open on the Pi (or an SSH connection from Windows — see Chapter 12).</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Using a USB hard drive rather than the microSD card for shared storage is strongly recommended. microSD cards are not designed for constant read/write activity and can wear out faster. A cheap USB hard drive or a good-quality USB SSD will last far longer and hold far more.</div>
+
+<h3>Step 1 — Attach and mount a USB drive</h3>
+
+<p>Plug your USB drive into one of the Pi's blue USB 3.0 ports. Wait five seconds, then find out what name the Pi gave it:</p>
+
+<pre class="code"><code>lsblk</code></pre>
+<div class="explain">
+  <p><code>lsblk</code> — "list block devices". It prints a tree of all storage devices the Pi can see. You are looking for your USB drive, which will appear as something like <code>sda</code> with a partition below it called <code>sda1</code>.</p>
+</div>
+
+<p>You should see output a bit like this:</p>
+
+<pre class="code"><code>NAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+sda           8:0    1 119.2G  0 disk
+└─sda1        8:1    1 119.2G  0 part
+mmcblk0     179:0    0  59.6G  0 disk
+├─mmcblk0p1 179:1    0   512M  0 part /boot/firmware
+└─mmcblk0p2 179:2    0  59.1G  0 part /</code></pre>
+<div class="explain">
+  <p><code>sda</code> — your USB drive (the whole physical device).</p>
+  <p><code>sda1</code> — the first partition on the USB drive. This is the part that actually holds files.</p>
+  <p><code>mmcblk0</code> — your microSD card. Leave this alone.</p>
+  <p>The MOUNTPOINT column shows where (if anywhere) the drive is currently accessible. <code>sda1</code> may already be mounted automatically by Raspberry Pi OS.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> If your USB drive already has a MOUNTPOINT shown (such as <code>/media/pi/MY-DRIVE</code>), Raspberry Pi OS has already mounted it for you and you can skip the manual mount step below. Note the exact path shown — you will need it when configuring Samba.</div>
+
+<p>If the MOUNTPOINT column for <code>sda1</code> is blank, create a folder to attach it to and mount it manually:</p>
+
+<pre class="code"><code>sudo mkdir -p /mnt/usbdrive
+sudo mount /dev/sda1 /mnt/usbdrive</code></pre>
+<div class="explain">
+  <p><code>sudo mkdir -p /mnt/usbdrive</code> — creates a new empty folder at <code>/mnt/usbdrive</code>. The <code>-p</code> flag means "create any missing parent folders too; do not error if it already exists". <code>sudo</code> is needed because <code>/mnt</code> is a system folder.</p>
+  <p><code>sudo mount /dev/sda1 /mnt/usbdrive</code> — "attaches" the USB partition to that folder. After this, any file you put into <code>/mnt/usbdrive</code> is actually written to the USB drive.</p>
+</div>
+
+<p>Now create the folder that you will actually share over the network, and give it the right permissions:</p>
+
+<pre class="code"><code>sudo mkdir -p /mnt/usbdrive/shared
+sudo chown -R $USER:$USER /mnt/usbdrive/shared
+sudo chmod 775 /mnt/usbdrive/shared</code></pre>
+<div class="explain">
+  <p><code>sudo mkdir -p /mnt/usbdrive/shared</code> — creates a folder called <code>shared</code> inside the USB drive.</p>
+  <p><code>sudo chown -R $USER:$USER /mnt/usbdrive/shared</code> — makes your Pi user account the owner of the folder. <code>$USER</code> is a variable that automatically fills in your current username (e.g., <code>pi</code>), so you do not need to type it manually.</p>
+  <p><code>sudo chmod 775 /mnt/usbdrive/shared</code> — sets the folder's permissions so that the owner and group can read and write files, and others can read. This is the right balance for a home file server.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> Some guides suggest <code>chmod 777</code> for shared folders. This gives every account on the Pi (including any that might be compromised) full read/write access. Using <code>chmod 775</code> combined with correct Samba user settings (which we set up next) is more secure and is the right approach for a home server.</div>
+
+<h3>Step 2 — Install Samba</h3>
+
+<pre class="code"><code>sudo apt update
+sudo apt install samba -y</code></pre>
+<div class="explain">
+  <p><code>sudo apt update</code> — refreshes the Pi's list of available software from the internet. Always do this before installing something new.</p>
+  <p><code>sudo apt install samba -y</code> — downloads and installs Samba. The <code>-y</code> flag automatically answers "yes" to the "do you want to continue?" question, so you do not have to type it.</p>
+</div>
+
+<p>Confirm it installed correctly:</p>
+
+<pre class="code"><code>samba --version</code></pre>
+<div class="explain">
+  <p>Prints the Samba version number. If you see something like <code>Version 4.17.x</code> or higher, the install succeeded. On Bookworm the version will be 4.17 or newer.</p>
+</div>
+
+<h3>Step 3 — Configure the shared folder</h3>
+
+<p>Samba's configuration lives in a single text file: <code>/etc/samba/smb.conf</code>. You are going to add a section at the very bottom of that file describing your share. First, take a backup of the original file so you can always restore it:</p>
+
+<pre class="code"><code>sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.bak</code></pre>
+<div class="explain">
+  <p>Copies the original configuration file to a backup file called <code>smb.conf.bak</code>. If anything goes wrong, you can restore the original with <code>sudo cp /etc/samba/smb.conf.bak /etc/samba/smb.conf</code>.</p>
+</div>
+
+<p>Now open the file in the Nano text editor:</p>
+
+<pre class="code"><code>sudo nano /etc/samba/smb.conf</code></pre>
+<div class="explain">
+  <p>Opens the Samba configuration file in Nano, a simple terminal text editor. <code>sudo</code> is required because this is a system file that only the administrator may change.</p>
+</div>
+
+<p>Use the arrow keys to scroll all the way to the very bottom of the file. Then type the following block exactly as shown (spacing does not matter much, but the square brackets, equals signs, and exact keywords do):</p>
+
+<pre class="code"><code>[PiShare]
+   comment = Raspberry Pi Shared Folder
+   path = /mnt/usbdrive/shared
+   browseable = yes
+   writable = yes
+   guest ok = no
+   valid users = %S
+   force user = pi
+   create mask = 0664
+   directory mask = 0775</code></pre>
+<div class="explain">
+  <p><code>[PiShare]</code> — the name of the share. This is what Windows shows (for example, <code>\\raspberrypi\PiShare</code>). You can name it anything you like, but do not use spaces.</p>
+  <p><code>comment</code> — a friendly description that Windows shows when browsing the network.</p>
+  <p><code>path</code> — the actual folder on the Pi that this share points to.</p>
+  <p><code>browseable = yes</code> — the share shows up automatically when Windows browses the network.</p>
+  <p><code>writable = yes</code> — connected users can save and delete files, not just read them.</p>
+  <p><code>guest ok = no</code> — anonymous access is not allowed; a password is required.</p>
+  <p><code>valid users = %S</code> — only the user who authenticated to this share may connect (<code>%S</code> is a Samba variable meaning "the current share name's user"). You can also write <code>valid users = pi</code> if you prefer to be explicit.</p>
+  <p><code>force user = pi</code> — any file written through the share is owned by the <code>pi</code> account on the Pi. Replace <code>pi</code> with your actual username if it is different.</p>
+  <p><code>create mask = 0664</code> — new files created through the share get sensible read/write permissions.</p>
+  <p><code>directory mask = 0775</code> — new folders created through the share also get sensible permissions.</p>
+</div>
+
+<p>Save and close: press <code>Ctrl + O</code>, then Enter to confirm the filename, then <code>Ctrl + X</code> to exit Nano.</p>
+
+<div class="note"><strong>Note:</strong> If your Pi username is not <code>pi</code>, check it by typing <code>whoami</code> in a terminal. Replace <code>pi</code> in the <code>force user</code> line with whatever your username is.</div>
+
+<p>Check that your edited file has no typos:</p>
+
+<pre class="code"><code>testparm</code></pre>
+<div class="explain">
+  <p><code>testparm</code> — a built-in Samba tool that reads your <code>smb.conf</code> and reports any errors. If it ends with "Loaded services file OK", your configuration is valid. If you see errors, open the file again with <code>sudo nano /etc/samba/smb.conf</code> and check your typing carefully.</p>
+</div>
+
+<h3>Step 4 — Set a Samba password</h3>
+
+<p>Samba keeps its own password list separately from your Linux login password. You need to add your Pi user to that list:</p>
+
+<pre class="code"><code>sudo smbpasswd -a pi</code></pre>
+<div class="explain">
+  <p><code>sudo smbpasswd -a pi</code> — adds the user <code>pi</code> to Samba's password database. The <code>-a</code> flag means "add". You will be prompted to type a new password twice. Choose something you will remember — you will need to enter it on Windows when connecting. Replace <code>pi</code> with your actual username if it is different.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Your Samba password does not have to be the same as your Linux login password. Many people keep them the same for simplicity, but they are stored in two separate places by Samba.</div>
+
+<h3>Step 5 — Restart Samba</h3>
+
+<pre class="code"><code>sudo systemctl restart smbd
+sudo systemctl enable smbd</code></pre>
+<div class="explain">
+  <p><code>sudo systemctl restart smbd</code> — stops and starts the Samba service (<code>smbd</code> stands for "Samba Daemon") so it picks up your new configuration.</p>
+  <p><code>sudo systemctl enable smbd</code> — tells the Pi to start Samba automatically every time it boots, so you do not need to restart it manually after a reboot.</p>
+</div>
+
+<p>Check it is running:</p>
+
+<pre class="code"><code>sudo systemctl status smbd</code></pre>
+<div class="explain">
+  <p>Shows whether the Samba service is active. You want to see <code>active (running)</code> highlighted in green. Press <code>q</code> to exit the status view and return to the command prompt.</p>
+</div>
+
+<h3>Step 6 — Find your Pi's name or IP address</h3>
+
+<p>You will need either the Pi's hostname or its IP address to connect from Windows. Run:</p>
+
+<pre class="code"><code>hostname
+hostname -I</code></pre>
+<div class="explain">
+  <p><code>hostname</code> — prints your Pi's network name. By default this is <code>raspberrypi</code>.</p>
+  <p><code>hostname -I</code> — prints the Pi's IP address on your home network, for example <code>192.168.1.42</code>. The first address shown is the one you want. Write it down — you will use it in the next step.</p>
+</div>
+
+<h3>Step 7 — Connect from Windows</h3>
+
+<ol class="steps">
+  <li>On your Windows PC, open <strong>File Explorer</strong> (the folder icon in the taskbar, or press <code>Win + E</code>).</li>
+  <li>Click in the address bar at the top and type one of the following, then press Enter:
+    <ul>
+      <li><code>\\raspberrypi\PiShare</code> — using the hostname (works if your router supports name resolution)</li>
+      <li><code>\\192.168.1.42\PiShare</code> — using the IP address (always works; replace with your actual IP)</li>
+    </ul>
+  </li>
+  <li>Windows will ask for a username and password. Enter <code>pi</code> (or your actual Pi username) and the Samba password you set in Step 4.</li>
+  <li>Tick <strong>"Remember my credentials"</strong> so you do not need to log in every time.</li>
+  <li>The shared folder opens. You can drag and drop files into it, create folders, and save documents directly from Word or any other Windows application — just as if it were a local drive.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> To make the share appear as a permanent drive letter (like <code>Z:</code>) in Windows, right-click on the share in File Explorer after connecting, choose <strong>Map network drive</strong>, pick a letter, and tick <strong>Reconnect at sign-in</strong>. From that moment on, your Pi share appears as a lettered drive every time you start Windows.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 620 310" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <!-- Windows PC box -->
+  <rect x="20" y="75" width="145" height="100" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <rect x="38" y="90" width="109" height="58" rx="3" fill="#e0d9f7" stroke="#6d28d9" stroke-width="1"/>
+  <rect x="75" y="152" width="35" height="7" rx="2" fill="#6d28d9"/>
+  <text x="92" y="183" text-anchor="middle" fill="#1f2933" font-size="13" font-weight="bold">Windows PC</text>
+  <text x="92" y="198" text-anchor="middle" fill="#1f2933" font-size="11">File Explorer</text>
+  <!-- double-headed arrow PC <-> Router -->
+  <defs>
+    <marker id="arrL" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+      <path d="M8,0 L8,6 L0,3 z" fill="#0ea5a4"/>
+    </marker>
+    <marker id="arrR" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#0ea5a4"/>
+    </marker>
+  </defs>
+  <line x1="168" y1="125" x2="232" y2="125" stroke="#0ea5a4" stroke-width="2.5" marker-start="url(#arrL)" marker-end="url(#arrR)"/>
+  <text x="200" y="115" text-anchor="middle" fill="#0ea5a4" font-size="11">SMB</text>
+  <!-- Router box -->
+  <rect x="232" y="90" width="110" height="70" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <text x="287" y="128" text-anchor="middle" fill="#1f2933" font-size="13" font-weight="bold">Router</text>
+  <text x="287" y="145" text-anchor="middle" fill="#1f2933" font-size="10">Home network</text>
+  <!-- double-headed arrow Router <-> Pi -->
+  <line x1="344" y1="125" x2="418" y2="125" stroke="#0ea5a4" stroke-width="2.5" marker-start="url(#arrL)" marker-end="url(#arrR)"/>
+  <text x="381" y="115" text-anchor="middle" fill="#0ea5a4" font-size="11">Wi-Fi / cable</text>
+  <!-- Pi box -->
+  <rect x="418" y="55" width="165" height="150" rx="8" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
+  <rect x="432" y="70" width="137" height="62" rx="4" fill="#e0d9f7" stroke="#6d28d9" stroke-width="1"/>
+  <text x="500" y="94" text-anchor="middle" fill="#6d28d9" font-size="12" font-weight="bold">Raspberry Pi 5</text>
+  <text x="500" y="110" text-anchor="middle" fill="#1f2933" font-size="10">Samba running</text>
+  <text x="500" y="124" text-anchor="middle" fill="#1f2933" font-size="10">\\raspberrypi\PiShare</text>
+  <!-- USB drive icon inside Pi box -->
+  <rect x="472" y="148" width="56" height="30" rx="4" fill="#0ea5a4" opacity="0.85"/>
+  <rect x="491" y="142" width="18" height="9" rx="2" fill="#0ea5a4"/>
+  <text x="500" y="167" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">USB drive</text>
+  <text x="500" y="215" text-anchor="middle" fill="#1f2933" font-size="11">/mnt/usbdrive/shared</text>
+  <!-- Caption line -->
+  <text x="310" y="278" text-anchor="middle" fill="#1f2933" font-size="12">Samba lets Windows see the Pi's shared folder as if it were a network drive</text>
+</svg>
+<figcaption>A home Samba file server: the Windows PC and the Pi communicate over your existing home router. No extra hardware needed.</figcaption>
+</figure>
+
+<h3>Making the USB drive mount automatically on boot</h3>
+
+<p>At the moment, if the Pi restarts the USB drive may not mount automatically, and Samba will not be able to find the shared folder. Fix this by adding the drive to the Pi's startup mount list.</p>
+
+<p>First, find the drive's unique identifier (called a UUID):</p>
+
+<pre class="code"><code>sudo blkid /dev/sda1</code></pre>
+<div class="explain">
+  <p><code>sudo blkid /dev/sda1</code> — prints details about the partition, including its UUID, which looks something like <code>UUID="A1B2-C3D4"</code> for a FAT32 drive or <code>UUID="a1b2c3d4-e5f6-..."</code> for a Linux-formatted drive. Copy this string carefully — you will need it in the next step. The output also shows the filesystem type (e.g., <code>TYPE="vfat"</code>, <code>TYPE="ntfs"</code>, <code>TYPE="exfat"</code>, <code>TYPE="ext4"</code>).</p>
+</div>
+
+<div class="note"><strong>Note:</strong> Make a note of both the UUID <em>and</em> the TYPE shown by <code>blkid</code>. You will need both for the next step. Common types you might see: <code>vfat</code> = FAT32 (typical for drives formatted on Windows up to 32 GB), <code>exfat</code> = exFAT (Windows drives over 32 GB), <code>ntfs</code> = NTFS (Windows drives formatted for large files), <code>ext4</code> = Linux format.</div>
+
+<p>If your drive is exFAT formatted, install the tools to support it (they are not installed by default on Bookworm):</p>
+
+<pre class="code"><code>sudo apt install exfatprogs -y</code></pre>
+<div class="explain">
+  <p>Installs the <code>exfatprogs</code> package, which gives the Pi the ability to read and write exFAT-formatted drives. Only needed if your drive is exFAT. Skip this step if your drive is FAT32, NTFS, or ext4.</p>
+</div>
+
+<p>If your drive is NTFS formatted, install the NTFS support package:</p>
+
+<pre class="code"><code>sudo apt install ntfs-3g -y</code></pre>
+<div class="explain">
+  <p>Installs <code>ntfs-3g</code>, the open-source driver that lets Linux read and write NTFS drives (the format used by most Windows drives). Only needed for NTFS drives.</p>
+</div>
+
+<p>Now open the file system table to add the drive to the boot-time mount list:</p>
+
+<pre class="code"><code>sudo nano /etc/fstab</code></pre>
+<div class="explain">
+  <p><code>/etc/fstab</code> — the "file system table". This is the list of drives the Pi mounts automatically on startup. You are adding your USB drive to this list so it is always available when the Pi boots.</p>
+</div>
+
+<p>Add a new line at the very bottom of the file. Use the correct TYPE you noted above. Examples for each format are shown — use only the one that matches your drive:</p>
+
+<pre class="code"><code># FAT32 drive (vfat):
+UUID=XXXX-XXXX  /mnt/usbdrive  vfat  defaults,nofail,uid=1000,gid=1000  0  0
+
+# exFAT drive:
+UUID=XXXX-XXXX  /mnt/usbdrive  exfat  defaults,nofail,uid=1000,gid=1000  0  0
+
+# NTFS drive:
+UUID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX  /mnt/usbdrive  ntfs-3g  defaults,nofail,uid=1000,gid=1000  0  0
+
+# Linux ext4 drive:
+UUID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX  /mnt/usbdrive  ext4  defaults,nofail  0  0</code></pre>
+<div class="explain">
+  <p><code># FAT32 drive (vfat):</code> — lines beginning with <code>#</code> are comments (ignored by the system). These are just labels to help you pick the right line.</p>
+  <p><code>UUID=XXXX-XXXX</code> — replace this with your actual UUID from the <code>blkid</code> output. This identifies the drive by its permanent ID rather than its device name (which can change).</p>
+  <p><code>/mnt/usbdrive</code> — the folder where the drive will be mounted (you created this earlier).</p>
+  <p><code>vfat</code> / <code>exfat</code> / <code>ntfs-3g</code> / <code>ext4</code> — the filesystem type. Use the one that matches your drive. Note that NTFS uses <code>ntfs-3g</code> (not just <code>ntfs</code>) so that the full-featured driver is used.</p>
+  <p><code>defaults,nofail</code> — use standard settings; <code>nofail</code> is critical — it means "if the drive is missing at boot, do not panic or halt — just continue booting normally".</p>
+  <p><code>uid=1000,gid=1000</code> — makes the drive's files owned by the main user account (user ID 1000 is the first user created on Raspberry Pi OS, which is your account). This option applies to FAT32, exFAT, and NTFS — not ext4, which stores ownership in the filesystem itself.</p>
+  <p><code>0  0</code> — tells the Pi not to dump or automatically check this drive at startup.</p>
+</div>
+
+<p>Add only the one line relevant to your drive type, replacing <code>XXXX-XXXX</code> with your actual UUID. Save with <code>Ctrl + O</code>, Enter, <code>Ctrl + X</code>. Then test the entry without rebooting:</p>
+
+<pre class="code"><code>sudo mount -a</code></pre>
+<div class="explain">
+  <p><code>sudo mount -a</code> — attempts to mount everything listed in <code>/etc/fstab</code> that is not already mounted. If there is a typo in your fstab entry, this command will show an error immediately so you can fix it before rebooting. If it runs silently with no errors, your entry is correct.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> A typo in <code>/etc/fstab</code> can prevent the Pi from booting into a full desktop. Always run <code>sudo mount -a</code> immediately after editing to test for errors. If you do accidentally break the boot, remove the USB drive and reboot — with <code>nofail</code> set, the Pi should boot anyway without that drive and let you log in to fix the file.</div>
+
+<h2 id="part-b-your-own-private-cloud-with-nextcloud">Part B — Your Own Private Cloud with Nextcloud</h2>
+
+<h3>What is Nextcloud and why would you want it?</h3>
+
+<p>Samba is brilliant for accessing files on your home network, but it has one limitation: it only works when you are connected to that same network at home. <strong>Nextcloud</strong> is a full personal cloud platform — think of it as a self-hosted version of Dropbox or Google Drive. It gives you:</p>
+
+<ul>
+  <li>A web browser interface to upload, download, and manage files from any device.</li>
+  <li>Automatic photo backup from your phone (Android and iPhone both supported).</li>
+  <li>A shared calendar and contacts that sync to your phone and PC.</li>
+  <li>Notes, tasks, and dozens of optional add-on apps.</li>
+  <li>Total privacy — your data lives on your hardware, not on anyone else's servers.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Nextcloud</em> is free, open-source software that gives you all the features of Google Drive or Dropbox, but stores everything on your own Pi. Nobody else can access your files.</div>
+
+<h3>Samba vs Nextcloud — which should you use?</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Samba (Part A)</th>
+      <th>Nextcloud (Part B)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Access from home network</td>
+      <td>Yes — fast and seamless</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Access from outside home</td>
+      <td>No (not without complex setup)</td>
+      <td>Yes (with port forwarding — see Chapter 20)</td>
+    </tr>
+    <tr>
+      <td>Phone app / auto photo backup</td>
+      <td>No</td>
+      <td>Yes (iOS and Android)</td>
+    </tr>
+    <tr>
+      <td>Calendar and contacts sync</td>
+      <td>No</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Browser-based file manager</td>
+      <td>No</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Difficulty to set up</td>
+      <td>Easy</td>
+      <td>Medium (we use the easiest route)</td>
+    </tr>
+    <tr>
+      <td>Resource usage</td>
+      <td>Very light</td>
+      <td>Moderate (perfectly fine on a Pi 5 with 16 GB RAM)</td>
+    </tr>
+    <tr>
+      <td>Best for</td>
+      <td>Simple local file sharing</td>
+      <td>Full personal cloud, remote access, phone backup</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> You can run both Samba and Nextcloud at the same time on the same Pi. They do not conflict with each other. Many people use Samba for everyday local file access and Nextcloud for phone backups and browser-based access.</div>
+
+<h3>The easiest installation route: Snap</h3>
+
+<p>There are several ways to install Nextcloud. The simplest for beginners is a <strong>snap package</strong> — a self-contained bundle that installs Nextcloud and everything it needs (a web server, a database, background workers) in one single command, without you having to configure any of those pieces separately.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>snap</em> is a type of software package that bundles an application together with all the extra software it depends on, so you do not have to install or configure those pieces yourself. Think of it as buying a ready-made meal rather than cooking from scratch.</div>
+
+<p>First, make sure the snap system is installed and up to date:</p>
+
+<pre class="code"><code>sudo apt update
+sudo apt install snapd -y</code></pre>
+<div class="explain">
+  <p><code>sudo apt update</code> — refreshes the package list.</p>
+  <p><code>sudo apt install snapd -y</code> — installs the snap package manager. If it is already present, this does nothing harmful.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> After installing <code>snapd</code> for the first time, you <em>must</em> reboot before installing any snap package. Snap will not work correctly until the Pi has restarted. Run <code>sudo reboot</code> now and wait for the Pi to come back up before continuing.</div>
+
+<pre class="code"><code>sudo reboot</code></pre>
+<div class="explain">
+  <p>Restarts the Pi. Wait about 30 seconds for it to come back up, then open a new terminal or reconnect via SSH before continuing. This reboot is required for <code>snapd</code> to fully initialise itself.</p>
+</div>
+
+<p>After the Pi has restarted, install Nextcloud:</p>
+
+<pre class="code"><code>sudo snap install nextcloud</code></pre>
+<div class="explain">
+  <p>Downloads and installs the Nextcloud snap package. This will take several minutes as it is a large download (several hundred megabytes). You will see a progress indicator. When it finishes you will see a message like <code>nextcloud 28.x.x from Nextcloud&#x2713; installed</code>.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> The snap version of Nextcloud is maintained by the Nextcloud team themselves and is regularly updated. It bundles the Apache web server, a MySQL-compatible database, and PHP — all the parts Nextcloud needs — so you do not have to install or configure any of them separately.</div>
+
+<h3>Step 1 — Create your admin account</h3>
+
+<p>The snap installs Nextcloud but waits for you to choose an administrator username and password before it starts. Run the following command, replacing the placeholders with your choices:</p>
+
+<pre class="code"><code>sudo nextcloud.manual-install admin YourStrongPasswordHere</code></pre>
+<div class="explain">
+  <p><code>sudo nextcloud.manual-install</code> — runs the Nextcloud first-run installer that is included in the snap.</p>
+  <p><code>admin</code> — the administrator username you will use to log in. You can change this to anything you like (for example, your first name).</p>
+  <p><code>YourStrongPasswordHere</code> — your admin password. Choose something strong — at least 12 characters with a mix of upper and lower case letters, numbers, and symbols. This is what protects your entire cloud.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> Do not use the example password shown above. Choose your own strong password and write it down somewhere safe. If you lose the admin password, recovering access is a technical process and can result in losing access to your files.</div>
+
+<h3>Step 2 — Allow your home network to access Nextcloud</h3>
+
+<p>By default Nextcloud only accepts connections from the Pi itself (called "localhost"). You need to tell it to also accept connections coming from your home network, using the Pi's IP address.</p>
+
+<p>First, check your Pi's IP address if you have not done so already:</p>
+
+<pre class="code"><code>hostname -I</code></pre>
+<div class="explain">
+  <p>Prints the Pi's IP address on your local network. Note the first address shown — it will be something like <code>192.168.1.42</code>. Use your actual address in the commands below.</p>
+</div>
+
+<p>Now add your Pi's IP address as a trusted domain for Nextcloud:</p>
+
+<pre class="code"><code>sudo nextcloud.occ config:system:set trusted_domains 1 --value=192.168.1.42</code></pre>
+<div class="explain">
+  <p><code>sudo nextcloud.occ</code> — the Nextcloud command-line management tool, included in the snap. <code>occ</code> stands for "ownCloud Console" — Nextcloud evolved from a project called ownCloud and kept the tool name.</p>
+  <p><code>config:system:set trusted_domains 1</code> — adds a second trusted domain entry (slot 0 is already set to <code>localhost</code>). Slot 1 is the first one you are adding.</p>
+  <p><code>--value=192.168.1.42</code> — replace this with your Pi's actual IP address. This tells Nextcloud "it is safe to serve web pages to browsers that connect using this address".</p>
+</div>
+
+<p>Also add your Pi's hostname so you can connect using either the name or the IP address:</p>
+
+<pre class="code"><code>sudo nextcloud.occ config:system:set trusted_domains 2 --value=raspberrypi</code></pre>
+<div class="explain">
+  <p>Adds <code>raspberrypi</code> (the Pi's default hostname) as a third trusted domain (slot 2). After this you can reach Nextcloud at either <code>http://192.168.1.42</code> or <code>http://raspberrypi</code> from any device on your home network.</p>
+</div>
+
+<h3>Step 3 — Point Nextcloud at your USB drive for storage</h3>
+
+<p>By default the Nextcloud snap stores all uploaded files on the microSD card. For a home server holding photos and documents, you almost certainly want it to use your larger, more durable USB drive instead. Do this now — before you upload any files — because moving the data directory after files have been added is more complex.</p>
+
+<p>Make sure your USB drive is mounted at <code>/mnt/usbdrive</code> (as set up in Part A). Then create a dedicated folder for Nextcloud's data:</p>
+
+<pre class="code"><code>sudo mkdir -p /mnt/usbdrive/nextcloud-data</code></pre>
+<div class="explain">
+  <p>Creates a folder on the USB drive that Nextcloud will use to store all uploaded files, photos, and documents. The <code>-p</code> flag prevents an error if the folder already exists.</p>
+</div>
+
+<p>Set the correct permissions on that folder so the Nextcloud snap can write to it:</p>
+
+<pre class="code"><code>sudo chown -R www-data:www-data /mnt/usbdrive/nextcloud-data
+sudo chmod 750 /mnt/usbdrive/nextcloud-data</code></pre>
+<div class="explain">
+  <p><code>sudo chown -R www-data:www-data /mnt/usbdrive/nextcloud-data</code> — sets the owner and group of the folder to <code>www-data</code>. This is the user account that the Nextcloud snap's web server runs as. Without this, Nextcloud cannot write files there.</p>
+  <p><code>sudo chmod 750 /mnt/usbdrive/nextcloud-data</code> — sets permissions so that <code>www-data</code> has full access, other accounts in the same group can read, and everyone else is locked out. This is the correct, secure setting for a Nextcloud data folder.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> The ownership (<code>www-data</code>) matters. If you used <code>chown root:root</code> or your own username, Nextcloud will fail silently and uploads will not work. Use <code>www-data</code> exactly as shown.</div>
+
+<p>Now tell Nextcloud to use this folder as its data directory:</p>
+
+<pre class="code"><code>sudo nextcloud.occ config:system:set datadirectory --value=/mnt/usbdrive/nextcloud-data</code></pre>
+<div class="explain">
+  <p>Updates Nextcloud's configuration to point its data storage at the new folder on the USB drive. From now on, every file you upload through Nextcloud will be saved there.</p>
+</div>
+
+<p>Restart Nextcloud to apply all changes:</p>
+
+<pre class="code"><code>sudo snap restart nextcloud</code></pre>
+<div class="explain">
+  <p>Stops and restarts all the components bundled in the Nextcloud snap — the web server, database, and background job workers. This is necessary for the new configuration to take effect.</p>
+</div>
+
+<h3>Step 4 — Open Nextcloud in a browser</h3>
+
+<ol class="steps">
+  <li>On any device on your home network (your Windows PC, your phone, your tablet), open a web browser.</li>
+  <li>Type your Pi's IP address into the browser's address bar and press Enter: <code>http://192.168.1.42</code> (use your actual IP address).</li>
+  <li>The Nextcloud login page appears. Log in with the admin username and password you chose in Step 1.</li>
+  <li>Nextcloud may show a short "first run" wizard — follow the prompts or click <strong>Skip</strong> to go straight to your files.</li>
+  <li>You are inside your private cloud. Click the <strong>Files</strong> icon to see your file storage. Click the <strong>+</strong> (upload) button to upload your first file.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Nextcloud works on any device with a modern web browser — Windows, Mac, Android, iPhone. There is nothing to install on the other devices to use the web interface. Just open a browser and go to your Pi's address.</div>
+
+<h3>Step 5 — Install the Nextcloud phone app</h3>
+
+<p>The real power of having a personal cloud on your phone is automatic photo backup — every photo you take is silently copied to your Pi in the background, giving you a private alternative to iCloud or Google Photos.</p>
+
+<ol class="steps">
+  <li>On your Android phone, open the <strong>Play Store</strong> and search for <strong>Nextcloud</strong>. On iPhone, open the <strong>App Store</strong>. Install the free official Nextcloud app (blue icon).</li>
+  <li>Open the app. Tap <strong>Log in</strong>.</li>
+  <li>When asked for the server address, enter: <code>http://192.168.1.42</code> (your Pi's IP address). Note that you must be on the same home Wi-Fi network as the Pi for this to work. Tap <strong>Next</strong>.</li>
+  <li>Log in with your admin username and password.</li>
+  <li>To enable auto backup: on Android, tap the three-line menu, then <strong>Auto upload</strong>. On iPhone, tap the <strong>Photos</strong> tab. Enable automatic upload and choose <strong>Wi-Fi only</strong> to avoid using mobile data.</li>
+</ol>
+
+<p>From this point on, every photo or video you take will automatically back itself up to your Pi the next time your phone is connected to your home Wi-Fi network.</p>
+
+<div class="tip"><strong>Tip:</strong> The Nextcloud app also lets you access all your Pi files from your phone — you can open documents, play music, and view photos stored on the Pi without them taking up space on your phone's internal storage.</div>
+
+<h3>Keeping Nextcloud updated</h3>
+
+<p>Because you installed Nextcloud as a snap, updates are handled automatically in the background by the snap system. If you ever want to check for or apply an update manually:</p>
+
+<pre class="code"><code>sudo snap refresh nextcloud</code></pre>
+<div class="explain">
+  <p>Checks whether a newer version of the Nextcloud snap is available and installs it if so. This is safe to run at any time. If Nextcloud is already up to date, it will tell you so and do nothing.</p>
+</div>
+
+<h3>Security: keep your cloud private</h3>
+
+<div class="warn"><strong>Careful:</strong> The setup in this chapter makes Nextcloud accessible only on your <em>home network</em>. Do <strong>not</strong> open your router's firewall to expose Nextcloud to the internet without first reading Chapter 20, which covers HTTPS encryption certificates, firewall rules, and using a reverse proxy or VPN tunnel. Exposing a web service to the open internet without those protections could allow strangers to attempt to log in to your cloud or access your files.</div>
+
+<p>As long as Nextcloud is reachable only on your home Wi-Fi (the default after following this chapter), it is protected by your router's built-in firewall. Visitors to your home cannot reach it unless they are connected to your Wi-Fi.</p>
+
+<h3>Keeping everything backed up</h3>
+
+<p>A home server is only as useful as its backups. The Pi and the USB drive are in your home — a power surge, a flood, or a fire could wipe everything out. Always follow the 3-2-1 backup rule:</p>
+
+<div class="jargon"><strong>In plain words:</strong> The <em>3-2-1 rule</em> says: keep <strong>3</strong> copies of your data, on <strong>2</strong> different types of storage, with <strong>1</strong> copy stored somewhere physically separate (offsite or in the cloud). For example: original on the Pi's USB drive (copy 1), a second USB drive stored in a cupboard (copy 2), and a copy uploaded to a free cloud service or held at a family member's house (copy 3).</div>
+
+<p>A simple way to back up the Nextcloud data folder to a second USB drive (which you would mount at <code>/mnt/backup-drive</code>):</p>
+
+<pre class="code"><code>sudo rsync -av /mnt/usbdrive/nextcloud-data/ /mnt/backup-drive/nextcloud-backup/</code></pre>
+<div class="explain">
+  <p><code>sudo rsync</code> — "remote sync", a powerful and efficient tool for copying files. It only copies files that have changed since the last run, so after the first full copy, subsequent runs are very fast.</p>
+  <p><code>-a</code> — "archive mode": preserves file permissions, ownership, timestamps, and copies all subdirectories recursively.</p>
+  <p><code>-v</code> — "verbose": prints the name of each file as it copies it, so you can see what is happening.</p>
+  <p><code>/mnt/usbdrive/nextcloud-data/</code> — the source folder (your Nextcloud data). The trailing slash is important — it means "copy the <em>contents</em> of this folder", not the folder itself.</p>
+  <p><code>/mnt/backup-drive/nextcloud-backup/</code> — the destination folder on a second USB drive. You would need to mount that second drive at <code>/mnt/backup-drive</code> first.</p>
+</div>
+
+<p>You can automate this backup to run every night using <code>cron</code> — the scheduling tool covered in Chapter 15.</p>
+
+<h3>Keeping the Pi powered safely</h3>
+
+<div class="warn"><strong>Careful:</strong> A home server needs reliable power. If the Pi loses power while writing files, those files can become corrupted. Consider plugging the Pi's power supply into a small UPS (Uninterruptible Power Supply) — a battery backup box available for around £30–60 that keeps the Pi running for 10–30 minutes during a power cut, giving it time to finish what it is doing and shut down gracefully.</div>
+
+<div class="note"><strong>Note:</strong> When you want to switch the Pi off properly, always shut it down from the desktop menu or by typing <code>sudo shutdown -h now</code> in a terminal, then wait for the activity light to stop blinking before unplugging the power. Never just pull the power cable — this is the most common cause of microSD card corruption.</div>
+
+<h2 id="troubleshooting-common-problems">Troubleshooting common problems</h2>
+
+<h3>Windows cannot see the Pi on the network</h3>
+<ul>
+  <li>Make sure both devices are on the <em>same</em> network (same router, same Wi-Fi network name).</li>
+  <li>Try connecting by IP address (<code>\\192.168.1.42\PiShare</code>) rather than by hostname — some routers do not pass hostnames between devices.</li>
+  <li>Check Samba is running: <code>sudo systemctl status smbd</code></li>
+  <li>Check whether the Pi's firewall is active and blocking Samba: <code>sudo ufw status</code>. If it shows as active, allow Samba through with: <code>sudo ufw allow samba</code></li>
+  <li>On Windows, make sure "Network discovery" is turned on. Open <strong>Settings &rarr; Network &amp; Internet &rarr; Advanced network settings &rarr; Advanced sharing settings</strong> and enable network discovery.</li>
+</ul>
+
+<h3>Nextcloud shows a warning about "insecure connection" or "not secure"</h3>
+<p>This is expected when using plain <code>http://</code> rather than encrypted <code>https://</code>. Within your home Wi-Fi, the connection is acceptable — your router already encrypts the Wi-Fi signal itself. If you want a proper padlock in the browser bar (which is especially important before enabling access from outside your home), Chapter 20 explains how to add a proper HTTPS certificate.</p>
+
+<h3>Nextcloud is very slow</h3>
+<ul>
+  <li>Check the Pi is not overheating: run <code>vcgencmd measure_temp</code> in a terminal. If the temperature is above 80°C, improve ventilation around the Pi or check the active cooler fan is spinning.</li>
+  <li>Make sure the USB drive is plugged into one of the <strong>blue</strong> USB 3.0 ports (the two at the back of the board), not the black USB 2.0 ports. USB 3.0 is around ten times faster for large file transfers.</li>
+  <li>The first time Nextcloud scans the data folder or processes a large photo album, it will be briefly slow — this is normal and will speed up after the initial indexing is complete.</li>
+</ul>
+
+<h3>Nextcloud shows "Could not connect to database"</h3>
+<p>The snap's internal database service may not have started yet. Wait 60 seconds after a reboot and try again, or manually restart the snap: <code>sudo snap restart nextcloud</code></p>
+
+<h3>The shared USB drive does not appear after a reboot</h3>
+<ul>
+  <li>Check the <code>/etc/fstab</code> entry you added. Open it with <code>sudo nano /etc/fstab</code> and look for typos.</li>
+  <li>Run <code>sudo mount -a</code> and watch for any error messages — they will tell you exactly what is wrong.</li>
+  <li>Make sure you have the correct filesystem type. If in doubt, run <code>sudo blkid /dev/sda1</code> again to check. Remember to use <code>ntfs-3g</code> (not just <code>ntfs</code>) for NTFS drives, and make sure <code>ntfs-3g</code> is installed.</li>
+</ul>
+
+<figure class="fig">
+<svg viewBox="0 0 620 370" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <text x="310" y="28" text-anchor="middle" fill="#1f2933" font-size="15" font-weight="bold">How Nextcloud, Samba, and your storage fit together</text>
+
+  <!-- USB drive -->
+  <rect x="240" y="45" width="140" height="54" rx="8" fill="#0ea5a4" opacity="0.15" stroke="#0ea5a4" stroke-width="2"/>
+  <text x="310" y="68" text-anchor="middle" fill="#0ea5a4" font-size="12" font-weight="bold">USB Drive</text>
+  <text x="310" y="84" text-anchor="middle" fill="#1f2933" font-size="10">/mnt/usbdrive/</text>
+
+  <!-- Samba share folder -->
+  <rect x="80" y="145" width="150" height="50" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="155" y="167" text-anchor="middle" fill="#6d28d9" font-size="12" font-weight="bold">Samba</text>
+  <text x="155" y="183" text-anchor="middle" fill="#1f2933" font-size="10">shared/  →  \\pi\PiShare</text>
+
+  <!-- Nextcloud data folder -->
+  <rect x="390" y="145" width="150" height="50" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="465" y="167" text-anchor="middle" fill="#6d28d9" font-size="12" font-weight="bold">Nextcloud</text>
+  <text x="465" y="183" text-anchor="middle" fill="#1f2933" font-size="10">nextcloud-data/</text>
+
+  <!-- Lines from USB to services -->
+  <line x1="280" y1="99" x2="200" y2="145" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <line x1="340" y1="99" x2="420" y2="145" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+  <!-- Windows PC -->
+  <rect x="30" y="255" width="130" height="60" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="95" y="280" text-anchor="middle" fill="#1f2933" font-size="12" font-weight="bold">Windows PC</text>
+  <text x="95" y="296" text-anchor="middle" fill="#1f2933" font-size="10">File Explorer</text>
+  <text x="95" y="310" text-anchor="middle" fill="#6d28d9" font-size="10">\\pi\PiShare</text>
+
+  <!-- Phone -->
+  <rect x="195" y="255" width="90" height="60" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="240" y="278" text-anchor="middle" fill="#1f2933" font-size="12" font-weight="bold">Phone</text>
+  <text x="240" y="294" text-anchor="middle" fill="#1f2933" font-size="10">Nextcloud</text>
+  <text x="240" y="308" text-anchor="middle" fill="#6d28d9" font-size="10">auto backup</text>
+
+  <!-- Browser -->
+  <rect x="320" y="255" width="130" height="60" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="385" y="280" text-anchor="middle" fill="#1f2933" font-size="12" font-weight="bold">Any browser</text>
+  <text x="385" y="296" text-anchor="middle" fill="#1f2933" font-size="10">http://192.168.x.x</text>
+  <text x="385" y="310" text-anchor="middle" fill="#6d28d9" font-size="10">web interface</text>
+
+  <!-- Tablet -->
+  <rect x="475" y="255" width="120" height="60" rx="6" fill="#f3f0ff" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="535" y="278" text-anchor="middle" fill="#1f2933" font-size="12" font-weight="bold">Tablet</text>
+  <text x="535" y="294" text-anchor="middle" fill="#1f2933" font-size="10">Nextcloud</text>
+  <text x="535" y="310" text-anchor="middle" fill="#6d28d9" font-size="10">app or browser</text>
+
+  <!-- Arrows from Samba to Windows -->
+  <line x1="155" y1="195" x2="115" y2="255" stroke="#0ea5a4" stroke-width="1.5" marker-end="url(#arrSmall)"/>
+  <!-- Arrows from Nextcloud to phone, browser, tablet -->
+  <line x1="440" y1="195" x2="265" y2="255" stroke="#0ea5a4" stroke-width="1.5" marker-end="url(#arrSmall)"/>
+  <line x1="465" y1="195" x2="400" y2="255" stroke="#0ea5a4" stroke-width="1.5" marker-end="url(#arrSmall)"/>
+  <line x1="490" y1="195" x2="530" y2="255" stroke="#0ea5a4" stroke-width="1.5" marker-end="url(#arrSmall)"/>
+
+  <defs>
+    <marker id="arrSmall" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#0ea5a4"/>
+    </marker>
+  </defs>
+
+  <text x="310" y="352" text-anchor="middle" fill="#1f2933" font-size="11">Both services share the same USB drive but use separate folders</text>
+</svg>
+<figcaption>Architecture overview: Samba and Nextcloud both read from the same USB drive but serve different types of clients. You can run both at the same time.</figcaption>
+</figure>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Samba</strong> — free software that lets a Linux computer speak Windows' file-sharing language (SMB), making the Pi's folders appear as network drives in Windows Explorer.</li>
+  <li><strong>SMB (Server Message Block)</strong> — the network protocol Windows uses to share files and printers across a local network. Samba implements this protocol on Linux.</li>
+  <li><strong>File server</strong> — a computer whose main job is to store files and make them available to other computers on the same network.</li>
+  <li><strong>Nextcloud</strong> — free, open-source personal cloud software that gives you a private Dropbox/Google Drive on your own hardware, with browser access, phone backup, and calendar sync.</li>
+  <li><strong>Snap</strong> — a self-contained software package that bundles an application with all its dependencies, simplifying installation and updates.</li>
+  <li><strong>Mount / mounting</strong> — attaching a storage device (like a USB drive) to the Linux file system at a specific folder, so the operating system can read and write it.</li>
+  <li><strong>UUID (Universally Unique Identifier)</strong> — a permanent identifier assigned to a storage partition. Using a UUID in <code>/etc/fstab</code> ensures the correct drive is always mounted, even if device names change between reboots.</li>
+  <li><strong>fstab</strong> — the file <code>/etc/fstab</code> that tells Linux which drives to mount automatically at startup, and how.</li>
+  <li><strong>nofail</strong> — an fstab option that tells the Pi to continue booting normally even if a listed drive is missing or cannot be mounted.</li>
+  <li><strong>www-data</strong> — the user account that web servers on Linux (including Nextcloud's bundled Apache server) run as. Files that a web server needs to write must be owned by this account.</li>
+  <li><strong>trusted_domains</strong> — a Nextcloud security setting that lists the addresses from which it will accept web connections. Addresses not on this list are refused.</li>
+  <li><strong>rsync</strong> — a command-line tool for efficiently copying and synchronising files, only transferring data that has changed since the last run.</li>
+  <li><strong>3-2-1 backup rule</strong> — keep three copies of your data, on two different media types, with one copy stored offsite or in a separate physical location.</li>
+  <li><strong>UPS (Uninterruptible Power Supply)</strong> — a battery backup box that keeps a device running for a short time during a power cut, preventing file corruption from sudden shutdowns.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>Samba turns the Pi into a Windows-compatible file server: install it with <code>apt</code>, add a share block to <code>/etc/samba/smb.conf</code>, set a Samba password with <code>smbpasswd</code>, restart the service, and connect from Windows Explorer using the Pi's IP address.</li>
+  <li>A USB hard drive connected to the Pi's blue USB 3.0 port gives the shared folder far more space and longevity than the microSD card alone.</li>
+  <li>Adding the USB drive to <code>/etc/fstab</code> with the <code>nofail</code> option ensures it mounts automatically on every boot without risking startup failures if the drive is absent.</li>
+  <li>Use the correct filesystem type in fstab: <code>vfat</code> for FAT32, <code>exfat</code> for exFAT (install <code>exfatprogs</code> first), <code>ntfs-3g</code> for NTFS (install <code>ntfs-3g</code> first), or <code>ext4</code> for Linux-formatted drives.</li>
+  <li>After installing <code>snapd</code>, you must reboot the Pi before installing any snap package — this is a required step often missed by beginners.</li>
+  <li>Nextcloud, installed as a single snap package, gives you a full personal cloud: browser-based file access, phone photo backup, and calendar and contacts sync — all stored on your own hardware.</li>
+  <li>The Nextcloud data folder must be owned by the <code>www-data</code> user — not <code>root</code> or your own account — for the snap to write files correctly.</li>
+  <li>The Nextcloud phone app (free, iOS and Android) can automatically back up every photo you take to the Pi whenever your phone is on home Wi-Fi.</li>
+  <li>Keep Nextcloud accessible only on your home network until you have read Chapter 20 on HTTPS and firewall security — never expose it directly to the internet without those protections.</li>
+  <li>Always shut the Pi down gracefully before unplugging it, and consider a UPS to protect against sudden power cuts corrupting your files.</li>
+  <li>Follow the 3-2-1 backup rule — at least one copy of your important data should be stored offsite or on a separate physical drive.</li>
+</ul>
+</div>

@@ -1,0 +1,983 @@
+<p class="lead">This appendix is your quick-reference companion — a single place to look up every important command covered in the book, grouped by topic so you can find what you need in seconds. Keep it bookmarked, dog-eared, or printed out; you will reach for it again and again.</p>
+
+<div class="note"><strong>Note:</strong> Every command here is typed at the <strong>terminal prompt</strong> — the black window you open from the taskbar or by pressing <kbd>Ctrl&nbsp;+&nbsp;Alt&nbsp;+&nbsp;T</kbd> on Raspberry Pi OS. The <code>$</code> sign at the start of examples is not something you type; it simply represents the prompt itself.</div>
+
+<h2 id="how-to-read-this-appendix">How to Read This Appendix</h2>
+
+<p>Each section contains a table. The <strong>left column</strong> shows the exact command (or the most common form of it). The <strong>right column</strong> gives a one-sentence plain-English description of what it does. Where a command needs a placeholder — something you replace with your own value — it is shown in <em>italics inside angle brackets</em>, for example <code>&lt;folder&gt;</code>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>command</strong> is a short text instruction you type into the terminal to make the Pi do something. Think of it as sending a text message to the computer — it reads it and responds immediately.</div>
+
+<h2 id="1-navigating-the-file-system">1 — Navigating the File System</h2>
+
+<p>These commands let you move around the folder structure of your Pi, just like clicking through folders on Windows Explorer.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>pwd</code></td>
+      <td>Print Working Directory — shows the full path of the folder you are currently inside.</td>
+    </tr>
+    <tr>
+      <td><code>ls</code></td>
+      <td>List the files and folders in the current directory.</td>
+    </tr>
+    <tr>
+      <td><code>ls -la</code></td>
+      <td>List everything (including hidden files) with full details: permissions, owner, size, and date.</td>
+    </tr>
+    <tr>
+      <td><code>cd &lt;folder&gt;</code></td>
+      <td>Change Directory — move into the named folder.</td>
+    </tr>
+    <tr>
+      <td><code>cd ..</code></td>
+      <td>Go up one level to the parent folder (two dots means "one level up").</td>
+    </tr>
+    <tr>
+      <td><code>cd ~</code></td>
+      <td>Go straight to your home folder (e.g. <code>/home/pi</code> or <code>/home/&lt;yourname&gt;</code>) from anywhere.</td>
+    </tr>
+    <tr>
+      <td><code>cd /</code></td>
+      <td>Go to the very top (root) of the file system.</td>
+    </tr>
+    <tr>
+      <td><code>tree</code></td>
+      <td>Show the current folder and all its contents as a visual tree (install with <code>sudo apt install tree</code> if missing).</td>
+    </tr>
+    <tr>
+      <td><code>tree -L 2</code></td>
+      <td>Same tree view but limited to two levels deep — useful for large folders.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> Press the <kbd>Tab</kbd> key after typing the first few letters of a folder or file name and the terminal will try to complete it for you automatically. This saves typing and prevents spelling mistakes.</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+    <!-- Background -->
+    <rect x="0" y="0" width="520" height="240" rx="10" fill="#f3f0ff"/>
+    <!-- Title -->
+    <text x="260" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2933">Linux folder tree (simplified)</text>
+    <!-- Root -->
+    <rect x="220" y="38" width="80" height="26" rx="5" fill="#6d28d9"/>
+    <text x="260" y="55" text-anchor="middle" fill="white" font-size="13">/  (root)</text>
+    <!-- Level 1 lines -->
+    <line x1="260" y1="64" x2="260" y2="80" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="80" y1="80" x2="440" y2="80" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="80" y1="80" x2="80" y2="96" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="200" y1="80" x2="200" y2="96" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="320" y1="80" x2="320" y2="96" stroke="#6d28d9" stroke-width="2"/>
+    <line x1="440" y1="80" x2="440" y2="96" stroke="#6d28d9" stroke-width="2"/>
+    <!-- Level 1 boxes -->
+    <rect x="38" y="96" width="84" height="26" rx="5" fill="#0ea5a4"/>
+    <text x="80" y="113" text-anchor="middle" fill="white" font-size="12">/home</text>
+    <rect x="158" y="96" width="84" height="26" rx="5" fill="#0ea5a4"/>
+    <text x="200" y="113" text-anchor="middle" fill="white" font-size="12">/etc</text>
+    <rect x="278" y="96" width="84" height="26" rx="5" fill="#0ea5a4"/>
+    <text x="320" y="113" text-anchor="middle" fill="white" font-size="12">/usr</text>
+    <rect x="398" y="96" width="84" height="26" rx="5" fill="#0ea5a4"/>
+    <text x="440" y="113" text-anchor="middle" fill="white" font-size="12">/var</text>
+    <!-- Level 2 under /home -->
+    <line x1="80" y1="122" x2="80" y2="150" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="28" y="150" width="104" height="26" rx="5" fill="#1f2933"/>
+    <text x="80" y="167" text-anchor="middle" fill="white" font-size="12">/home/pi</text>
+    <!-- star marker -->
+    <text x="10" y="167" text-anchor="start" fill="#6d28d9" font-size="14">&#9733;</text>
+    <text x="130" y="205" text-anchor="start" fill="#6d28d9" font-size="12" font-style="italic">pwd shows this path when you are here</text>
+    <line x1="125" y1="199" x2="100" y2="173" stroke="#6d28d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <!-- level 2 under /etc -->
+    <line x1="200" y1="122" x2="200" y2="150" stroke="#6d28d9" stroke-width="2"/>
+    <rect x="148" y="150" width="104" height="26" rx="5" fill="#1f2933"/>
+    <text x="200" y="167" text-anchor="middle" fill="white" font-size="12">config files</text>
+  </svg>
+  <figcaption>A simplified view of the Linux folder tree. Your home folder (<code>/home/pi</code>) is where you spend most of your time. The star marks a typical current location that <code>pwd</code> would report.</figcaption>
+</figure>
+
+<h2 id="2-working-with-files-and-folders">2 — Working with Files and Folders</h2>
+
+<p>These commands let you create, copy, move, view, and delete files — the everyday tasks you would normally do with a mouse in Windows Explorer.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>mkdir &lt;name&gt;</code></td>
+      <td>Make Directory — create a new folder with the given name.</td>
+    </tr>
+    <tr>
+      <td><code>mkdir -p &lt;path/to/folder&gt;</code></td>
+      <td>Create the folder and any missing parent folders in one go (<code>-p</code> means "parents").</td>
+    </tr>
+    <tr>
+      <td><code>touch &lt;file&gt;</code></td>
+      <td>Create an empty file (or update its timestamp if it already exists).</td>
+    </tr>
+    <tr>
+      <td><code>cp &lt;source&gt; &lt;destination&gt;</code></td>
+      <td>Copy a file from one place to another.</td>
+    </tr>
+    <tr>
+      <td><code>cp -r &lt;folder&gt; &lt;destination&gt;</code></td>
+      <td>Copy a whole folder and everything inside it (<code>-r</code> means "recursive").</td>
+    </tr>
+    <tr>
+      <td><code>mv &lt;source&gt; &lt;destination&gt;</code></td>
+      <td>Move (or rename) a file or folder.</td>
+    </tr>
+    <tr>
+      <td><code>rm &lt;file&gt;</code></td>
+      <td>Remove (permanently delete) a file. There is no Recycle Bin on Linux.</td>
+    </tr>
+    <tr>
+      <td><code>rm -r &lt;folder&gt;</code></td>
+      <td>Delete a folder and all its contents recursively.</td>
+    </tr>
+    <tr>
+      <td><code>nano &lt;file&gt;</code></td>
+      <td>Open a file in the Nano text editor. Use <kbd>Ctrl+O</kbd> to save and <kbd>Ctrl+X</kbd> to quit.</td>
+    </tr>
+    <tr>
+      <td><code>cat &lt;file&gt;</code></td>
+      <td>Print the entire contents of a file directly to the terminal screen.</td>
+    </tr>
+    <tr>
+      <td><code>less &lt;file&gt;</code></td>
+      <td>View a file one page at a time — useful for long files. Press <kbd>q</kbd> to quit.</td>
+    </tr>
+    <tr>
+      <td><code>head -n 20 &lt;file&gt;</code></td>
+      <td>Show only the first 20 lines of a file.</td>
+    </tr>
+    <tr>
+      <td><code>tail -n 20 &lt;file&gt;</code></td>
+      <td>Show only the last 20 lines of a file.</td>
+    </tr>
+    <tr>
+      <td><code>tail -f &lt;file&gt;</code></td>
+      <td>Follow a file live — new lines are printed as they are added (useful for watching log files). Press <kbd>Ctrl+C</kbd> to stop.</td>
+    </tr>
+    <tr>
+      <td><code>grep "&lt;word&gt;" &lt;file&gt;</code></td>
+      <td>Search for a word or phrase inside a file and print every matching line.</td>
+    </tr>
+    <tr>
+      <td><code>grep -r "&lt;word&gt;" &lt;folder&gt;</code></td>
+      <td>Search for a word inside every file in a folder and all its sub-folders.</td>
+    </tr>
+    <tr>
+      <td><code>find . -name "&lt;pattern&gt;"</code></td>
+      <td>Search for files matching a name pattern inside the current folder and all sub-folders (e.g. <code>find . -name "*.py"</code> finds all Python files).</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> <code>rm</code> deletes files immediately and permanently — there is no undo and no Recycle Bin. Double-check what you type before pressing <kbd>Enter</kbd>. Never run <code>rm -rf /</code> — it would attempt to erase everything on the Pi.</div>
+
+<h2 id="3-permissions">3 — Permissions</h2>
+
+<p>Linux keeps careful track of who is allowed to read, change, or run each file. These commands control those rules.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Permissions</strong> are a set of rules attached to every file that decide who can read it, write to it, or run it as a program. Think of them like a lock on a filing cabinet — only authorised people have the key.</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>sudo &lt;command&gt;</code></td>
+      <td>Run any command as the system administrator ("superuser"). You will be asked for your password the first time in a session.</td>
+    </tr>
+    <tr>
+      <td><code>chmod +x &lt;file&gt;</code></td>
+      <td>Make a file executable — allows you to run it as a program.</td>
+    </tr>
+    <tr>
+      <td><code>chmod 644 &lt;file&gt;</code></td>
+      <td>Set standard file permissions: owner can read &amp; write; everyone else can only read.</td>
+    </tr>
+    <tr>
+      <td><code>chmod 755 &lt;file&gt;</code></td>
+      <td>Set standard program permissions: owner can read, write &amp; run; everyone else can read &amp; run.</td>
+    </tr>
+    <tr>
+      <td><code>chown &lt;user&gt;:&lt;group&gt; &lt;file&gt;</code></td>
+      <td>Change the owner (and optionally the group) of a file.</td>
+    </tr>
+    <tr>
+      <td><code>chown -R &lt;user&gt;:&lt;user&gt; &lt;folder&gt;</code></td>
+      <td>Give a specific user ownership of a folder and everything inside it (<code>-R</code> means "recursive"). Replace <code>&lt;user&gt;</code> with your actual username (e.g. <code>pi</code>).</td>
+    </tr>
+    <tr>
+      <td><code>ls -l &lt;file&gt;</code></td>
+      <td>Show a file's current permissions in detail — the string of <code>r</code>, <code>w</code>, and <code>x</code> letters tells you who can read, write, and execute it.</td>
+    </tr>
+    <tr>
+      <td><code>whoami</code></td>
+      <td>Print the name of the currently logged-in user.</td>
+    </tr>
+    <tr>
+      <td><code>groups</code></td>
+      <td>List all the groups the current user belongs to (useful for checking GPIO and camera access).</td>
+    </tr>
+    <tr>
+      <td><code>sudo usermod -aG &lt;group&gt; &lt;user&gt;</code></td>
+      <td>Add a user to a group (e.g. <code>sudo usermod -aG gpio pi</code> gives the <code>pi</code> user access to GPIO pins). Log out and back in for the change to take effect.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> If a command refuses with "Permission denied", try putting <code>sudo</code> in front of it. But only use <code>sudo</code> when genuinely needed — running everything as superuser all the time is risky, like always working as a Windows Administrator.</div>
+
+<h2 id="4-installing-and-managing-software">4 — Installing and Managing Software</h2>
+
+<p>Raspberry Pi OS uses a tool called <code>apt</code> (Advanced Package Tool) to download and install software from the internet — similar to an app store, but operated entirely from the terminal.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>package</strong> is a bundle containing a program plus everything it needs to run. The <strong>package manager</strong> (<code>apt</code>) handles downloading, installing, and updating packages for you automatically.</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>sudo apt update</code></td>
+      <td>Refresh the list of available packages and their latest versions (does NOT yet install anything).</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt full-upgrade</code></td>
+      <td>Download and install all available updates to packages already on your Pi (preferred over <code>apt upgrade</code> on Raspberry Pi OS).</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt install &lt;package&gt;</code></td>
+      <td>Download and install a specific package (e.g. <code>sudo apt install tree</code>).</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt install &lt;pkg1&gt; &lt;pkg2&gt;</code></td>
+      <td>Install multiple packages in one command by listing their names separated by spaces.</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt remove &lt;package&gt;</code></td>
+      <td>Uninstall a package, but keep its configuration files.</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt purge &lt;package&gt;</code></td>
+      <td>Uninstall a package and delete its configuration files completely.</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt autoremove</code></td>
+      <td>Remove packages that were installed as dependencies but are no longer needed by anything.</td>
+    </tr>
+    <tr>
+      <td><code>apt search &lt;keyword&gt;</code></td>
+      <td>Search the package list for programs matching a keyword (no <code>sudo</code> needed for searching).</td>
+    </tr>
+    <tr>
+      <td><code>apt show &lt;package&gt;</code></td>
+      <td>Show detailed information about a package before you install it.</td>
+    </tr>
+    <tr>
+      <td><code>dpkg -l | grep &lt;name&gt;</code></td>
+      <td>Check whether a particular package is already installed on your Pi.</td>
+    </tr>
+    <tr>
+      <td><code>apt list --installed</code></td>
+      <td>List every package currently installed on the Pi.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> Always run <code>sudo apt update</code> before <code>sudo apt full-upgrade</code> or <code>sudo apt install</code>. The update step fetches the current catalogue; without it, apt may try to install an outdated version.</div>
+
+<h3>One-line Recipe: Update Everything</h3>
+
+<p>To refresh, upgrade, and tidy up in a single command, you can chain these three instructions together with <code>&amp;&amp;</code> (which means "and then, only if the previous step succeeded"):</p>
+
+<pre class="code"><code>sudo apt update &amp;&amp; sudo apt full-upgrade -y &amp;&amp; sudo apt autoremove -y</code></pre>
+<div class="explain">
+  <p><code>sudo apt update</code> — fetches the latest list of available packages from the internet.</p>
+  <p><code>&amp;&amp;</code> — only runs the next command if the previous one finished without errors.</p>
+  <p><code>sudo apt full-upgrade -y</code> — installs all available updates; <code>-y</code> automatically answers "yes" to any confirmation prompts.</p>
+  <p><code>&amp;&amp; sudo apt autoremove -y</code> — removes any packages that are no longer needed, keeping your Pi tidy.</p>
+</div>
+
+<h2 id="5-python-on-raspberry-pi-os-bookworm">5 — Python on Raspberry Pi OS Bookworm</h2>
+
+<p>Python 3 is pre-installed on Raspberry Pi OS. However, since the Bookworm release (Debian 12), the system Python is <strong>externally managed</strong> — meaning you cannot install Python libraries into it with plain <code>pip install</code> without extra steps. This protects the operating system from accidentally broken packages. Here is what to use instead.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>virtual environment</strong> (venv) is a private, self-contained copy of Python just for one project. Libraries you install there do not affect anything else on the Pi. Think of it as a separate toolbox for each job.</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>python3 --version</code></td>
+      <td>Show which version of Python 3 is installed.</td>
+    </tr>
+    <tr>
+      <td><code>python3 &lt;script.py&gt;</code></td>
+      <td>Run a Python script file.</td>
+    </tr>
+    <tr>
+      <td><code>python3 -m venv &lt;name&gt;</code></td>
+      <td>Create a new virtual environment in a folder called <code>&lt;name&gt;</code> (e.g. <code>python3 -m venv myenv</code>).</td>
+    </tr>
+    <tr>
+      <td><code>source &lt;name&gt;/bin/activate</code></td>
+      <td>Activate the virtual environment — your prompt will change to show its name. Now <code>pip install</code> is safe to use.</td>
+    </tr>
+    <tr>
+      <td><code>deactivate</code></td>
+      <td>Leave the virtual environment and return to the normal system Python.</td>
+    </tr>
+    <tr>
+      <td><code>pip install &lt;library&gt;</code></td>
+      <td>Install a Python library — <strong>only run this after activating a virtual environment</strong>.</td>
+    </tr>
+    <tr>
+      <td><code>pip list</code></td>
+      <td>Show all libraries installed in the current virtual environment.</td>
+    </tr>
+    <tr>
+      <td><code>pip freeze &gt; requirements.txt</code></td>
+      <td>Save the list of installed libraries to a file (useful for recreating the same environment later).</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt install python3-&lt;name&gt;</code></td>
+      <td>Install a Python library as a system package via apt — the safe alternative to pip for the system Python (e.g. <code>sudo apt install python3-pygame</code>).</td>
+    </tr>
+    <tr>
+      <td><code>thonny</code></td>
+      <td>Launch the Thonny IDE — the beginner-friendly Python editor that comes pre-installed and manages its own Python environment safely.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> On Raspberry Pi OS Bookworm, running <code>pip install &lt;library&gt;</code> directly (without activating a virtual environment first) will produce an error: <em>"externally-managed-environment"</em>. This is intentional. Either activate a virtual environment first, or install via <code>sudo apt install python3-&lt;name&gt;</code>.</div>
+
+<h2 id="6-system-information">6 — System Information</h2>
+
+<p>These commands let you peek under the bonnet of your Pi — checking temperature, memory, disk space, and more.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>df -h</code></td>
+      <td>Show disk space usage for all storage drives in human-readable sizes (GB/MB).</td>
+    </tr>
+    <tr>
+      <td><code>free -h</code></td>
+      <td>Show how much RAM is being used and how much is still free, in human-readable form.</td>
+    </tr>
+    <tr>
+      <td><code>vcgencmd measure_temp</code></td>
+      <td>Report the current CPU temperature (e.g. <code>temp=47.8'C</code>) — great for checking if your Active Cooler is working.</td>
+    </tr>
+    <tr>
+      <td><code>vcgencmd get_throttled</code></td>
+      <td>Check whether the Pi is throttling (slowing down) due to overheating or low voltage. <code>0x0</code> means all is well; any other value flags a problem.</td>
+    </tr>
+    <tr>
+      <td><code>vcgencmd measure_volts core</code></td>
+      <td>Show the current core voltage — useful for diagnosing under-voltage warnings.</td>
+    </tr>
+    <tr>
+      <td><code>hostname -I</code></td>
+      <td>Show the IP address(es) assigned to your Pi on the local network.</td>
+    </tr>
+    <tr>
+      <td><code>uname -a</code></td>
+      <td>Print detailed information about the operating system kernel version and hardware architecture.</td>
+    </tr>
+    <tr>
+      <td><code>cat /proc/cpuinfo</code></td>
+      <td>Show detailed CPU information including the hardware model — confirm it shows a Raspberry Pi 5.</td>
+    </tr>
+    <tr>
+      <td><code>cat /etc/os-release</code></td>
+      <td>Show which version of Raspberry Pi OS (Bookworm, etc.) is installed.</td>
+    </tr>
+    <tr>
+      <td><code>fastfetch</code></td>
+      <td>Display a colourful system summary (CPU, RAM, OS version, uptime). Install with <code>sudo apt install fastfetch</code> if missing.</td>
+    </tr>
+    <tr>
+      <td><code>top</code></td>
+      <td>Show a live, updating list of running programs and their CPU/memory usage. Press <kbd>q</kbd> to quit.</td>
+    </tr>
+    <tr>
+      <td><code>htop</code></td>
+      <td>A friendlier, colour-coded version of <code>top</code>. Install with <code>sudo apt install htop</code> if missing.</td>
+    </tr>
+    <tr>
+      <td><code>uptime</code></td>
+      <td>Show how long the Pi has been running since it was last switched on.</td>
+    </tr>
+    <tr>
+      <td><code>lsusb</code></td>
+      <td>List all USB devices currently plugged in to your Pi.</td>
+    </tr>
+    <tr>
+      <td><code>lsblk</code></td>
+      <td>List all storage devices and partitions (useful for spotting USB drives or NVMe SSDs).</td>
+    </tr>
+    <tr>
+      <td><code>lspci</code></td>
+      <td>List devices connected on the PCIe bus — on the Pi 5 this includes any NVMe SSD fitted to an M.2 HAT.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> Run <code>vcgencmd measure_temp</code> a few minutes after the Pi has been on and working hard. A healthy temperature with the Active Cooler fitted is typically 40–60 °C under load. Anything consistently above 80 °C is worth investigating — check that the cooler fan is spinning.</div>
+
+<h3>Throttling Status Quick-Reference</h3>
+
+<p>The number returned by <code>vcgencmd get_throttled</code> is a bitmask. Here are the most common values and what they mean:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Value</th>
+      <th>Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0x0</code></td>
+      <td>All clear — no problems detected.</td>
+    </tr>
+    <tr>
+      <td><code>0x1</code></td>
+      <td>Under-voltage currently detected — check your power supply. The official 27 W USB-C supply is recommended.</td>
+    </tr>
+    <tr>
+      <td><code>0x2</code></td>
+      <td>Arm frequency is currently being throttled (speed reduced) due to heat or voltage.</td>
+    </tr>
+    <tr>
+      <td><code>0x4</code></td>
+      <td>Currently throttled — the Pi is running slower than normal.</td>
+    </tr>
+    <tr>
+      <td><code>0x50000</code></td>
+      <td>Under-voltage has occurred since last boot (even if not happening right now).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="7-managing-services">7 — Managing Services</h2>
+
+<p>A <em>service</em> (also called a <em>daemon</em>) is a program that runs in the background — for example the web server, SSH, or your own Python scripts set to start at boot. The <code>systemctl</code> command controls them all.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>service</strong> is a background program that keeps running quietly without a window, doing a job such as serving web pages or listening for SSH connections. <code>systemctl</code> is like the master on/off switch for every background program on the Pi.</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>systemctl status &lt;service&gt;</code></td>
+      <td>Show whether a service is running or stopped, and its recent log messages.</td>
+    </tr>
+    <tr>
+      <td><code>sudo systemctl start &lt;service&gt;</code></td>
+      <td>Start a service immediately (until the next reboot).</td>
+    </tr>
+    <tr>
+      <td><code>sudo systemctl stop &lt;service&gt;</code></td>
+      <td>Stop a running service immediately.</td>
+    </tr>
+    <tr>
+      <td><code>sudo systemctl restart &lt;service&gt;</code></td>
+      <td>Stop then start a service — useful after changing its configuration file.</td>
+    </tr>
+    <tr>
+      <td><code>sudo systemctl reload &lt;service&gt;</code></td>
+      <td>Ask a service to re-read its configuration without fully stopping (not all services support this).</td>
+    </tr>
+    <tr>
+      <td><code>sudo systemctl enable &lt;service&gt;</code></td>
+      <td>Make a service start automatically every time the Pi boots.</td>
+    </tr>
+    <tr>
+      <td><code>sudo systemctl disable &lt;service&gt;</code></td>
+      <td>Stop a service from starting automatically at boot (it can still be started manually).</td>
+    </tr>
+    <tr>
+      <td><code>systemctl list-units --type=service --state=running</code></td>
+      <td>List every service that is currently running — useful when you cannot remember the exact service name.</td>
+    </tr>
+    <tr>
+      <td><code>journalctl -u &lt;service&gt;</code></td>
+      <td>Show the full log history for a specific service — helpful for diagnosing errors.</td>
+    </tr>
+    <tr>
+      <td><code>journalctl -u &lt;service&gt; -f</code></td>
+      <td>Follow a service's log live — new lines appear as they are written. Press <kbd>Ctrl+C</kbd> to stop.</td>
+    </tr>
+    <tr>
+      <td><code>journalctl -xe</code></td>
+      <td>Show recent system-wide log messages, jumping to the end — useful when something just went wrong.</td>
+    </tr>
+    <tr>
+      <td><code>journalctl --since "1 hour ago"</code></td>
+      <td>Show all log messages from the last hour.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> Replace <code>&lt;service&gt;</code> with the actual service name, for example <code>ssh</code>, <code>nginx</code>, or <code>bluetooth</code>. Common services you will encounter: <code>ssh</code> (remote access), <code>NetworkManager</code> (Wi-Fi), <code>cron</code> (scheduled tasks), <code>pigpiod</code> (GPIO daemon).</div>
+
+<h2 id="8-networking">8 — Networking</h2>
+
+<p>These commands help you check your network connection, find your Pi's address on the network, and connect to other computers remotely.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>ping &lt;address&gt;</code></td>
+      <td>Send test packets to a host (e.g. <code>ping google.com</code>) to check whether it is reachable. Press <kbd>Ctrl+C</kbd> to stop.</td>
+    </tr>
+    <tr>
+      <td><code>ping -c 4 &lt;address&gt;</code></td>
+      <td>Send exactly 4 test packets then stop automatically.</td>
+    </tr>
+    <tr>
+      <td><code>ip a</code></td>
+      <td>Show all network interfaces and their IP addresses (the modern replacement for the older <code>ifconfig</code> command).</td>
+    </tr>
+    <tr>
+      <td><code>ip route</code></td>
+      <td>Show the routing table — useful for finding your router's (gateway's) IP address.</td>
+    </tr>
+    <tr>
+      <td><code>hostname -I</code></td>
+      <td>Print just the Pi's own IP address(es) in a clean format — the quickest way to look it up.</td>
+    </tr>
+    <tr>
+      <td><code>nmcli device status</code></td>
+      <td>Show the status of all network interfaces — whether Wi-Fi and Ethernet are connected.</td>
+    </tr>
+    <tr>
+      <td><code>nmcli device wifi list</code></td>
+      <td>List all nearby Wi-Fi networks visible to the Pi.</td>
+    </tr>
+    <tr>
+      <td><code>nmcli device wifi connect "&lt;SSID&gt;" password "&lt;pass&gt;"</code></td>
+      <td>Connect to a Wi-Fi network from the terminal. Replace <code>&lt;SSID&gt;</code> with the network name and <code>&lt;pass&gt;</code> with its password.</td>
+    </tr>
+    <tr>
+      <td><code>ssh &lt;user&gt;@&lt;address&gt;</code></td>
+      <td>Open a secure remote terminal session to another computer (e.g. <code>ssh pi@192.168.1.42</code>).</td>
+    </tr>
+    <tr>
+      <td><code>ssh -p &lt;port&gt; &lt;user&gt;@&lt;address&gt;</code></td>
+      <td>Connect via SSH on a non-standard port number.</td>
+    </tr>
+    <tr>
+      <td><code>scp &lt;file&gt; &lt;user&gt;@&lt;address&gt;:&lt;path&gt;</code></td>
+      <td>Securely copy a file to a remote computer over SSH.</td>
+    </tr>
+    <tr>
+      <td><code>scp &lt;user&gt;@&lt;address&gt;:&lt;file&gt; .</code></td>
+      <td>Securely copy a file FROM a remote computer to your current local folder (the dot at the end means "here").</td>
+    </tr>
+    <tr>
+      <td><code>curl -I &lt;url&gt;</code></td>
+      <td>Fetch only the headers from a web URL — a quick way to check whether a web server is responding.</td>
+    </tr>
+    <tr>
+      <td><code>wget &lt;url&gt;</code></td>
+      <td>Download a file from the internet to the current folder.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> The older <code>iwconfig</code> command (for Wi-Fi details) is deprecated on Bookworm and may not be installed. Use <code>nmcli device status</code> or <code>nmcli device wifi list</code> instead — these work correctly with Raspberry Pi OS Bookworm's NetworkManager.</div>
+
+<h3>One-line Recipe: Find Your Pi's IP Address from Windows</h3>
+
+<p>If you are on Windows and want to find your Pi without logging in to it, open a Command Prompt on your Windows PC and type:</p>
+
+<pre class="code"><code>ping raspberrypi.local</code></pre>
+<div class="explain">
+  <p><code>ping raspberrypi.local</code> — sends a test packet to the hostname <code>raspberrypi.local</code>. If the Pi is on the same network, it will reply and Windows will show its IP address in the output. You can then use that IP to connect via SSH or a web browser. If you changed the hostname in <code>raspi-config</code>, substitute your custom name — e.g. <code>ping mypihostname.local</code>.</p>
+</div>
+
+<h2 id="9-power-and-configuration">9 — Power and Configuration</h2>
+
+<p>These commands control the Pi's power state and open the main configuration tool.</p>
+
+<div class="warn"><strong>Careful:</strong> Always shut the Pi down gracefully with one of the commands below before cutting the power. Yanking the power cable while the Pi is running can corrupt the microSD card, just like pulling a USB drive out of a Windows PC while files are being written to it.</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>sudo reboot</code></td>
+      <td>Safely restart the Pi — it will shut everything down and then boot up again.</td>
+    </tr>
+    <tr>
+      <td><code>sudo shutdown -h now</code></td>
+      <td>Safely shut the Pi all the way down to a powered-off state immediately (<code>-h</code> means "halt").</td>
+    </tr>
+    <tr>
+      <td><code>sudo shutdown -h +5</code></td>
+      <td>Schedule a safe shutdown in 5 minutes — gives others time to save their work.</td>
+    </tr>
+    <tr>
+      <td><code>sudo shutdown -r 22:00</code></td>
+      <td>Schedule a reboot at 10 pm tonight (<code>-r</code> means "reboot").</td>
+    </tr>
+    <tr>
+      <td><code>sudo shutdown -c</code></td>
+      <td>Cancel a scheduled shutdown or reboot before it happens.</td>
+    </tr>
+    <tr>
+      <td><code>sudo raspi-config</code></td>
+      <td>Open the Raspberry Pi Configuration tool — a text menu for changing settings such as hostname, Wi-Fi country, SSH, locale, and display resolution.</td>
+    </tr>
+    <tr>
+      <td><code>sudo raspi-config nonint do_ssh 0</code></td>
+      <td>Enable SSH from the command line without entering the menu (<code>0</code> = enable, <code>1</code> = disable).</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> The Pi 5 has a small physical power button on the board (next to the USB-C socket). A short press initiates a safe shutdown; once the green LED stops flashing, it is safe to disconnect the power. Press again to switch it back on.</div>
+
+<h2 id="10-helpful-keyboard-shortcuts-in-the-terminal">10 — Helpful Keyboard Shortcuts in the Terminal</h2>
+
+<p>These shortcuts work in almost any Linux terminal and will save you enormous amounts of time once they become habit.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Shortcut</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><kbd>Tab</kbd></td>
+      <td>Auto-complete a filename or command. Press twice to see all possibilities if there is more than one match.</td>
+    </tr>
+    <tr>
+      <td><kbd>↑</kbd> / <kbd>↓</kbd></td>
+      <td>Scroll through your command history — press Up to repeat the previous command, Down to move forward again.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+C</kbd></td>
+      <td>Cancel (stop) a running command immediately.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+D</kbd></td>
+      <td>Close the terminal session (sends an end-of-input signal, equivalent to typing <code>exit</code>).</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+L</kbd></td>
+      <td>Clear the terminal screen (same as typing the <code>clear</code> command).</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+A</kbd></td>
+      <td>Jump to the beginning of the current line.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+E</kbd></td>
+      <td>Jump to the end of the current line.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+U</kbd></td>
+      <td>Delete everything from the cursor back to the start of the line — useful for quickly clearing a mistyped command.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+Z</kbd></td>
+      <td>Suspend (pause) the current program and return to the prompt. Type <code>fg</code> to bring it back to the foreground.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+R</kbd></td>
+      <td>Search backwards through your command history — start typing any part of a previous command to find it.</td>
+    </tr>
+    <tr>
+      <td><code>history</code></td>
+      <td>Print a numbered list of your recent commands.</td>
+    </tr>
+    <tr>
+      <td><code>!&lt;number&gt;</code></td>
+      <td>Re-run a command from your history by its number (e.g. <code>!42</code> runs command number 42).</td>
+    </tr>
+    <tr>
+      <td><code>!!</code></td>
+      <td>Repeat the very last command you ran — extremely useful as <code>sudo !!</code> if you forgot to type <code>sudo</code>.</td>
+    </tr>
+    <tr>
+      <td><code>clear</code></td>
+      <td>Clear all text from the terminal screen (same as <kbd>Ctrl+L</kbd>).</td>
+    </tr>
+    <tr>
+      <td><code>exit</code></td>
+      <td>Close the terminal session (same as <kbd>Ctrl+D</kbd>).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="11-pipes-redirects-and-other-useful-tricks">11 — Pipes, Redirects and Other Useful Tricks</h2>
+
+<p>These are not commands by themselves but special characters you can combine with commands to do more powerful things in a single line.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>pipe</strong> (the <code>|</code> character) connects two commands so that the output from the first flows directly into the input of the second — like connecting garden hoses end-to-end. A <strong>redirect</strong> (<code>&gt;</code>) sends output into a file instead of the screen.</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Symbol / Example</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>command1 | command2</code></td>
+      <td>Pipe — sends the output of <code>command1</code> as the input to <code>command2</code> (e.g. <code>ls -la | less</code> lets you scroll a long file listing).</td>
+    </tr>
+    <tr>
+      <td><code>command &gt; file.txt</code></td>
+      <td>Redirect — saves the output of a command into a file, overwriting any existing content.</td>
+    </tr>
+    <tr>
+      <td><code>command &gt;&gt; file.txt</code></td>
+      <td>Append redirect — adds the output to the end of an existing file without overwriting it.</td>
+    </tr>
+    <tr>
+      <td><code>command1 &amp;&amp; command2</code></td>
+      <td>Run <code>command2</code> only if <code>command1</code> succeeded without errors.</td>
+    </tr>
+    <tr>
+      <td><code>command1 || command2</code></td>
+      <td>Run <code>command2</code> only if <code>command1</code> <em>failed</em> — useful as a fallback.</td>
+    </tr>
+    <tr>
+      <td><code>command1 ; command2</code></td>
+      <td>Run <code>command2</code> after <code>command1</code> regardless of whether <code>command1</code> succeeded.</td>
+    </tr>
+    <tr>
+      <td><code>command &amp;</code></td>
+      <td>Run a command in the background so the terminal is free immediately for your next command.</td>
+    </tr>
+    <tr>
+      <td><code>grep "text" file | wc -l</code></td>
+      <td>Count how many lines in a file contain a specific word (<code>wc -l</code> counts lines).</td>
+    </tr>
+    <tr>
+      <td><code>ls -la | grep ".py"</code></td>
+      <td>List only the Python files in the current folder by filtering the output with <code>grep</code>.</td>
+    </tr>
+    <tr>
+      <td><code>2&gt;/dev/null</code></td>
+      <td>Silently discard error messages — append this to a command to suppress "Permission denied" noise.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>One-line Recipe: Quickly Check Temperature Every 2 Seconds</h3>
+
+<pre class="code"><code>watch -n 2 vcgencmd measure_temp</code></pre>
+<div class="explain">
+  <p><code>watch</code> — runs a command repeatedly and refreshes the display on a fixed interval.</p>
+  <p><code>-n 2</code> — sets the interval to 2 seconds.</p>
+  <p><code>vcgencmd measure_temp</code> — the command being repeated; it reads and reports the CPU temperature.</p>
+  <p>The result is a live temperature display that updates every 2 seconds. Press <kbd>Ctrl+C</kbd> to stop.</p>
+</div>
+
+<h3>One-line Recipe: Find the Biggest Files Eating Your Disk Space</h3>
+
+<pre class="code"><code>sudo du -sh /home/* /var/* /tmp/* 2&gt;/dev/null | sort -rh | head -20</code></pre>
+<div class="explain">
+  <p><code>sudo du -sh</code> — estimates disk usage of each listed path; <code>-s</code> gives a summary per item and <code>-h</code> shows sizes in human-readable form (MB, GB). <code>sudo</code> is used so that protected folders are not skipped.</p>
+  <p><code>/home/* /var/* /tmp/*</code> — the folders most likely to hold large user files and temporary data.</p>
+  <p><code>2&gt;/dev/null</code> — silently discards any "Permission denied" error messages so the output stays clean.</p>
+  <p><code>| sort -rh</code> — pipes the results into <code>sort</code>, ordering them largest-first (<code>-r</code> reverses, <code>-h</code> handles human-readable sizes).</p>
+  <p><code>| head -20</code> — shows only the top 20 results.</p>
+</div>
+
+<h3>One-line Recipe: Save a List of All Installed Packages</h3>
+
+<pre class="code"><code>dpkg --get-selections &gt; ~/installed-packages.txt</code></pre>
+<div class="explain">
+  <p><code>dpkg --get-selections</code> — lists every package installed on the Pi in a format that can be restored later.</p>
+  <p><code>&gt; ~/installed-packages.txt</code> — redirects the output into a file called <code>installed-packages.txt</code> in your home folder. Useful as a backup record before making big changes.</p>
+</div>
+
+<h2 id="12-gpio-quick-reference">12 — GPIO Quick-Reference</h2>
+
+<p>The Pi 5's 40-pin GPIO header lets you connect electronics — LEDs, buttons, sensors, and more. These commands help you work with GPIO from the terminal. All GPIO pins on the Pi 5 operate at <strong>3.3 V logic</strong> — never connect a 5 V signal directly to a GPIO pin.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>GPIO</strong> (General-Purpose Input/Output) pins are the row of metal pins along the edge of the Pi board. You can program each one to either read a signal coming in (e.g. from a button) or send a signal out (e.g. to light an LED). They are the Pi's way of talking to the physical world.</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Command / Library</th>
+      <th>What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>pinout</code></td>
+      <td>Display a colour-coded diagram of the Pi's GPIO pins directly in the terminal — the fastest way to look up which pin is which.</td>
+    </tr>
+    <tr>
+      <td><code>gpio readall</code></td>
+      <td>Show the current state (high/low, in/out) of every GPIO pin — requires the <code>wiringpi</code> package (<code>sudo apt install wiringpi</code>).</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt install python3-lgpio</code></td>
+      <td>Install the <code>lgpio</code> library — the recommended GPIO library for Python on Raspberry Pi OS Bookworm.</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt install python3-gpiozero</code></td>
+      <td>Install the <code>gpiozero</code> library — a beginner-friendly Python GPIO library pre-installed on Raspberry Pi OS.</td>
+    </tr>
+    <tr>
+      <td><code>sudo apt install rpi.gpio</code></td>
+      <td>Install the classic <code>RPi.GPIO</code> Python library (still works on the Pi 5 via a compatibility layer).</td>
+    </tr>
+    <tr>
+      <td><code>raspi-gpio get</code></td>
+      <td>Show the current function and level of all GPIO pins.</td>
+    </tr>
+    <tr>
+      <td><code>raspi-gpio set &lt;pin&gt; op</code></td>
+      <td>Set a GPIO pin to output mode (e.g. <code>raspi-gpio set 17 op</code>).</td>
+    </tr>
+    <tr>
+      <td><code>raspi-gpio set &lt;pin&gt; dh</code></td>
+      <td>Drive a GPIO pin high (turn it on), e.g. to light an LED.</td>
+    </tr>
+    <tr>
+      <td><code>raspi-gpio set &lt;pin&gt; dl</code></td>
+      <td>Drive a GPIO pin low (turn it off).</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> The Pi 5's GPIO pins use 3.3 V logic and have a maximum current of around 16 mA per pin. Never connect them directly to 5 V, and always use a resistor (typically 330 Ω) in series with an LED to limit the current. Damage to GPIO pins is not covered by warranty.</div>
+
+<figure class="fig">
+  <svg viewBox="0 0 520 200" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="12">
+    <rect x="0" y="0" width="520" height="200" rx="10" fill="#f3f0ff"/>
+    <text x="260" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2933">GPIO Pin Number Systems</text>
+    <!-- BCM column -->
+    <rect x="30" y="38" width="140" height="26" rx="5" fill="#6d28d9"/>
+    <text x="100" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">BCM (Broadcom)</text>
+    <text x="100" y="80" text-anchor="middle" fill="#1f2933" font-size="12">Used by Python libraries</text>
+    <text x="100" y="96" text-anchor="middle" fill="#1f2933" font-size="12">(gpiozero, lgpio)</text>
+    <text x="100" y="118" text-anchor="middle" fill="#6d28d9" font-size="13" font-weight="bold">e.g. GPIO 17</text>
+    <text x="100" y="136" text-anchor="middle" fill="#1f2933" font-size="12">= chip's internal</text>
+    <text x="100" y="152" text-anchor="middle" fill="#1f2933" font-size="12">signal number</text>
+    <!-- Physical column -->
+    <rect x="190" y="38" width="140" height="26" rx="5" fill="#0ea5a4"/>
+    <text x="260" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Physical (Board)</text>
+    <text x="260" y="80" text-anchor="middle" fill="#1f2933" font-size="12">Pin position counted</text>
+    <text x="260" y="96" text-anchor="middle" fill="#1f2933" font-size="12">on the header</text>
+    <text x="260" y="118" text-anchor="middle" fill="#0ea5a4" font-size="13" font-weight="bold">e.g. Pin 11</text>
+    <text x="260" y="136" text-anchor="middle" fill="#1f2933" font-size="12">= 11th hole from</text>
+    <text x="260" y="152" text-anchor="middle" fill="#1f2933" font-size="12">top-left of header</text>
+    <!-- Tip column -->
+    <rect x="350" y="38" width="150" height="26" rx="5" fill="#1f2933"/>
+    <text x="425" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Quick check</text>
+    <text x="425" y="80" text-anchor="middle" fill="#1f2933" font-size="12">Run  pinout  in the</text>
+    <text x="425" y="96" text-anchor="middle" fill="#1f2933" font-size="12">terminal to see both</text>
+    <text x="425" y="112" text-anchor="middle" fill="#1f2933" font-size="12">numbering systems</text>
+    <text x="425" y="128" text-anchor="middle" fill="#1f2933" font-size="12">side-by-side in</text>
+    <text x="425" y="144" text-anchor="middle" fill="#1f2933" font-size="12">a colour diagram</text>
+  </svg>
+  <figcaption>There are two pin numbering systems. BCM numbers refer to the chip's internal signal numbers (used by most Python libraries). Physical numbers count the actual pin positions on the header. The <code>pinout</code> command shows both.</figcaption>
+</figure>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Terminal</strong> — the text window where you type commands; on Raspberry Pi OS it is the black LXTerminal window.</li>
+    <li><strong>Command</strong> — a short text instruction typed at the terminal prompt that makes the Pi do something immediately.</li>
+    <li><strong>Prompt</strong> — the text the terminal shows to indicate it is ready for your next command; usually ends with a <code>$</code> sign.</li>
+    <li><strong>Sudo</strong> — stands for "superuser do"; runs the following command with full administrator privileges.</li>
+    <li><strong>Root</strong> — the top-level directory of the entire Linux file system, written as <code>/</code>; also the name for the administrator account.</li>
+    <li><strong>Home folder</strong> — your personal folder (e.g. <code>/home/pi</code>) where your files and settings live.</li>
+    <li><strong>Permissions</strong> — the read/write/execute rules attached to each file that control who can access or run it.</li>
+    <li><strong>Package</strong> — a bundle of software (program + supporting files) managed by the <code>apt</code> package manager.</li>
+    <li><strong>Package manager (apt)</strong> — the tool that downloads, installs, updates, and removes software packages on Raspberry Pi OS.</li>
+    <li><strong>Service / Daemon</strong> — a background program that runs without a window, started automatically at boot (e.g. SSH, a web server).</li>
+    <li><strong>systemctl</strong> — the command used to start, stop, enable, and check the status of services.</li>
+    <li><strong>journalctl</strong> — the command used to read log messages written by services and the system.</li>
+    <li><strong>Virtual environment (venv)</strong> — a private, isolated copy of Python for one project so that installed libraries do not affect the rest of the system.</li>
+    <li><strong>Pipe (<code>|</code>)</strong> — a character that connects two commands so the output of the first feeds into the input of the second.</li>
+    <li><strong>Redirect (<code>&gt;</code>)</strong> — a character that saves a command's output to a file instead of displaying it on screen.</li>
+    <li><strong>GPIO</strong> — General-Purpose Input/Output; the 40 programmable pins on the Pi header used to connect and control electronic components.</li>
+    <li><strong>BCM numbering</strong> — the GPIO pin numbering system based on Broadcom's internal chip numbers, used by most Python libraries.</li>
+    <li><strong>IP address</strong> — a number (e.g. <code>192.168.1.42</code>) that identifies your Pi on the local network, used for SSH and web connections.</li>
+    <li><strong>SSH</strong> — Secure Shell; a way to open a secure remote terminal session on another computer over a network.</li>
+    <li><strong>Throttling</strong> — the Pi automatically slowing down its processor to prevent damage when it overheats or the power supply is too weak.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Chapter summary</h4>
+  <ul>
+    <li>Use <code>pwd</code>, <code>ls</code>, and <code>cd</code> to find your way around the file system; <kbd>Tab</kbd> auto-completes as you type.</li>
+    <li><code>mkdir</code>, <code>cp</code>, <code>mv</code>, and <code>rm</code> create, copy, move, and delete files — remember that <code>rm</code> is permanent with no undo.</li>
+    <li><code>sudo</code> grants temporary administrator power; use it only when a command genuinely needs it.</li>
+    <li>Always run <code>sudo apt update</code> before installing or upgrading software; use <code>sudo apt full-upgrade</code> (not just <code>upgrade</code>) on Raspberry Pi OS.</li>
+    <li>On Bookworm, do not run plain <code>pip install</code> into the system Python — use a virtual environment (<code>python3 -m venv</code>) or install via <code>sudo apt install python3-&lt;name&gt;</code>.</li>
+    <li><code>vcgencmd measure_temp</code> and <code>df -h</code> are your quickest health checks for temperature and disk space.</li>
+    <li><code>systemctl</code> controls background services; <code>journalctl</code> reads their logs when something goes wrong.</li>
+    <li>Always shut down gracefully with <code>sudo shutdown -h now</code> (or the physical power button) before cutting power to protect the microSD card.</li>
+    <li>The pipe (<code>|</code>), redirect (<code>&gt;</code>), and <code>&amp;&amp;</code> symbols let you chain commands together into powerful one-liners.</li>
+    <li>Run <code>pinout</code> to see a colour diagram of the GPIO pins; the Pi 5 uses 3.3 V logic — never connect a 5 V signal directly to a GPIO pin.</li>
+  </ul>
+</div>

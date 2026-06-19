@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch04",
+  "title": "First Boot: Installing the OS",
+  "questions": [
+    {
+      "q": "When inserting the microSD card into the Raspberry Pi, how should the card be oriented?",
+      "choices": [
+        "Gold contacts facing down, label facing up",
+        "Gold contacts facing up, label facing down",
+        "Either way — the slot accepts both orientations",
+        "The printed label goes in first"
+      ],
+      "answer": 0,
+      "explain": "The gold contacts (the shiny metal strips) must face down when sliding the card into the underside slot. The slot only fits one way, so if it does not slide in smoothly you should try turning it around rather than forcing it."
+    },
+    {
+      "q": "Why does the chapter recommend choosing the 64-bit version of Raspberry Pi OS rather than the 32-bit version?",
+      "choices": [
+        "The 64-bit version has a different desktop appearance",
+        "The 32-bit version does not support Wi-Fi",
+        "The Pi 5 has a 64-bit processor, so the 64-bit OS uses its full capability and runs faster and more efficiently",
+        "The 64-bit version is the only one available for download"
+      ],
+      "answer": 2,
+      "explain": "The Raspberry Pi 5 has a 64-bit processor. Running the matching 64-bit OS lets it use its full capability, making it faster and more efficient than the 32-bit version would be on the same hardware."
+    },
+    {
+      "q": "What does the green LED on the Raspberry Pi 5 indicate when it is flashing?",
+      "choices": [
+        "The Pi is overheating and needs to be cooled down",
+        "The power supply is not providing enough voltage",
+        "The Pi has lost its Wi-Fi connection",
+        "The Pi is reading from or writing to the microSD card"
+      ],
+      "answer": 3,
+      "explain": "A flashing green LED means the Pi is actively accessing the microSD card — reading or writing data. This is completely normal during boot and whenever the system is busy. You should never cut the power while this light is flashing, as it can corrupt the card. An under-voltage warning instead appears as a coloured rainbow square on screen."
+    },
+    {
+      "q": "Which is the correct sequence for connecting cables when setting up the Raspberry Pi for the first time?",
+      "choices": [
+        "Power first, then display, then keyboard and mouse",
+        "Keyboard and mouse first, then display, then power",
+        "Display first, then keyboard and mouse, then power last",
+        "The order makes no difference — connect everything at once"
+      ],
+      "answer": 2,
+      "explain": "The chapter is explicit: always connect power last. Plugging in the power before connecting the display cable can cause the Pi to start without detecting the screen, which may result in a blank TV or monitor."
+    },
+    {
+      "q": "What is the purpose of the 'Edit Settings' step in Raspberry Pi Imager before writing the card?",
+      "choices": [
+        "It lets you pre-configure username, password, Wi-Fi, locale, and SSH before the card is written, saving setup time",
+        "It lets you choose between the 32-bit and 64-bit OS versions",
+        "It formats the microSD card so it is ready to receive data",
+        "It verifies the card for errors after writing is complete"
+      ],
+      "answer": 0,
+      "explain": "The Edit Settings panel is described as the most important step that many guides skip. By setting your credentials, Wi-Fi details, and enabling SSH before writing, you avoid having to configure these things manually during first boot, and it is the only easy opportunity to enable remote access without a monitor."
+    }
+  ]
+}
