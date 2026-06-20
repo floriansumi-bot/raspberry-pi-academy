@@ -76,15 +76,15 @@ sudo dpkg-reconfigure --priority=low unattended-upgrades</code></pre>
 
 <h3>What is an SSH key pair?</h3>
 
-<div class="jargon"><strong>In plain words:</strong> An <em>SSH key pair</em> is a pair of matching digital files — a <em>public key</em> (like a padlock) and a <em>private key</em> (like the only key that opens that padlock). You put the public key (the padlock) on the Pi. You keep the private key (the opening key) on your Windows PC. When you connect, your PC proves it holds the matching key — without ever sending the key itself over the network. No password is needed.</div>
+<div class="jargon"><strong>In plain words:</strong> An <em>SSH key pair</em> is a pair of matching digital files — a <em>public key</em> (like a padlock) and a <em>private key</em> (like the only key that opens that padlock). You put the public key (the padlock) on the Pi. You keep the private key (the opening key) on your main computer (Windows, macOS, or Linux). When you connect, your computer proves it holds the matching key — without ever sending the key itself over the network. No password is needed.</div>
 
-<p>The private key must stay on your Windows PC and never be shared. The public key can be placed on any number of servers — it is safe to share because it can only be used to verify the private key, never to impersonate it.</p>
+<p>The private key must stay on your main computer and never be shared. The public key can be placed on any number of servers — it is safe to share because it can only be used to verify the private key, never to impersonate it.</p>
 
 <figure class="fig">
 <svg viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
-  <!-- Windows PC box -->
+  <!-- Your computer box -->
   <rect x="20" y="60" width="185" height="145" rx="10" fill="#f3f0ff" stroke="#6d28d9" stroke-width="2"/>
-  <text x="112" y="88" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2933">Windows PC</text>
+  <text x="112" y="88" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f2933">Your computer</text>
   <rect x="38" y="103" width="149" height="38" rx="6" fill="#6d28d9"/>
   <text x="112" y="127" text-anchor="middle" font-size="13" fill="#ffffff">Private Key (secret)</text>
   <text x="112" y="172" text-anchor="middle" font-size="12" fill="#6d28d9">Keep this file safe!</text>
@@ -113,26 +113,32 @@ sudo dpkg-reconfigure --priority=low unattended-upgrades</code></pre>
 <figcaption>How SSH key authentication works: your PC holds the private key; the Pi holds the matching public key. A connection is granted only when the two match — no password is transmitted.</figcaption>
 </figure>
 
-<h3>Generating a key pair on Windows 11</h3>
+<h3>Generating a key pair on your computer</h3>
 
-<p>Windows 11 comes with a built-in SSH client, so you do not need to install anything extra. Open a <strong>PowerShell</strong> window on your Windows PC (press <kbd>Win + X</kbd> and choose "Terminal" or "PowerShell").</p>
+<p>Every modern desktop operating system ships with a built-in SSH client, so you do not need to install anything extra. The <code>ssh-keygen</code> command below is identical on all three — only the way you open a terminal differs:</p>
+
+<ul>
+  <li><strong>Windows:</strong> open a <strong>PowerShell</strong> (or Windows Terminal) window — press <kbd>Win + X</kbd> and choose "Terminal" or "PowerShell".</li>
+  <li><strong>macOS:</strong> open the <strong>Terminal</strong> app (in Applications &rarr; Utilities, or search for it with Spotlight).</li>
+  <li><strong>Linux:</strong> open your usual <strong>terminal</strong> application.</li>
+</ul>
 
 <ol class="steps">
-  <li>In the PowerShell window, type the following and press Enter:
+  <li>In the terminal window, type the following and press Enter:
     <pre class="code"><code>ssh-keygen -t ed25519 -C "my-pi-key"</code></pre>
     <div class="explain">
-      <strong><code>ssh-keygen</code>:</strong> The key-generation program built into Windows 11.<br><br>
+      <strong><code>ssh-keygen</code>:</strong> The key-generation program built into Windows, macOS, and Linux alike.<br><br>
       <strong><code>-t ed25519</code>:</strong> Tells it to use the Ed25519 algorithm — a modern, fast, secure algorithm that produces short keys. This is the recommended choice over the older RSA algorithm.<br><br>
       <strong><code>-C "my-pi-key"</code>:</strong> Adds a comment label to the key so you can identify it later (you can use any text you like here).
     </div>
   </li>
-  <li>The program asks: <em>Enter file in which to save the key</em>. Press Enter to accept the default location (<code>C:\Users\YourName\.ssh\id_ed25519</code>). Two files will be created:
+  <li>The program asks: <em>Enter file in which to save the key</em>. Press Enter to accept the default location (on Windows that is <code>C:\Users\YourName\.ssh\id_ed25519</code>; on macOS and Linux it is <code>~/.ssh/id_ed25519</code>). Two files will be created:
     <ul>
       <li><code>id_ed25519</code> — your private key. <strong>Never share this file.</strong></li>
       <li><code>id_ed25519.pub</code> — your public key. This is the one you will copy to the Pi.</li>
     </ul>
   </li>
-  <li>The program then asks for a <em>passphrase</em>. This is an optional extra layer of protection: if someone steals the private key file, they still cannot use it without this passphrase. You can press Enter twice to skip it, but setting a passphrase is recommended — Windows will remember it for you via a feature called the SSH Agent, so you only type it once per Windows session.</li>
+  <li>The program then asks for a <em>passphrase</em>. This is an optional extra layer of protection: if someone steals the private key file, they still cannot use it without this passphrase. You can press Enter twice to skip it, but setting a passphrase is recommended — every operating system can remember it for you via a feature called the SSH Agent, so you only type it once per session.</li>
 </ol>
 
 <div class="note"><strong>Note:</strong> If you already have a key pair from a previous project (you see a message like "already exists"), you can reuse it — just press <strong>n</strong> when asked to overwrite, and skip to the next section.</div>
@@ -143,9 +149,9 @@ sudo dpkg-reconfigure --priority=low unattended-upgrades</code></pre>
 
 <div class="jargon"><strong>In plain words:</strong> The tilde (<code>~</code>) is a shortcut that means "your home folder". So <code>~/.ssh/authorized_keys</code> means the file named <code>authorized_keys</code> inside the hidden <code>.ssh</code> folder inside your home folder on the Pi.</div>
 
-<h3>Method A — using ssh-copy-id (easiest, from Git Bash on Windows)</h3>
+<h3>Method A — using ssh-copy-id (easiest, on macOS, Linux, or Git Bash)</h3>
 
-<p>Windows 11's built-in PowerShell does not include <code>ssh-copy-id</code>, but if you have <strong>Git for Windows</strong> installed (which gives you Git Bash), you can use:</p>
+<p>On macOS and Linux the <code>ssh-copy-id</code> helper is built in. On Windows, the built-in PowerShell does not include it, but if you have <strong>Git for Windows</strong> installed (which gives you Git Bash), you have it there. Wherever <code>ssh-copy-id</code> is available, run:</p>
 
 <pre class="code"><code>ssh-copy-id -i ~/.ssh/id_ed25519.pub yourname@raspberrypi.local</code></pre>
 <div class="explain">
@@ -154,12 +160,14 @@ sudo dpkg-reconfigure --priority=low unattended-upgrades</code></pre>
   <strong><code>yourname@raspberrypi.local</code>:</strong> Replace <code>yourname</code> with the username you chose when you set up the Pi, and <code>raspberrypi.local</code> with the Pi's hostname or IP address. It will ask for your Pi's password one last time to authenticate and copy the key.
 </div>
 
-<h3>Method B — paste it manually (works from plain PowerShell on Windows)</h3>
+<h3>Method B — paste it manually (works on any computer)</h3>
 
 <ol class="steps">
-  <li>In PowerShell on your Windows PC, display the contents of your public key:
+  <li>On your computer, display the contents of your public key so you can copy it. On <strong>Windows</strong> (PowerShell), run:
     <pre class="code"><code>Get-Content "$env:USERPROFILE\.ssh\id_ed25519.pub"</code></pre>
-    <div class="explain">This PowerShell command reads and prints the contents of your public key file to the screen. The output is one long line starting with <code>ssh-ed25519</code>. Select it all and copy it to your clipboard (Ctrl+C).</div>
+    <p>On <strong>macOS or Linux</strong> (Terminal), run instead:</p>
+    <pre class="code"><code>cat ~/.ssh/id_ed25519.pub</code></pre>
+    <div class="explain">This reads and prints the contents of your public key file to the screen. The output is one long line starting with <code>ssh-ed25519</code>. Select it all and copy it to your clipboard (Ctrl+C on Windows/Linux, Cmd+C on macOS).</div>
   </li>
   <li>Now SSH into the Pi using your password as normal:
     <pre class="code"><code>ssh yourname@raspberrypi.local</code></pre>
@@ -175,7 +183,7 @@ nano ~/.ssh/authorized_keys</code></pre>
       <strong>Line 3 — <code>nano ~/.ssh/authorized_keys</code>:</strong> Opens the nano text editor to create (or edit) the authorized_keys file.
     </div>
   </li>
-  <li>In the nano editor, paste the public key you copied from Windows (right-click in the terminal window to paste, or use Ctrl+Shift+V). It must be all on one single line. Press <kbd>Ctrl + X</kbd>, then <kbd>Y</kbd>, then <kbd>Enter</kbd> to save and exit.</li>
+  <li>In the nano editor, paste the public key you just copied (right-click in the terminal window to paste, or use Ctrl+Shift+V). It must be all on one single line. Press <kbd>Ctrl + X</kbd>, then <kbd>Y</kbd>, then <kbd>Enter</kbd> to save and exit.</li>
   <li>Set correct permissions on the file:
     <pre class="code"><code>chmod 600 ~/.ssh/authorized_keys</code></pre>
     <div class="explain">Sets the authorized_keys file to be readable and writable only by your own user. SSH will refuse to use the file if anyone else can read it — this permission setting satisfies that requirement.</div>
@@ -184,7 +192,7 @@ nano ~/.ssh/authorized_keys</code></pre>
 
 <h3>Testing the key login</h3>
 
-<p>Without closing your current SSH session (keep it open as a safety net in case something goes wrong), open a <strong>new</strong> PowerShell window and try connecting:</p>
+<p>Without closing your current SSH session (keep it open as a safety net in case something goes wrong), open a <strong>new</strong> terminal window (PowerShell on Windows, Terminal on macOS or Linux) and try connecting:</p>
 
 <pre class="code"><code>ssh yourname@raspberrypi.local</code></pre>
 <div class="explain">If the key is set up correctly, the Pi will log you in without asking for a password — it silently verified your private key against the stored public key. If it still asks for a password, re-check that you pasted the key correctly on a single line with no extra spaces, and that the file permissions on the Pi are exactly <code>700</code> for <code>~/.ssh</code> and <code>600</code> for <code>~/.ssh/authorized_keys</code>.</div>
@@ -193,7 +201,7 @@ nano ~/.ssh/authorized_keys</code></pre>
 
 <p>Once key login is confirmed to be working, you can disable password authentication entirely. This means <em>only</em> computers that hold the correct private key can log in via SSH — brute-force password guessing becomes impossible.</p>
 
-<div class="warn"><strong>Careful:</strong> If you disable password login and then lose your private key (for example, your Windows PC fails and you had no backup), you will be permanently locked out of SSH. Before doing this, either back up your key files to a USB drive or cloud storage, or make sure you have a keyboard and monitor you can plug into the Pi so you can still log in locally. Confirm key login works perfectly before taking this step.</div>
+<div class="warn"><strong>Careful:</strong> If you disable password login and then lose your private key (for example, your computer fails and you had no backup), you will be permanently locked out of SSH. Before doing this, either back up your key files to a USB drive or cloud storage, or make sure you have a keyboard and monitor you can plug into the Pi so you can still log in locally. Confirm key login works perfectly before taking this step.</div>
 
 <ol class="steps">
   <li>On the Pi, open the SSH server configuration file:
@@ -208,7 +216,7 @@ nano ~/.ssh/authorized_keys</code></pre>
     <pre class="code"><code>sudo systemctl restart ssh</code></pre>
     <div class="explain">Restarts the SSH server so it reads the new configuration. Your current SSH session stays open — the restart only affects <em>new</em> connections from this point onward.</div>
   </li>
-  <li>Test immediately by opening a fresh PowerShell window and connecting again. If it works, you are done. If it does not, your existing session is still open so you can undo the change — re-open the file and set <code>PasswordAuthentication yes</code>, then restart <code>ssh</code> again.</li>
+  <li>Test immediately by opening a fresh terminal window (PowerShell on Windows, Terminal on macOS or Linux) and connecting again. If it works, you are done. If it does not, your existing session is still open so you can undo the change — re-open the file and set <code>PasswordAuthentication yes</code>, then restart <code>ssh</code> again.</li>
 </ol>
 
 <div class="tip"><strong>Tip:</strong> You can also change the default SSH port from 22 to a high, non-standard port number (for example 2222 or 51234). This does not stop a determined attacker but does dramatically reduce the number of automated probing attempts that reach the Pi. To do this, add a line <code>Port 2222</code> to <code>/etc/ssh/sshd_config</code>, then run <code>sudo ufw allow 2222/tcp</code> before restarting <code>ssh</code>. When connecting you would then use <code>ssh -p 2222 yourname@raspberrypi.local</code>.</div>
@@ -386,7 +394,7 @@ sudo ufw allow 443/tcp</code></pre>
 
 <h3>Use the correct power supply</h3>
 
-<p>The Pi 5 requires a <strong>27 W USB-C Power Delivery supply at 5.1 V / 5 A</strong> — the one that came in your iRasptek kit. Using a lower-rated charger (for example, a phone charger rated at 5 W or 18 W) can cause instability and data corruption.</p>
+<p>The Pi 5 requires a <strong>27 W USB-C Power Delivery supply at 5.1 V / 5 A</strong>. If you bought a starter kit it most likely included one; otherwise the official Raspberry Pi 27 W USB-C power supply is the safest choice. Using a lower-rated charger (for example, a phone charger rated at 5 W or 18 W) can cause instability and data corruption.</p>
 
 <div class="jargon"><strong>In plain words:</strong> The <em>undervoltage warning</em> is a lightning-bolt icon that appears in the top-right corner of the Pi's desktop when the power supply cannot keep up with demand. If you see it, stop what you are doing and switch to the correct supply — running under-voltage can corrupt the microSD card and make the Pi unusable.</div>
 
@@ -416,7 +424,7 @@ sudo ufw allow 443/tcp</code></pre>
 <ul>
   <li>Always double-check your wiring before applying power when working with GPIO.</li>
   <li>Keep the Pi away from metal surfaces and loose components that could bridge the pins.</li>
-  <li>Consider using a GPIO pin protector cap or keeping the board in its case (your iRasptek kit came with a case) when you are not doing electronics work.</li>
+  <li>Consider using a GPIO pin protector cap or keeping the board in a case (most starter kits include one, and inexpensive cases are widely available) when you are not doing electronics work.</li>
 </ul>
 
 <h2 id="security-checklist">Security Checklist</h2>
@@ -439,7 +447,7 @@ sudo ufw allow 443/tcp</code></pre>
   <text x="58" y="132" fill="#1f2933">Install unattended-upgrades for automatic security patches</text>
 
   <rect x="30" y="148" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
-  <text x="58" y="162" fill="#1f2933">Generate SSH key pair on Windows and copy public key to Pi</text>
+  <text x="58" y="162" fill="#1f2933">Generate SSH key pair on your computer; copy public key to Pi</text>
 
   <rect x="30" y="178" width="18" height="18" rx="3" fill="#ffffff" stroke="#6d28d9" stroke-width="1.5"/>
   <text x="58" y="192" fill="#1f2933">Test key login, then optionally set PasswordAuthentication no</text>
@@ -468,7 +476,7 @@ sudo ufw allow 443/tcp</code></pre>
 <ol class="steps">
   <li><strong>Change the default password.</strong> Run <code>passwd</code> and set a long, unique passphrase. Store it in a password manager.</li>
   <li><strong>Update the system.</strong> Run <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code> and repeat monthly. Optionally install <code>unattended-upgrades</code>.</li>
-  <li><strong>Set up SSH keys.</strong> Generate a key pair on Windows, copy the public key to the Pi, test that key login works.</li>
+  <li><strong>Set up SSH keys.</strong> Generate a key pair on your computer, copy the public key to the Pi, test that key login works.</li>
   <li><strong>Optionally disable SSH password login.</strong> Set <code>PasswordAuthentication no</code> in <code>/etc/ssh/sshd_config</code> only after confirming key login works.</li>
   <li><strong>Enable ufw.</strong> Run <code>sudo ufw allow ssh</code> then <code>sudo ufw enable</code>. Add only the ports you genuinely need.</li>
   <li><strong>Never forward ports directly.</strong> Use Tailscale, Raspberry Pi Connect, or Cloudflare Tunnel for remote access instead.</li>
@@ -509,7 +517,7 @@ sudo ufw allow 443/tcp</code></pre>
   <ul>
     <li>Change the default password immediately and use a long, unique passphrase stored in a password manager.</li>
     <li>Run <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code> monthly — or install <code>unattended-upgrades</code> for automatic security patches.</li>
-    <li>SSH key pairs replace passwords with a public/private key system: generate a pair on Windows with <code>ssh-keygen -t ed25519</code>, copy the public key to <code>~/.ssh/authorized_keys</code> on the Pi, and optionally disable password login in <code>sshd_config</code>.</li>
+    <li>SSH key pairs replace passwords with a public/private key system: generate a pair on your computer (Windows, macOS, or Linux) with <code>ssh-keygen -t ed25519</code>, copy the public key to <code>~/.ssh/authorized_keys</code> on the Pi, and optionally disable password login in <code>sshd_config</code>.</li>
     <li>Install ufw with <code>sudo apt install ufw -y</code>, allow SSH before enabling, then run <code>sudo ufw enable</code> to block unexpected incoming connections.</li>
     <li>Never open router ports to expose the Pi directly to the internet — use Tailscale (installed via the official curl script), Raspberry Pi Connect, or Cloudflare Tunnel instead.</li>
     <li>Install <code>fail2ban</code> to automatically ban IP addresses that repeatedly fail to log in.</li>

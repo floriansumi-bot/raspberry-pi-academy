@@ -4,7 +4,7 @@
 
 <p>Every computer needs somewhere to keep its files permanently — even when the power is off. On a laptop that is usually a built-in hard drive or SSD. On a Raspberry Pi 5, the default storage is a <strong>microSD card</strong>: the same type of tiny card you might use in a camera or smartphone.</p>
 
-<div class="jargon"><strong>In plain words:</strong> "Storage" means the place your computer writes files to keep them safe long-term — just like a filing cabinet. "Memory" (RAM) is different: it is the scratchpad the computer uses while it is working, and it empties itself the moment you switch off. Your microSD card is storage; the 16 GB of RAM inside your Pi 5 is memory.</div>
+<div class="jargon"><strong>In plain words:</strong> "Storage" means the place your computer writes files to keep them safe long-term — just like a filing cabinet. "Memory" (RAM) is different: it is the scratchpad the computer uses while it is working, and it empties itself the moment you switch off. Your microSD card is storage; the RAM inside your Pi 5 (the Pi 5 comes in 2, 4, 8, or 16 GB versions) is memory.</div>
 
 <p>The microSD card works perfectly well for everyday use, but it has two important weaknesses you should know about from the start:</p>
 
@@ -79,7 +79,7 @@ tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
 
 <h2 id="using-usb-drives-and-external-hard-drives">Using USB Drives and External Hard Drives</h2>
 
-<p>Plugging in a USB memory stick, an external hard drive, or an external SSD is one of the easiest ways to add more storage or to move files between your Pi and your Windows PC.</p>
+<p>Plugging in a USB memory stick, an external hard drive, or an external SSD is one of the easiest ways to add more storage or to move files between your Pi and your main computer.</p>
 
 <h3>Where USB Drives Appear</h3>
 
@@ -149,10 +149,10 @@ tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
   <li>Select the drive you want to format from the list on the left. <em>Be very careful to pick the correct drive</em> — formatting erases all data permanently.</li>
   <li>Click the menu button (three horizontal lines, top-right) and choose <strong>Format Disk</strong>.</li>
   <li>For the partition type, choose <strong>GPT</strong>. Click Format.</li>
-  <li>Once the disk is blank, click the <strong>+</strong> button to create a new partition. Choose the full size, and select <strong>Ext4</strong> as the filesystem type for a Linux drive, or <strong>FAT32 / exFAT</strong> if you also want to read it on Windows. Give it a label (a name) and click Create.</li>
+  <li>Once the disk is blank, click the <strong>+</strong> button to create a new partition. Choose the full size, and select <strong>Ext4</strong> as the filesystem type for a Linux drive, or <strong>FAT32 / exFAT</strong> if you also want to read it on Windows or macOS. Give it a label (a name) and click Create.</li>
 </ol>
 
-<div class="note"><strong>Note:</strong> <strong>Ext4</strong> is the standard Linux filesystem — fast and reliable on the Pi, but Windows cannot read it without extra software. <strong>exFAT</strong> works on both Windows 11 and the Pi without any extra tools, making it ideal for drives you share between the two computers.</div>
+<div class="note"><strong>Note:</strong> <strong>Ext4</strong> is the standard Linux filesystem — fast and reliable on the Pi, but Windows and macOS cannot read it without extra software. <strong>exFAT</strong> works on Windows, macOS, and the Pi without any extra tools, making it ideal for drives you share between your Pi and your main computer.</div>
 
 <h2 id="backing-up-your-pi-why-it-matters">Backing Up Your Pi — Why It Matters</h2>
 
@@ -161,7 +161,7 @@ tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
 <p>There are two main approaches to backing up a Raspberry Pi:</p>
 
 <ol>
-  <li><strong>Image the whole card</strong> to your Windows PC — making a perfect copy of the entire card as a single file.</li>
+  <li><strong>Image the whole card</strong> to your main computer — making a perfect copy of the entire card as a single file.</li>
   <li><strong>Clone the card</strong> to another card or USB drive directly from the Pi, using the built-in SD Card Copier tool.</li>
 </ol>
 
@@ -169,11 +169,11 @@ tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
 
 <div class="jargon"><strong>In plain words:</strong> A "disk image" (often a <code>.img</code> file) is a single file that contains a perfect, byte-for-byte copy of an entire storage device. It is like a photograph of the entire card — every file, every setting, the operating system itself. If your card dies, you can write the image back to a new card and your Pi will be exactly as it was.</div>
 
-<h3>Method 1 — Making an Image on Your Windows PC</h3>
+<h3>Method 1 — Making an Image on Your Main Computer</h3>
 
-<p>This method uses your Windows PC and requires you to remove the microSD card from the Pi (shut down first!), insert it into the USB card reader that came with your kit, and plug that into your Windows PC.</p>
+<p>This method uses your main computer and requires you to remove the microSD card from the Pi (shut down first!), insert it into a USB card reader (many Pi kits include one; otherwise any inexpensive microSD-to-USB reader works), and plug that into your computer.</p>
 
-<p>Two free tools can do this:</p>
+<p>Two free tools can do this. <strong>Raspberry Pi Imager</strong> runs on Windows, macOS, and Linux, so it is the option to use whatever computer you own. <strong>Win32DiskImager</strong> is a popular Windows-only alternative; on macOS the equivalent graphical tool is <strong>Raspberry Pi Imager</strong> or <strong>balenaEtcher</strong>, and on Linux you can use Raspberry Pi Imager or the <code>dd</code> command (see "The <code>dd</code> Command" below).</p>
 
 <table class="tbl">
   <thead>
@@ -185,23 +185,23 @@ tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
   </thead>
   <tbody>
     <tr>
-      <td><strong>Raspberry Pi Imager</strong></td>
+      <td><strong>Raspberry Pi Imager</strong> (Windows / macOS / Linux)</td>
       <td>Writing a fresh OS image AND backing up (it can read a card to a <code>.img.gz</code> file)</td>
       <td>raspberrypi.com/software — free download</td>
     </tr>
     <tr>
-      <td><strong>Win32DiskImager</strong></td>
+      <td><strong>Win32DiskImager</strong> (Windows only)</td>
       <td>Simple, dedicated tool for reading and writing raw disk images (<code>.img</code>)</td>
       <td>sourceforge.net/projects/win32diskimager — free download</td>
     </tr>
   </tbody>
 </table>
 
-<p>Using <strong>Win32DiskImager</strong> to back up your card:</p>
+<p>The example below uses <strong>Win32DiskImager</strong> on Windows to back up your card (if you are on macOS or Linux, use Raspberry Pi Imager's "read" feature instead, which follows the same idea of choosing the card and saving it to an image file):</p>
 
 <ol class="steps">
   <li>Shut down your Pi properly and remove the microSD card once the board has fully powered off and the green light has stopped blinking.</li>
-  <li>Insert the card into the USB card reader and plug the reader into your Windows PC.</li>
+  <li>Insert the card into the USB card reader and plug the reader into your computer.</li>
   <li>Open Win32DiskImager. You may need to run it as Administrator (right-click → Run as administrator).</li>
   <li>In the <strong>Image File</strong> field, click the folder icon and choose where to save the backup file. Give it a clear name, such as <code>pi-backup-2026-06-19.img</code>, and click Save.</li>
   <li>In the <strong>Device</strong> dropdown, select the drive letter that corresponds to your microSD card. Check Windows Explorer (File Explorer) to confirm which letter your card reader has been assigned — it is usually something like E: or F:. <em>Be very careful: choosing the wrong drive letter could overwrite data on your PC.</em></li>
@@ -210,7 +210,7 @@ tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
   <li>Remove the card reader and put the microSD card back into the Pi.</li>
 </ol>
 
-<div class="note"><strong>Note:</strong> A raw backup image will be roughly the same size as your card's capacity (e.g. a 128 GB card produces a ~128 GB image file), even if the card is mostly empty. This is because a raw image copies every sector of the card, used or not. Make sure you have enough free space on your Windows PC before starting. To save space, you can compress the finished <code>.img</code> file using 7-Zip (free at 7-zip.org) — a mostly-empty 128 GB image can often compress to 5–15 GB.</div>
+<div class="note"><strong>Note:</strong> A raw backup image will be roughly the same size as your card's capacity (e.g. a 128 GB card produces a ~128 GB image file), even if the card is mostly empty. This is because a raw image copies every sector of the card, used or not. Make sure you have enough free space on your computer before starting. To save space, you can compress the finished <code>.img</code> file with a free archiver — 7-Zip (7-zip.org) on Windows, or the built-in compression / a tool like Keka on macOS, or <code>gzip</code> on Linux — and a mostly-empty 128 GB image can often compress to 5–15 GB.</div>
 
 <p>To <strong>restore</strong> the backup to a new card, simply use Win32DiskImager again, but click <strong>Write</strong> instead of Read, choosing the <code>.img</code> file as the source and the new card as the destination.</p>
 
@@ -218,7 +218,7 @@ tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
 
 <h3>Method 2 — SD Card Copier (Clone Card-to-Card on the Pi)</h3>
 
-<p>Raspberry Pi OS includes a built-in tool called <strong>SD Card Copier</strong> that lets you clone your current microSD card to a second card (or a USB drive) while the Pi is still running. This is the simplest backup method because you do not need to shut down or use your Windows PC at all.</p>
+<p>Raspberry Pi OS includes a built-in tool called <strong>SD Card Copier</strong> that lets you clone your current microSD card to a second card (or a USB drive) while the Pi is still running. This is the simplest backup method because you do not need to shut down or use another computer at all.</p>
 
 <ol class="steps">
   <li>Insert a second microSD card (via the USB card reader) or a USB drive into one of the Pi's USB ports. It must be at least as large as your current card.</li>
@@ -318,7 +318,7 @@ tmpfs           7.7G     0  7.7G   0% /dev/shm</code></pre>
   </tbody>
 </table>
 
-<div class="note"><strong>Note:</strong> The HAT and the M.2 NVMe SSD are sold separately — they are not included in the iRasptek starter kit. When buying an SSD, look for an <strong>M.2 NVMe</strong> drive in a size your HAT supports (2230, 2242, or 2280 — these numbers describe the length in millimetres). A 256 GB or 512 GB drive is plenty for most Pi projects and very affordable.</div>
+<div class="note"><strong>Note:</strong> The HAT and the M.2 NVMe SSD are usually sold separately — most starter kits do not include them, so check what came in your kit before buying. When buying an SSD, look for an <strong>M.2 NVMe</strong> drive in a size your HAT supports (2230, 2242, or 2280 — these numbers describe the length in millimetres). A 256 GB or 512 GB drive is plenty for most Pi projects and very affordable.</div>
 
 <figure class="fig">
   <svg viewBox="0 0 640 310" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
@@ -531,7 +531,7 @@ sudo reboot</code></pre>
     <li><strong>raspi-config</strong> — a menu-driven terminal tool for configuring Pi system settings, including boot order.</li>
     <li><strong>Boot order</strong> — the sequence of storage devices the Pi tries when starting up; can be set to prefer NVMe or USB over the microSD card.</li>
     <li><strong>Bus-powered</strong> — a drive that draws its power from the USB port rather than its own power supply; small SSDs work fine this way, but large spinning hard drives often need external power.</li>
-    <li><strong>exFAT</strong> — a filesystem format readable by both Windows 11 and Raspberry Pi OS without extra software; ideal for drives shared between both computers.</li>
+    <li><strong>exFAT</strong> — a filesystem format readable by Windows, macOS, and Raspberry Pi OS without extra software; ideal for drives shared between your Pi and your main computer.</li>
     <li><strong>Ext4</strong> — the standard Linux filesystem used by Raspberry Pi OS; fast and reliable on the Pi, but not readable by Windows without third-party software.</li>
   </ul>
 </div>
@@ -544,7 +544,7 @@ sudo reboot</code></pre>
     <li>Raspberry Pi OS automatically expands the filesystem to fill your entire card on first boot — no action needed.</li>
     <li>USB drives appear in the file manager automatically; always eject them via right-click or <code>sudo umount</code> before unplugging.</li>
     <li><code>rsync -av</code> is smarter than <code>cp</code> for regular backups — it only copies files that have changed, making repeat runs fast.</li>
-    <li>Back up your Pi regularly by imaging the card to your Windows PC with Win32DiskImager, or by cloning it with the built-in SD Card Copier; store the backup somewhere safe.</li>
+    <li>Back up your Pi regularly by imaging the card to your main computer with Raspberry Pi Imager (Windows/macOS/Linux) or Win32DiskImager (Windows), or by cloning it with the built-in SD Card Copier; store the backup somewhere safe.</li>
     <li>Before adding an NVMe SSD, update the Pi's bootloader with <code>sudo rpi-eeprom-update -a</code> and reboot to ensure NVMe boot is fully supported.</li>
     <li>The Pi 5's PCIe slot supports a very fast NVMe SSD via an M.2 HAT+, delivering speeds 10–30 times greater than a microSD card.</li>
     <li>A USB SSD connected to a blue USB 3.0 port is a simpler, slightly slower upgrade that needs no extra HAT — set the boot order via <code>raspi-config</code> and you are done.</li>

@@ -91,7 +91,7 @@
 
 <h3>Step 2 — Install Support for Windows-Formatted Drives (if needed)</h3>
 
-<p>Most USB drives bought in Europe come formatted as <strong>exFAT</strong> or <strong>NTFS</strong> — the formats Windows uses. Raspberry Pi OS Bookworm can read these, but only if the right support packages are installed. Check your filesystem type from Step 1 and install the right one:</p>
+<p>Most USB drives sold ready-to-use come formatted as <strong>exFAT</strong> or <strong>NTFS</strong> — the formats Windows uses. Raspberry Pi OS Bookworm can read these, but only if the right support packages are installed. Check your filesystem type from Step 1 and install the right one:</p>
 
 <p><strong>If your drive is exFAT</strong> (most common for drives under 2 TB bought recently):</p>
 
@@ -357,7 +357,7 @@
 
 <p>The Pi 5's VideoCore VII graphics chip can <strong>hardware-decode</strong> HEVC (H.265) and H.264 video — the two most common formats for 4K and 1080p films. This means it can handle 4K direct play to a TV connected via HDMI with ease, barely breaking a sweat.</p>
 
-<p>If a client device (such as an older phone or a browser on a Windows PC) cannot play HEVC natively, Jellyfin will transcode the video on the fly. The Pi 5 can handle a single 1080p software transcode comfortably. Transcoding a 4K stream in real time is much heavier work and may cause stuttering; if this happens, lower the quality setting in the Jellyfin player.</p>
+<p>If a client device (such as an older phone or a browser on a laptop or desktop) cannot play HEVC natively, Jellyfin will transcode the video on the fly. The Pi 5 can handle a single 1080p software transcode comfortably. Transcoding a 4K stream in real time is much heavier work and may cause stuttering; if this happens, lower the quality setting in the Jellyfin player.</p>
 
 <div class="tip"><strong>Tip:</strong> For the best experience, prefer client devices that support HEVC natively — most modern smartphones and smart TVs do. When HEVC is supported, Jellyfin uses direct play and the Pi barely works at all, leaving plenty of spare power for other tasks.</div>
 

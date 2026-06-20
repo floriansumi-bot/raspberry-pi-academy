@@ -129,12 +129,12 @@
 
 <h2 id="accessories-worth-buying-and-why">Accessories Worth Buying (and Why)</h2>
 
-<p>Your starter kit is enough to do a great deal. But as you grow, certain accessories unlock entirely new capabilities. Here is an honest guide to what is worth spending money on — and what each thing does.</p>
+<p>A basic setup is enough to do a great deal. But as you grow, certain accessories unlock entirely new capabilities. Here is an honest guide to what is worth spending money on — and what each thing does.</p>
 
 <div class="jargon"><strong>In plain words:</strong> A <strong>HAT</strong> (Hardware Attached on Top) is an add-on circuit board that stacks neatly on top of your Raspberry Pi, connecting through all 40 GPIO pins at once. Think of it like a module you slot onto the Pi to give it a new superpower — more storage, artificial intelligence, an uninterruptible power supply, and so on. The GPIO header acts as the universal connector.</div>
 
 <h3>M.2 NVMe SSD + the M.2 HAT+</h3>
-<p>The microSD card that came with your kit is convenient, but it is slower and less durable than a proper solid-state drive. An <strong>M.2 NVMe SSD</strong> is a small, flat storage chip — typically the size of a stick of chewing gum — that connects to the Pi 5 through its built-in PCIe connector via an official add-on board called the <strong>M.2 HAT+</strong>.</p>
+<p>The microSD card most people start with is convenient, but it is slower and less durable than a proper solid-state drive. An <strong>M.2 NVMe SSD</strong> is a small, flat storage chip — typically the size of a stick of chewing gum — that connects to the Pi 5 through its built-in PCIe connector via an official add-on board called the <strong>M.2 HAT+</strong>.</p>
 
 <div class="jargon"><strong>In plain words:</strong> <strong>PCIe</strong> (pronounced "PCI Express") is a high-speed data connection built into the Pi 5, designed originally for connecting graphics cards and fast storage inside desktop computers. The Pi 5 has one PCIe 2.0 lane — a single high-speed channel — which is what makes plugging in an M.2 HAT+ or AI HAT+ possible.</div>
 
@@ -255,7 +255,7 @@
   <li><strong>What you are trying to do.</strong> "I am trying to run a Python script that reads temperature from a BME280 sensor connected to the I²C pins."</li>
   <li><strong>What you expected to happen.</strong> "I expected to see a temperature reading printed in the terminal."</li>
   <li><strong>What actually happened.</strong> Copy and paste the exact error message, in full. Do not paraphrase it — the exact wording matters.</li>
-  <li><strong>Your hardware and software.</strong> Raspberry Pi 5, 16 GB RAM. Raspberry Pi OS Bookworm, 64-bit. Run the following two commands in your terminal and paste the output into your question:</li>
+  <li><strong>Your hardware and software.</strong> For example: "Raspberry Pi 5 (state your RAM size), Raspberry Pi OS Bookworm, 64-bit." Run the following two commands in your terminal and paste the output into your question:</li>
 </ol>
 
 <pre class="code"><code>uname -a
@@ -295,7 +295,7 @@ cat /etc/os-release</code></pre>
 <p>Experienced makers share a few habits that are worth knowing about now, before you form different ones:</p>
 
 <ul>
-  <li><strong>Back up before you build.</strong> Before you start a big project, take a backup image of your microSD card using the Raspberry Pi Imager software on your Windows PC. If something goes wrong, you can restore it in minutes rather than starting from scratch.</li>
+  <li><strong>Back up before you build.</strong> Before you start a big project, take a backup image of your microSD card using the Raspberry Pi Imager software on your main computer (Windows, macOS, or Linux). If something goes wrong, you can restore it in minutes rather than starting from scratch.</li>
   <li><strong>One change at a time.</strong> When something stops working, it is almost always because of the most recent change you made. If you change several things at once, finding the cause becomes much harder. Change one thing, test it, then move on.</li>
   <li><strong>Read the error message.</strong> Error messages feel intimidating at first, but they almost always contain the answer. The last line is usually the most important. Copy it and search for it online.</li>
   <li><strong>Document what you do.</strong> Keep a simple text file or notebook where you write down what you installed, why you wired things up a certain way, and any configuration changes you made. Future you — returning to a project after three months — will be very grateful.</li>

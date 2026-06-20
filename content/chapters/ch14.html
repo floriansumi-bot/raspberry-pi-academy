@@ -60,8 +60,8 @@
 
 <ul>
   <li>A spare microSD card — 16 GB minimum, 32 GB or larger recommended (more space means more games).</li>
-  <li>The USB card reader that came with your kit.</li>
-  <li>Your Windows 11 PC to flash the image.</li>
+  <li>A USB card reader (many starter kits include one; otherwise an inexpensive USB microSD reader works fine).</li>
+  <li>Your main computer (Windows, macOS, or Linux) to flash the image.</li>
   <li>A USB or Bluetooth game controller. Almost any USB gamepad works out of the box; Xbox One/Series and PlayStation 4/5 controllers are recognised automatically. A USB keyboard can be used temporarily if you have no controller yet.</li>
   <li>Your Pi connected to a monitor or TV via the micro-HDMI cable.</li>
   <li>An internet connection (for downloading cover art and updates later).</li>
@@ -101,7 +101,7 @@
 <h2 id="step-1-download-batocera">Step 1 — Download Batocera</h2>
 
 <ol class="steps">
-  <li>On your Windows PC, open a web browser and search for <strong>Batocera Linux</strong>. The first result should be the official website at <code>batocera.linux</code>. Click through to that site.</li>
+  <li>On your main computer (Windows, macOS, or Linux), open a web browser and search for <strong>Batocera Linux</strong>. The first result should be the official website at <code>batocera.linux</code>. Click through to that site.</li>
   <li>Click <strong>Download</strong>, then choose <strong>Raspberry Pi 5</strong> from the list of devices.</li>
   <li>Download the compressed image file. It will have a name like <code>batocera-bcm2712-rpi5-v40.img.gz</code>. The exact version number will be higher by the time you read this — that is fine, always download the latest.</li>
   <li>Make a note of where the file saved (usually your <code>Downloads</code> folder).</li>
@@ -114,14 +114,14 @@
 <p>This process is almost identical to what you did in Chapter 4 when you first installed Raspberry Pi OS. If you need a reminder of the steps, flip back there now.</p>
 
 <ol class="steps">
-  <li>Insert your spare microSD card into the USB card reader, then plug the reader into your Windows PC.</li>
-  <li>Open <strong>Raspberry Pi Imager</strong> (the blue raspberry icon on your desktop or in your Start menu).</li>
+  <li>Insert your spare microSD card into the USB card reader, then plug the reader into your computer.</li>
+  <li>Open <strong>Raspberry Pi Imager</strong> (the blue raspberry icon — in your Start menu on Windows, your Applications folder on macOS, or your applications menu on Linux).</li>
   <li>Click <strong>Choose OS</strong>. Scroll to the bottom of the list and select <strong>Use custom</strong>.</li>
   <li>Browse to your <code>Downloads</code> folder and select the Batocera <code>.img.gz</code> file.</li>
   <li>Click <strong>Choose Storage</strong> and select your spare card. <strong>Double-check you are picking the correct one</strong> — everything on the chosen card will be erased.</li>
   <li>Click <strong>Next</strong>. When Imager asks if you want to apply OS customisation, click <strong>No</strong> — Batocera has its own first-boot setup and does not use Imager's customisation.</li>
   <li>Confirm the write and wait for it to finish (typically five to ten minutes depending on your card speed).</li>
-  <li>Once Imager says it is complete, eject the card safely from Windows: right-click the drive letter in File Explorer and choose <strong>Eject</strong> before removing it physically.</li>
+  <li>Once Imager says it is complete, eject the card safely before removing it physically — on Windows, right-click the drive in File Explorer and choose <strong>Eject</strong>; on macOS, drag the card to the Trash or click the eject icon in Finder; on Linux, click the eject icon next to the drive in your file manager.</li>
 </ol>
 
 <div class="warn"><strong>Careful:</strong> Make absolutely sure you select the spare card, not the card holding your main Raspberry Pi OS. Both cards may appear as drives in Imager. Label your cards with a sticky note or a piece of masking tape so you always know which is which — this takes ten seconds and could save you from accidentally wiping your work.</div>
@@ -233,29 +233,34 @@
 
 <h2 id="step-6-copy-games-onto-batocera">Step 6 — Copy Games onto Batocera</h2>
 
-<p>Batocera creates a shared folder on your network automatically — this is called a <strong>Samba share</strong>. You can drag game files into it from your Windows PC exactly like copying files to a USB stick.</p>
+<p>Batocera creates a shared folder on your network automatically — this is called a <strong>Samba share</strong>. You can drag game files into it from your main computer exactly like copying files to a USB stick.</p>
 
-<div class="jargon"><strong>In plain words:</strong> A <em>Samba share</em> is a way for a Linux computer (like your Pi) to make a folder appear in Windows Explorer over your home network, so you can copy files into it as if it were just another folder on your PC.</div>
+<div class="jargon"><strong>In plain words:</strong> A <em>Samba share</em> is a way for a Linux computer (like your Pi) to make a folder appear on the other computers on your home network — in Windows File Explorer, macOS Finder, or a Linux file manager — so you can copy files into it as if it were just another folder on your own machine.</div>
 
 <h3>Method A — Copy over the Network (Samba)</h3>
 
 <ol class="steps">
-  <li>On your Windows PC, open <strong>File Explorer</strong> (the folder icon in the taskbar).</li>
-  <li>Click in the address bar at the top, type <code>\\BATOCERA</code> and press <code>Enter</code>. Windows will connect to the Pi and show its shared folders.</li>
+  <li>Open your computer's file browser and connect to the Pi's share:
+    <ul>
+      <li><strong>Windows:</strong> open <strong>File Explorer</strong> (the folder icon in the taskbar), click the address bar at the top, type <code>\\BATOCERA</code> and press <code>Enter</code>.</li>
+      <li><strong>macOS:</strong> in <strong>Finder</strong>, choose <strong>Go → Connect to Server</strong>, type <code>smb://BATOCERA</code> and click <strong>Connect</strong>.</li>
+      <li><strong>Linux:</strong> in your <strong>Files</strong> manager, choose <strong>Other Locations</strong> (or press <code>Ctrl + L</code>), type <code>smb://BATOCERA</code> and press <code>Enter</code>.</li>
+    </ul>
+    Your computer will connect to the Pi and show its shared folders.</li>
   <li>Open the <strong>share</strong> folder, then open the <strong>roms</strong> folder inside it.</li>
   <li>Inside <strong>roms</strong>, you will find a sub-folder for each system — for example <code>nes</code>, <code>snes</code>, <code>megadrive</code>, <code>psx</code> (PlayStation), <code>mame</code> (arcade), and many more.</li>
   <li>Copy your legal ROM files into the correct console sub-folder. For example, a NES ROM (a file ending in <code>.nes</code>) goes into the <code>nes</code> folder.</li>
   <li>Once copying is complete, go back to your Pi. Press <strong>Start</strong>, choose <strong>Game Settings</strong>, then <strong>Update Game Lists</strong>. Your games will now appear in the EmulationStation menu.</li>
 </ol>
 
-<div class="note"><strong>Note:</strong> If <code>\\BATOCERA</code> does not connect, try <code>\\batocera.local</code> instead. If that also fails, use the IP address you noted in Step 5 — for example <code>\\192.168.1.50</code>.</div>
+<div class="note"><strong>Note:</strong> If the connection by name does not work, try <code>batocera.local</code> instead (so <code>\\batocera.local</code> on Windows, or <code>smb://batocera.local</code> on macOS/Linux). If that also fails, use the IP address you noted in Step 5 — for example <code>\\192.168.1.50</code> on Windows, or <code>smb://192.168.1.50</code> on macOS/Linux.</div>
 
 <h3>Method B — Copy by USB Drive</h3>
 
 <ol class="steps">
-  <li>Format a USB drive as <strong>FAT32</strong> or <strong>exFAT</strong> on your Windows PC: right-click the drive in File Explorer, choose <strong>Format</strong>, pick FAT32 or exFAT from the file system drop-down, and click <strong>Start</strong>.</li>
+  <li>Format a USB drive as <strong>FAT32</strong> or <strong>exFAT</strong> on your main computer. On Windows, right-click the drive in File Explorer, choose <strong>Format</strong>, pick FAT32 or exFAT from the file system drop-down, and click <strong>Start</strong>. On macOS, use <strong>Disk Utility</strong> and choose <strong>MS-DOS (FAT)</strong> or <strong>ExFAT</strong>. On Linux, use the <strong>Disks</strong> utility to format it as FAT or exFAT.</li>
   <li>On the USB drive, create a folder called <code>roms</code>. Inside it, create sub-folders matching the console names (for example <code>nes</code>, <code>snes</code>, <code>megadrive</code>). Copy your ROM files into the correct sub-folder.</li>
-  <li>Safely eject the USB drive from Windows, then plug it into one of the Pi's USB ports while Batocera is running.</li>
+  <li>Safely eject the USB drive from your computer, then plug it into one of the Pi's USB ports while Batocera is running.</li>
   <li>Batocera will detect the USB drive and ask if you want to import games from it. Confirm, and your games will be copied to the microSD card.</li>
   <li>Once the import finishes, you can unplug the USB drive. The games are now stored on your Batocera card.</li>
 </ol>
@@ -306,7 +311,7 @@
 
 <div class="warn"><strong>Careful:</strong> BIOS files are copyrighted by the companies that made the original consoles. Distributing or downloading them without owning the original hardware is technically illegal in most jurisdictions. You can legally dump BIOS files from hardware you own using specialist tools. This guide does not provide or link to BIOS file downloads.</div>
 
-<p>To install BIOS files in Batocera, copy them to the <code>bios</code> folder visible in the Samba share at <code>\\BATOCERA\share\bios</code>. The exact filenames and folder structure expected by each emulator are listed in Batocera's official documentation (visit the Batocera website and search for "BIOS").</p>
+<p>To install BIOS files in Batocera, copy them to the <code>bios</code> folder inside the Samba share (the same share you opened in Step 6 — at <code>\\BATOCERA\share\bios</code> on Windows, or <code>smb://BATOCERA</code> then <code>share/bios</code> on macOS and Linux). The exact filenames and folder structure expected by each emulator are listed in Batocera's official documentation (visit the Batocera website and search for "BIOS").</p>
 
 <h2 id="step-7-playing-a-game">Step 7 — Playing a Game</h2>
 
@@ -530,7 +535,7 @@ sudo bash retropie_setup.sh</code></pre>
 
 <div class="warn"><strong>Careful:</strong> RetroPie on Raspberry Pi OS Bookworm is a community effort and is actively developed. Some emulators may fail to compile on a 64-bit Bookworm system. If an emulator fails during the Basic Install, you can skip it and install other emulators individually from the <strong>Manage Packages</strong> menu later. The RetroPie forum at <code>retropie.org.uk/forum</code> is an excellent resource — search for your specific error message and you will almost always find a solution.</div>
 
-<p>Once RetroPie is running, you add ROMs by placing files in the <code>/home/pi/RetroPie/roms/</code> folder on the Pi. This folder is also accessible as a Samba network share from Windows at <code>\\RETROPIE\roms</code> — browse to it in File Explorer just as you did with Batocera.</p>
+<p>Once RetroPie is running, you add ROMs by placing files in the <code>/home/pi/RetroPie/roms/</code> folder on the Pi. This folder is also accessible as a Samba network share from your main computer — at <code>\\RETROPIE\roms</code> on Windows, or <code>smb://RETROPIE</code> on macOS (Finder → Go → Connect to Server) and Linux (Files → Other Locations) — browse to it just as you did with Batocera.</p>
 
 <h2 id="keeping-batocera-up-to-date">Keeping Batocera Up to Date</h2>
 
@@ -557,11 +562,11 @@ sudo bash retropie_setup.sh</code></pre>
     <li><strong>RetroPie</strong> — an alternative that adds emulation software on top of an existing Raspberry Pi OS installation, keeping both on the same card.</li>
     <li><strong>Save state</strong> — an instant snapshot of a running game that can be saved and restored at any point, allowing you to resume from exactly the frozen moment.</li>
     <li><strong>Hotkey</strong> — a special button on your controller (usually Select) that, when held together with other buttons, triggers emulator shortcuts like saving, quitting, or opening the menu.</li>
-    <li><strong>Samba share</strong> — a network folder on the Pi that appears in Windows File Explorer, allowing you to copy files from your PC to the Pi over your home network.</li>
+    <li><strong>Samba share</strong> — a network folder on the Pi that appears in your computer's file browser (Windows File Explorer, macOS Finder, or a Linux file manager), allowing you to copy files from your computer to the Pi over your home network.</li>
     <li><strong>BIOS file</strong> — a small program originally built into a console's hardware chips, which certain emulators need in order to work correctly.</li>
     <li><strong>Scraping</strong> — the process of automatically downloading cover art, descriptions, and game metadata from an online database to make your game library look polished.</li>
     <li><strong>Homebrew</strong> — games created independently by hobbyists and often released free of charge; a legal and widely available source of ROM files.</li>
-    <li><strong>IP address</strong> — a unique numerical address (like 192.168.1.50) that identifies your Pi on the home network, used when Windows cannot find the Pi by name.</li>
+    <li><strong>IP address</strong> — a unique numerical address (like 192.168.1.50) that identifies your Pi on the home network, used when your computer cannot find the Pi by name.</li>
   </ul>
 </div>
 
@@ -573,7 +578,7 @@ sudo bash retropie_setup.sh</code></pre>
     <li>Keep your two cards clearly labelled and swap them in the Pi's microSD slot to switch between Raspberry Pi OS and Batocera — the two systems are entirely independent.</li>
     <li>ROMs are subject to copyright; you may only legally use files for games you personally own, or games released as freeware or homebrew.</li>
     <li>Some consoles (PlayStation 1, Saturn, Dreamcast, GBA) require BIOS files to work; place them in the <code>\\BATOCERA\share\bios</code> network folder.</li>
-    <li>Copy games to Batocera via the Samba network share at <code>\\BATOCERA\share\roms</code> from Windows, or by importing from a USB drive.</li>
+    <li>Copy games to Batocera via the Samba network share at <code>\\BATOCERA\share\roms</code> (or <code>smb://BATOCERA</code> on macOS and Linux) from your main computer, or by importing from a USB drive.</li>
     <li>Connect a USB or Bluetooth controller and map your buttons on first boot; most modern USB gamepads and Xbox/PlayStation controllers are detected automatically.</li>
     <li>Save states (Hotkey + R1 to save, Hotkey + L1 to load) let you snapshot your progress at any moment; Hotkey + Start quits back to the EmulationStation menu.</li>
     <li>The Pi 5 has no headphone socket; game audio comes through HDMI or via a USB audio adapter or Bluetooth headphones.</li>

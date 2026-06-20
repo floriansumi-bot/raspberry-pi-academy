@@ -1,8 +1,8 @@
-<p class="lead">Your Raspberry Pi 5 starter kit contains everything you need to build a fully working desktop computer — and it arrived already assembled. In this chapter we take a slow, careful look at every single part: what it is, what it does, and exactly how to connect it all together for the very first time.</p>
+<p class="lead">A Raspberry Pi 5, the right power supply, a microSD card, and a cable to a screen are all you need to build a fully working desktop computer. In this chapter we take a slow, careful look at every single part: what it is, what it does, and exactly how to connect it all together for the very first time. If you bought a starter kit, much of this may already be assembled for you; if you are putting the pieces together yourself, this chapter shows you exactly how.</p>
 
 <h2 id="a-guided-tour-of-the-raspberry-pi-5-board">A Guided Tour of the Raspberry Pi 5 Board</h2>
 
-<p>Before you plug anything in, take the Pi out of its case if you can and lay it flat so you can see the top of the board. (Do not worry if it is already sealed inside the iRasptek aluminium case — we will describe every connector so you know where to find it through the case openings.) The board is a small green rectangle roughly the size of a credit card. Everything on it — the processor, the memory, the connectors — is mounted directly on that green card.</p>
+<p>Before you plug anything in, take the Pi out of its case if you can and lay it flat so you can see the top of the board. (Do not worry if it is already sealed inside a case — we will describe every connector so you know where to find it through the case openings.) The board is a small green rectangle roughly the size of a credit card. Everything on it — the processor, the memory, the connectors — is mounted directly on that green card.</p>
 
 <div class="jargon"><strong>In plain words:</strong> A <em>board</em> (or <em>PCB</em> — printed circuit board) is the flat green card that holds all the electronic components. Think of it as the "motherboard" of a tiny computer.</div>
 
@@ -12,7 +12,7 @@
 
 <div class="jargon"><strong>In plain words:</strong> A <em>SoC</em> (System on a Chip) packs everything a computer needs to think and draw pictures into a single chip. The metal lid on top helps spread heat away from it.</div>
 
-<p>Stacked on top of the SoC, or placed right next to it, is a smaller chip: the <strong>RAM</strong>. Your kit has 16 GB of LPDDR4X RAM. RAM is the computer's short-term memory — it holds whatever the computer is doing right now. More RAM means you can have more browser tabs, more programs, or bigger files open at the same time without the computer slowing down. 16 GB is an unusually generous amount for a Pi and more than enough for anything a beginner will do.</p>
+<p>Stacked on top of the SoC, or placed right next to it, is a smaller chip: the <strong>RAM</strong>. The Pi 5 comes with 2 GB, 4 GB, 8 GB, or 16 GB of LPDDR4X RAM, depending on which version you have. RAM is the computer's short-term memory — it holds whatever the computer is doing right now. More RAM means you can have more browser tabs, more programs, or bigger files open at the same time without the computer slowing down. Even the smallest version is plenty for anything a beginner will do; if you have one of the larger ones, you simply have more headroom for ambitious projects later.</p>
 
 <div class="jargon"><strong>In plain words:</strong> <em>RAM</em> (Random Access Memory) is like a very fast notepad the computer writes its current work on. When you turn the power off, everything on that notepad is erased — that is why you save files to a storage card or drive.</div>
 
@@ -33,7 +33,7 @@
   <rect x="320" y="130" width="110" height="110" rx="3" fill="#aaa"/>
   <text x="375" y="182" text-anchor="middle" fill="#222" font-size="12" font-weight="bold">BCM2712</text>
   <text x="375" y="198" text-anchor="middle" fill="#222" font-size="11">SoC + RAM</text>
-  <text x="375" y="214" text-anchor="middle" fill="#333" font-size="10">16 GB LPDDR4X</text>
+  <text x="375" y="214" text-anchor="middle" fill="#333" font-size="10">LPDDR4X</text>
 
   <!-- USB-C Power (bottom right of board, bottom edge) -->
   <rect x="495" y="415" width="44" height="22" rx="3" fill="#444" stroke="#666" stroke-width="1.5"/>
@@ -209,19 +209,19 @@
 
 <p>The Pi 5 can drive <strong>two monitors simultaneously</strong>, each at up to 4K resolution at 60 frames per second — an impressive feat for such a small board. For a single monitor, always use port 0.</p>
 
-<div class="warn"><strong>Careful:</strong> Micro-HDMI and mini-HDMI look similar but are NOT the same size. Your iRasptek kit includes a micro-HDMI cable matched to the Pi 5. Do not try to force a mini-HDMI or full-size HDMI plug into this socket — you could damage the port.</div>
+<div class="warn"><strong>Careful:</strong> Micro-HDMI and mini-HDMI look similar but are NOT the same size. You need a micro-HDMI-to-HDMI cable or adapter matched to the Pi 5 (many starter kits include one). Do not try to force a mini-HDMI or full-size HDMI plug into this socket — you could damage the port.</div>
 
 <div class="note"><strong>Note:</strong> The Raspberry Pi 5 has <strong>no 3.5 mm headphone jack</strong>. Audio comes out through the HDMI cable to your monitor or TV speakers. If you need a headphone socket, you can add one via a small USB audio adapter (widely available for a few pounds or euros). Bluetooth headphones or speakers also work well — see Chapter 4 for Bluetooth setup.</div>
 
 <h3>Bottom Edge: USB-C Power Input</h3>
 
-<p>At the far right of the bottom edge is a <strong>USB-C socket</strong>. This is the <strong>power input only</strong> — it is where you plug in the 27 W power supply. Unlike the USB-C port on a laptop, this socket on the Pi 5 does not transfer data; it only receives power.</p>
+<p>At the far right of the bottom edge is a <strong>USB-C socket</strong>. This is the <strong>power input only</strong> — it is where you plug in the power supply. Unlike the USB-C port on a laptop, this socket on the Pi 5 does not transfer data; it only receives power.</p>
 
-<div class="note"><strong>Note:</strong> The Pi 5 needs a proper USB-C Power Delivery supply that can provide at least 5 V at 5 A (= 25 W). A phone charger will not supply enough current and the Pi will show a low-voltage warning — a yellow lightning bolt icon — in the top-right corner of the screen. Always use the supplied 27 W adapter.</div>
+<div class="note"><strong>Note:</strong> The Pi 5 needs a proper USB-C Power Delivery supply that can provide at least 5 V at 5 A (= 25 W). A typical phone charger will not supply enough current and the Pi will show a low-voltage warning — a yellow lightning bolt icon — in the top-right corner of the screen. Use the official 27 W USB-C power supply (or any good 5 V / 5 A USB-C PD supply).</div>
 
 <h3>Left Edge (Underneath): microSD Card Slot</h3>
 
-<p>On the underside of the board, at the left edge, is a thin spring-loaded slot. This is the <strong>microSD card slot</strong>. The microSD card is the Pi's "hard drive" — it holds the operating system, all your files, and any programs you install. Unlike a laptop's internal drive, you can pop the card out, copy it to a PC for a backup, or swap it for a different card with a different operating system.</p>
+<p>On the underside of the board, at the left edge, is a thin spring-loaded slot. This is the <strong>microSD card slot</strong>. The microSD card is the Pi's "hard drive" — it holds the operating system, all your files, and any programs you install. Unlike a laptop's internal drive, you can pop the card out, copy it to your main computer for a backup, or swap it for a different card with a different operating system.</p>
 
 <div class="jargon"><strong>In plain words:</strong> A <em>microSD card</em> is a tiny storage chip, about the size of a fingernail, most commonly used in cameras and phones. In the Pi it acts as the computer's main storage disk.</div>
 
@@ -272,43 +272,43 @@
 
 <div class="jargon"><strong>In plain words:</strong> <em>PCIe</em> (Peripheral Component Interconnect Express) is a fast data lane originally designed for desktop PC graphics cards. In the Pi 5, a single lane is exposed on a flat ribbon connector so you can add a speedy SSD. <em>NVMe</em> is the type of very fast solid-state storage that uses this lane.</div>
 
-<h2 id="your-irasptek-kit-every-part-explained">Your iRasptek Kit — Every Part Explained</h2>
+<h2 id="your-accessories-every-part-explained">Your Accessories — Every Part Explained</h2>
 
-<p>Now let's look at the individual items in the box and understand why each one matters.</p>
+<p>Now let's look at the individual accessories you use with the Pi and understand why each one matters. Whether they came in a starter kit or you bought them separately, these are the parts you will be handling.</p>
 
-<h3>The 27 W USB-C Power Supply</h3>
+<h3>The Power Supply</h3>
 
-<p>This looks like a phone charger but is significantly more capable. It outputs 5.1 V at up to 5 A, giving 27 W of power. The Pi 5 can draw more power than earlier Pi models — especially if you have multiple USB devices attached — so a proper supply is essential.</p>
+<p>The recommended supply looks like a phone charger but is significantly more capable. The official Raspberry Pi 5 supply outputs 5.1 V at up to 5 A, giving 27 W of power. The Pi 5 can draw more power than earlier Pi models — especially if you have multiple USB devices attached — so a proper supply is essential.</p>
 
-<p>Why does the exact supply matter? A cheap phone charger typically provides 5 V at 1 or 2 A (5–10 W). When the Pi 5 draws more current than the charger can supply, the voltage drops below 5 V and the Pi displays a <strong>yellow lightning bolt</strong> in the top-right corner of the screen. In this low-voltage state the processor throttles itself to use less power — meaning the Pi runs noticeably slower. Always use the supplied 27 W adapter.</p>
+<p>Why does the exact supply matter? A cheap phone charger typically provides 5 V at 1 or 2 A (5–10 W). When the Pi 5 draws more current than the charger can supply, the voltage drops below 5 V and the Pi displays a <strong>yellow lightning bolt</strong> in the top-right corner of the screen. In this low-voltage state the processor throttles itself to use less power — meaning the Pi runs noticeably slower. Use the official 27 W USB-C power supply, or any good 5 V / 5 A USB-C Power Delivery supply.</p>
 
-<div class="warn"><strong>Careful:</strong> The plug on the iRasptek supply will match the sockets in your country. If you travel with the Pi, take the correct plug adapter — never force a foreign plug into a socket.</div>
+<div class="warn"><strong>Careful:</strong> Make sure the plug on your supply matches the sockets in your country. If you travel with the Pi, take the correct plug adapter — never force a foreign plug into a socket.</div>
 
 <h3>The Active Cooler</h3>
 
-<p>Attached to the top of the SoC, you will see (or feel through the case) a small heatsink with a tiny fan on top. This is the <strong>Active Cooler</strong>. It does two jobs at once: the metal heatsink draws heat away from the chip by conduction, and the fan blows that heat away into the surrounding air.</p>
+<p>If your Pi has an Active Cooler fitted, you will see (or feel through the case) a small heatsink with a tiny fan on top sitting on the SoC. This is the <strong>Active Cooler</strong>. It does two jobs at once: the metal heatsink draws heat away from the chip by conduction, and the fan blows that heat away into the surrounding air.</p>
 
 <div class="jargon"><strong>In plain words:</strong> A <em>heatsink</em> is a piece of metal (usually aluminium) with fins or ridges that absorbs heat from a chip and spreads it over a large surface area so air can carry it away. An <em>active cooler</em> adds a fan to speed that process up.</div>
 
 <p>Why does the Pi 5 need active cooling? The Arm Cortex-A76 processor in the Pi 5 is considerably more powerful than its predecessors. Under a heavy load — compiling software, running a 4K video, or playing a 3D game — it generates enough heat to throttle itself if left uncooled. The Active Cooler keeps the chip well below its 85 °C thermal limit even under sustained full load, so your Pi always runs at full speed. A heatsink alone (passive cooling) is insufficient for a Pi 5 under heavy use; the fan makes the difference.</p>
 
-<div class="note"><strong>Note:</strong> In your assembled iRasptek kit, the Active Cooler is already clipped on and the fan cable is plugged into the board's fan connector. You do not need to do anything — just appreciate that it is there keeping your Pi healthy.</div>
+<div class="note"><strong>Note:</strong> Many starter kits ship with the Active Cooler already clipped on and the fan cable plugged into the board's fan connector. If yours is already fitted, you do not need to do anything — just appreciate that it is there keeping your Pi healthy. If it isn't, the official Active Cooler is an inexpensive add-on that clips straight on and plugs into the fan connector; for any demanding use it is well worth fitting.</div>
 
 <h3>The Case</h3>
 
-<p>The iRasptek case is made from aluminium (sometimes with a red-and-white design). It serves three purposes: physical protection, additional passive heat dissipation (aluminium conducts heat away from the board), and a tidy appearance. The case has cutouts for every port so all your cables can reach the board without opening the case.</p>
+<p>A case (most kits include one) is typically made from aluminium or plastic. It serves three purposes: physical protection, additional passive heat dissipation (a metal case helps conduct heat away from the board), and a tidy appearance. A good case has cutouts for every port so all your cables can reach the board without opening it. A case is optional — the Pi works fine without one — but it is recommended to protect the board.</p>
 
-<p>The microSD card slot is accessible through an opening on the left side of the case — you do not need to open the case to swap cards.</p>
+<p>On most cases the microSD card slot is accessible through an opening on the side — you do not need to open the case to swap cards.</p>
 
-<h3>The microSD Card and USB Card Reader</h3>
+<h3>The microSD Card and a Card Reader</h3>
 
-<p>Your kit includes a microSD card (64 GB, 128 GB, or 256 GB depending on the kit version) which may already have Raspberry Pi OS installed on it. The card reader allows you to plug the microSD card into a Windows 11 PC via a standard USB port — useful for writing a fresh OS image, making a backup, or recovering a broken system.</p>
+<p>You will need a microSD card (commonly 32 GB or larger; many kits include one), which may already have Raspberry Pi OS installed on it. To write or back up the card you also need a way to read it on your main computer: many cards come with a small USB card reader, or your computer may have a built-in SD slot. Either lets you write a fresh OS image, make a backup, or recover a broken system — useful no matter whether your main computer runs Windows, macOS, or Linux.</p>
 
-<div class="tip"><strong>Tip:</strong> Even if your card already has the OS on it, keep the USB card reader safe. It is your rescue tool if anything goes wrong with the software later.</div>
+<div class="tip"><strong>Tip:</strong> Keep a card reader handy even if your card already has the OS on it. It is your rescue tool if anything goes wrong with the software later.</div>
 
 <h3>The Micro-HDMI to HDMI Cable</h3>
 
-<p>This cable has a small micro-HDMI connector at one end (the Pi end) and a full-size HDMI connector at the other end (the monitor or TV end). It carries both video and audio. The cable supports HDMI 2.0, which is enough for 4K resolution at 60 frames per second.</p>
+<p>This cable has a small micro-HDMI connector at one end (the Pi end) and a full-size HDMI connector at the other end (the monitor or TV end). It carries both video and audio. A suitable cable supports HDMI 2.0, which is enough for 4K resolution at 60 frames per second. Many kits include one; otherwise it is a cheap, widely available cable or adapter.</p>
 
 <div class="note"><strong>Note:</strong> Most modern monitors and televisions have at least one full-size HDMI input. If your monitor only has DisplayPort or VGA inputs, you will need a separate active HDMI-to-DisplayPort or HDMI-to-VGA adapter (not included). Check your monitor's inputs before your first setup session.</div>
 
@@ -345,7 +345,7 @@
     <tr>
       <td>micro-HDMI 0</td>
       <td>Bottom edge, inner</td>
-      <td>Primary monitor or TV (via supplied cable)</td>
+      <td>Primary monitor or TV (via a micro-HDMI-to-HDMI cable)</td>
       <td>Up to 4K @ 60 fps; use this one first</td>
     </tr>
     <tr>
@@ -357,7 +357,7 @@
     <tr>
       <td>USB-C (power only)</td>
       <td>Bottom edge, far right</td>
-      <td>27 W USB-C power supply</td>
+      <td>Official 27 W USB-C supply (or a 5 V / 5 A USB-C PD one)</td>
       <td>Data is NOT supported on this port</td>
     </tr>
     <tr>
@@ -419,7 +419,7 @@
 
 <h2 id="recognising-a-correct-assembly">Recognising a Correct Assembly</h2>
 
-<p>Because your kit arrived assembled, you want to confirm it is put together correctly before powering on for the first time. Here is what a good assembly looks like:</p>
+<p>If your kit arrived pre-assembled — or once you have put the pieces together yourself — confirm it is correct before powering on for the first time. Here is what a good assembly looks like:</p>
 
 <ul>
   <li>The Active Cooler sits flat and firm on the SoC. If you can see the board, the cooler should not wobble or feel loose. The fan cable should be plugged into the small 4-pin socket on the board.</li>
@@ -428,7 +428,7 @@
   <li>No loose screws, spare parts, or leftover components remain in the box. (It is normal if there are spare rubber feet or a thin instruction leaflet.)</li>
 </ul>
 
-<div class="note"><strong>Note:</strong> Some iRasptek kit configurations include a second set of thermal pads or a small tube of thermal paste. If your kit arrived with these separate items and the Active Cooler is already installed, the extras are simply spares — you do not need to do anything with them.</div>
+<div class="note"><strong>Note:</strong> Some kits include a spare set of thermal pads or a small tube of thermal paste. If your kit arrived with these separate items and the Active Cooler is already installed, the extras are simply spares — you do not need to do anything with them.</div>
 
 <h2 id="the-microsd-card-inserting-and-removing">The microSD Card: Inserting and Removing</h2>
 
@@ -436,7 +436,7 @@
 
 <div class="warn"><strong>Careful:</strong> Never remove the microSD card while the Pi is powered on and running. Doing so is like ripping a hard drive out of a running PC — it will almost certainly corrupt the card and you will have to reinstall the operating system. Always shut down the Pi fully before removing the card.</div>
 
-<p>If your iRasptek kit arrived with the card already inserted and Raspberry Pi OS pre-installed, <strong>leave it in place</strong> for now. Chapter 3 covers what to do if you ever need to re-write the card from scratch.</p>
+<p>If your card arrived already inserted with Raspberry Pi OS pre-installed, <strong>leave it in place</strong> for now. Chapter 3 covers what to do if you ever need to re-write the card from scratch.</p>
 
 <h2 id="connecting-everything-for-the-first-time">Connecting Everything for the First Time</h2>
 
@@ -525,7 +525,7 @@
 
 <ol class="steps">
   <li>
-    <strong>Connect the monitor.</strong> Plug the <em>micro-HDMI end</em> of the supplied cable into <strong>micro-HDMI port 0</strong> on the Pi (the one nearer the centre of the board). Plug the full-size HDMI end into your monitor or TV. Switch the monitor on and set it to the correct HDMI input (usually labelled HDMI 1, HDMI 2, etc. — check your monitor's manual if unsure).
+    <strong>Connect the monitor.</strong> Plug the <em>micro-HDMI end</em> of your micro-HDMI-to-HDMI cable into <strong>micro-HDMI port 0</strong> on the Pi (the one nearer the centre of the board). Plug the full-size HDMI end into your monitor or TV. Switch the monitor on and set it to the correct HDMI input (usually labelled HDMI 1, HDMI 2, etc. — check your monitor's manual if unsure).
   </li>
   <li>
     <strong>Connect a keyboard.</strong> Plug a USB keyboard into any of the four USB ports on the right edge of the Pi. For a beginner first-boot it does not matter which USB port — any of the four will work.
@@ -540,7 +540,7 @@
     <strong>Check the microSD card is inserted.</strong> Confirm the card is seated in the slot — it should be flush and locked in place. If your kit came pre-installed, this is already done.
   </li>
   <li>
-    <strong>Connect the power supply — last.</strong> Plug the USB-C end of the 27 W supply into the USB-C power socket on the Pi's bottom edge, then plug the other end into a wall socket and switch the socket on. The Pi will start immediately. You will see a green LED on the board begin to flash, and within a few seconds the Raspberry Pi boot screen will appear on your monitor.
+    <strong>Connect the power supply — last.</strong> Plug the USB-C end of the power supply (the official 27 W supply, or a 5 V / 5 A USB-C PD one) into the USB-C power socket on the Pi's bottom edge, then plug the other end into a wall socket and switch the socket on. The Pi will start immediately. You will see a green LED on the board begin to flash, and within a few seconds the Raspberry Pi boot screen will appear on your monitor.
   </li>
 </ol>
 
@@ -612,12 +612,12 @@
 <div class="summary">
 <h4>Chapter summary</h4>
 <ul>
-  <li>The Raspberry Pi 5 packs a powerful quad-core Arm Cortex-A76 processor, VideoCore VII graphics, and 16 GB of RAM onto a credit-card-sized board.</li>
+  <li>The Raspberry Pi 5 packs a powerful quad-core Arm Cortex-A76 processor, VideoCore VII graphics, and up to 16 GB of RAM (2/4/8/16 GB versions) onto a credit-card-sized board.</li>
   <li>The board has two fast blue USB 3.0 ports, two standard black USB 2.0 ports, a Gigabit Ethernet socket, two micro-HDMI video outputs, a USB-C power input, a microSD storage slot, and a 40-pin GPIO header for electronics projects.</li>
   <li>Additional connectors include CSI (camera ribbon), DSI (display ribbon), PCIe/FPC (for a fast NVMe SSD), a fan socket, an RTC battery socket, and a physical power button.</li>
   <li>The Pi 5 has no 3.5 mm headphone jack; audio is delivered through the HDMI cable, a USB audio adapter, or Bluetooth.</li>
-  <li>The 27 W USB-C power supply is essential — a weaker charger will cause the Pi to display a yellow lightning bolt warning and slow itself down.</li>
-  <li>The Active Cooler (heatsink and fan) keeps the Pi 5 running at full speed under heavy loads; it is already fitted in your iRasptek kit.</li>
+  <li>A proper power supply is essential — the official 27 W USB-C supply (or a good 5 V / 5 A USB-C PD one); a weaker charger will cause the Pi to display a yellow lightning bolt warning and slow itself down.</li>
+  <li>The Active Cooler (heatsink and fan) keeps the Pi 5 running at full speed under heavy loads; it is included with many kits already fitted, and an inexpensive clip-on add-on otherwise.</li>
   <li>Always connect the monitor, keyboard, and mouse first, and plug in the power supply last.</li>
   <li>Never pull the power cable out while the Pi is running — always shut down using the desktop menu, the power button, or the <code>sudo shutdown -h now</code> command, and wait for the green LED to go dark.</li>
   <li>The microSD card is the Pi's main storage; never remove it while the Pi is switched on.</li>

@@ -174,7 +174,7 @@
 
 <ol class="steps">
   <li>
-    <p>Open a terminal on your Raspberry Pi (or SSH into it from your Windows machine — see Chapter 10 if you need a reminder of how to do this).</p>
+    <p>Open a terminal on your Raspberry Pi (or SSH into it from your main computer — see Chapter 10 if you need a reminder of how to do this).</p>
   </li>
   <li>
     <p>Make sure your Pi's software is up to date before installing:</p>
@@ -279,11 +279,11 @@
   <li>Save and apply the settings. Some routers need a restart. Wait a minute, then test that the internet still works on another device (your phone, for example).</li>
 </ol>
 
-<div class="note"><strong>Note:</strong> Changes to DHCP settings only take effect on a device after it renews its "lease" — essentially, after it asks the router for its settings again. This usually happens automatically within a day, but you can speed it up immediately: on Windows, open a Command Prompt and type <code>ipconfig /release</code> followed by <code>ipconfig /renew</code>. On a phone, turn Wi-Fi off and back on, or forget the network and reconnect.</div>
+<div class="note"><strong>Note:</strong> Changes to DHCP settings only take effect on a device after it renews its "lease" — essentially, after it asks the router for its settings again. This usually happens automatically within a day, but you can speed it up immediately. On Windows, open a Command Prompt and type <code>ipconfig /release</code> followed by <code>ipconfig /renew</code>. On macOS, turn Wi-Fi off and back on, or open <strong>System Settings → Network</strong> and click <strong>Renew DHCP Lease</strong>. On Linux, toggle the network connection off and on. On a phone, turn Wi-Fi off and back on, or forget the network and reconnect.</div>
 
 <h3>Alternative: set DNS per device instead</h3>
 
-<p>If you do not have access to your router (for example if it belongs to a landlord or a shared household), you can instead set the DNS server individually on each device you want to protect. On Windows 11, go to <strong>Settings → Network &amp; Internet → Wi-Fi → [Your network] → Properties</strong> and set DNS to "Manual" with your Pi's IP. On iPhone/iPad, tap the (i) next to your Wi-Fi network, then tap "Configure DNS" and switch to "Manual". On Android, go to Wi-Fi settings, long-press your network, and look for "Advanced options" where you can set a Static IP and DNS.</p>
+<p>If you do not have access to your router (for example if it belongs to a landlord or a shared household), you can instead set the DNS server individually on each device you want to protect. On Windows 11, go to <strong>Settings → Network &amp; Internet → Wi-Fi → [Your network] → Properties</strong> and set DNS to "Manual" with your Pi's IP. On macOS, go to <strong>System Settings → Network → [Your network] → Details → DNS</strong> and add your Pi's IP as a DNS server. On Linux, open your network connection's settings, switch the IPv4 DNS to "Manual" (or "Automatic (Addresses only)"), and enter your Pi's IP. On iPhone/iPad, tap the (i) next to your Wi-Fi network, then tap "Configure DNS" and switch to "Manual". On Android, go to Wi-Fi settings, long-press your network, and look for "Advanced options" where you can set a Static IP and DNS.</p>
 
 <h2 id="step-5-confirm-that-it-is-working">Step 5 — Confirm that it is working</h2>
 
@@ -291,7 +291,7 @@
   <li>On any device on your home network, open a browser and go to <code>http://192.168.1.100/admin</code> (using your Pi's IP address). The Pi-hole admin dashboard should appear.</li>
   <li>Log in with the admin password.</li>
   <li>Browse to a few websites on your phone or laptop. Return to the Pi-hole dashboard and watch the query counter go up and the live graph begin to show activity — this confirms those devices are now routing their DNS look-ups through Pi-hole.</li>
-  <li>If nothing appears in the dashboard, the device has not yet received the new DNS setting from the router. Try turning Wi-Fi off and on, or use the <code>ipconfig /release</code> / <code>ipconfig /renew</code> trick on Windows.</li>
+  <li>If nothing appears in the dashboard, the device has not yet received the new DNS setting from the router. Try turning Wi-Fi off and on, or use the lease-renewal trick for your computer described in the Note above (on Windows, <code>ipconfig /release</code> then <code>ipconfig /renew</code>).</li>
 </ol>
 
 <div class="tip"><strong>Tip:</strong> On the Pi-hole dashboard home page you will see a figure like "23% of queries blocked" after a few minutes of browsing. Most homes settle somewhere between 15% and 40%, depending on which sites and apps are in use. The higher the percentage, the more ads and trackers were silently trying to reach your devices.</div>
@@ -502,12 +502,12 @@
 <p>First, check that the Pi is powered on and connected to the network. Open a terminal on the Pi and run <code>pihole status</code> — if Pi-hole itself is not running, restart it with <code>pihole restartdns</code> or reboot the Pi with <code>sudo reboot</code>. If the Pi is powered off, any device that has no secondary DNS server configured will lose the ability to browse the internet until the Pi comes back. As a short-term fix, you can temporarily put your router's original DNS address back in the router's DHCP settings while you investigate.</p>
 
 <h3>Devices are still not using Pi-hole</h3>
-<p>Force a DHCP renewal: on the affected device, disconnect from Wi-Fi and reconnect. On Windows, run the following two commands in a Command Prompt (not a terminal on the Pi — this is done on the Windows machine):</p>
+<p>Force a DHCP renewal: on the affected device, disconnect from Wi-Fi and reconnect. On a Mac, turning Wi-Fi off and on (or clicking <strong>Renew DHCP Lease</strong> in <strong>System Settings → Network</strong>) does the same thing; on Linux, toggle the network connection off and on. On Windows, run the following two commands in a Command Prompt (not a terminal on the Pi — this is done on your Windows computer):</p>
 
 <pre class="code"><code>ipconfig /release
 ipconfig /renew</code></pre>
 <div class="explain">
-  <p>These are Windows commands, not Pi commands — type them into a Command Prompt on your Windows PC.</p>
+  <p>These are Windows commands, not Pi commands — type them into a Command Prompt on your Windows PC. (On macOS or Linux, just toggle the network connection off and on instead, as described above.)</p>
   <p><code>ipconfig /release</code> — tells Windows to give up its current IP address and network settings (including the DNS server address).</p>
   <p><code>ipconfig /renew</code> — asks the router to issue fresh network settings, which should now include your Pi's IP address as the DNS server.</p>
 </div>

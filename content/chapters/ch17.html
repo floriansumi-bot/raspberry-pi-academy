@@ -51,34 +51,34 @@
 <h2 id="what-you-will-need">What you will need</h2>
 
 <ul>
-  <li>Your Raspberry Pi 5 (already assembled with its cooler and case).</li>
-  <li>A microSD card, 32 GB or larger (the 64/128/256 GB card from your kit is perfect). <em>Note: this will erase whatever is currently on the card, including Raspberry Pi OS if it was pre-installed. If you want to keep Raspberry Pi OS, use a second card.</em></li>
-  <li>The USB card reader that came with your kit.</li>
-  <li>A Windows 11 PC (your everyday computer) to flash the card.</li>
-  <li>A monitor, keyboard, and mouse connected to the Pi for the very first boot (after that, you manage everything from your PC's web browser).</li>
+  <li>Your Raspberry Pi 5 (ideally with a cooler and case fitted, though neither is required for this chapter).</li>
+  <li>A microSD card, 32 GB or larger (any 64 GB or larger card works well). <em>Note: this will erase whatever is currently on the card, including Raspberry Pi OS if it was pre-installed. If you want to keep Raspberry Pi OS, use a second card.</em></li>
+  <li>A USB card reader (many starter kits include one; otherwise an inexpensive USB microSD reader works fine).</li>
+  <li>Your main computer (Windows, macOS, or Linux) to flash the card.</li>
+  <li>A monitor, keyboard, and mouse connected to the Pi for the very first boot (after that, you manage everything from your computer's web browser).</li>
   <li>An Ethernet cable <em>or</em> your Wi-Fi credentials (network name and password). Ethernet is strongly preferred for the first boot.</li>
 </ul>
 
-<div class="warn"><strong>Careful:</strong> Flashing a new image to the microSD card completely erases all existing data on it. If your card came with Raspberry Pi OS pre-installed and you have files on it you want to keep, copy them to your Windows PC first before continuing.</div>
+<div class="warn"><strong>Careful:</strong> Flashing a new image to the microSD card completely erases all existing data on it. If your card came with Raspberry Pi OS pre-installed and you have files on it you want to keep, copy them to your main computer first before continuing.</div>
 
 <h2 id="step-1-flash-home-assistant-os-with-raspberry-pi">Step 1 — Flash Home Assistant OS with Raspberry Pi Imager</h2>
 
-<p>The process is almost identical to flashing Raspberry Pi OS in Chapter 4 — you use the same Raspberry Pi Imager tool on your Windows PC.</p>
+<p>The process is almost identical to flashing Raspberry Pi OS in Chapter 4 — you use the same Raspberry Pi Imager tool on your main computer.</p>
 
 <ol class="steps">
-  <li>Insert the microSD card into the USB card reader, then plug the card reader into your Windows 11 PC.</li>
+  <li>Insert the microSD card into the USB card reader, then plug the card reader into your computer.</li>
   <li>Open <strong>Raspberry Pi Imager</strong>. (If you do not have it, download it free from <code>raspberrypi.com/software</code> — it is the same tool from Chapter 4.)</li>
   <li>Under "Raspberry Pi Device", click <strong>Choose Device</strong> and select <strong>Raspberry Pi 5</strong>.</li>
   <li>Under "Operating System", click <strong>Choose OS</strong>. Scroll down and click <strong>Other specific-purpose OS</strong>.</li>
   <li>Click <strong>Home assistants and home automation</strong>.</li>
   <li>Click <strong>Home Assistant OS</strong>. Then select the version listed for <strong>Raspberry Pi 5</strong> (it will be labelled something like "Home Assistant OS 14.x (RPi5)" — choose the highest version number available).</li>
-  <li>Under "Storage", click <strong>Choose Storage</strong> and select your microSD card. Double-check the name and size match your card — do not select your Windows PC's internal drive by mistake.</li>
+  <li>Under "Storage", click <strong>Choose Storage</strong> and select your microSD card. Double-check the name and size match your card — do not select your computer's internal drive by mistake.</li>
   <li>Click <strong>Next</strong>. When asked "Would you like to apply OS customisation settings?", click <strong>No</strong> — Home Assistant has its own first-run setup wizard and does not need anything entered here.</li>
   <li>Click <strong>Yes</strong> to confirm you want to erase and write the card. The Imager will download the image and flash it. This typically takes 5–10 minutes depending on your internet speed.</li>
-  <li>When it says "Write Successful", click <strong>Continue</strong> and remove the card reader from your PC.</li>
+  <li>When it says "Write Successful", click <strong>Continue</strong> and remove the card reader from your computer.</li>
 </ol>
 
-<div class="note"><strong>Note:</strong> Raspberry Pi Imager downloads the Home Assistant OS image directly from the internet. Make sure your PC is connected to the internet before starting. The file is roughly 1–2 GB.</div>
+<div class="note"><strong>Note:</strong> Raspberry Pi Imager downloads the Home Assistant OS image directly from the internet. Make sure your computer is connected to the internet before starting. The file is roughly 1–2 GB.</div>
 
 <h2 id="step-2-first-boot">Step 2 — First boot</h2>
 
@@ -103,14 +103,14 @@
 
 <div class="tip"><strong>Tip:</strong> The very first boot takes longer than usual — often 5 to 20 minutes — because Home Assistant is setting itself up internally. If the screen shows the address but your browser says "site can't be reached", wait a few more minutes and try again.</div>
 
-<div class="note"><strong>Note — Setting up Wi-Fi via the HAOS console:</strong> Home Assistant OS is <em>not</em> a normal Linux desktop. Its text console is a special menu-driven system, not a regular command prompt. If you need to configure Wi-Fi from the console (because you have no Ethernet cable), press Enter on the console screen after boot. You will see a menu. Navigate to <strong>Network</strong> using the arrow keys, then <strong>Update</strong>, choose your wireless interface (usually <code>wlan0</code>), and enter your Wi-Fi name (SSID) and password. Press Enter to save and the Pi will connect. Once it has an IP address, you can proceed with all remaining steps from your PC's browser.</div>
+<div class="note"><strong>Note — Setting up Wi-Fi via the HAOS console:</strong> Home Assistant OS is <em>not</em> a normal Linux desktop. Its text console is a special menu-driven system, not a regular command prompt. If you need to configure Wi-Fi from the console (because you have no Ethernet cable), press Enter on the console screen after boot. You will see a menu. Navigate to <strong>Network</strong> using the arrow keys, then <strong>Update</strong>, choose your wireless interface (usually <code>wlan0</code>), and enter your Wi-Fi name (SSID) and password. Press Enter to save and the Pi will connect. Once it has an IP address, you can proceed with all remaining steps from your computer's browser.</div>
 
 <h2 id="step-3-onboarding-set-up-your-account-in-the-bro">Step 3 — Onboarding: set up your account in the browser</h2>
 
-<p>Everything from this point onwards happens in a web browser on your Windows 11 PC (or any phone, tablet, or laptop on the same home network). You do not need to type anything on the Pi itself.</p>
+<p>Everything from this point onwards happens in a web browser on your main computer (or any phone, tablet, or laptop on the same home network). You do not need to type anything on the Pi itself.</p>
 
 <ol class="steps">
-  <li>On your Windows PC, open any web browser (Edge, Chrome, Firefox).</li>
+  <li>On your computer, open any web browser (Edge, Chrome, Safari, Firefox).</li>
   <li>In the address bar, type exactly: <code>http://homeassistant.local:8123</code> and press Enter.
     <br>If that does not work, use the IP address shown on the Pi's monitor screen instead (for example: <code>http://192.168.1.45:8123</code>).
   </li>
@@ -340,7 +340,7 @@
   <li><strong>Node-RED</strong> — a powerful visual programming tool for building complex automations by dragging and connecting blocks on screen.</li>
   <li><strong>ESPHome</strong> — lets you create your own custom smart sensors using cheap ESP32/ESP8266 microcontroller boards and have them talk directly to Home Assistant over Wi-Fi.</li>
   <li><strong>Let's Encrypt</strong> — automatically sets up secure HTTPS access to your Home Assistant from outside your home (works together with the Nabu Casa remote access service or your own domain name).</li>
-  <li><strong>Samba share</strong> — makes the Home Assistant configuration folder visible as a shared network drive on your Windows PC, so you can edit configuration files easily without any technical tools.</li>
+  <li><strong>Samba share</strong> — makes the Home Assistant configuration folder visible as a shared network drive on your computer (Windows File Explorer, macOS Finder, or a Linux file manager), so you can edit configuration files easily without any technical tools.</li>
   <li><strong>File editor</strong> — lets you view and edit configuration files directly in the browser.</li>
   <li><strong>Zigbee2MQTT</strong> — an alternative to the built-in ZHA integration for Zigbee devices; preferred by many advanced users for its wider device support.</li>
 </ul>
@@ -358,7 +358,7 @@
   <li>Click it, read the release notes, then click <strong>Update</strong>. Home Assistant downloads and applies the update in the background and restarts itself. The whole process usually takes just a few minutes.</li>
 </ol>
 
-<div class="warn"><strong>Careful:</strong> Before every update, make a backup first. Go to <strong>Settings</strong> → <strong>System</strong> → <strong>Backups</strong> → <strong>Create backup</strong>. This creates a snapshot of all your settings, automations, and integrations. The backup file can be downloaded to your PC or saved to a USB drive. If an update ever causes a problem, you can restore from the backup in just a few clicks. Make backups a regular habit — ideally before any major change.</div>
+<div class="warn"><strong>Careful:</strong> Before every update, make a backup first. Go to <strong>Settings</strong> → <strong>System</strong> → <strong>Backups</strong> → <strong>Create backup</strong>. This creates a snapshot of all your settings, automations, and integrations. The backup file can be downloaded to your computer or saved to a USB drive. If an update ever causes a problem, you can restore from the backup in just a few clicks. Make backups a regular habit — ideally before any major change.</div>
 
 <h2 id="accessing-home-assistant-from-your-phone">Accessing Home Assistant from your phone</h2>
 
@@ -454,7 +454,7 @@ docker restart homeassistant
   <tbody>
     <tr>
       <td>Browser says "site can't be reached" at <code>homeassistant.local:8123</code></td>
-      <td>Pi still starting up, or your PC does not support mDNS name resolution</td>
+      <td>Pi still starting up, or your computer does not support mDNS name resolution</td>
       <td>Wait 10 more minutes and try again. If still failing, use the IP address shown on the Pi's monitor screen instead (e.g. <code>http://192.168.1.45:8123</code>).</td>
     </tr>
     <tr>

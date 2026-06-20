@@ -6,7 +6,7 @@
 
 <div class="jargon"><strong>In plain words:</strong> An <strong>operating system</strong> (OS) is the master program that runs invisibly in the background whenever the computer is on. It handles the screen, the keyboard, the memory, the storage, and every other program you open. Without it, the hardware is just expensive metal.</div>
 
-<p>Your Windows 11 laptop runs Microsoft Windows as its operating system. Your Raspberry Pi 5 runs <strong>Raspberry Pi OS</strong> — a version of Linux specially designed for the Pi. It handles everything the same way Windows does, but it looks different and behaves slightly differently in places.</p>
+<p>Your everyday laptop or desktop runs an operating system such as Windows or macOS. Your Raspberry Pi 5 runs <strong>Raspberry Pi OS</strong> — a version of Linux specially designed for the Pi. It handles everything the same way those systems do, but it looks different and behaves slightly differently in places.</p>
 
 <div class="note"><strong>Note:</strong> Raspberry Pi OS is free to download and free to use — forever. You do not need a licence key or a subscription.</div>
 
@@ -26,7 +26,7 @@
 
 <div class="jargon"><strong>In plain words:</strong> <strong>RAM</strong> (Random Access Memory) is your computer's working space — like the surface of a desk. When you open a program, the computer loads it from storage onto the desk so it can work with it quickly. The bigger the desk, the more things you can have open at once without things slowing down.</div>
 
-<p>Your Raspberry Pi 5 has 16 GB of RAM. That is an unusually generous amount for a Pi — it means you can run a web browser, a code editor, a music player, and several other programs all at the same time without the computer struggling.</p>
+<p>Your Raspberry Pi 5 has 2, 4, 8, or 16 GB of RAM, depending on which version you have. Even the smaller amounts comfortably run a web browser, a code editor, and a music player together; with 8 GB or 16 GB you can keep many more programs open at the same time without the computer struggling.</p>
 
 <p>Here is the critical thing about RAM: <strong>it is wiped clean every time you turn the power off</strong>. Whatever was on the desk gets swept onto the floor the moment the lights go out. That is why you must save your work to a file before switching off.</p>
 
@@ -34,7 +34,7 @@
 
 <div class="jargon"><strong>In plain words:</strong> <strong>Storage</strong> is where files live permanently — like a filing cabinet. Unlike RAM, storage keeps its contents when the power is off. On a typical laptop, the filing cabinet is an internal hard drive or SSD. On your Raspberry Pi 5, the filing cabinet is the <strong>microSD card</strong>.</div>
 
-<p>The microSD card in your iRasptek kit (64, 128, or 256 GB depending on which version you have) plays the role that a hard drive plays in a laptop. Raspberry Pi OS itself is installed on it, and every file you create, every program you install, and every setting you change is stored there.</p>
+<p>Your Pi's microSD card (commonly 32 GB or larger) plays the role that a hard drive plays in a laptop. Raspberry Pi OS itself is installed on it, and every file you create, every program you install, and every setting you change is stored there.</p>
 
 <div class="warn"><strong>Careful:</strong> MicroSD cards are tougher than they look, but they can still be damaged by being pulled out while the Pi is running. Always shut down properly before removing the card. You will learn how to shut down safely in Chapter 4.</div>
 
@@ -57,7 +57,7 @@
   <text x="210" y="157" text-anchor="middle" font-size="11" fill="#1f2933">Other</text>
   <text x="210" y="173" text-anchor="middle" font-size="11" fill="#1f2933">Program</text>
   <text x="160" y="220" text-anchor="middle" font-size="12" fill="#1f2933" font-style="italic">Fast. Wiped when power off.</text>
-  <text x="160" y="238" text-anchor="middle" font-size="12" fill="#6d28d9" font-weight="bold">16 GB on your Pi 5</text>
+  <text x="160" y="238" text-anchor="middle" font-size="12" fill="#6d28d9" font-weight="bold">2–16 GB on your Pi 5</text>
 
   <!-- Arrow -->
   <line x1="310" y1="155" x2="350" y2="155" stroke="#0ea5a4" stroke-width="2.5" marker-end="url(#arr)"/>
@@ -126,7 +126,7 @@
 
 <h3>The Graphical Way (Desktop)</h3>
 
-<p>This is the one that looks like Windows. You see a wallpaper, icons, a taskbar, windows that open and close. You use a mouse to click on things. Everything you want to do has a visual representation — a picture of a file, a button to press, a menu to open.</p>
+<p>This is the one that looks like the desktop on Windows or a Mac. You see a wallpaper, icons, a taskbar, windows that open and close. You use a mouse to click on things. Everything you want to do has a visual representation — a picture of a file, a button to press, a menu to open.</p>
 
 <p>Raspberry Pi OS's graphical desktop is called <strong>PIXEL</strong> (which stands for "Pi Improved Xwindows Environment, Lightweight" — but you will never need to remember that). It looks clean and simple, with the Raspberry Pi logo in the top-left corner as the main menu button.</p>
 
@@ -164,7 +164,7 @@
 
 <h2 id="what-is-arm-and-why-does-it-occasionally-matter">What Is ARM? And Why Does It Occasionally Matter?</h2>
 
-<p>Your Windows 11 laptop almost certainly uses a processor made by Intel or AMD. Your Raspberry Pi 5 uses a completely different type of processor designed around something called the <strong>ARM architecture</strong>.</p>
+<p>Most Windows laptops and desktops use a processor made by Intel or AMD (Apple's recent Macs are an exception — they already use ARM). Your Raspberry Pi 5 uses a processor designed around something called the <strong>ARM architecture</strong>.</p>
 
 <div class="jargon"><strong>In plain words:</strong> A processor's <strong>architecture</strong> is the language it speaks internally — the set of instructions it understands. Just as a French speaker and a Japanese speaker cannot understand each other without a translator, a program built for Intel/AMD will not run directly on an ARM chip. The program must be compiled (built) specifically for the architecture it will run on.</div>
 
@@ -175,7 +175,7 @@
     <tr>
       <th>Feature</th>
       <th>Intel / AMD (typical Windows PC)</th>
-      <th>ARM (Raspberry Pi 5)</th>
+      <th>ARM (Raspberry Pi 5, also Apple Silicon Macs)</th>
     </tr>
   </thead>
   <tbody>
@@ -202,11 +202,11 @@
   </tbody>
 </table>
 
-<p>In practice, for everyday tasks on the Pi — browsing the web, writing documents, running Python programs — you will never notice the difference. Raspberry Pi OS and its software repository already contain ARM-compiled versions of everything you are likely to need. The only time it matters is if you try to download a program as a Windows <code>.exe</code> file or find a Linux program that was only compiled for Intel — in which case it simply will not run. The solution is always to install software through Raspberry Pi OS's built-in package manager (covered in Chapter 6), which automatically gives you the right version for your chip.</p>
+<p>In practice, for everyday tasks on the Pi — browsing the web, writing documents, running Python programs — you will never notice the difference. Raspberry Pi OS and its software repository already contain ARM-compiled versions of everything you are likely to need. The only time it matters is if you try to download a program built for another system — a Windows <code>.exe</code> file, a macOS app, or a Linux program compiled only for Intel — in which case it simply will not run. The solution is always to install software through Raspberry Pi OS's built-in package manager (covered in Chapter 6), which automatically gives you the right version for your chip.</p>
 
 <h2 id="files-folders-and-paths">Files, Folders, and Paths</h2>
 
-<p>You are probably familiar with files and folders from Windows. The concept is identical on Linux, but there are a few important differences in how they are organised and written about.</p>
+<p>You are probably familiar with files and folders from Windows or macOS. The concept is identical on Linux, but there are a few important differences in how they are organised and written about.</p>
 
 <h3>Files and Folders</h3>
 
@@ -218,15 +218,15 @@
 
 <div class="jargon"><strong>In plain words:</strong> On Linux, <code>/</code> (a single forward slash) is the very top of the file system — the trunk of a tree from which all other folders branch. It is called the <strong>root directory</strong>.</div>
 
-<p>Inside the root, there are several important folders. The one you will use most is your <strong>home folder</strong>: <code>/home/pi</code> (or <code>/home/yourname</code> if you chose a different username during setup). This is your personal space — think of it as My Documents on Windows. When you open the terminal, you start here automatically. The tilde symbol <code>~</code> is a shortcut that always means your home folder, so <code>~/Documents</code> is the same as <code>/home/pi/Documents</code>.</p>
+<p>Inside the root, there are several important folders. The one you will use most is your <strong>home folder</strong>: <code>/home/pi</code> (or <code>/home/yourname</code> if you chose a different username during setup). This is your personal space — much like the Documents or home folder on Windows or macOS. When you open the terminal, you start here automatically. The tilde symbol <code>~</code> is a shortcut that always means your home folder, so <code>~/Documents</code> is the same as <code>/home/pi/Documents</code>.</p>
 
-<div class="note"><strong>Note:</strong> On Raspberry Pi OS Bookworm, if the microSD card was pre-installed for you (as in most iRasptek kits), your username and home folder may already be set to <code>pi</code>. If you set up the card yourself using Raspberry Pi Imager, you chose your own username. Either way, <code>~</code> always points to the right place, whatever your username is.</div>
+<div class="note"><strong>Note:</strong> On Raspberry Pi OS Bookworm, if the microSD card was pre-installed for you (as some kits provide), your username and home folder may already be set to <code>pi</code>. If you set up the card yourself using Raspberry Pi Imager, you chose your own username. Either way, <code>~</code> always points to the right place, whatever your username is.</div>
 
 <h3>Paths</h3>
 
 <div class="jargon"><strong>In plain words:</strong> A <strong>path</strong> is the full address of a file or folder — the set of directions that tells the computer exactly where to find something, starting from the root and working down through the folder tree.</div>
 
-<p>Paths on Linux use forward slashes <code>/</code>, not the backslashes <code>\</code> you may be used to from Windows. For example:</p>
+<p>Paths on Linux use forward slashes <code>/</code>, unlike Windows, which uses backslashes <code>\</code>. (macOS, like Linux, already uses forward slashes.) For example:</p>
 
 <ul>
   <li><code>/home/pi/Documents/hello.txt</code> — a file called <code>hello.txt</code> inside the <code>Documents</code> folder inside your home folder.</li>
@@ -287,7 +287,7 @@
   </tbody>
 </table>
 
-<div class="tip"><strong>Tip:</strong> You can explore these folders visually using the file manager on the desktop (the folder icon on the taskbar), just as you would in Windows Explorer. There is no need to use the terminal to browse files unless you prefer to.</div>
+<div class="tip"><strong>Tip:</strong> You can explore these folders visually using the file manager on the desktop (the folder icon on the taskbar), just as you would with File Explorer on Windows or Finder on macOS. There is no need to use the terminal to browse files unless you prefer to.</div>
 
 <figure class="fig">
 <svg viewBox="0 0 600 420" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">

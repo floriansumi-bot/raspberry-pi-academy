@@ -1,7 +1,7 @@
 [
  {
   "term": "Active Cooler",
-  "def": "A small metal heatsink combined with a tiny fan that clips directly onto the Raspberry Pi 5's main chip. It draws heat away and blows it into the air, stopping the Pi from slowing itself down when it gets warm. Your iRasptek kit comes with one already fitted."
+  "def": "A small metal heatsink combined with a tiny fan that clips directly onto the Raspberry Pi 5's main chip. It draws heat away and blows it into the air, stopping the Pi from slowing itself down when it gets warm. Many Raspberry Pi 5 starter kits include one already fitted; the official Active Cooler is an inexpensive add-on otherwise."
  },
  {
   "term": "Alias",
@@ -117,7 +117,7 @@
  },
  {
   "term": "File system",
-  "def": "The way files and folders are organised on a storage device. The Pi uses the ext4 file system for its main storage. Your Windows computer uses NTFS. They are like different filing systems — you need the right tools to read each one."
+  "def": "The way files and folders are organised on a storage device. The Pi uses the ext4 file system for its main storage, while other systems use formats such as NTFS (Windows), APFS (macOS), or exFAT. They are like different filing systems — you need the right tools to read each one."
  },
  {
   "term": "Firewall",
@@ -165,7 +165,7 @@
  },
  {
   "term": "HDMI (High-Definition Multimedia Interface)",
-  "def": "The standard cable for sending video and audio to a TV or monitor. The Raspberry Pi 5 has two <em>micro-HDMI</em> ports — smaller than the full-size HDMI port on your TV, so you need an adapter or a micro-HDMI-to-HDMI cable (included in your kit)."
+  "def": "The standard cable for sending video and audio to a TV or monitor. The Raspberry Pi 5 has two <em>micro-HDMI</em> ports — smaller than the full-size HDMI port on most TVs and monitors, so you need an adapter or a micro-HDMI-to-HDMI cable (often included in starter kits)."
  },
  {
   "term": "Home Assistant",
@@ -249,7 +249,7 @@
  },
  {
   "term": "microSD card",
-  "def": "A tiny flash storage card — about the size of a fingernail — used as the main storage for the Raspberry Pi OS. Your iRasptek kit includes one (64/128/256 GB), and Raspberry Pi OS may already be installed on it. The Pi reads it through the microSD slot on the underside of the board."
+  "def": "A tiny flash storage card — about the size of a fingernail — used as the main storage for the Raspberry Pi OS. Many starter kits include one, sometimes with Raspberry Pi OS already installed. The Pi reads it through the microSD slot on the underside of the board."
  },
  {
   "term": "Nextcloud",
@@ -325,7 +325,7 @@
  },
  {
   "term": "RAM (Random Access Memory)",
-  "def": "Fast, temporary working memory that the CPU uses while programs are running. The Raspberry Pi 5 in your kit has 16 GB of RAM — enough to run multiple programs, a desktop, a browser, and even a small AI model at the same time. When you switch the Pi off, RAM is wiped clean."
+  "def": "Fast, temporary working memory that the CPU uses while programs are running. The Raspberry Pi 5 comes in several RAM sizes (2, 4, 8, or 16 GB) — more RAM lets you run more programs, a desktop, a browser, and even a small AI model at the same time. When you switch the Pi off, RAM is wiped clean."
  },
  {
   "term": "Raspberry Pi Connect",
@@ -333,7 +333,7 @@
  },
  {
   "term": "Raspberry Pi Imager",
-  "def": "The official, free tool from the Raspberry Pi Foundation for writing (flashing) an operating system image to a microSD card. You run it on your Windows PC, choose an OS, choose your card, and it downloads, verifies, and writes everything for you. It also lets you pre-configure Wi-Fi, hostname, and SSH before writing."
+  "def": "The official, free tool from the Raspberry Pi Foundation for writing (flashing) an operating system image to a microSD card. You run it on your main computer (Windows, macOS, or Linux), choose an OS, choose your card, and it downloads, verifies, and writes everything for you. It also lets you pre-configure Wi-Fi, hostname, and SSH before writing."
  },
  {
   "term": "raspi-config",
@@ -393,7 +393,7 @@
  },
  {
   "term": "SSH (Secure Shell)",
-  "def": "A way of logging in to another computer over a network and controlling it via a text terminal — all encrypted so nobody can eavesdrop. You use SSH from your Windows PC to connect to your Pi remotely. Enable it in Raspberry Pi OS via <code>sudo raspi-config</code> under Interface Options, or tick the box in the Raspberry Pi Imager before writing your card."
+  "def": "A way of logging in to another computer over a network and controlling it via a text terminal — all encrypted so nobody can eavesdrop. You use SSH from your main computer (Windows, macOS, or Linux) to connect to your Pi remotely. Enable it in Raspberry Pi OS via <code>sudo raspi-config</code> under Interface Options, or tick the box in the Raspberry Pi Imager before writing your card."
  },
  {
   "term": "SSH key",
@@ -409,7 +409,7 @@
  },
  {
   "term": "swap",
-  "def": "A portion of your storage (microSD or SSD) that the operating system uses as overflow when it runs out of <em>RAM</em>. Because storage is far slower than RAM, heavy swap usage makes the Pi feel sluggish. With 16 GB of RAM in your kit, swap is rarely needed, but it acts as a safety net."
+  "def": "A portion of your storage (microSD or SSD) that the operating system uses as overflow when it runs out of <em>RAM</em>. Because storage is far slower than RAM, heavy swap usage makes the Pi feel sluggish. On a Pi with plenty of RAM, swap is rarely needed, but it acts as a safety net."
  },
  {
   "term": "systemd / service",
@@ -425,7 +425,7 @@
  },
  {
   "term": "Throttling",
-  "def": "When the Pi automatically slows its CPU down to prevent overheating. If the chip temperature rises above a threshold (typically 85 °C on the Pi 5), the Pi reduces its speed to generate less heat. The Active Cooler in your kit prevents throttling under normal conditions."
+  "def": "When the Pi automatically slows its CPU down to prevent overheating. If the chip temperature rises above a threshold (typically 85 °C on the Pi 5), the Pi reduces its speed to generate less heat. An Active Cooler fitted to the Pi prevents throttling under normal conditions."
  },
  {
   "term": "UART (Universal Asynchronous Receiver/Transmitter)",
@@ -457,7 +457,7 @@
  },
  {
   "term": "VNC (Virtual Network Computing)",
-  "def": "A protocol for sharing a graphical desktop over a network. With a VNC client on your Windows PC and VNC enabled on the Pi, you see the Pi's full desktop in a window on your PC and can control it with your mouse and keyboard. Useful when you cannot connect a monitor directly to the Pi."
+  "def": "A protocol for sharing a graphical desktop over a network. With a VNC client on your main computer (Windows, macOS, or Linux) and VNC enabled on the Pi, you see the Pi's full desktop in a window on that computer and can control it with your mouse and keyboard. Useful when you cannot connect a monitor directly to the Pi."
  },
  {
   "term": "Voltage",

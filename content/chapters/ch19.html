@@ -1,4 +1,4 @@
-<p class="lead">This chapter tackles one of the most exciting things you can do with your 16 GB Raspberry Pi 5: run a genuine artificial-intelligence language model entirely on your own device, with no internet connection required, no cloud subscription, and nothing leaving your home. It is genuinely remarkable — and with honest expectations about speed, completely achievable.</p>
+<p class="lead">This chapter tackles one of the most exciting things you can do with your Raspberry Pi 5: run a genuine artificial-intelligence language model entirely on your own device, with no internet connection required, no cloud subscription, and nothing leaving your home. It is genuinely remarkable — and with honest expectations about speed, completely achievable. The Pi 5 comes in several memory sizes (2 GB, 4 GB, 8 GB, and 16 GB), and the amount of RAM your model can use is the main thing that decides how large a model you can run — so this chapter works for any Pi 5, with the right model chosen to match its memory.</p>
 
 <h2 id="what-is-an-ai-language-model-in-plain-english">What is an AI language model, in plain English?</h2>
 
@@ -18,14 +18,14 @@
 
 <div class="jargon"><strong>In plain words:</strong> "Quantisation" is a form of compression applied to an AI model. The original model stores each parameter as a precise 32-bit or 16-bit number. Quantisation rounds those numbers down to 4 bits or 8 bits each — losing a tiny amount of accuracy but shrinking the model to roughly one quarter or one eighth of its original size. A 7B model that would normally need about 14 GB of RAM can, after 4-bit quantisation, fit in around 4–5 GB. The quality difference is usually small enough that you will not notice it for everyday tasks.</div>
 
-<p>Your Pi 5 has 16 GB of RAM — four times more than the standard 4 GB model, and twice as much as the 8 GB version. This genuinely matters, because it allows you to run models in the 7B–8B range comfortably, while leaving enough memory for the operating system to run smoothly alongside them. Most other Pis can only manage 1B–3B models without grinding to a halt.</p>
+<p>The amount of RAM your Pi 5 has is the main limit on the size of model you can run — quite simply, the more RAM your Pi 5 has, the larger the model you can run. The Pi 5 is sold in 2 GB, 4 GB, 8 GB, and 16 GB versions. A 2 GB or 4 GB Pi handles the small, fast 1B–3B models comfortably, while leaving enough memory for the operating system to keep running smoothly alongside them. An 8 GB Pi opens the door to 7B models, and a 16 GB Pi can run 7B–8B models with room to spare and even squeeze in a 13B model. Whatever size your Pi 5 is, there is a capable model that will fit — you simply match the model to the memory you have.</p>
 
 <table class="tbl">
   <thead>
     <tr>
       <th>Model size</th>
       <th>Approx. RAM needed (4-bit quantised)</th>
-      <th>Fits on your 16 GB Pi?</th>
+      <th>Which Pi 5 can run it?</th>
       <th>Speed (tokens/second, approx.)</th>
     </tr>
   </thead>
@@ -33,31 +33,31 @@
     <tr>
       <td>1B parameters</td>
       <td>~1 GB</td>
-      <td>Yes, easily</td>
+      <td>Any Pi 5 (2 GB and up), easily</td>
       <td>15–30 tokens/sec (fast)</td>
     </tr>
     <tr>
       <td>3B parameters</td>
       <td>~2–3 GB</td>
-      <td>Yes, easily</td>
+      <td>4 GB and up, easily</td>
       <td>8–15 tokens/sec (comfortable)</td>
     </tr>
     <tr>
       <td>7B–8B parameters</td>
       <td>~5–6 GB</td>
-      <td>Yes, with room to spare</td>
+      <td>8 GB and up, with room to spare</td>
       <td>3–7 tokens/sec (readable)</td>
     </tr>
     <tr>
       <td>13B parameters</td>
       <td>~9–10 GB</td>
-      <td>Yes, just fits</td>
+      <td>16 GB only, just fits</td>
       <td>1–3 tokens/sec (slow but usable)</td>
     </tr>
     <tr>
       <td>70B parameters</td>
       <td>~45+ GB</td>
-      <td>No — not enough RAM</td>
+      <td>No Pi 5 — not enough RAM</td>
       <td>N/A</td>
     </tr>
   </tbody>
@@ -169,11 +169,11 @@
   <p><strong><code>ollama pull llama3.2:3b</code></strong> — downloads Meta's Llama 3.2 model at the 3-billion-parameter size. This is around 2 GB and takes a few minutes. It gives clearly better answers than the 1B model for most everyday tasks, while still running at a comfortable speed.</p>
 </div>
 
-<p>If you want the best quality that fits comfortably in your 16 GB Pi, you can pull an 8-billion-parameter model. This takes longer to download (around 5 GB) and generates text more slowly, but produces impressively thorough answers. The recommended 8B model is <strong>Llama 3.1 8B</strong> (note: Meta's Llama 3.2 series only goes up to 3B; the 8B model belongs to the Llama 3.1 series):</p>
+<p>If your Pi 5 has 8 GB or 16 GB of RAM, you can pull an 8-billion-parameter model for the best quality. This takes longer to download (around 5 GB) and generates text more slowly, but produces impressively thorough answers. (On a 2 GB or 4 GB Pi, skip this one and stick with the 1B and 3B models above — there is not enough memory for an 8B model to run well.) The recommended 8B model is <strong>Llama 3.1 8B</strong> (note: Meta's Llama 3.2 series only goes up to 3B; the 8B model belongs to the Llama 3.1 series):</p>
 
 <pre class="code"><code>ollama pull llama3.1:8b</code></pre>
 <div class="explain">
-  <p><strong><code>ollama pull llama3.1:8b</code></strong> — downloads the 8-billion-parameter Llama 3.1 model. At approximately 4.7 GB download size, it uses around 5–6 GB of RAM while running — well within your 16 GB Pi's capacity. Many users find this the best balance of quality and speed for a home device. Expect the download to take 15–30 minutes on typical home broadband.</p>
+  <p><strong><code>ollama pull llama3.1:8b</code></strong> — downloads the 8-billion-parameter Llama 3.1 model. At approximately 4.7 GB download size, it uses around 5–6 GB of RAM while running — comfortable on an 8 GB or 16 GB Pi 5. Many users find this the best balance of quality and speed for a home device. Expect the download to take 15–30 minutes on typical home broadband.</p>
 </div>
 
 <div class="note"><strong>Note:</strong> Model names and available tags change over time as new models are released. To see the full catalogue, visit <code>ollama.com/library</code> in your web browser. Popular choices for beginners include <code>gemma3</code>, <code>llama3.2</code>, <code>llama3.1</code>, <code>phi4</code> (Microsoft — very strong for its size), and <code>mistral</code> (excellent for summarisation). Each model has different strengths; feel free to experiment.</div>
@@ -602,7 +602,7 @@ ollama --version</code></pre>
     <li>A large language model (LLM) is an AI program trained on text; it generates answers word by word based on patterns it learned during training.</li>
     <li>Model size is measured in billions of parameters (1B, 3B, 7B, 8B…); larger models give better answers but need more RAM and run more slowly.</li>
     <li>Quantisation compresses models to roughly a quarter of their original size with minimal quality loss, making 7B–8B models practical on home hardware.</li>
-    <li>Your 16 GB Pi 5 can comfortably run 7B–8B quantised models — far more capable than what fits in the 4 GB or 8 GB versions.</li>
+    <li>RAM is the main limit on model size: a 2–4 GB Pi 5 runs 1B–3B models, an 8 GB Pi runs 7B models, and a 16 GB Pi runs 7B–8B (even 13B) models — match the model to the memory your Pi 5 has.</li>
     <li>Ollama installs with a single terminal command and handles downloading, storing, and running models automatically; it also starts as a background service on every boot.</li>
     <li>Use <code>ollama pull &lt;name&gt;</code> to download a model, <code>ollama run &lt;name&gt;</code> to chat interactively, and <code>ollama list</code> to see what is stored.</li>
     <li>Note that Llama 3.2 only comes in 1B and 3B sizes; the recommended 8B model is <code>llama3.1:8b</code>.</li>

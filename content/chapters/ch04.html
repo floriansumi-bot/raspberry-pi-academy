@@ -2,13 +2,13 @@
 
 <h2 id="before-you-begin-two-paths-to-your-first-boot">Before You Begin: Two Paths to Your First Boot</h2>
 
-<p>Your iRasptek kit may have come with a microSD card that already has Raspberry Pi OS installed on it. If that is the case, you can jump straight to <strong>Path A</strong> below. If the card is blank, or if you would simply prefer to start from a known-clean installation (always a good idea), follow <strong>Path B</strong> first to copy the operating system onto the card yourself.</p>
+<p>Your microSD card may have come with Raspberry Pi OS already installed on it. If that is the case, you can jump straight to <strong>Path A</strong> below. If the card is blank, or if you would simply prefer to start from a known-clean installation (always a good idea), follow <strong>Path B</strong> first to copy the operating system onto the card yourself.</p>
 
 <div class="jargon"><strong>In plain words:</strong> A <em>microSD card</em> is the tiny memory chip — about the size of a fingernail — that acts as the Raspberry Pi's hard drive. The <em>operating system</em> (OS) is the core software that makes the computer work; on your Pi it is called <strong>Raspberry Pi OS</strong>. <em>Flashing</em> means copying that operating system onto the card so the Pi can start up from it.</div>
 
 <h2 id="path-a-your-card-is-already-loaded">Path A — Your Card Is Already Loaded</h2>
 
-<p>If your kit arrived with Raspberry Pi OS pre-installed, the only thing you need to do before powering on is insert the card into the Pi.</p>
+<p>If your card arrived with Raspberry Pi OS pre-installed, the only thing you need to do before powering on is insert the card into the Pi.</p>
 
 <ol class="steps">
   <li>Hold the microSD card so the gold contacts (the shiny metal strips) face <strong>down</strong> and the printed label faces up.</li>
@@ -20,36 +20,36 @@
 
 <h2 id="path-b-flashing-your-own-card-with-raspberry-pi-">Path B — Flashing Your Own Card with Raspberry Pi Imager</h2>
 
-<p>Even if your card came pre-loaded, following Path B is a great habit: it gives you a clean, up-to-date installation and lets you set up your password and Wi-Fi details <em>before</em> the Pi ever boots. You will use a free program called <strong>Raspberry Pi Imager</strong> on your Windows 11 computer to do this.</p>
+<p>Even if your card came pre-loaded, following Path B is a great habit: it gives you a clean, up-to-date installation and lets you set up your password and Wi-Fi details <em>before</em> the Pi ever boots. You will use a free program called <strong>Raspberry Pi Imager</strong> on your main computer to do this. Raspberry Pi Imager runs on Windows, macOS and Linux, so whatever you use, the steps below are the same.</p>
 
 <div class="jargon"><strong>In plain words:</strong> <em>Raspberry Pi Imager</em> is a simple free program that downloads Raspberry Pi OS and copies it onto your microSD card in one step. Think of it like burning a DVD, except onto a tiny memory card instead.</div>
 
 <h3>Step 1 — Download and Install Raspberry Pi Imager</h3>
 
 <ol class="steps">
-  <li>On your Windows 11 PC, open a web browser and go to: <code>https://www.raspberrypi.com/software/</code></li>
-  <li>Click the large button labelled <strong>"Download for Windows"</strong>. A file called something like <code>imager_1.x.x.exe</code> will download (the version number may be higher than shown here — that is fine, always get the latest).</li>
-  <li>Once downloaded, double-click the file in your Downloads folder. If Windows asks "Do you want to allow this app to make changes to your device?", click <strong>Yes</strong>.</li>
-  <li>Follow the installer — click <strong>Install</strong>, then <strong>Finish</strong>. Raspberry Pi Imager is now on your PC.</li>
+  <li>On your main computer, open a web browser and go to: <code>https://www.raspberrypi.com/software/</code></li>
+  <li>Click the download button for your system — <strong>"Download for Windows"</strong>, <strong>"Download for macOS"</strong>, or the Linux option. The page detects your computer and highlights the right one. The version number may be higher than any shown here — that is fine, always get the latest.</li>
+  <li>Once downloaded, open the file from your Downloads folder and follow the installer: on Windows, double-click the <code>.exe</code> and approve the "allow this app to make changes" prompt; on macOS, open the <code>.dmg</code> and drag Raspberry Pi Imager into your Applications folder; on Linux, install the downloaded package (or use <code>sudo apt install rpi-imager</code>).</li>
+  <li>Raspberry Pi Imager is now installed on your computer.</li>
 </ol>
 
-<h3>Step 2 — Insert the microSD Card into Your Windows PC</h3>
+<h3>Step 2 — Insert the microSD Card into Your Computer</h3>
 
 <ol class="steps">
-  <li>Take the <strong>USB card reader</strong> from your kit and plug it into a USB port on your Windows PC.</li>
-  <li>Insert the microSD card into the card reader (gold contacts facing down, label up). Windows may pop up an "AutoPlay" window — simply close it.</li>
+  <li>Put the microSD card into a card reader — either a <strong>USB card reader</strong> plugged into a USB port, or your computer's built-in SD slot if it has one. Insert the card with the gold contacts facing down and the label up.</li>
+  <li>Your computer may pop up a window offering to open or format the card (an "AutoPlay" prompt on Windows, or a Finder window on macOS) — simply close it. Do not let it format the card.</li>
 </ol>
 
-<div class="warn"><strong>Careful:</strong> Make sure you are using the <em>microSD card from your kit</em> and not a USB stick or another drive that contains files you need. Flashing permanently erases everything on the card.</div>
+<div class="warn"><strong>Careful:</strong> Make sure you are using the <em>microSD card you intend for the Pi</em> and not a USB stick or another drive that contains files you need. Flashing permanently erases everything on the card.</div>
 
 <h3>Step 3 — Open Raspberry Pi Imager and Choose Your Settings</h3>
 
 <ol class="steps">
-  <li>Open <strong>Raspberry Pi Imager</strong> from the Start menu (search for "Raspberry Pi Imager").</li>
+  <li>Open <strong>Raspberry Pi Imager</strong> — from the Start menu on Windows (search for "Raspberry Pi Imager"), from the Applications folder or Launchpad on macOS, or from your applications menu on Linux.</li>
   <li>You will see three big buttons: <strong>Raspberry Pi Device</strong>, <strong>Operating System</strong>, and <strong>Storage</strong>. Work through them left to right.</li>
   <li>Click <strong>"Choose Device"</strong> and select <strong>Raspberry Pi 5</strong> from the list.</li>
   <li>Click <strong>"Choose OS"</strong>. The top option will be <strong>Raspberry Pi OS (64-bit)</strong> — this is the correct one for your Pi 5. Select it.</li>
-  <li>Click <strong>"Choose Storage"</strong>. Your microSD card will appear (it may show as a drive letter like <code>D:</code> or by the card's size, e.g. "64 GB"). Select it.</li>
+  <li>Click <strong>"Choose Storage"</strong>. Your microSD card will appear (it may show by its size, e.g. "64 GB", or by a drive letter like <code>D:</code> on Windows or a disk name on macOS/Linux). Select it.</li>
 </ol>
 
 <div class="note"><strong>Note:</strong> Always choose the <strong>64-bit</strong> version of Raspberry Pi OS when you see the option. Your Pi 5 has a 64-bit processor, and the 64-bit OS uses its full capability — it runs faster and more efficiently than the 32-bit version.</div>
@@ -96,9 +96,14 @@
 <h3>Step 6 — Eject the Card Safely</h3>
 
 <ol class="steps">
-  <li>In the Windows taskbar (bottom right), look for the <strong>Safely Remove Hardware</strong> icon (it looks like a USB plug with a small tick or arrow). Click it.</li>
-  <li>Click <strong>"Eject"</strong> next to your card reader.</li>
-  <li>Wait for the "Safe to Remove Hardware" message, then gently pull the card reader out of the USB port.</li>
+  <li>Tell your computer to eject the card before you pull it out:
+    <ul>
+      <li><strong>Windows:</strong> click the <strong>Safely Remove Hardware</strong> icon in the taskbar (bottom right — a USB plug with a small tick or arrow), then click <strong>"Eject"</strong> next to your card reader and wait for the "Safe to Remove Hardware" message.</li>
+      <li><strong>macOS:</strong> drag the card's icon to the Trash (which becomes an Eject icon), or click the eject arrow next to it in a Finder window's sidebar.</li>
+      <li><strong>Linux:</strong> click the eject symbol next to the card in your file manager, or right-click it and choose "Eject" / "Safely Remove".</li>
+    </ul>
+  </li>
+  <li>Once your computer says it is safe, gently pull the card reader out of the USB port (or remove the card from the built-in slot).</li>
   <li>Remove the microSD card from the card reader.</li>
 </ol>
 
@@ -195,14 +200,14 @@
   <text x="50" y="375" fill="#1f2933" font-size="12" font-weight="bold">Services tab:</text>
   <text x="50" y="395" fill="#1f2933" font-size="12">  • Enable SSH — tick it, use password authentication</text>
 </svg>
-<figcaption>Figure 4.1 — The seven steps of using Raspberry Pi Imager on Windows. Steps 1–4 run left to right across the top; steps 5–7 flow downward on the right. The white panel shows exactly what to fill in during step 5.</figcaption>
+<figcaption>Figure 4.1 — The seven steps of using Raspberry Pi Imager (the same on Windows, macOS and Linux). Steps 1–4 run left to right across the top; steps 5–7 flow downward on the right. The white panel shows exactly what to fill in during step 5.</figcaption>
 </figure>
 
 <h2 id="connecting-everything-up-for-the-first-time">Connecting Everything Up for the First Time</h2>
 
 <p>With the microSD card ready and inserted into the Pi, it is time to connect your cables. The order matters — always connect power <strong>last</strong>. The diagram below shows where each port is on the Pi 5.</p>
 
-<div class="jargon"><strong>In plain words:</strong> <em>micro-HDMI</em> is a smaller version of the HDMI connector you probably know from TVs and monitors. The Pi 5 has two micro-HDMI sockets along one edge; your kit includes a cable with a small micro-HDMI plug on one end (for the Pi) and a standard full-size HDMI plug on the other (for your TV or monitor).</div>
+<div class="jargon"><strong>In plain words:</strong> <em>micro-HDMI</em> is a smaller version of the HDMI connector you probably know from TVs and monitors. The Pi 5 has two micro-HDMI sockets along one edge; you connect a screen with a cable (or adapter) that has a small micro-HDMI plug on one end (for the Pi) and a standard full-size HDMI plug on the other (for your TV or monitor). Many starter kits include this cable.</div>
 
 <figure class="fig">
 <svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="12">
@@ -217,7 +222,7 @@
   <!-- Pi board body -->
   <rect x="200" y="50" width="280" height="180" rx="8" fill="#1f2933" stroke="#6d28d9" stroke-width="2"/>
   <text x="340" y="145" text-anchor="middle" fill="#6d28d9" font-size="11" font-weight="bold">Raspberry Pi 5</text>
-  <text x="340" y="162" text-anchor="middle" fill="#6d28d9" font-size="10">16 GB RAM</text>
+  <text x="340" y="162" text-anchor="middle" fill="#6d28d9" font-size="10">2–16 GB RAM</text>
 
   <!-- TOP EDGE: USB-C power + micro-HDMI x2 + audio (none) -->
   <!-- USB-C power -->
@@ -404,13 +409,13 @@
 
 <div class="jargon"><strong>In plain words:</strong> <em>Headless</em> simply means the computer runs without a display attached — like a server tucked in a cupboard. You control it entirely from another computer using SSH (the remote connection we enabled in Imager).</div>
 
-<p>If you followed Path B and enabled SSH in Raspberry Pi Imager, and you entered your Wi-Fi details too, your Pi is <em>already prepared</em> for headless use. After it boots (which you can confirm after about 60 seconds by checking your router's connected-devices list for the Pi's hostname), you can connect to it from your Windows 11 PC using <strong>PowerShell</strong> or <strong>Windows Terminal</strong> — both come pre-installed on Windows 11.</p>
+<p>If you followed Path B and enabled SSH in Raspberry Pi Imager, and you entered your Wi-Fi details too, your Pi is <em>already prepared</em> for headless use. After it boots (which you can confirm after about 60 seconds by checking your router's connected-devices list for the Pi's hostname), you can connect to it from your main computer using the <code>ssh</code> command. Open a terminal — Terminal on macOS or Linux, or Windows Terminal / PowerShell on Windows (both come built into Windows) — and the <code>ssh</code> command works identically on all three.</p>
 
 <p>Full step-by-step instructions for SSH and headless access are in <strong>Chapter 9</strong>. The key points to remember now are:</p>
 
 <ul>
   <li>SSH must be enabled in Imager <em>before</em> you write the card — or turned on later from the Pi's Preferences menu when you do have a screen attached.</li>
-  <li>The Pi and your Windows PC must be on the same Wi-Fi or wired network.</li>
+  <li>The Pi and your main computer must be on the same Wi-Fi or wired network.</li>
   <li>You connect using your Pi's hostname (for example <code>raspberrypi.local</code>) or its IP address, which you can find in your router's device list.</li>
 </ul>
 
@@ -442,12 +447,12 @@
     <tr>
       <td>Red LED off entirely</td>
       <td>Power supply not providing enough power, or loose connection</td>
-      <td>Check both ends of the USB-C power cable are fully plugged in. Make sure you are using the 27 W USB-C supply from the kit, not a phone charger. Try a different mains socket.</td>
+      <td>Check both ends of the USB-C power cable are fully plugged in. Make sure you are using the official 27 W USB-C supply (or a good 5 V / 5 A USB-C PD one), not a typical phone charger. Try a different mains socket.</td>
     </tr>
     <tr>
       <td>Coloured square / rainbow square in top-right corner</td>
       <td>Under-voltage warning — the power supply is not giving enough current</td>
-      <td>Use only the official 27 W USB-C supply from your kit. Avoid long or thin USB-C cables. Do not plug too many power-hungry USB devices in at once.</td>
+      <td>Use the official 27 W USB-C supply (or a good 5 V / 5 A USB-C PD one). Avoid long or thin USB-C cables. Do not plug too many power-hungry USB devices in at once.</td>
     </tr>
     <tr>
       <td>Pi boots but can't connect to Wi-Fi</td>
@@ -495,7 +500,7 @@
   <li><strong>sudo</strong> — a command prefix that grants temporary administrator ("superuser") permission for a single terminal command.</li>
   <li><strong>apt</strong> — the package manager for Raspberry Pi OS; the built-in tool used to install, update, and remove software packages.</li>
   <li><strong>Locale</strong> — the region settings that tell the operating system your time zone and keyboard layout.</li>
-  <li><strong>micro-HDMI</strong> — the smaller HDMI connector format used on the Raspberry Pi 5; your kit includes a cable to connect it to a standard HDMI screen.</li>
+  <li><strong>micro-HDMI</strong> — the smaller HDMI connector format used on the Raspberry Pi 5; you use a micro-HDMI-to-HDMI cable or adapter (often included in starter kits) to connect it to a standard HDMI screen.</li>
   <li><strong>HDMI0</strong> — the primary display output socket on the Pi 5; it is the micro-HDMI port closest to the USB-C power socket, and the one to use for your first boot.</li>
   <li><strong>Terminal</strong> — the text-based window on Raspberry Pi OS where you type commands directly; also called the command line or shell.</li>
   <li><strong>Bookworm</strong> — the codename for Debian 12, which is the Linux foundation that the current version of Raspberry Pi OS is built on.</li>
@@ -506,7 +511,7 @@
 <div class="summary">
 <h4>Chapter summary</h4>
 <ul>
-  <li>Your Pi can be started from a pre-loaded microSD card (Path A) or from a card you flash yourself using Raspberry Pi Imager on your Windows PC (Path B) — both result in the same working system.</li>
+  <li>Your Pi can be started from a pre-loaded microSD card (Path A) or from a card you flash yourself using Raspberry Pi Imager on your main computer — Windows, macOS, or Linux (Path B) — both result in the same working system.</li>
   <li>Raspberry Pi Imager's Edit Settings panel lets you pre-configure hostname, username, password, Wi-Fi, locale, and SSH before writing the card — saving significant setup time and enabling headless use from day one.</li>
   <li>Always choose the <strong>64-bit</strong> version of Raspberry Pi OS for the Raspberry Pi 5.</li>
   <li>Connect cables in order: display first, then keyboard and mouse, then network, and <strong>power last</strong>; plug your screen into HDMI0 (the socket closest to the USB-C power port).</li>

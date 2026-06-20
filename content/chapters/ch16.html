@@ -1,4 +1,4 @@
-<p class="lead">Your Raspberry Pi 5 is on all day and all night, quietly sipping just a few watts of electricity — so why not put it to work as a proper home server? In this chapter you will turn your Pi into a network file share that every Windows PC in your home can see, and then go a step further by installing your very own private cloud — your files, your photos, your calendar, all stored on hardware you own and control.</p>
+<p class="lead">Your Raspberry Pi 5 is on all day and all night, quietly sipping just a few watts of electricity — so why not put it to work as a proper home server? In this chapter you will turn your Pi into a network file share that every computer in your home — Windows, macOS, or Linux — can see, and then go a step further by installing your very own private cloud — your files, your photos, your calendar, all stored on hardware you own and control.</p>
 
 <div class="note"><strong>Note:</strong> This chapter has two independent parts. You can follow Part A (Samba file sharing) without ever doing Part B (Nextcloud), or do both. Read through a whole section before typing anything.</div>
 
@@ -6,19 +6,19 @@
 
 <h3>What is a file server, and why do you want one?</h3>
 
-<p>Right now, if you want to move a photo from your Windows laptop to your Pi, you probably copy it to a USB stick and carry it across the room. A <em>file server</em> fixes that. Once it is running, a shared folder on the Pi appears inside Windows Explorer just like any other drive — you drag files in, you drag files out, across the home network, with no cable required.</p>
+<p>Right now, if you want to move a photo from your laptop to your Pi, you probably copy it to a USB stick and carry it across the room. A <em>file server</em> fixes that. Once it is running, a shared folder on the Pi appears inside your computer's file browser — Windows File Explorer, macOS Finder, or a Linux file manager — just like any other drive. You drag files in, you drag files out, across the home network, with no cable required.</p>
 
 <div class="jargon"><strong>In plain words:</strong> A <em>file server</em> is a computer that holds files and lets other computers on the same network open, save, and copy those files as if they were on a local drive. "Server" just means "the one that serves the others".</div>
 
-<p>The software that makes this possible on Linux is called <strong>Samba</strong>. Samba speaks the same file-sharing language that Windows uses (called SMB, or "Server Message Block"), so your Windows PC and your Pi understand each other perfectly.</p>
+<p>The software that makes this possible on Linux is called <strong>Samba</strong>. Samba speaks the standard file-sharing language that Windows uses (called SMB, or "Server Message Block") — and which macOS and Linux speak too — so your computer and your Pi understand each other perfectly, whichever operating system you use.</p>
 
 <div class="jargon"><strong>In plain words:</strong> <em>Samba</em> is free, open-source software that lets a Linux computer speak Windows' own file-sharing language. It has been around since 1992 and is rock-solid.</div>
 
 <h3>What you will need</h3>
 <ul>
-  <li>Your Pi 5, connected to the same home router as your Windows PC (by Ethernet cable or Wi-Fi — either works, but a cable is faster and more reliable for a file server).</li>
+  <li>Your Pi 5, connected to the same home router as your main computer (by Ethernet cable or Wi-Fi — either works, but a cable is faster and more reliable for a file server).</li>
   <li>A USB hard drive or USB stick to use as the shared storage (optional but recommended — keeps the shared data off the microSD card and allows much larger capacity).</li>
-  <li>A terminal window open on the Pi (or an SSH connection from Windows — see Chapter 12).</li>
+  <li>A terminal window open on the Pi (or an SSH connection from your main computer — see Chapter 12).</li>
 </ul>
 
 <div class="tip"><strong>Tip:</strong> Using a USB hard drive rather than the microSD card for shared storage is strongly recommended. microSD cards are not designed for constant read/write activity and can wear out faster. A cheap USB hard drive or a good-quality USB SSD will last far longer and hold far more.</div>
@@ -116,7 +116,7 @@ sudo apt install samba -y</code></pre>
    create mask = 0664
    directory mask = 0775</code></pre>
 <div class="explain">
-  <p><code>[PiShare]</code> — the name of the share. This is what Windows shows (for example, <code>\\raspberrypi\PiShare</code>). You can name it anything you like, but do not use spaces.</p>
+  <p><code>[PiShare]</code> — the name of the share. This is what appears when you connect from another computer (for example, <code>\\raspberrypi\PiShare</code> on Windows, or <code>smb://raspberrypi</code> then the <code>PiShare</code> folder on macOS and Linux). You can name it anything you like, but do not use spaces.</p>
   <p><code>comment</code> — a friendly description that Windows shows when browsing the network.</p>
   <p><code>path</code> — the actual folder on the Pi that this share points to.</p>
   <p><code>browseable = yes</code> — the share shows up automatically when Windows browses the network.</p>
@@ -168,7 +168,7 @@ sudo systemctl enable smbd</code></pre>
 
 <h3>Step 6 — Find your Pi's name or IP address</h3>
 
-<p>You will need either the Pi's hostname or its IP address to connect from Windows. Run:</p>
+<p>You will need either the Pi's hostname or its IP address to connect from your main computer. Run:</p>
 
 <pre class="code"><code>hostname
 hostname -I</code></pre>
@@ -177,22 +177,39 @@ hostname -I</code></pre>
   <p><code>hostname -I</code> — prints the Pi's IP address on your home network, for example <code>192.168.1.42</code>. The first address shown is the one you want. Write it down — you will use it in the next step.</p>
 </div>
 
-<h3>Step 7 — Connect from Windows</h3>
+<h3>Step 7 — Connect from your computer</h3>
 
+<p>Connecting works the same way in spirit on every operating system: you point your file browser at the Pi using its hostname or IP address, then log in with your Samba username and password. Follow the steps for whichever computer you are using. In each case you can connect either by hostname (<code>raspberrypi</code> — works if your router supports name resolution) or by IP address (<code>192.168.1.42</code> — always works; replace with your actual IP).</p>
+
+<h4>Windows</h4>
 <ol class="steps">
-  <li>On your Windows PC, open <strong>File Explorer</strong> (the folder icon in the taskbar, or press <code>Win + E</code>).</li>
+  <li>Open <strong>File Explorer</strong> (the folder icon in the taskbar, or press <code>Win + E</code>).</li>
   <li>Click in the address bar at the top and type one of the following, then press Enter:
     <ul>
-      <li><code>\\raspberrypi\PiShare</code> — using the hostname (works if your router supports name resolution)</li>
-      <li><code>\\192.168.1.42\PiShare</code> — using the IP address (always works; replace with your actual IP)</li>
+      <li><code>\\raspberrypi\PiShare</code> — using the hostname</li>
+      <li><code>\\192.168.1.42\PiShare</code> — using the IP address</li>
     </ul>
   </li>
-  <li>Windows will ask for a username and password. Enter <code>pi</code> (or your actual Pi username) and the Samba password you set in Step 4.</li>
-  <li>Tick <strong>"Remember my credentials"</strong> so you do not need to log in every time.</li>
-  <li>The shared folder opens. You can drag and drop files into it, create folders, and save documents directly from Word or any other Windows application — just as if it were a local drive.</li>
+  <li>Windows will ask for a username and password. Enter <code>pi</code> (or your actual Pi username) and the Samba password you set in Step 4. Tick <strong>"Remember my credentials"</strong> so you do not need to log in every time.</li>
 </ol>
 
-<div class="tip"><strong>Tip:</strong> To make the share appear as a permanent drive letter (like <code>Z:</code>) in Windows, right-click on the share in File Explorer after connecting, choose <strong>Map network drive</strong>, pick a letter, and tick <strong>Reconnect at sign-in</strong>. From that moment on, your Pi share appears as a lettered drive every time you start Windows.</div>
+<h4>macOS</h4>
+<ol class="steps">
+  <li>In <strong>Finder</strong>, choose <strong>Go → Connect to Server</strong> (or press <code>Cmd + K</code>).</li>
+  <li>Type <code>smb://raspberrypi</code> (or <code>smb://192.168.1.42</code> using the IP address) and click <strong>Connect</strong>.</li>
+  <li>When prompted, choose <strong>Registered User</strong>, enter <code>pi</code> (or your actual Pi username) and the Samba password from Step 4, then pick the <strong>PiShare</strong> share. Tick <strong>Remember this password in my keychain</strong> to skip logging in next time.</li>
+</ol>
+
+<h4>Linux</h4>
+<ol class="steps">
+  <li>Open your <strong>Files</strong> manager and choose <strong>Other Locations</strong> (or press <code>Ctrl + L</code> to get an address bar).</li>
+  <li>Type <code>smb://raspberrypi/PiShare</code> (or <code>smb://192.168.1.42/PiShare</code> using the IP address) and press Enter.</li>
+  <li>When prompted, enter <code>pi</code> (or your actual Pi username) and the Samba password from Step 4. Choose <strong>Remember forever</strong> if you do not want to log in every time.</li>
+</ol>
+
+<p>Once connected, the shared folder opens. You can drag and drop files into it, create folders, and save documents directly from any application — just as if it were a local drive.</p>
+
+<div class="tip"><strong>Tip:</strong> You can make the share reconnect automatically so it is always there when you start your computer. On Windows, right-click the share in File Explorer after connecting, choose <strong>Map network drive</strong>, pick a letter (like <code>Z:</code>), and tick <strong>Reconnect at sign-in</strong>. On macOS, add the share to <strong>System Settings → General → Login Items</strong> so it mounts at login. On Linux, add a line for the share to <code>/etc/fstab</code> or bookmark it in your Files manager for one-click access.</div>
 
 <figure class="fig">
 <svg viewBox="0 0 620 310" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
@@ -234,7 +251,7 @@ hostname -I</code></pre>
   <!-- Caption line -->
   <text x="310" y="278" text-anchor="middle" fill="#1f2933" font-size="12">Samba lets Windows see the Pi's shared folder as if it were a network drive</text>
 </svg>
-<figcaption>A home Samba file server: the Windows PC and the Pi communicate over your existing home router. No extra hardware needed.</figcaption>
+<figcaption>A home Samba file server: your computer (Windows, macOS, or Linux) and the Pi communicate over your existing home router. No extra hardware needed.</figcaption>
 </figure>
 
 <h3>Making the USB drive mount automatically on boot</h3>
@@ -363,7 +380,7 @@ UUID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX  /mnt/usbdrive  ext4  defaults,nofail 
     <tr>
       <td>Resource usage</td>
       <td>Very light</td>
-      <td>Moderate (perfectly fine on a Pi 5 with 16 GB RAM)</td>
+      <td>Moderate (runs comfortably on any Pi 5; more RAM helps if you have it)</td>
     </tr>
     <tr>
       <td>Best for</td>
@@ -485,7 +502,7 @@ sudo chmod 750 /mnt/usbdrive/nextcloud-data</code></pre>
 <h3>Step 4 — Open Nextcloud in a browser</h3>
 
 <ol class="steps">
-  <li>On any device on your home network (your Windows PC, your phone, your tablet), open a web browser.</li>
+  <li>On any device on your home network (your computer, your phone, your tablet), open a web browser.</li>
   <li>Type your Pi's IP address into the browser's address bar and press Enter: <code>http://192.168.1.42</code> (use your actual IP address).</li>
   <li>The Nextcloud login page appears. Log in with the admin username and password you chose in Step 1.</li>
   <li>Nextcloud may show a short "first run" wizard — follow the prompts or click <strong>Skip</strong> to go straight to your files.</li>
@@ -552,13 +569,13 @@ sudo chmod 750 /mnt/usbdrive/nextcloud-data</code></pre>
 
 <h2 id="troubleshooting-common-problems">Troubleshooting common problems</h2>
 
-<h3>Windows cannot see the Pi on the network</h3>
+<h3>Your computer cannot see the Pi on the network</h3>
 <ul>
   <li>Make sure both devices are on the <em>same</em> network (same router, same Wi-Fi network name).</li>
-  <li>Try connecting by IP address (<code>\\192.168.1.42\PiShare</code>) rather than by hostname — some routers do not pass hostnames between devices.</li>
+  <li>Try connecting by IP address (<code>\\192.168.1.42\PiShare</code> on Windows, or <code>smb://192.168.1.42</code> on macOS and Linux) rather than by hostname — some routers do not pass hostnames between devices.</li>
   <li>Check Samba is running: <code>sudo systemctl status smbd</code></li>
   <li>Check whether the Pi's firewall is active and blocking Samba: <code>sudo ufw status</code>. If it shows as active, allow Samba through with: <code>sudo ufw allow samba</code></li>
-  <li>On Windows, make sure "Network discovery" is turned on. Open <strong>Settings &rarr; Network &amp; Internet &rarr; Advanced network settings &rarr; Advanced sharing settings</strong> and enable network discovery.</li>
+  <li>On Windows, make sure "Network discovery" is turned on. Open <strong>Settings &rarr; Network &amp; Internet &rarr; Advanced network settings &rarr; Advanced sharing settings</strong> and enable network discovery. (On macOS and Linux you connect to the share directly using the <strong>Connect to Server</strong> / <strong>Other Locations</strong> steps from Step 7, so no equivalent setting is needed.)</li>
 </ul>
 
 <h3>Nextcloud shows a warning about "insecure connection" or "not secure"</h3>
@@ -649,7 +666,7 @@ sudo chmod 750 /mnt/usbdrive/nextcloud-data</code></pre>
 <div class="keyterms">
 <h4>Key terms</h4>
 <ul>
-  <li><strong>Samba</strong> — free software that lets a Linux computer speak Windows' file-sharing language (SMB), making the Pi's folders appear as network drives in Windows Explorer.</li>
+  <li><strong>Samba</strong> — free software that lets a Linux computer speak the standard SMB file-sharing language, making the Pi's folders appear as network drives on any computer — Windows File Explorer, macOS Finder, or a Linux file manager.</li>
   <li><strong>SMB (Server Message Block)</strong> — the network protocol Windows uses to share files and printers across a local network. Samba implements this protocol on Linux.</li>
   <li><strong>File server</strong> — a computer whose main job is to store files and make them available to other computers on the same network.</li>
   <li><strong>Nextcloud</strong> — free, open-source personal cloud software that gives you a private Dropbox/Google Drive on your own hardware, with browser access, phone backup, and calendar sync.</li>
@@ -669,7 +686,7 @@ sudo chmod 750 /mnt/usbdrive/nextcloud-data</code></pre>
 <div class="summary">
 <h4>Chapter summary</h4>
 <ul>
-  <li>Samba turns the Pi into a Windows-compatible file server: install it with <code>apt</code>, add a share block to <code>/etc/samba/smb.conf</code>, set a Samba password with <code>smbpasswd</code>, restart the service, and connect from Windows Explorer using the Pi's IP address.</li>
+  <li>Samba turns the Pi into a file server that any computer can reach: install it with <code>apt</code>, add a share block to <code>/etc/samba/smb.conf</code>, set a Samba password with <code>smbpasswd</code>, restart the service, and connect using the Pi's IP address from Windows File Explorer (<code>\\pi-ip</code>), macOS Finder, or a Linux file manager (<code>smb://pi-ip</code>).</li>
   <li>A USB hard drive connected to the Pi's blue USB 3.0 port gives the shared folder far more space and longevity than the microSD card alone.</li>
   <li>Adding the USB drive to <code>/etc/fstab</code> with the <code>nofail</code> option ensures it mounts automatically on every boot without risking startup failures if the drive is absent.</li>
   <li>Use the correct filesystem type in fstab: <code>vfat</code> for FAT32, <code>exfat</code> for exFAT (install <code>exfatprogs</code> first), <code>ntfs-3g</code> for NTFS (install <code>ntfs-3g</code> first), or <code>ext4</code> for Linux-formatted drives.</li>

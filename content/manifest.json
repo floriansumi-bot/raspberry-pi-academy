@@ -81,12 +81,12 @@
    "title": "Meet the Raspberry Pi",
    "kind": "chapter",
    "part": "getting-started",
-   "words": 4800,
-   "read_min": 24,
+   "words": 5068,
+   "read_min": 25,
    "sections": [
     {
-     "id": "what-is-in-your-irasptek-starter-kit",
-     "title": "What is in your iRasptek starter kit?"
+     "id": "what-you-need-to-get-started",
+     "title": "What you need to get started"
     },
     {
      "id": "what-exactly-is-a-raspberry-pi",
@@ -101,12 +101,12 @@
      "title": "What can you actually do with one?"
     },
     {
-     "id": "how-is-it-different-from-your-windows-pc",
-     "title": "How is it different from your Windows PC?"
+     "id": "how-is-it-different-from-your-everyday-computer",
+     "title": "How is it different from your everyday computer?"
     },
     {
-     "id": "why-the-pi-5-is-a-big-leap-and-what-16-gb-of-ram",
-     "title": "Why the Pi 5 is a big leap — and what 16 GB of RAM unlocks"
+     "id": "why-the-pi-5-is-a-big-leap-and-what-ram-unlocks",
+     "title": "Why the Pi 5 is a big leap — and what more RAM unlocks"
     },
     {
      "id": "a-quick-visual-tour-of-the-ports-and-connectors",
@@ -129,16 +129,16 @@
    "title": "Your Kit, Unboxed",
    "kind": "chapter",
    "part": "getting-started",
-   "words": 5124,
-   "read_min": 26,
+   "words": 5386,
+   "read_min": 27,
    "sections": [
     {
      "id": "a-guided-tour-of-the-raspberry-pi-5-board",
      "title": "A Guided Tour of the Raspberry Pi 5 Board"
     },
     {
-     "id": "your-irasptek-kit-every-part-explained",
-     "title": "Your iRasptek Kit — Every Part Explained"
+     "id": "your-accessories-every-part-explained",
+     "title": "Your Accessories — Every Part Explained"
     },
     {
      "id": "a-quick-reference-table-ports-and-what-to-plug-i",
@@ -173,7 +173,7 @@
    "title": "The Absolute Basics",
    "kind": "chapter",
    "part": "getting-started",
-   "words": 4782,
+   "words": 4821,
    "read_min": 24,
    "sections": [
     {
@@ -233,8 +233,8 @@
    "title": "First Boot: Installing the Operating System",
    "kind": "chapter",
    "part": "getting-started",
-   "words": 5182,
-   "read_min": 26,
+   "words": 5424,
+   "read_min": 27,
    "sections": [
     {
      "id": "before-you-begin-two-paths-to-your-first-boot",
@@ -289,8 +289,8 @@
    "title": "A Tour of the Desktop",
    "kind": "chapter",
    "part": "getting-started",
-   "words": 5688,
-   "read_min": 28,
+   "words": 5714,
+   "read_min": 29,
    "sections": [
     {
      "id": "what-you-see-when-you-first-log-in",
@@ -353,7 +353,7 @@
    "title": "The Terminal, Demystified",
    "kind": "chapter",
    "part": "learning-system",
-   "words": 5341,
+   "words": 5358,
    "read_min": 27,
    "sections": [
     {
@@ -499,7 +499,7 @@
    "title": "Installing & Updating Software",
    "kind": "chapter",
    "part": "learning-system",
-   "words": 4649,
+   "words": 4663,
    "read_min": 23,
    "sections": [
     {
@@ -555,8 +555,8 @@
    "title": "Getting Connected: Network & Remote Control",
    "kind": "chapter",
    "part": "learning-system",
-   "words": 6193,
-   "read_min": 31,
+   "words": 6731,
+   "read_min": 34,
    "sections": [
     {
      "id": "step-zero-change-your-password-first",
@@ -592,7 +592,7 @@
     },
     {
      "id": "copying-files-between-windows-and-the-pi",
-     "title": "Copying Files Between Windows and the Pi"
+     "title": "Copying Files Between Your Computer and the Pi"
     },
     {
      "id": "setting-up-ssh-key-authentication-optional-but-r",
@@ -619,8 +619,8 @@
    "title": "Storage, Backups & Booting from an SSD",
    "kind": "chapter",
    "part": "learning-system",
-   "words": 5850,
-   "read_min": 29,
+   "words": 6003,
+   "read_min": 30,
    "sections": [
     {
      "id": "understanding-how-the-pi-stores-its-data",
@@ -800,8 +800,8 @@
    "title": "Retro Gaming",
    "kind": "project",
    "part": "projects",
-   "words": 5634,
-   "read_min": 28,
+   "words": 5848,
+   "read_min": 29,
    "sections": [
     {
      "id": "what-is-retro-gaming-on-the-pi",
@@ -892,7 +892,7 @@
    "title": "Block Ads with Pi-hole",
    "kind": "project",
    "part": "projects",
-   "words": 5756,
+   "words": 5889,
    "read_min": 29,
    "sections": [
     {
@@ -964,8 +964,8 @@
    "title": "Your Own Home Server & Private Cloud",
    "kind": "project",
    "part": "projects",
-   "words": 6280,
-   "read_min": 31,
+   "words": 6611,
+   "read_min": 33,
    "sections": [
     {
      "id": "part-a-a-home-file-server-with-samba",
@@ -988,7 +988,7 @@
    "title": "A Private Smart-Home Hub",
    "kind": "project",
    "part": "projects",
-   "words": 5055,
+   "words": 5074,
    "read_min": 25,
    "sections": [
     {
@@ -1088,8 +1088,8 @@
    "title": "Run AI on Your Pi",
    "kind": "project",
    "part": "projects",
-   "words": 6384,
-   "read_min": 32,
+   "words": 6579,
+   "read_min": 33,
    "sections": [
     {
      "id": "what-is-an-ai-language-model-in-plain-english",
@@ -1156,7 +1156,7 @@
    "title": "Security & Good Habits",
    "kind": "chapter",
    "part": "looking-after",
-   "words": 5321,
+   "words": 5457,
    "read_min": 27,
    "sections": [
     {
@@ -1212,8 +1212,8 @@
    "title": "Maintenance & Troubleshooting",
    "kind": "chapter",
    "part": "looking-after",
-   "words": 6226,
-   "read_min": 31,
+   "words": 6508,
+   "read_min": 33,
    "sections": [
     {
      "id": "routine-care-keeping-your-pi-healthy",
@@ -1256,7 +1256,7 @@
    "title": "Where to Go Next",
    "kind": "chapter",
    "part": "looking-after",
-   "words": 4829,
+   "words": 4835,
    "read_min": 24,
    "sections": [
     {
@@ -1300,7 +1300,7 @@
    "title": "Command Quick-Reference",
    "kind": "appendix",
    "part": "reference",
-   "words": 4988,
+   "words": 5006,
    "read_min": 25,
    "sections": [
     {
@@ -1364,8 +1364,8 @@
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
-   "words": 6264,
-   "read_min": 31,
+   "words": 6304,
+   "read_min": 32,
    "sections": [
     {
      "id": "how-to-use-this-glossary",

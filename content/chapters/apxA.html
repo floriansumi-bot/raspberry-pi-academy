@@ -10,7 +10,7 @@
 
 <h2 id="1-navigating-the-file-system">1 — Navigating the File System</h2>
 
-<p>These commands let you move around the folder structure of your Pi, just like clicking through folders on Windows Explorer.</p>
+<p>These commands let you move around the folder structure of your Pi, just like clicking through folders in the file manager on a desktop computer.</p>
 
 <table class="tbl">
   <thead>
@@ -104,7 +104,7 @@
 
 <h2 id="2-working-with-files-and-folders">2 — Working with Files and Folders</h2>
 
-<p>These commands let you create, copy, move, view, and delete files — the everyday tasks you would normally do with a mouse in Windows Explorer.</p>
+<p>These commands let you create, copy, move, view, and delete files — the everyday tasks you would normally do with a mouse in a desktop file manager.</p>
 
 <table class="tbl">
   <thead>
@@ -244,7 +244,7 @@
   </tbody>
 </table>
 
-<div class="tip"><strong>Tip:</strong> If a command refuses with "Permission denied", try putting <code>sudo</code> in front of it. But only use <code>sudo</code> when genuinely needed — running everything as superuser all the time is risky, like always working as a Windows Administrator.</div>
+<div class="tip"><strong>Tip:</strong> If a command refuses with "Permission denied", try putting <code>sudo</code> in front of it. But only use <code>sudo</code> when genuinely needed — running everything as superuser all the time is risky, like always working in an administrator account on a desktop computer.</div>
 
 <h2 id="4-installing-and-managing-software">4 — Installing and Managing Software</h2>
 
@@ -636,20 +636,20 @@
 
 <div class="note"><strong>Note:</strong> The older <code>iwconfig</code> command (for Wi-Fi details) is deprecated on Bookworm and may not be installed. Use <code>nmcli device status</code> or <code>nmcli device wifi list</code> instead — these work correctly with Raspberry Pi OS Bookworm's NetworkManager.</div>
 
-<h3>One-line Recipe: Find Your Pi's IP Address from Windows</h3>
+<h3>One-line Recipe: Find Your Pi's IP Address from Another Computer</h3>
 
-<p>If you are on Windows and want to find your Pi without logging in to it, open a Command Prompt on your Windows PC and type:</p>
+<p>If you want to find your Pi without logging in to it, open a terminal (Command Prompt or PowerShell on Windows, Terminal on macOS or Linux) on your main computer and type:</p>
 
 <pre class="code"><code>ping raspberrypi.local</code></pre>
 <div class="explain">
-  <p><code>ping raspberrypi.local</code> — sends a test packet to the hostname <code>raspberrypi.local</code>. If the Pi is on the same network, it will reply and Windows will show its IP address in the output. You can then use that IP to connect via SSH or a web browser. If you changed the hostname in <code>raspi-config</code>, substitute your custom name — e.g. <code>ping mypihostname.local</code>.</p>
+  <p><code>ping raspberrypi.local</code> — sends a test packet to the hostname <code>raspberrypi.local</code>. If the Pi is on the same network, it will reply and your computer will show its IP address in the output. You can then use that IP to connect via SSH or a web browser. If you changed the hostname in <code>raspi-config</code>, substitute your custom name — e.g. <code>ping mypihostname.local</code>.</p>
 </div>
 
 <h2 id="9-power-and-configuration">9 — Power and Configuration</h2>
 
 <p>These commands control the Pi's power state and open the main configuration tool.</p>
 
-<div class="warn"><strong>Careful:</strong> Always shut the Pi down gracefully with one of the commands below before cutting the power. Yanking the power cable while the Pi is running can corrupt the microSD card, just like pulling a USB drive out of a Windows PC while files are being written to it.</div>
+<div class="warn"><strong>Careful:</strong> Always shut the Pi down gracefully with one of the commands below before cutting the power. Yanking the power cable while the Pi is running can corrupt the microSD card, just like pulling a USB drive out of a computer while files are being written to it.</div>
 
 <table class="tbl">
   <thead>

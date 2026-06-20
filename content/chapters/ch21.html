@@ -30,7 +30,7 @@ sudo apt full-upgrade -y</code></pre>
 
 <h3>Checking the Temperature</h3>
 
-<p>The Pi 5's processor is powerful, and under heavy work it generates heat. The Active Cooler clipped to your board — the little heatsink-and-fan combination — handles this well, but it is good to know how to check the temperature yourself.</p>
+<p>The Pi 5's processor is powerful, and under heavy work it generates heat. If you have a cooler fitted — such as the official Active Cooler, the little heatsink-and-fan combination that clips to the board, or a fan built into your case — it handles this well, but it is good to know how to check the temperature yourself. (A cooler is strongly recommended on the Pi 5; if yours did not come with one, the official Active Cooler is inexpensive and easy to fit.)</p>
 
 <div class="jargon"><strong>In plain words:</strong> <em>Throttling</em> means the processor deliberately slows itself down to avoid overheating. It is a safety mechanism, not a failure — but it does make your Pi feel sluggish, so you want to avoid it.</div>
 
@@ -132,10 +132,10 @@ sudo apt full-upgrade -y</code></pre>
 
 <h4>The Lightning-Bolt Warning Icon</h4>
 
-<p>On the Raspberry Pi OS desktop you may occasionally see a small yellow lightning-bolt icon appear in the top-right corner of the screen. This is the desktop's visual alert for undervoltage — the Pi is not receiving enough power. It is the graphical equivalent of the bits above. The good news: your iRasptek kit includes an official-style 27 W USB-C power supply (5.1 V / 5 A) specifically chosen for the Pi 5, and using it correctly prevents virtually all undervoltage warnings. If you do see the lightning bolt:</p>
+<p>On the Raspberry Pi OS desktop you may occasionally see a small yellow lightning-bolt icon appear in the top-right corner of the screen. This is the desktop's visual alert for undervoltage — the Pi is not receiving enough power. It is the graphical equivalent of the bits above. The good news: a proper 27 W USB-C power supply (5.1 V / 5 A) made for the Pi 5 — the official Raspberry Pi supply, or the equivalent one included with many starter kits — prevents virtually all undervoltage warnings when used correctly. If you do see the lightning bolt:</p>
 
 <ul>
-  <li>Make sure you are using the power supply that came with your kit, not a phone charger.</li>
+  <li>Make sure you are using a proper 27 W USB-C supply made for the Pi 5, not a phone charger.</li>
   <li>Check that the USB-C cable is pushed firmly into both the Pi and the power supply.</li>
   <li>Avoid using a USB hub to power the Pi — it must be powered directly from its own supply.</li>
 </ul>
@@ -476,10 +476,10 @@ sudo apt clean</code></pre>
 <ol class="steps">
   <li><strong>Reseat the microSD card.</strong> Power the Pi off by unplugging it. Remove the microSD card from its slot on the underside of the board, then push it back in firmly until you feel it click. Reconnect power.</li>
   <li><strong>Check whether the card is recognised.</strong> During boot the green LED should flash irregularly. If it does not flash at all after 30 seconds, the Pi cannot read the card.</li>
-  <li><strong>Re-flash the microSD card.</strong> Connect the card (using the USB card reader that came with your kit) to your Windows 11 computer. Use the Raspberry Pi Imager application (download free from <code>raspberrypi.com/software</code>) to write a fresh copy of Raspberry Pi OS to the card. This takes about 5–10 minutes. Then reinsert the card in the Pi and try again. <em>Re-flashing erases the card but is completely safe and free — it is the fastest fix for most boot problems.</em></li>
+  <li><strong>Re-flash the microSD card.</strong> Connect the card (using a USB card reader, or your computer's built-in SD slot) to your main computer — Windows, macOS, or Linux. Use the Raspberry Pi Imager application (download free from <code>raspberrypi.com/software</code>, available for all three) to write a fresh copy of Raspberry Pi OS to the card. This takes about 5–10 minutes. Then reinsert the card in the Pi and try again. <em>Re-flashing erases the card but is completely safe and free — it is the fastest fix for most boot problems.</em></li>
 </ol>
 
-<div class="warn"><strong>Careful:</strong> Re-flashing erases everything on the microSD card. If there are files on it you want to keep, copy them to your Windows PC first using the USB card reader. See the "Backing Up Your Files" section later in this chapter.</div>
+<div class="warn"><strong>Careful:</strong> Re-flashing erases everything on the microSD card. If there are files on it you want to keep, copy them to your main computer first using a USB card reader or an SD slot. See the "Backing Up Your Files" section later in this chapter.</div>
 
 <h3>No Wi-Fi</h3>
 
@@ -516,13 +516,13 @@ sudo reboot</code></pre>
 </div>
 
 <ol class="steps" start="2">
-  <li><strong>Check you are on the same network.</strong> Your Pi and your Windows laptop must be connected to the same router — either both on the same Wi-Fi, or the Pi on Ethernet into the same router. SSH will not work across different networks.</li>
-  <li><strong>Find the Pi's IP address.</strong> Run the following command on the Pi (when you have a monitor and keyboard connected), then use the printed address when connecting from Windows.</li>
+  <li><strong>Check you are on the same network.</strong> Your Pi and the computer you are connecting from must be connected to the same router — either both on the same Wi-Fi, or the Pi on Ethernet into the same router. SSH will not work across different networks.</li>
+  <li><strong>Find the Pi's IP address.</strong> Run the following command on the Pi (when you have a monitor and keyboard connected), then use the printed address when connecting from your main computer.</li>
 </ol>
 
 <pre class="code"><code>hostname -I</code></pre>
 <div class="explain">
-  <p>Prints the Pi's current IP address (or addresses) on the network. The first number (e.g. <code>192.168.1.42</code>) is the one to use when connecting from another computer. You can then connect from Windows by opening a Command Prompt or PowerShell window and typing <code>ssh yourusername@192.168.1.42</code>.</p>
+  <p>Prints the Pi's current IP address (or addresses) on the network. The first number (e.g. <code>192.168.1.42</code>) is the one to use when connecting from another computer. You can then connect from your main computer by opening a terminal (Command Prompt or PowerShell on Windows; Terminal on macOS or Linux) and typing <code>ssh yourusername@192.168.1.42</code> — the command is identical on all three.</p>
 </div>
 
 <ol class="steps" start="4">
@@ -557,13 +557,13 @@ sudo reboot</code></pre>
 <ul>
   <li>Always shut down properly using the desktop menu (<strong>Raspberry Pi menu &gt; Shutdown &gt; Shutdown</strong>) or the terminal command <code>sudo shutdown -h now</code>. Wait for the green LED to stop flashing before disconnecting power.</li>
   <li>Use the physical power button on the Pi 5 board: a single press triggers a clean shutdown.</li>
-  <li>Use a good-quality power supply (your kit's 27 W supply is correct). Cheap phone chargers that struggle to deliver enough power cause micro-dropouts that corrupt cards.</li>
+  <li>Use a good-quality power supply (a proper 27 W USB-C supply for the Pi 5 is correct). Cheap phone chargers that struggle to deliver enough power cause micro-dropouts that corrupt cards.</li>
   <li>Consider upgrading to an NVMe SSD on the PCIe connector for projects that involve heavy disk writing — SSDs are far more durable than microSD cards.</li>
 </ul>
 
-<p><strong>How to fix it:</strong> If the card is already corrupted, the quickest fix is to re-flash it using Raspberry Pi Imager on your Windows PC as described in the section below. Before you do, if the Pi still boots at all, back up your files first.</p>
+<p><strong>How to fix it:</strong> If the card is already corrupted, the quickest fix is to re-flash it using Raspberry Pi Imager on your main computer (Windows, macOS, or Linux) as described in the section below. Before you do, if the Pi still boots at all, back up your files first.</p>
 
-<div class="tip"><strong>Tip:</strong> If the Pi boots but reports the filesystem is read-only, you may be able to check and repair it without re-flashing. Shut the Pi down cleanly, remove the microSD card, insert it into your Windows PC, and run the Windows disk error-checking tool on it (right-click the drive in File Explorer &gt; Properties &gt; Tools &gt; Check). This sometimes fixes minor corruption.</div>
+<div class="tip"><strong>Tip:</strong> If the Pi boots but reports the filesystem is read-only, you may be able to check and repair it without re-flashing. Shut the Pi down cleanly, remove the microSD card, and insert it into your main computer. On <strong>Windows</strong>, run the disk error-checking tool (right-click the drive in File Explorer &gt; Properties &gt; Tools &gt; Check). On <strong>macOS</strong>, use Disk Utility's First Aid. On <strong>Linux</strong>, run <code>fsck</code> on the card's partition from a terminal. This sometimes fixes minor corruption.</div>
 
 <h3>The "externally-managed-environment" Error with pip</h3>
 
@@ -609,7 +609,7 @@ pip install requests</code></pre>
 
 <h2 id="backing-up-your-files">Backing Up Your Files</h2>
 
-<p>The simplest backup is to copy your important files to a USB drive or to your Windows PC. For whole-system backups — a complete snapshot of everything on the card — you have two practical options.</p>
+<p>The simplest backup is to copy your important files to a USB drive or to your main computer. For whole-system backups — a complete snapshot of everything on the card — you have two practical options.</p>
 
 <h3>Copying Files to a USB Drive</h3>
 
@@ -622,19 +622,25 @@ pip install requests</code></pre>
 
 <div class="tip"><strong>Tip:</strong> To find out your exact username, type <code>whoami</code> in the terminal and press Enter. The Pi will print your username.</div>
 
-<h3>Whole-Card Image Backup (from Windows)</h3>
+<h3>Whole-Card Image Backup (from your main computer)</h3>
 
-<p>The most thorough backup is a complete image of the entire microSD card, made from your Windows 11 PC. This captures the operating system, all installed programs, and all your files — so you can restore everything exactly as it was if the card ever fails.</p>
+<p>The most thorough backup is a complete image of the entire microSD card, made from your main computer. This captures the operating system, all installed programs, and all your files — so you can restore everything exactly as it was if the card ever fails. The right tool depends on your computer's operating system, but the idea is the same on all three.</p>
 
 <ol class="steps">
   <li>Shut down the Pi cleanly (<strong>Raspberry Pi menu &gt; Shutdown</strong>), wait for the green LED to stop flashing, then remove the microSD card.</li>
-  <li>Insert the card into the USB card reader and plug it into your Windows PC.</li>
-  <li>Download and install <strong>Win32 Disk Imager</strong> (free, from <code>sourceforge.net/projects/win32diskimager</code>). Open it, choose an image file name and location to save to (e.g. <code>pi-backup-2025-06.img</code> on your desktop or an external drive), select the correct drive letter for your microSD card, then click <strong>Read</strong>.</li>
+  <li>Insert the card into a USB card reader (or your computer's built-in SD slot) and plug it into your computer.</li>
+  <li>Make the image with the tool for your operating system:
+    <ul>
+      <li><strong>Windows:</strong> download and install <strong>Win32 Disk Imager</strong> (free, from <code>sourceforge.net/projects/win32diskimager</code>). Open it, choose an image file name and location to save to (e.g. <code>pi-backup-2025-06.img</code> on your desktop or an external drive), select the correct drive letter for your microSD card, then click <strong>Read</strong>.</li>
+      <li><strong>macOS:</strong> open <strong>Terminal</strong>, run <code>diskutil list</code> to identify the card's disk (e.g. <code>/dev/disk4</code>), then run <code>sudo dd if=/dev/diskN of=~/pi-backup-2025-06.img bs=4m</code> (replace <code>diskN</code> with the right number).</li>
+      <li><strong>Linux:</strong> open a terminal, run <code>lsblk</code> to identify the card (e.g. <code>/dev/sdb</code>), then run <code>sudo dd if=/dev/sdX of=~/pi-backup-2025-06.img bs=4M status=progress</code> (replace <code>sdX</code> with the right letter).</li>
+    </ul>
+  </li>
   <li>Wait for the read operation to complete. The result is a single <code>.img</code> file that is an exact copy of your card.</li>
-  <li>Store this <code>.img</code> file somewhere safe — an external hard drive or cloud storage. If your Pi's card ever fails, you can use Win32 Disk Imager's <strong>Write</strong> button (or Raspberry Pi Imager's "Use custom" option) to write this image back to a new card and restore everything.</li>
+  <li>Store this <code>.img</code> file somewhere safe — an external hard drive or cloud storage. If your Pi's card ever fails, you can write this image back to a new card to restore everything: with Win32 Disk Imager's <strong>Write</strong> button on Windows, the same <code>dd</code> command with <code>if</code> and <code>of</code> swapped on macOS or Linux, or Raspberry Pi Imager's "Use custom" option on any operating system.</li>
 </ol>
 
-<div class="warn"><strong>Careful:</strong> When using Win32 Disk Imager, make absolutely sure you select the correct drive letter for your microSD card. Selecting the wrong drive and clicking Read will overwrite a different disk with your card's image, potentially destroying data. Double-check the drive letter in Windows File Explorer before proceeding.</div>
+<div class="warn"><strong>Careful:</strong> Whichever tool you use, make absolutely sure you select the correct microSD card. Choosing the wrong drive — the wrong drive letter in Win32 Disk Imager, or the wrong <code>/dev/disk</code> in a <code>dd</code> command — can overwrite or destroy data on a different disk. The <code>dd</code> command in particular is unforgiving, so double-check the device name before you press Enter.</div>
 
 <div class="note"><strong>Note:</strong> The <code>.img</code> backup file will be the same size as your microSD card (e.g. 64 GB). Make sure the destination has enough free space.</div>
 
@@ -644,7 +650,7 @@ pip install requests</code></pre>
 
 <ul>
   <li><strong>It is free and takes about 10 minutes</strong> using Raspberry Pi Imager.</li>
-  <li><strong>Your personal files are easy to back up first</strong> — just copy the contents of <code>/home/yourname/</code> to a USB drive or your Windows PC before you re-flash.</li>
+  <li><strong>Your personal files are easy to back up first</strong> — just copy the contents of <code>/home/yourname/</code> to a USB drive or your main computer before you re-flash.</li>
   <li><strong>A fresh system has no accumulated clutter,</strong> broken configurations, or partial updates — it is a clean slate.</li>
   <li><strong>Raspberry Pi Imager lets you pre-configure</strong> your username, password, Wi-Fi credentials, and SSH settings before writing, so the re-flashed Pi comes up connected and ready to use.</li>
 </ul>
@@ -694,12 +700,12 @@ pip install requests</code></pre>
     <tr>
       <td>Before any risky change</td>
       <td>Back up personal files</td>
-      <td>Copy <code>/home/yourname/</code> to USB drive or Windows PC</td>
+      <td>Copy <code>/home/yourname/</code> to USB drive or your main computer</td>
     </tr>
     <tr>
       <td>Occasionally</td>
       <td>Full card image backup</td>
-      <td>Win32 Disk Imager &gt; Read, from Windows PC</td>
+      <td>Image the card from your computer (Win32 Disk Imager on Windows; <code>dd</code> on macOS/Linux)</td>
     </tr>
     <tr>
       <td>Every session</td>
@@ -727,7 +733,7 @@ pip install requests</code></pre>
     <li><strong>df -h</strong> — a command that shows how much disk space is used and free on each storage device, in human-readable sizes.</li>
     <li><strong>htop</strong> — an interactive terminal program that shows a live view of CPU and memory usage for every process running on the Pi.</li>
     <li><strong>raspi-config</strong> — a menu-driven tool built into Raspberry Pi OS for changing system settings such as the hostname, Wi-Fi country, and enabled interfaces.</li>
-    <li><strong>Win32 Disk Imager</strong> — a free Windows program that can read an entire microSD card into a single backup image file, and write that image back to a card to restore it.</li>
+    <li><strong>Win32 Disk Imager</strong> — a free Windows program that can read an entire microSD card into a single backup image file, and write that image back to a card to restore it. On macOS and Linux the equivalent is the built-in <code>dd</code> command (or Raspberry Pi Imager's "Use custom" option, which works on any operating system).</li>
     <li><strong>Boot error code</strong> — a repeating pattern of green LED flashes during startup that points to a specific hardware or software problem; almost always fixed by re-flashing the card.</li>
   </ul>
 </div>
@@ -745,7 +751,7 @@ pip install requests</code></pre>
     <li>No Wi-Fi almost always means the Wi-Fi country has not been set; fix it in Raspberry Pi Configuration under Localisation, or with <code>sudo raspi-config</code>.</li>
     <li>The "externally-managed-environment" pip error is intentional; use <code>apt install python3-packagename</code>, a virtual environment, or Thonny instead.</li>
     <li>Always shut down cleanly to protect the microSD card from corruption; the physical power button on the Pi 5 triggers a safe shutdown.</li>
-    <li>Use Win32 Disk Imager on your Windows PC to make a complete image backup of your microSD card; store it somewhere safe.</li>
+    <li>Make a complete image backup of your microSD card from your main computer — Win32 Disk Imager on Windows, the <code>dd</code> command on macOS or Linux — and store it somewhere safe.</li>
     <li>Re-flashing the microSD card with Raspberry Pi Imager is free, takes ten minutes, and fixes the vast majority of stubborn problems — back up your files first, then do not hesitate.</li>
   </ul>
 </div>
