@@ -16,8 +16,8 @@ import csv
 import random
 
 from midilib import (
-    Note, write_midi, note_number, safe_key_name, chord_pitches, scale_pitches,
-    QUALITY_LABEL, MINOR_DIATONIC_QUALITY, SCALES,
+    Note, write_midi, write_midi_multi, note_number, safe_key_name,
+    chord_pitches, scale_pitches, QUALITY_LABEL, MINOR_DIATONIC_QUALITY, SCALES,
 )
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +34,19 @@ def add(path: str, notes: list[Note], bpm: float, category: str, desc: str,
     MANIFEST.append(dict(file=path, category=category, key=key, scale=scale,
                          genre=genre, bpm=bpm, bars=_bars(notes), notes=len(notes),
                          description=desc))
+
+
+def add_multi(path: str, parts: list[dict], bpm: float, category: str, desc: str,
+              key: str = "", scale: str = "", genre: str = ""):
+    """Register + write a multi-track clip (one MTrk per part)."""
+    full = os.path.join(ROOT, path)
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    name = os.path.splitext(os.path.basename(path))[0]
+    write_midi_multi(full, parts, bpm=bpm, song_name=name[:32])
+    allnotes = [n for p in parts for n in p["notes"]]
+    MANIFEST.append(dict(file=path, category=category, key=key, scale=scale,
+                         genre=genre, bpm=bpm, bars=_bars(allnotes),
+                         notes=len(allnotes), description=desc))
 
 
 def _bars(notes: list[Note]) -> int:
@@ -362,13 +375,14 @@ def main():
     build_basslines_by_scale()
     build_melodies_by_scale()
     build_arps_by_scale()
-    # genre-specific clips are appended by generate_genres.py if present
-    try:
-        import generate_genres
-        generate_genres.build(add, MINOR_PROGRESSIONS, realise_progression,
-                              bassline, melody, arpeggio)
-    except ImportError:
-        pass
+    # genre clips, drum patterns and arrangement templates
+    import generate_genres
+    generate_genres.build(add, MINOR_PROGRESSIONS, realise_progression,
+                          bassline, melody, arpeggio)
+    import drums
+    drums.build(add_multi)
+    import arrangements
+    arrangements.build(add_multi, realise_progression, bassline, arpeggio)
     write_manifest()
     print(f"Generated {len(MANIFEST)} MIDI files.")
     by_cat: dict[str, int] = {}

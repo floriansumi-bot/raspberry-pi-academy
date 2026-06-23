@@ -84,16 +84,18 @@ def build(add, _minor_progs, realise_progression, bassline, melody, arpeggio):
                 f"{gname} bassline ({bass_pat}) — {kn} minor",
                 key=kn, scale="natural_minor", genre=gname)
 
-        # Melody + arp demo in the signature key (A minor).
-        kn = safe_key_name(SIG_KEY_PC)
-        for v in range(2):
-            mel = melody(SIG_KEY_PC, degrees, mel_scale, seed=hash(gname) % 9999 + v,
+        # Genre melodies in ALL 12 keys (one variant each) in the genre's scale.
+        for pc in range(12):
+            kn = safe_key_name(pc)
+            mel = melody(pc, degrees, mel_scale, seed=hash(gname) % 9999 + pc,
                          octave=5, bars_per_chord=bpc)
-            add(f"Melodies/By-Genre/{gname}/{kn}m_{gname}_melody_{mel_scale}_{v+1}.mid",
+            add(f"Melodies/By-Genre/{gname}/{kn}m_{gname}_melody_{mel_scale}.mid",
                 mel, bpm, "melody",
-                f"{gname} melody ({mel_scale}) v{v+1} — {kn}",
+                f"{gname} melody ({mel_scale}) — {kn} minor",
                 key=kn, scale=mel_scale, genre=gname)
 
+        # Arp demo in the signature key (A minor).
+        kn = safe_key_name(SIG_KEY_PC)
         arp = arpeggio(SIG_KEY_PC, degrees, arp_pat, flavour, bars_per_chord=bpc)
         add(f"Arps/By-Genre/{gname}/{kn}m_{gname}_arp_{arp_pat}.mid",
             arp, bpm, "arp",

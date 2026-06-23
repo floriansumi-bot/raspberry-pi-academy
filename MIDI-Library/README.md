@@ -1,6 +1,6 @@
 # 🎹 EDM MIDI Library — "Never Buy a MIDI Pack Again"
 
-A **1,150+ file** MIDI library generated entirely from music theory + cross-checked
+A **1,300+ file** MIDI library generated entirely from music theory + cross-checked
 EDM production research. Zero dependencies, fully reproducible, royalty-free
 (it's math — you own everything it produces).
 
@@ -35,12 +35,23 @@ MIDI-Library/
 │   ├── By-Scale/   up / down / updown / octave-up per key
 │   └── By-Genre/   genre-flavoured arp (A-minor demos)
 │
+├── Drums/By-Genre/             # GM drum-map beats per genre: full / minimal / tops (4 bars)
+│
+├── Arrangement-Templates/      # One file per genre = Chords+Bass+Arp+Drums on SEPARATE
+│                               #   tracks, 8 bars, signature key. A whole loop skeleton.
+│
 ├── MANIFEST.csv                # Index of every file: key, scale, genre, BPM, bars, notes
 ├── RESEARCH-NOTES.md           # The EDM theory this was built from (with sources)
 ├── midilib.py                  # Zero-dep MIDI writer + music-theory toolkit
-├── generate.py / generate_genres.py   # Regenerate everything with `python3 generate.py`
+├── generate.py + generate_genres.py + drums.py + arrangements.py   # `python3 generate.py`
+├── download_samples.py         # License-aware free-sample fetcher (Freesound API)
 └── Resources/                  # Curated free Serum-preset + sample download directories
 ```
+
+**Drums** load onto any drum rack (36=kick, 38=snare, 39=clap, 42/46=hats…).
+**Arrangement-Templates** are multi-track — drop one in and every part lands on
+its own track, ready to swap sounds. **`download_samples.py`** legally pulls
+free CC0/CC-BY samples from Freesound (needs a free API key — see its header).
 
 ### Naming convention
 `<Key>m_<what>_<detail>.mid` — e.g. `Am_03_Progressive-House_i-VI-III-VII_chords.mid`,

@@ -59,6 +59,18 @@ Arps/By-Scale/Gs-minor/Gsm_arp_down.mid,arp,Gs,natural_minor,,124,4,64,Gs minor 
 Arps/By-Scale/Gs-minor/Gsm_arp_octave_up.mid,arp,Gs,natural_minor,,124,4,64,Gs minor arpeggio — octave_up
 Arps/By-Scale/Gs-minor/Gsm_arp_up.mid,arp,Gs,natural_minor,,124,4,64,Gs minor arpeggio — up
 Arps/By-Scale/Gs-minor/Gsm_arp_updown.mid,arp,Gs,natural_minor,,124,4,64,Gs minor arpeggio — updown
+Arrangement-Templates/01_Deep-House/Am_01_Deep-House_template_8bars.mid,template,A,natural_minor,01_Deep-House,122,8,444,01_Deep-House 8-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/02_Future-House/Am_02_Future-House_template_8bars.mid,template,A,natural_minor,02_Future-House,126,8,500,02_Future-House 8-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/03_Progressive-House/Am_03_Progressive-House_template_8bars.mid,template,A,natural_minor,03_Progressive-House,128,8,476,03_Progressive-House 8-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/04_Tech-House/Am_04_Tech-House_template_9bars.mid,template,A,natural_minor,04_Tech-House,126,9,499,04_Tech-House 9-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/05_Techno/Am_05_Techno_template_8bars.mid,template,A,natural_minor,05_Techno,130,8,508,05_Techno 8-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/06_Melodic-Techno/Am_06_Melodic-Techno_template_8bars.mid,template,A,natural_minor,06_Melodic-Techno,124,8,488,06_Melodic-Techno 8-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/07_Trance/Am_07_Trance_template_8bars.mid,template,A,natural_minor,07_Trance,138,8,500,07_Trance 8-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/08_Hardstyle/Am_08_Hardstyle_template_8bars.mid,template,A,natural_minor,08_Hardstyle,150,8,300,08_Hardstyle 8-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/09_Hardcore-Gabber/Am_09_Hardcore-Gabber_template_9bars.mid,template,A,natural_minor,09_Hardcore-Gabber,180,9,346,09_Hardcore-Gabber 9-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/10_Dubstep/Am_10_Dubstep_template_9bars.mid,template,A,natural_minor,10_Dubstep,140,9,301,10_Dubstep 9-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/11_Future-Bass/Am_11_Future-Bass_template_8bars.mid,template,A,natural_minor,11_Future-Bass,150,8,412,11_Future-Bass 8-bar template (chords/bass/arp/drums) — A minor
+Arrangement-Templates/12_Lofi-Chill/Am_12_Lofi-Chill_template_8bars.mid,template,A,natural_minor,12_Lofi-Chill,85,8,292,12_Lofi-Chill 8-bar template (chords/bass/arp/drums) — A minor
 Basslines/By-Genre/01_Deep-House/Am_01_Deep-House_bass_root_octave_8ths.mid,bassline,A,natural_minor,01_Deep-House,122,4,32,01_Deep-House bassline (root_octave_8ths) — A minor
 Basslines/By-Genre/01_Deep-House/Asm_01_Deep-House_bass_root_octave_8ths.mid,bassline,As,natural_minor,01_Deep-House,122,4,32,01_Deep-House bassline (root_octave_8ths) — As minor
 Basslines/By-Genre/01_Deep-House/Bm_01_Deep-House_bass_root_octave_8ths.mid,bassline,B,natural_minor,01_Deep-House,122,4,32,01_Deep-House bassline (root_octave_8ths) — B minor
@@ -455,126 +467,282 @@ Chords/Sus4/F_Sus4.mid,chord,F,sus4,,124,1,3,F Sus4 chord
 Chords/Sus4/Fs_Sus4.mid,chord,Fs,sus4,,124,1,3,Fs Sus4 chord
 Chords/Sus4/G_Sus4.mid,chord,G,sus4,,124,1,3,G Sus4 chord
 Chords/Sus4/Gs_Sus4.mid,chord,Gs,sus4,,124,1,3,Gs Sus4 chord
-Melodies/By-Genre/01_Deep-House/Am_01_Deep-House_melody_minor_pentatonic_1.mid,melody,A,minor_pentatonic,01_Deep-House,122,4,24,01_Deep-House melody (minor_pentatonic) v1 — A
-Melodies/By-Genre/01_Deep-House/Am_01_Deep-House_melody_minor_pentatonic_2.mid,melody,A,minor_pentatonic,01_Deep-House,122,4,20,01_Deep-House melody (minor_pentatonic) v2 — A
-Melodies/By-Genre/02_Future-House/Am_02_Future-House_melody_natural_minor_1.mid,melody,A,natural_minor,02_Future-House,126,4,16,02_Future-House melody (natural_minor) v1 — A
-Melodies/By-Genre/02_Future-House/Am_02_Future-House_melody_natural_minor_2.mid,melody,A,natural_minor,02_Future-House,126,4,20,02_Future-House melody (natural_minor) v2 — A
-Melodies/By-Genre/03_Progressive-House/Am_03_Progressive-House_melody_natural_minor_1.mid,melody,A,natural_minor,03_Progressive-House,128,4,20,03_Progressive-House melody (natural_minor) v1 — A
-Melodies/By-Genre/03_Progressive-House/Am_03_Progressive-House_melody_natural_minor_2.mid,melody,A,natural_minor,03_Progressive-House,128,4,16,03_Progressive-House melody (natural_minor) v2 — A
-Melodies/By-Genre/04_Tech-House/Am_04_Tech-House_melody_natural_minor_1.mid,melody,A,natural_minor,04_Tech-House,126,3,18,04_Tech-House melody (natural_minor) v1 — A
-Melodies/By-Genre/04_Tech-House/Am_04_Tech-House_melody_natural_minor_2.mid,melody,A,natural_minor,04_Tech-House,126,3,15,04_Tech-House melody (natural_minor) v2 — A
-Melodies/By-Genre/05_Techno/Am_05_Techno_melody_phrygian_1.mid,melody,A,phrygian,05_Techno,130,4,24,05_Techno melody (phrygian) v1 — A
-Melodies/By-Genre/05_Techno/Am_05_Techno_melody_phrygian_2.mid,melody,A,phrygian,05_Techno,130,4,20,05_Techno melody (phrygian) v2 — A
-Melodies/By-Genre/06_Melodic-Techno/Am_06_Melodic-Techno_melody_natural_minor_1.mid,melody,A,natural_minor,06_Melodic-Techno,124,8,32,06_Melodic-Techno melody (natural_minor) v1 — A
-Melodies/By-Genre/06_Melodic-Techno/Am_06_Melodic-Techno_melody_natural_minor_2.mid,melody,A,natural_minor,06_Melodic-Techno,124,8,40,06_Melodic-Techno melody (natural_minor) v2 — A
-Melodies/By-Genre/07_Trance/Am_07_Trance_melody_harmonic_minor_1.mid,melody,A,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) v1 — A
-Melodies/By-Genre/07_Trance/Am_07_Trance_melody_harmonic_minor_2.mid,melody,A,harmonic_minor,07_Trance,138,4,24,07_Trance melody (harmonic_minor) v2 — A
-Melodies/By-Genre/08_Hardstyle/Am_08_Hardstyle_melody_harmonic_minor_1.mid,melody,A,harmonic_minor,08_Hardstyle,150,4,16,08_Hardstyle melody (harmonic_minor) v1 — A
-Melodies/By-Genre/08_Hardstyle/Am_08_Hardstyle_melody_harmonic_minor_2.mid,melody,A,harmonic_minor,08_Hardstyle,150,4,16,08_Hardstyle melody (harmonic_minor) v2 — A
-Melodies/By-Genre/09_Hardcore-Gabber/Am_09_Hardcore-Gabber_melody_phrygian_1.mid,melody,A,phrygian,09_Hardcore-Gabber,180,3,12,09_Hardcore-Gabber melody (phrygian) v1 — A
-Melodies/By-Genre/09_Hardcore-Gabber/Am_09_Hardcore-Gabber_melody_phrygian_2.mid,melody,A,phrygian,09_Hardcore-Gabber,180,3,15,09_Hardcore-Gabber melody (phrygian) v2 — A
-Melodies/By-Genre/10_Dubstep/Am_10_Dubstep_melody_natural_minor_1.mid,melody,A,natural_minor,10_Dubstep,140,3,15,10_Dubstep melody (natural_minor) v1 — A
-Melodies/By-Genre/10_Dubstep/Am_10_Dubstep_melody_natural_minor_2.mid,melody,A,natural_minor,10_Dubstep,140,3,12,10_Dubstep melody (natural_minor) v2 — A
-Melodies/By-Genre/11_Future-Bass/Am_11_Future-Bass_melody_minor_pentatonic_1.mid,melody,A,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) v1 — A
-Melodies/By-Genre/11_Future-Bass/Am_11_Future-Bass_melody_minor_pentatonic_2.mid,melody,A,minor_pentatonic,11_Future-Bass,150,4,16,11_Future-Bass melody (minor_pentatonic) v2 — A
-Melodies/By-Genre/12_Lofi-Chill/Am_12_Lofi-Chill_melody_dorian_1.mid,melody,A,dorian,12_Lofi-Chill,85,4,24,12_Lofi-Chill melody (dorian) v1 — A
-Melodies/By-Genre/12_Lofi-Chill/Am_12_Lofi-Chill_melody_dorian_2.mid,melody,A,dorian,12_Lofi-Chill,85,4,24,12_Lofi-Chill melody (dorian) v2 — A
-Melodies/By-Scale/A-minor/Am_melody_dorian_1.mid,melody,A,dorian,,124,4,20,A dorian melody v1
-Melodies/By-Scale/A-minor/Am_melody_dorian_2.mid,melody,A,dorian,,124,4,24,A dorian melody v2
+Drums/By-Genre/01_Deep-House/01_Deep-House_beat_full.mid,drums,,,01_Deep-House,122,4,108,01_Deep-House drum groove (4 bars)
+Drums/By-Genre/01_Deep-House/01_Deep-House_beat_minimal.mid,drums,,,01_Deep-House,122,4,24,01_Deep-House kick+clap only (4 bars)
+Drums/By-Genre/01_Deep-House/01_Deep-House_beat_tops.mid,drums,,,01_Deep-House,122,4,80,01_Deep-House hats/percussion only (4 bars)
+Drums/By-Genre/02_Future-House/02_Future-House_beat_full.mid,drums,,,02_Future-House,126,4,108,02_Future-House drum groove (4 bars)
+Drums/By-Genre/02_Future-House/02_Future-House_beat_minimal.mid,drums,,,02_Future-House,126,4,24,02_Future-House kick+clap only (4 bars)
+Drums/By-Genre/02_Future-House/02_Future-House_beat_tops.mid,drums,,,02_Future-House,126,4,80,02_Future-House hats/percussion only (4 bars)
+Drums/By-Genre/03_Progressive-House/03_Progressive-House_beat_full.mid,drums,,,03_Progressive-House,128,4,92,03_Progressive-House drum groove (4 bars)
+Drums/By-Genre/03_Progressive-House/03_Progressive-House_beat_minimal.mid,drums,,,03_Progressive-House,128,4,24,03_Progressive-House kick+clap only (4 bars)
+Drums/By-Genre/03_Progressive-House/03_Progressive-House_beat_tops.mid,drums,,,03_Progressive-House,128,4,64,03_Progressive-House hats/percussion only (4 bars)
+Drums/By-Genre/04_Tech-House/04_Tech-House_beat_full.mid,drums,,,04_Tech-House,126,4,132,04_Tech-House drum groove (4 bars)
+Drums/By-Genre/04_Tech-House/04_Tech-House_beat_minimal.mid,drums,,,04_Tech-House,126,4,24,04_Tech-House kick+clap only (4 bars)
+Drums/By-Genre/04_Tech-House/04_Tech-House_beat_tops.mid,drums,,,04_Tech-House,126,4,104,04_Tech-House hats/percussion only (4 bars)
+Drums/By-Genre/05_Techno/05_Techno_beat_full.mid,drums,,,05_Techno,130,4,116,05_Techno drum groove (4 bars)
+Drums/By-Genre/05_Techno/05_Techno_beat_minimal.mid,drums,,,05_Techno,130,4,24,05_Techno kick+clap only (4 bars)
+Drums/By-Genre/05_Techno/05_Techno_beat_tops.mid,drums,,,05_Techno,130,4,88,05_Techno hats/percussion only (4 bars)
+Drums/By-Genre/06_Melodic-Techno/06_Melodic-Techno_beat_full.mid,drums,,,06_Melodic-Techno,124,4,108,06_Melodic-Techno drum groove (4 bars)
+Drums/By-Genre/06_Melodic-Techno/06_Melodic-Techno_beat_minimal.mid,drums,,,06_Melodic-Techno,124,4,24,06_Melodic-Techno kick+clap only (4 bars)
+Drums/By-Genre/06_Melodic-Techno/06_Melodic-Techno_beat_tops.mid,drums,,,06_Melodic-Techno,124,4,80,06_Melodic-Techno hats/percussion only (4 bars)
+Drums/By-Genre/07_Trance/07_Trance_beat_full.mid,drums,,,07_Trance,138,4,112,07_Trance drum groove (4 bars)
+Drums/By-Genre/07_Trance/07_Trance_beat_minimal.mid,drums,,,07_Trance,138,4,24,07_Trance kick+clap only (4 bars)
+Drums/By-Genre/07_Trance/07_Trance_beat_tops.mid,drums,,,07_Trance,138,4,80,07_Trance hats/percussion only (4 bars)
+Drums/By-Genre/08_Hardstyle/08_Hardstyle_beat_full.mid,drums,,,08_Hardstyle,150,4,60,08_Hardstyle drum groove (4 bars)
+Drums/By-Genre/08_Hardstyle/08_Hardstyle_beat_minimal.mid,drums,,,08_Hardstyle,150,4,24,08_Hardstyle kick+clap only (4 bars)
+Drums/By-Genre/08_Hardstyle/08_Hardstyle_beat_tops.mid,drums,,,08_Hardstyle,150,4,32,08_Hardstyle hats/percussion only (4 bars)
+Drums/By-Genre/09_Hardcore-Gabber/09_Hardcore-Gabber_beat_full.mid,drums,,,09_Hardcore-Gabber,180,4,76,09_Hardcore-Gabber drum groove (4 bars)
+Drums/By-Genre/09_Hardcore-Gabber/09_Hardcore-Gabber_beat_minimal.mid,drums,,,09_Hardcore-Gabber,180,4,24,09_Hardcore-Gabber kick+clap only (4 bars)
+Drums/By-Genre/09_Hardcore-Gabber/09_Hardcore-Gabber_beat_tops.mid,drums,,,09_Hardcore-Gabber,180,4,48,09_Hardcore-Gabber hats/percussion only (4 bars)
+Drums/By-Genre/10_Dubstep/10_Dubstep_beat_full.mid,drums,,,10_Dubstep,140,4,56,10_Dubstep drum groove (4 bars)
+Drums/By-Genre/10_Dubstep/10_Dubstep_beat_minimal.mid,drums,,,10_Dubstep,140,4,12,10_Dubstep kick+clap only (4 bars)
+Drums/By-Genre/10_Dubstep/10_Dubstep_beat_tops.mid,drums,,,10_Dubstep,140,4,40,10_Dubstep hats/percussion only (4 bars)
+Drums/By-Genre/11_Future-Bass/11_Future-Bass_beat_full.mid,drums,,,11_Future-Bass,150,4,92,11_Future-Bass drum groove (4 bars)
+Drums/By-Genre/11_Future-Bass/11_Future-Bass_beat_minimal.mid,drums,,,11_Future-Bass,150,4,12,11_Future-Bass kick+clap only (4 bars)
+Drums/By-Genre/11_Future-Bass/11_Future-Bass_beat_tops.mid,drums,,,11_Future-Bass,150,4,76,11_Future-Bass hats/percussion only (4 bars)
+Drums/By-Genre/12_Lofi-Chill/12_Lofi-Chill_beat_full.mid,drums,,,12_Lofi-Chill,85,4,64,12_Lofi-Chill drum groove (4 bars)
+Drums/By-Genre/12_Lofi-Chill/12_Lofi-Chill_beat_minimal.mid,drums,,,12_Lofi-Chill,85,4,20,12_Lofi-Chill kick+clap only (4 bars)
+Drums/By-Genre/12_Lofi-Chill/12_Lofi-Chill_beat_tops.mid,drums,,,12_Lofi-Chill,85,4,40,12_Lofi-Chill hats/percussion only (4 bars)
+Melodies/By-Genre/01_Deep-House/Am_01_Deep-House_melody_minor_pentatonic.mid,melody,A,minor_pentatonic,01_Deep-House,122,4,20,01_Deep-House melody (minor_pentatonic) — A minor
+Melodies/By-Genre/01_Deep-House/Asm_01_Deep-House_melody_minor_pentatonic.mid,melody,As,minor_pentatonic,01_Deep-House,122,4,16,01_Deep-House melody (minor_pentatonic) — As minor
+Melodies/By-Genre/01_Deep-House/Bm_01_Deep-House_melody_minor_pentatonic.mid,melody,B,minor_pentatonic,01_Deep-House,122,4,24,01_Deep-House melody (minor_pentatonic) — B minor
+Melodies/By-Genre/01_Deep-House/Cm_01_Deep-House_melody_minor_pentatonic.mid,melody,C,minor_pentatonic,01_Deep-House,122,4,16,01_Deep-House melody (minor_pentatonic) — C minor
+Melodies/By-Genre/01_Deep-House/Csm_01_Deep-House_melody_minor_pentatonic.mid,melody,Cs,minor_pentatonic,01_Deep-House,122,4,24,01_Deep-House melody (minor_pentatonic) — Cs minor
+Melodies/By-Genre/01_Deep-House/Dm_01_Deep-House_melody_minor_pentatonic.mid,melody,D,minor_pentatonic,01_Deep-House,122,4,16,01_Deep-House melody (minor_pentatonic) — D minor
+Melodies/By-Genre/01_Deep-House/Dsm_01_Deep-House_melody_minor_pentatonic.mid,melody,Ds,minor_pentatonic,01_Deep-House,122,4,20,01_Deep-House melody (minor_pentatonic) — Ds minor
+Melodies/By-Genre/01_Deep-House/Em_01_Deep-House_melody_minor_pentatonic.mid,melody,E,minor_pentatonic,01_Deep-House,122,4,20,01_Deep-House melody (minor_pentatonic) — E minor
+Melodies/By-Genre/01_Deep-House/Fm_01_Deep-House_melody_minor_pentatonic.mid,melody,F,minor_pentatonic,01_Deep-House,122,4,20,01_Deep-House melody (minor_pentatonic) — F minor
+Melodies/By-Genre/01_Deep-House/Fsm_01_Deep-House_melody_minor_pentatonic.mid,melody,Fs,minor_pentatonic,01_Deep-House,122,4,16,01_Deep-House melody (minor_pentatonic) — Fs minor
+Melodies/By-Genre/01_Deep-House/Gm_01_Deep-House_melody_minor_pentatonic.mid,melody,G,minor_pentatonic,01_Deep-House,122,4,16,01_Deep-House melody (minor_pentatonic) — G minor
+Melodies/By-Genre/01_Deep-House/Gsm_01_Deep-House_melody_minor_pentatonic.mid,melody,Gs,minor_pentatonic,01_Deep-House,122,4,24,01_Deep-House melody (minor_pentatonic) — Gs minor
+Melodies/By-Genre/02_Future-House/Am_02_Future-House_melody_natural_minor.mid,melody,A,natural_minor,02_Future-House,126,4,20,02_Future-House melody (natural_minor) — A minor
+Melodies/By-Genre/02_Future-House/Asm_02_Future-House_melody_natural_minor.mid,melody,As,natural_minor,02_Future-House,126,4,24,02_Future-House melody (natural_minor) — As minor
+Melodies/By-Genre/02_Future-House/Bm_02_Future-House_melody_natural_minor.mid,melody,B,natural_minor,02_Future-House,126,4,16,02_Future-House melody (natural_minor) — B minor
+Melodies/By-Genre/02_Future-House/Cm_02_Future-House_melody_natural_minor.mid,melody,C,natural_minor,02_Future-House,126,4,16,02_Future-House melody (natural_minor) — C minor
+Melodies/By-Genre/02_Future-House/Csm_02_Future-House_melody_natural_minor.mid,melody,Cs,natural_minor,02_Future-House,126,4,16,02_Future-House melody (natural_minor) — Cs minor
+Melodies/By-Genre/02_Future-House/Dm_02_Future-House_melody_natural_minor.mid,melody,D,natural_minor,02_Future-House,126,4,20,02_Future-House melody (natural_minor) — D minor
+Melodies/By-Genre/02_Future-House/Dsm_02_Future-House_melody_natural_minor.mid,melody,Ds,natural_minor,02_Future-House,126,4,20,02_Future-House melody (natural_minor) — Ds minor
+Melodies/By-Genre/02_Future-House/Em_02_Future-House_melody_natural_minor.mid,melody,E,natural_minor,02_Future-House,126,4,20,02_Future-House melody (natural_minor) — E minor
+Melodies/By-Genre/02_Future-House/Fm_02_Future-House_melody_natural_minor.mid,melody,F,natural_minor,02_Future-House,126,4,20,02_Future-House melody (natural_minor) — F minor
+Melodies/By-Genre/02_Future-House/Fsm_02_Future-House_melody_natural_minor.mid,melody,Fs,natural_minor,02_Future-House,126,4,16,02_Future-House melody (natural_minor) — Fs minor
+Melodies/By-Genre/02_Future-House/Gm_02_Future-House_melody_natural_minor.mid,melody,G,natural_minor,02_Future-House,126,4,24,02_Future-House melody (natural_minor) — G minor
+Melodies/By-Genre/02_Future-House/Gsm_02_Future-House_melody_natural_minor.mid,melody,Gs,natural_minor,02_Future-House,126,4,20,02_Future-House melody (natural_minor) — Gs minor
+Melodies/By-Genre/03_Progressive-House/Am_03_Progressive-House_melody_natural_minor.mid,melody,A,natural_minor,03_Progressive-House,128,4,20,03_Progressive-House melody (natural_minor) — A minor
+Melodies/By-Genre/03_Progressive-House/Asm_03_Progressive-House_melody_natural_minor.mid,melody,As,natural_minor,03_Progressive-House,128,4,24,03_Progressive-House melody (natural_minor) — As minor
+Melodies/By-Genre/03_Progressive-House/Bm_03_Progressive-House_melody_natural_minor.mid,melody,B,natural_minor,03_Progressive-House,128,4,16,03_Progressive-House melody (natural_minor) — B minor
+Melodies/By-Genre/03_Progressive-House/Cm_03_Progressive-House_melody_natural_minor.mid,melody,C,natural_minor,03_Progressive-House,128,4,20,03_Progressive-House melody (natural_minor) — C minor
+Melodies/By-Genre/03_Progressive-House/Csm_03_Progressive-House_melody_natural_minor.mid,melody,Cs,natural_minor,03_Progressive-House,128,4,24,03_Progressive-House melody (natural_minor) — Cs minor
+Melodies/By-Genre/03_Progressive-House/Dm_03_Progressive-House_melody_natural_minor.mid,melody,D,natural_minor,03_Progressive-House,128,4,20,03_Progressive-House melody (natural_minor) — D minor
+Melodies/By-Genre/03_Progressive-House/Dsm_03_Progressive-House_melody_natural_minor.mid,melody,Ds,natural_minor,03_Progressive-House,128,4,24,03_Progressive-House melody (natural_minor) — Ds minor
+Melodies/By-Genre/03_Progressive-House/Em_03_Progressive-House_melody_natural_minor.mid,melody,E,natural_minor,03_Progressive-House,128,4,20,03_Progressive-House melody (natural_minor) — E minor
+Melodies/By-Genre/03_Progressive-House/Fm_03_Progressive-House_melody_natural_minor.mid,melody,F,natural_minor,03_Progressive-House,128,4,24,03_Progressive-House melody (natural_minor) — F minor
+Melodies/By-Genre/03_Progressive-House/Fsm_03_Progressive-House_melody_natural_minor.mid,melody,Fs,natural_minor,03_Progressive-House,128,4,20,03_Progressive-House melody (natural_minor) — Fs minor
+Melodies/By-Genre/03_Progressive-House/Gm_03_Progressive-House_melody_natural_minor.mid,melody,G,natural_minor,03_Progressive-House,128,4,20,03_Progressive-House melody (natural_minor) — G minor
+Melodies/By-Genre/03_Progressive-House/Gsm_03_Progressive-House_melody_natural_minor.mid,melody,Gs,natural_minor,03_Progressive-House,128,4,24,03_Progressive-House melody (natural_minor) — Gs minor
+Melodies/By-Genre/04_Tech-House/Am_04_Tech-House_melody_natural_minor.mid,melody,A,natural_minor,04_Tech-House,126,3,15,04_Tech-House melody (natural_minor) — A minor
+Melodies/By-Genre/04_Tech-House/Asm_04_Tech-House_melody_natural_minor.mid,melody,As,natural_minor,04_Tech-House,126,3,15,04_Tech-House melody (natural_minor) — As minor
+Melodies/By-Genre/04_Tech-House/Bm_04_Tech-House_melody_natural_minor.mid,melody,B,natural_minor,04_Tech-House,126,3,12,04_Tech-House melody (natural_minor) — B minor
+Melodies/By-Genre/04_Tech-House/Cm_04_Tech-House_melody_natural_minor.mid,melody,C,natural_minor,04_Tech-House,126,3,15,04_Tech-House melody (natural_minor) — C minor
+Melodies/By-Genre/04_Tech-House/Csm_04_Tech-House_melody_natural_minor.mid,melody,Cs,natural_minor,04_Tech-House,126,3,18,04_Tech-House melody (natural_minor) — Cs minor
+Melodies/By-Genre/04_Tech-House/Dm_04_Tech-House_melody_natural_minor.mid,melody,D,natural_minor,04_Tech-House,126,3,12,04_Tech-House melody (natural_minor) — D minor
+Melodies/By-Genre/04_Tech-House/Dsm_04_Tech-House_melody_natural_minor.mid,melody,Ds,natural_minor,04_Tech-House,126,3,15,04_Tech-House melody (natural_minor) — Ds minor
+Melodies/By-Genre/04_Tech-House/Em_04_Tech-House_melody_natural_minor.mid,melody,E,natural_minor,04_Tech-House,126,3,12,04_Tech-House melody (natural_minor) — E minor
+Melodies/By-Genre/04_Tech-House/Fm_04_Tech-House_melody_natural_minor.mid,melody,F,natural_minor,04_Tech-House,126,3,18,04_Tech-House melody (natural_minor) — F minor
+Melodies/By-Genre/04_Tech-House/Fsm_04_Tech-House_melody_natural_minor.mid,melody,Fs,natural_minor,04_Tech-House,126,3,15,04_Tech-House melody (natural_minor) — Fs minor
+Melodies/By-Genre/04_Tech-House/Gm_04_Tech-House_melody_natural_minor.mid,melody,G,natural_minor,04_Tech-House,126,3,12,04_Tech-House melody (natural_minor) — G minor
+Melodies/By-Genre/04_Tech-House/Gsm_04_Tech-House_melody_natural_minor.mid,melody,Gs,natural_minor,04_Tech-House,126,3,12,04_Tech-House melody (natural_minor) — Gs minor
+Melodies/By-Genre/05_Techno/Am_05_Techno_melody_phrygian.mid,melody,A,phrygian,05_Techno,130,4,24,05_Techno melody (phrygian) — A minor
+Melodies/By-Genre/05_Techno/Asm_05_Techno_melody_phrygian.mid,melody,As,phrygian,05_Techno,130,4,20,05_Techno melody (phrygian) — As minor
+Melodies/By-Genre/05_Techno/Bm_05_Techno_melody_phrygian.mid,melody,B,phrygian,05_Techno,130,4,16,05_Techno melody (phrygian) — B minor
+Melodies/By-Genre/05_Techno/Cm_05_Techno_melody_phrygian.mid,melody,C,phrygian,05_Techno,130,4,20,05_Techno melody (phrygian) — C minor
+Melodies/By-Genre/05_Techno/Csm_05_Techno_melody_phrygian.mid,melody,Cs,phrygian,05_Techno,130,4,16,05_Techno melody (phrygian) — Cs minor
+Melodies/By-Genre/05_Techno/Dm_05_Techno_melody_phrygian.mid,melody,D,phrygian,05_Techno,130,4,16,05_Techno melody (phrygian) — D minor
+Melodies/By-Genre/05_Techno/Dsm_05_Techno_melody_phrygian.mid,melody,Ds,phrygian,05_Techno,130,4,16,05_Techno melody (phrygian) — Ds minor
+Melodies/By-Genre/05_Techno/Em_05_Techno_melody_phrygian.mid,melody,E,phrygian,05_Techno,130,4,20,05_Techno melody (phrygian) — E minor
+Melodies/By-Genre/05_Techno/Fm_05_Techno_melody_phrygian.mid,melody,F,phrygian,05_Techno,130,4,24,05_Techno melody (phrygian) — F minor
+Melodies/By-Genre/05_Techno/Fsm_05_Techno_melody_phrygian.mid,melody,Fs,phrygian,05_Techno,130,4,20,05_Techno melody (phrygian) — Fs minor
+Melodies/By-Genre/05_Techno/Gm_05_Techno_melody_phrygian.mid,melody,G,phrygian,05_Techno,130,4,16,05_Techno melody (phrygian) — G minor
+Melodies/By-Genre/05_Techno/Gsm_05_Techno_melody_phrygian.mid,melody,Gs,phrygian,05_Techno,130,4,20,05_Techno melody (phrygian) — Gs minor
+Melodies/By-Genre/06_Melodic-Techno/Am_06_Melodic-Techno_melody_natural_minor.mid,melody,A,natural_minor,06_Melodic-Techno,124,8,48,06_Melodic-Techno melody (natural_minor) — A minor
+Melodies/By-Genre/06_Melodic-Techno/Asm_06_Melodic-Techno_melody_natural_minor.mid,melody,As,natural_minor,06_Melodic-Techno,124,8,48,06_Melodic-Techno melody (natural_minor) — As minor
+Melodies/By-Genre/06_Melodic-Techno/Bm_06_Melodic-Techno_melody_natural_minor.mid,melody,B,natural_minor,06_Melodic-Techno,124,8,40,06_Melodic-Techno melody (natural_minor) — B minor
+Melodies/By-Genre/06_Melodic-Techno/Cm_06_Melodic-Techno_melody_natural_minor.mid,melody,C,natural_minor,06_Melodic-Techno,124,8,40,06_Melodic-Techno melody (natural_minor) — C minor
+Melodies/By-Genre/06_Melodic-Techno/Csm_06_Melodic-Techno_melody_natural_minor.mid,melody,Cs,natural_minor,06_Melodic-Techno,124,8,48,06_Melodic-Techno melody (natural_minor) — Cs minor
+Melodies/By-Genre/06_Melodic-Techno/Dm_06_Melodic-Techno_melody_natural_minor.mid,melody,D,natural_minor,06_Melodic-Techno,124,8,32,06_Melodic-Techno melody (natural_minor) — D minor
+Melodies/By-Genre/06_Melodic-Techno/Dsm_06_Melodic-Techno_melody_natural_minor.mid,melody,Ds,natural_minor,06_Melodic-Techno,124,8,48,06_Melodic-Techno melody (natural_minor) — Ds minor
+Melodies/By-Genre/06_Melodic-Techno/Em_06_Melodic-Techno_melody_natural_minor.mid,melody,E,natural_minor,06_Melodic-Techno,124,8,32,06_Melodic-Techno melody (natural_minor) — E minor
+Melodies/By-Genre/06_Melodic-Techno/Fm_06_Melodic-Techno_melody_natural_minor.mid,melody,F,natural_minor,06_Melodic-Techno,124,8,48,06_Melodic-Techno melody (natural_minor) — F minor
+Melodies/By-Genre/06_Melodic-Techno/Fsm_06_Melodic-Techno_melody_natural_minor.mid,melody,Fs,natural_minor,06_Melodic-Techno,124,8,40,06_Melodic-Techno melody (natural_minor) — Fs minor
+Melodies/By-Genre/06_Melodic-Techno/Gm_06_Melodic-Techno_melody_natural_minor.mid,melody,G,natural_minor,06_Melodic-Techno,124,8,40,06_Melodic-Techno melody (natural_minor) — G minor
+Melodies/By-Genre/06_Melodic-Techno/Gsm_06_Melodic-Techno_melody_natural_minor.mid,melody,Gs,natural_minor,06_Melodic-Techno,124,8,40,06_Melodic-Techno melody (natural_minor) — Gs minor
+Melodies/By-Genre/07_Trance/Am_07_Trance_melody_harmonic_minor.mid,melody,A,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) — A minor
+Melodies/By-Genre/07_Trance/Asm_07_Trance_melody_harmonic_minor.mid,melody,As,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) — As minor
+Melodies/By-Genre/07_Trance/Bm_07_Trance_melody_harmonic_minor.mid,melody,B,harmonic_minor,07_Trance,138,4,24,07_Trance melody (harmonic_minor) — B minor
+Melodies/By-Genre/07_Trance/Cm_07_Trance_melody_harmonic_minor.mid,melody,C,harmonic_minor,07_Trance,138,4,24,07_Trance melody (harmonic_minor) — C minor
+Melodies/By-Genre/07_Trance/Csm_07_Trance_melody_harmonic_minor.mid,melody,Cs,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) — Cs minor
+Melodies/By-Genre/07_Trance/Dm_07_Trance_melody_harmonic_minor.mid,melody,D,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) — D minor
+Melodies/By-Genre/07_Trance/Dsm_07_Trance_melody_harmonic_minor.mid,melody,Ds,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) — Ds minor
+Melodies/By-Genre/07_Trance/Em_07_Trance_melody_harmonic_minor.mid,melody,E,harmonic_minor,07_Trance,138,4,24,07_Trance melody (harmonic_minor) — E minor
+Melodies/By-Genre/07_Trance/Fm_07_Trance_melody_harmonic_minor.mid,melody,F,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) — F minor
+Melodies/By-Genre/07_Trance/Fsm_07_Trance_melody_harmonic_minor.mid,melody,Fs,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) — Fs minor
+Melodies/By-Genre/07_Trance/Gm_07_Trance_melody_harmonic_minor.mid,melody,G,harmonic_minor,07_Trance,138,4,16,07_Trance melody (harmonic_minor) — G minor
+Melodies/By-Genre/07_Trance/Gsm_07_Trance_melody_harmonic_minor.mid,melody,Gs,harmonic_minor,07_Trance,138,4,20,07_Trance melody (harmonic_minor) — Gs minor
+Melodies/By-Genre/08_Hardstyle/Am_08_Hardstyle_melody_harmonic_minor.mid,melody,A,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — A minor
+Melodies/By-Genre/08_Hardstyle/Asm_08_Hardstyle_melody_harmonic_minor.mid,melody,As,harmonic_minor,08_Hardstyle,150,4,16,08_Hardstyle melody (harmonic_minor) — As minor
+Melodies/By-Genre/08_Hardstyle/Bm_08_Hardstyle_melody_harmonic_minor.mid,melody,B,harmonic_minor,08_Hardstyle,150,4,24,08_Hardstyle melody (harmonic_minor) — B minor
+Melodies/By-Genre/08_Hardstyle/Cm_08_Hardstyle_melody_harmonic_minor.mid,melody,C,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — C minor
+Melodies/By-Genre/08_Hardstyle/Csm_08_Hardstyle_melody_harmonic_minor.mid,melody,Cs,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — Cs minor
+Melodies/By-Genre/08_Hardstyle/Dm_08_Hardstyle_melody_harmonic_minor.mid,melody,D,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — D minor
+Melodies/By-Genre/08_Hardstyle/Dsm_08_Hardstyle_melody_harmonic_minor.mid,melody,Ds,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — Ds minor
+Melodies/By-Genre/08_Hardstyle/Em_08_Hardstyle_melody_harmonic_minor.mid,melody,E,harmonic_minor,08_Hardstyle,150,4,16,08_Hardstyle melody (harmonic_minor) — E minor
+Melodies/By-Genre/08_Hardstyle/Fm_08_Hardstyle_melody_harmonic_minor.mid,melody,F,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — F minor
+Melodies/By-Genre/08_Hardstyle/Fsm_08_Hardstyle_melody_harmonic_minor.mid,melody,Fs,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — Fs minor
+Melodies/By-Genre/08_Hardstyle/Gm_08_Hardstyle_melody_harmonic_minor.mid,melody,G,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — G minor
+Melodies/By-Genre/08_Hardstyle/Gsm_08_Hardstyle_melody_harmonic_minor.mid,melody,Gs,harmonic_minor,08_Hardstyle,150,4,20,08_Hardstyle melody (harmonic_minor) — Gs minor
+Melodies/By-Genre/09_Hardcore-Gabber/Am_09_Hardcore-Gabber_melody_phrygian.mid,melody,A,phrygian,09_Hardcore-Gabber,180,3,15,09_Hardcore-Gabber melody (phrygian) — A minor
+Melodies/By-Genre/09_Hardcore-Gabber/Asm_09_Hardcore-Gabber_melody_phrygian.mid,melody,As,phrygian,09_Hardcore-Gabber,180,3,18,09_Hardcore-Gabber melody (phrygian) — As minor
+Melodies/By-Genre/09_Hardcore-Gabber/Bm_09_Hardcore-Gabber_melody_phrygian.mid,melody,B,phrygian,09_Hardcore-Gabber,180,3,12,09_Hardcore-Gabber melody (phrygian) — B minor
+Melodies/By-Genre/09_Hardcore-Gabber/Cm_09_Hardcore-Gabber_melody_phrygian.mid,melody,C,phrygian,09_Hardcore-Gabber,180,3,18,09_Hardcore-Gabber melody (phrygian) — C minor
+Melodies/By-Genre/09_Hardcore-Gabber/Csm_09_Hardcore-Gabber_melody_phrygian.mid,melody,Cs,phrygian,09_Hardcore-Gabber,180,3,12,09_Hardcore-Gabber melody (phrygian) — Cs minor
+Melodies/By-Genre/09_Hardcore-Gabber/Dm_09_Hardcore-Gabber_melody_phrygian.mid,melody,D,phrygian,09_Hardcore-Gabber,180,3,15,09_Hardcore-Gabber melody (phrygian) — D minor
+Melodies/By-Genre/09_Hardcore-Gabber/Dsm_09_Hardcore-Gabber_melody_phrygian.mid,melody,Ds,phrygian,09_Hardcore-Gabber,180,3,18,09_Hardcore-Gabber melody (phrygian) — Ds minor
+Melodies/By-Genre/09_Hardcore-Gabber/Em_09_Hardcore-Gabber_melody_phrygian.mid,melody,E,phrygian,09_Hardcore-Gabber,180,3,12,09_Hardcore-Gabber melody (phrygian) — E minor
+Melodies/By-Genre/09_Hardcore-Gabber/Fm_09_Hardcore-Gabber_melody_phrygian.mid,melody,F,phrygian,09_Hardcore-Gabber,180,3,12,09_Hardcore-Gabber melody (phrygian) — F minor
+Melodies/By-Genre/09_Hardcore-Gabber/Fsm_09_Hardcore-Gabber_melody_phrygian.mid,melody,Fs,phrygian,09_Hardcore-Gabber,180,3,18,09_Hardcore-Gabber melody (phrygian) — Fs minor
+Melodies/By-Genre/09_Hardcore-Gabber/Gm_09_Hardcore-Gabber_melody_phrygian.mid,melody,G,phrygian,09_Hardcore-Gabber,180,3,18,09_Hardcore-Gabber melody (phrygian) — G minor
+Melodies/By-Genre/09_Hardcore-Gabber/Gsm_09_Hardcore-Gabber_melody_phrygian.mid,melody,Gs,phrygian,09_Hardcore-Gabber,180,3,15,09_Hardcore-Gabber melody (phrygian) — Gs minor
+Melodies/By-Genre/10_Dubstep/Am_10_Dubstep_melody_natural_minor.mid,melody,A,natural_minor,10_Dubstep,140,3,15,10_Dubstep melody (natural_minor) — A minor
+Melodies/By-Genre/10_Dubstep/Asm_10_Dubstep_melody_natural_minor.mid,melody,As,natural_minor,10_Dubstep,140,3,12,10_Dubstep melody (natural_minor) — As minor
+Melodies/By-Genre/10_Dubstep/Bm_10_Dubstep_melody_natural_minor.mid,melody,B,natural_minor,10_Dubstep,140,3,15,10_Dubstep melody (natural_minor) — B minor
+Melodies/By-Genre/10_Dubstep/Cm_10_Dubstep_melody_natural_minor.mid,melody,C,natural_minor,10_Dubstep,140,3,12,10_Dubstep melody (natural_minor) — C minor
+Melodies/By-Genre/10_Dubstep/Csm_10_Dubstep_melody_natural_minor.mid,melody,Cs,natural_minor,10_Dubstep,140,3,15,10_Dubstep melody (natural_minor) — Cs minor
+Melodies/By-Genre/10_Dubstep/Dm_10_Dubstep_melody_natural_minor.mid,melody,D,natural_minor,10_Dubstep,140,3,15,10_Dubstep melody (natural_minor) — D minor
+Melodies/By-Genre/10_Dubstep/Dsm_10_Dubstep_melody_natural_minor.mid,melody,Ds,natural_minor,10_Dubstep,140,3,15,10_Dubstep melody (natural_minor) — Ds minor
+Melodies/By-Genre/10_Dubstep/Em_10_Dubstep_melody_natural_minor.mid,melody,E,natural_minor,10_Dubstep,140,3,18,10_Dubstep melody (natural_minor) — E minor
+Melodies/By-Genre/10_Dubstep/Fm_10_Dubstep_melody_natural_minor.mid,melody,F,natural_minor,10_Dubstep,140,3,12,10_Dubstep melody (natural_minor) — F minor
+Melodies/By-Genre/10_Dubstep/Fsm_10_Dubstep_melody_natural_minor.mid,melody,Fs,natural_minor,10_Dubstep,140,3,15,10_Dubstep melody (natural_minor) — Fs minor
+Melodies/By-Genre/10_Dubstep/Gm_10_Dubstep_melody_natural_minor.mid,melody,G,natural_minor,10_Dubstep,140,3,18,10_Dubstep melody (natural_minor) — G minor
+Melodies/By-Genre/10_Dubstep/Gsm_10_Dubstep_melody_natural_minor.mid,melody,Gs,natural_minor,10_Dubstep,140,3,15,10_Dubstep melody (natural_minor) — Gs minor
+Melodies/By-Genre/11_Future-Bass/Am_11_Future-Bass_melody_minor_pentatonic.mid,melody,A,minor_pentatonic,11_Future-Bass,150,4,24,11_Future-Bass melody (minor_pentatonic) — A minor
+Melodies/By-Genre/11_Future-Bass/Asm_11_Future-Bass_melody_minor_pentatonic.mid,melody,As,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — As minor
+Melodies/By-Genre/11_Future-Bass/Bm_11_Future-Bass_melody_minor_pentatonic.mid,melody,B,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — B minor
+Melodies/By-Genre/11_Future-Bass/Cm_11_Future-Bass_melody_minor_pentatonic.mid,melody,C,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — C minor
+Melodies/By-Genre/11_Future-Bass/Csm_11_Future-Bass_melody_minor_pentatonic.mid,melody,Cs,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — Cs minor
+Melodies/By-Genre/11_Future-Bass/Dm_11_Future-Bass_melody_minor_pentatonic.mid,melody,D,minor_pentatonic,11_Future-Bass,150,4,16,11_Future-Bass melody (minor_pentatonic) — D minor
+Melodies/By-Genre/11_Future-Bass/Dsm_11_Future-Bass_melody_minor_pentatonic.mid,melody,Ds,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — Ds minor
+Melodies/By-Genre/11_Future-Bass/Em_11_Future-Bass_melody_minor_pentatonic.mid,melody,E,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — E minor
+Melodies/By-Genre/11_Future-Bass/Fm_11_Future-Bass_melody_minor_pentatonic.mid,melody,F,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — F minor
+Melodies/By-Genre/11_Future-Bass/Fsm_11_Future-Bass_melody_minor_pentatonic.mid,melody,Fs,minor_pentatonic,11_Future-Bass,150,4,24,11_Future-Bass melody (minor_pentatonic) — Fs minor
+Melodies/By-Genre/11_Future-Bass/Gm_11_Future-Bass_melody_minor_pentatonic.mid,melody,G,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — G minor
+Melodies/By-Genre/11_Future-Bass/Gsm_11_Future-Bass_melody_minor_pentatonic.mid,melody,Gs,minor_pentatonic,11_Future-Bass,150,4,20,11_Future-Bass melody (minor_pentatonic) — Gs minor
+Melodies/By-Genre/12_Lofi-Chill/Am_12_Lofi-Chill_melody_dorian.mid,melody,A,dorian,12_Lofi-Chill,85,4,16,12_Lofi-Chill melody (dorian) — A minor
+Melodies/By-Genre/12_Lofi-Chill/Asm_12_Lofi-Chill_melody_dorian.mid,melody,As,dorian,12_Lofi-Chill,85,4,20,12_Lofi-Chill melody (dorian) — As minor
+Melodies/By-Genre/12_Lofi-Chill/Bm_12_Lofi-Chill_melody_dorian.mid,melody,B,dorian,12_Lofi-Chill,85,4,16,12_Lofi-Chill melody (dorian) — B minor
+Melodies/By-Genre/12_Lofi-Chill/Cm_12_Lofi-Chill_melody_dorian.mid,melody,C,dorian,12_Lofi-Chill,85,4,20,12_Lofi-Chill melody (dorian) — C minor
+Melodies/By-Genre/12_Lofi-Chill/Csm_12_Lofi-Chill_melody_dorian.mid,melody,Cs,dorian,12_Lofi-Chill,85,4,20,12_Lofi-Chill melody (dorian) — Cs minor
+Melodies/By-Genre/12_Lofi-Chill/Dm_12_Lofi-Chill_melody_dorian.mid,melody,D,dorian,12_Lofi-Chill,85,4,16,12_Lofi-Chill melody (dorian) — D minor
+Melodies/By-Genre/12_Lofi-Chill/Dsm_12_Lofi-Chill_melody_dorian.mid,melody,Ds,dorian,12_Lofi-Chill,85,4,24,12_Lofi-Chill melody (dorian) — Ds minor
+Melodies/By-Genre/12_Lofi-Chill/Em_12_Lofi-Chill_melody_dorian.mid,melody,E,dorian,12_Lofi-Chill,85,4,24,12_Lofi-Chill melody (dorian) — E minor
+Melodies/By-Genre/12_Lofi-Chill/Fm_12_Lofi-Chill_melody_dorian.mid,melody,F,dorian,12_Lofi-Chill,85,4,24,12_Lofi-Chill melody (dorian) — F minor
+Melodies/By-Genre/12_Lofi-Chill/Fsm_12_Lofi-Chill_melody_dorian.mid,melody,Fs,dorian,12_Lofi-Chill,85,4,16,12_Lofi-Chill melody (dorian) — Fs minor
+Melodies/By-Genre/12_Lofi-Chill/Gm_12_Lofi-Chill_melody_dorian.mid,melody,G,dorian,12_Lofi-Chill,85,4,20,12_Lofi-Chill melody (dorian) — G minor
+Melodies/By-Genre/12_Lofi-Chill/Gsm_12_Lofi-Chill_melody_dorian.mid,melody,Gs,dorian,12_Lofi-Chill,85,4,20,12_Lofi-Chill melody (dorian) — Gs minor
+Melodies/By-Scale/A-minor/Am_melody_dorian_1.mid,melody,A,dorian,,124,4,24,A dorian melody v1
+Melodies/By-Scale/A-minor/Am_melody_dorian_2.mid,melody,A,dorian,,124,4,16,A dorian melody v2
 Melodies/By-Scale/A-minor/Am_melody_harmonic_minor_1.mid,melody,A,harmonic_minor,,124,4,20,A harmonic_minor melody v1
-Melodies/By-Scale/A-minor/Am_melody_harmonic_minor_2.mid,melody,A,harmonic_minor,,124,4,20,A harmonic_minor melody v2
-Melodies/By-Scale/A-minor/Am_melody_minor_pentatonic_1.mid,melody,A,minor_pentatonic,,124,4,20,A minor_pentatonic melody v1
-Melodies/By-Scale/A-minor/Am_melody_minor_pentatonic_2.mid,melody,A,minor_pentatonic,,124,4,24,A minor_pentatonic melody v2
-Melodies/By-Scale/A-minor/Am_melody_natural_minor_1.mid,melody,A,natural_minor,,124,4,16,A natural_minor melody v1
+Melodies/By-Scale/A-minor/Am_melody_harmonic_minor_2.mid,melody,A,harmonic_minor,,124,4,24,A harmonic_minor melody v2
+Melodies/By-Scale/A-minor/Am_melody_minor_pentatonic_1.mid,melody,A,minor_pentatonic,,124,4,16,A minor_pentatonic melody v1
+Melodies/By-Scale/A-minor/Am_melody_minor_pentatonic_2.mid,melody,A,minor_pentatonic,,124,4,16,A minor_pentatonic melody v2
+Melodies/By-Scale/A-minor/Am_melody_natural_minor_1.mid,melody,A,natural_minor,,124,4,24,A natural_minor melody v1
 Melodies/By-Scale/A-minor/Am_melody_natural_minor_2.mid,melody,A,natural_minor,,124,4,20,A natural_minor melody v2
-Melodies/By-Scale/As-minor/Asm_melody_dorian_1.mid,melody,As,dorian,,124,4,20,As dorian melody v1
-Melodies/By-Scale/As-minor/Asm_melody_dorian_2.mid,melody,As,dorian,,124,4,24,As dorian melody v2
+Melodies/By-Scale/As-minor/Asm_melody_dorian_1.mid,melody,As,dorian,,124,4,24,As dorian melody v1
+Melodies/By-Scale/As-minor/Asm_melody_dorian_2.mid,melody,As,dorian,,124,4,20,As dorian melody v2
 Melodies/By-Scale/As-minor/Asm_melody_harmonic_minor_1.mid,melody,As,harmonic_minor,,124,4,20,As harmonic_minor melody v1
 Melodies/By-Scale/As-minor/Asm_melody_harmonic_minor_2.mid,melody,As,harmonic_minor,,124,4,20,As harmonic_minor melody v2
-Melodies/By-Scale/As-minor/Asm_melody_minor_pentatonic_1.mid,melody,As,minor_pentatonic,,124,4,24,As minor_pentatonic melody v1
+Melodies/By-Scale/As-minor/Asm_melody_minor_pentatonic_1.mid,melody,As,minor_pentatonic,,124,4,20,As minor_pentatonic melody v1
 Melodies/By-Scale/As-minor/Asm_melody_minor_pentatonic_2.mid,melody,As,minor_pentatonic,,124,4,20,As minor_pentatonic melody v2
-Melodies/By-Scale/As-minor/Asm_melody_natural_minor_1.mid,melody,As,natural_minor,,124,4,20,As natural_minor melody v1
-Melodies/By-Scale/As-minor/Asm_melody_natural_minor_2.mid,melody,As,natural_minor,,124,4,20,As natural_minor melody v2
+Melodies/By-Scale/As-minor/Asm_melody_natural_minor_1.mid,melody,As,natural_minor,,124,4,16,As natural_minor melody v1
+Melodies/By-Scale/As-minor/Asm_melody_natural_minor_2.mid,melody,As,natural_minor,,124,4,24,As natural_minor melody v2
 Melodies/By-Scale/B-minor/Bm_melody_dorian_1.mid,melody,B,dorian,,124,4,16,B dorian melody v1
-Melodies/By-Scale/B-minor/Bm_melody_dorian_2.mid,melody,B,dorian,,124,4,24,B dorian melody v2
-Melodies/By-Scale/B-minor/Bm_melody_harmonic_minor_1.mid,melody,B,harmonic_minor,,124,4,24,B harmonic_minor melody v1
-Melodies/By-Scale/B-minor/Bm_melody_harmonic_minor_2.mid,melody,B,harmonic_minor,,124,4,16,B harmonic_minor melody v2
-Melodies/By-Scale/B-minor/Bm_melody_minor_pentatonic_1.mid,melody,B,minor_pentatonic,,124,4,20,B minor_pentatonic melody v1
+Melodies/By-Scale/B-minor/Bm_melody_dorian_2.mid,melody,B,dorian,,124,4,16,B dorian melody v2
+Melodies/By-Scale/B-minor/Bm_melody_harmonic_minor_1.mid,melody,B,harmonic_minor,,124,4,20,B harmonic_minor melody v1
+Melodies/By-Scale/B-minor/Bm_melody_harmonic_minor_2.mid,melody,B,harmonic_minor,,124,4,24,B harmonic_minor melody v2
+Melodies/By-Scale/B-minor/Bm_melody_minor_pentatonic_1.mid,melody,B,minor_pentatonic,,124,4,16,B minor_pentatonic melody v1
 Melodies/By-Scale/B-minor/Bm_melody_minor_pentatonic_2.mid,melody,B,minor_pentatonic,,124,4,24,B minor_pentatonic melody v2
 Melodies/By-Scale/B-minor/Bm_melody_natural_minor_1.mid,melody,B,natural_minor,,124,4,16,B natural_minor melody v1
-Melodies/By-Scale/B-minor/Bm_melody_natural_minor_2.mid,melody,B,natural_minor,,124,4,24,B natural_minor melody v2
+Melodies/By-Scale/B-minor/Bm_melody_natural_minor_2.mid,melody,B,natural_minor,,124,4,16,B natural_minor melody v2
 Melodies/By-Scale/C-minor/Cm_melody_dorian_1.mid,melody,C,dorian,,124,4,20,C dorian melody v1
 Melodies/By-Scale/C-minor/Cm_melody_dorian_2.mid,melody,C,dorian,,124,4,20,C dorian melody v2
 Melodies/By-Scale/C-minor/Cm_melody_harmonic_minor_1.mid,melody,C,harmonic_minor,,124,4,24,C harmonic_minor melody v1
-Melodies/By-Scale/C-minor/Cm_melody_harmonic_minor_2.mid,melody,C,harmonic_minor,,124,4,20,C harmonic_minor melody v2
+Melodies/By-Scale/C-minor/Cm_melody_harmonic_minor_2.mid,melody,C,harmonic_minor,,124,4,24,C harmonic_minor melody v2
 Melodies/By-Scale/C-minor/Cm_melody_minor_pentatonic_1.mid,melody,C,minor_pentatonic,,124,4,16,C minor_pentatonic melody v1
-Melodies/By-Scale/C-minor/Cm_melody_minor_pentatonic_2.mid,melody,C,minor_pentatonic,,124,4,20,C minor_pentatonic melody v2
-Melodies/By-Scale/C-minor/Cm_melody_natural_minor_1.mid,melody,C,natural_minor,,124,4,20,C natural_minor melody v1
-Melodies/By-Scale/C-minor/Cm_melody_natural_minor_2.mid,melody,C,natural_minor,,124,4,24,C natural_minor melody v2
-Melodies/By-Scale/Cs-minor/Csm_melody_dorian_1.mid,melody,Cs,dorian,,124,4,20,Cs dorian melody v1
-Melodies/By-Scale/Cs-minor/Csm_melody_dorian_2.mid,melody,Cs,dorian,,124,4,20,Cs dorian melody v2
-Melodies/By-Scale/Cs-minor/Csm_melody_harmonic_minor_1.mid,melody,Cs,harmonic_minor,,124,4,24,Cs harmonic_minor melody v1
-Melodies/By-Scale/Cs-minor/Csm_melody_harmonic_minor_2.mid,melody,Cs,harmonic_minor,,124,4,24,Cs harmonic_minor melody v2
-Melodies/By-Scale/Cs-minor/Csm_melody_minor_pentatonic_1.mid,melody,Cs,minor_pentatonic,,124,4,24,Cs minor_pentatonic melody v1
-Melodies/By-Scale/Cs-minor/Csm_melody_minor_pentatonic_2.mid,melody,Cs,minor_pentatonic,,124,4,16,Cs minor_pentatonic melody v2
+Melodies/By-Scale/C-minor/Cm_melody_minor_pentatonic_2.mid,melody,C,minor_pentatonic,,124,4,24,C minor_pentatonic melody v2
+Melodies/By-Scale/C-minor/Cm_melody_natural_minor_1.mid,melody,C,natural_minor,,124,4,16,C natural_minor melody v1
+Melodies/By-Scale/C-minor/Cm_melody_natural_minor_2.mid,melody,C,natural_minor,,124,4,16,C natural_minor melody v2
+Melodies/By-Scale/Cs-minor/Csm_melody_dorian_1.mid,melody,Cs,dorian,,124,4,24,Cs dorian melody v1
+Melodies/By-Scale/Cs-minor/Csm_melody_dorian_2.mid,melody,Cs,dorian,,124,4,24,Cs dorian melody v2
+Melodies/By-Scale/Cs-minor/Csm_melody_harmonic_minor_1.mid,melody,Cs,harmonic_minor,,124,4,20,Cs harmonic_minor melody v1
+Melodies/By-Scale/Cs-minor/Csm_melody_harmonic_minor_2.mid,melody,Cs,harmonic_minor,,124,4,20,Cs harmonic_minor melody v2
+Melodies/By-Scale/Cs-minor/Csm_melody_minor_pentatonic_1.mid,melody,Cs,minor_pentatonic,,124,4,16,Cs minor_pentatonic melody v1
+Melodies/By-Scale/Cs-minor/Csm_melody_minor_pentatonic_2.mid,melody,Cs,minor_pentatonic,,124,4,20,Cs minor_pentatonic melody v2
 Melodies/By-Scale/Cs-minor/Csm_melody_natural_minor_1.mid,melody,Cs,natural_minor,,124,4,20,Cs natural_minor melody v1
 Melodies/By-Scale/Cs-minor/Csm_melody_natural_minor_2.mid,melody,Cs,natural_minor,,124,4,24,Cs natural_minor melody v2
 Melodies/By-Scale/D-minor/Dm_melody_dorian_1.mid,melody,D,dorian,,124,4,24,D dorian melody v1
 Melodies/By-Scale/D-minor/Dm_melody_dorian_2.mid,melody,D,dorian,,124,4,16,D dorian melody v2
-Melodies/By-Scale/D-minor/Dm_melody_harmonic_minor_1.mid,melody,D,harmonic_minor,,124,4,24,D harmonic_minor melody v1
-Melodies/By-Scale/D-minor/Dm_melody_harmonic_minor_2.mid,melody,D,harmonic_minor,,124,4,16,D harmonic_minor melody v2
+Melodies/By-Scale/D-minor/Dm_melody_harmonic_minor_1.mid,melody,D,harmonic_minor,,124,4,20,D harmonic_minor melody v1
+Melodies/By-Scale/D-minor/Dm_melody_harmonic_minor_2.mid,melody,D,harmonic_minor,,124,4,20,D harmonic_minor melody v2
 Melodies/By-Scale/D-minor/Dm_melody_minor_pentatonic_1.mid,melody,D,minor_pentatonic,,124,4,16,D minor_pentatonic melody v1
 Melodies/By-Scale/D-minor/Dm_melody_minor_pentatonic_2.mid,melody,D,minor_pentatonic,,124,4,16,D minor_pentatonic melody v2
-Melodies/By-Scale/D-minor/Dm_melody_natural_minor_1.mid,melody,D,natural_minor,,124,4,24,D natural_minor melody v1
+Melodies/By-Scale/D-minor/Dm_melody_natural_minor_1.mid,melody,D,natural_minor,,124,4,20,D natural_minor melody v1
 Melodies/By-Scale/D-minor/Dm_melody_natural_minor_2.mid,melody,D,natural_minor,,124,4,20,D natural_minor melody v2
-Melodies/By-Scale/Ds-minor/Dsm_melody_dorian_1.mid,melody,Ds,dorian,,124,4,16,Ds dorian melody v1
-Melodies/By-Scale/Ds-minor/Dsm_melody_dorian_2.mid,melody,Ds,dorian,,124,4,16,Ds dorian melody v2
+Melodies/By-Scale/Ds-minor/Dsm_melody_dorian_1.mid,melody,Ds,dorian,,124,4,20,Ds dorian melody v1
+Melodies/By-Scale/Ds-minor/Dsm_melody_dorian_2.mid,melody,Ds,dorian,,124,4,24,Ds dorian melody v2
 Melodies/By-Scale/Ds-minor/Dsm_melody_harmonic_minor_1.mid,melody,Ds,harmonic_minor,,124,4,24,Ds harmonic_minor melody v1
-Melodies/By-Scale/Ds-minor/Dsm_melody_harmonic_minor_2.mid,melody,Ds,harmonic_minor,,124,4,20,Ds harmonic_minor melody v2
-Melodies/By-Scale/Ds-minor/Dsm_melody_minor_pentatonic_1.mid,melody,Ds,minor_pentatonic,,124,4,16,Ds minor_pentatonic melody v1
-Melodies/By-Scale/Ds-minor/Dsm_melody_minor_pentatonic_2.mid,melody,Ds,minor_pentatonic,,124,4,24,Ds minor_pentatonic melody v2
-Melodies/By-Scale/Ds-minor/Dsm_melody_natural_minor_1.mid,melody,Ds,natural_minor,,124,4,16,Ds natural_minor melody v1
-Melodies/By-Scale/Ds-minor/Dsm_melody_natural_minor_2.mid,melody,Ds,natural_minor,,124,4,20,Ds natural_minor melody v2
-Melodies/By-Scale/E-minor/Em_melody_dorian_1.mid,melody,E,dorian,,124,4,16,E dorian melody v1
-Melodies/By-Scale/E-minor/Em_melody_dorian_2.mid,melody,E,dorian,,124,4,24,E dorian melody v2
-Melodies/By-Scale/E-minor/Em_melody_harmonic_minor_1.mid,melody,E,harmonic_minor,,124,4,20,E harmonic_minor melody v1
-Melodies/By-Scale/E-minor/Em_melody_harmonic_minor_2.mid,melody,E,harmonic_minor,,124,4,16,E harmonic_minor melody v2
-Melodies/By-Scale/E-minor/Em_melody_minor_pentatonic_1.mid,melody,E,minor_pentatonic,,124,4,20,E minor_pentatonic melody v1
-Melodies/By-Scale/E-minor/Em_melody_minor_pentatonic_2.mid,melody,E,minor_pentatonic,,124,4,20,E minor_pentatonic melody v2
-Melodies/By-Scale/E-minor/Em_melody_natural_minor_1.mid,melody,E,natural_minor,,124,4,16,E natural_minor melody v1
-Melodies/By-Scale/E-minor/Em_melody_natural_minor_2.mid,melody,E,natural_minor,,124,4,20,E natural_minor melody v2
-Melodies/By-Scale/F-minor/Fm_melody_dorian_1.mid,melody,F,dorian,,124,4,24,F dorian melody v1
+Melodies/By-Scale/Ds-minor/Dsm_melody_harmonic_minor_2.mid,melody,Ds,harmonic_minor,,124,4,16,Ds harmonic_minor melody v2
+Melodies/By-Scale/Ds-minor/Dsm_melody_minor_pentatonic_1.mid,melody,Ds,minor_pentatonic,,124,4,24,Ds minor_pentatonic melody v1
+Melodies/By-Scale/Ds-minor/Dsm_melody_minor_pentatonic_2.mid,melody,Ds,minor_pentatonic,,124,4,16,Ds minor_pentatonic melody v2
+Melodies/By-Scale/Ds-minor/Dsm_melody_natural_minor_1.mid,melody,Ds,natural_minor,,124,4,20,Ds natural_minor melody v1
+Melodies/By-Scale/Ds-minor/Dsm_melody_natural_minor_2.mid,melody,Ds,natural_minor,,124,4,24,Ds natural_minor melody v2
+Melodies/By-Scale/E-minor/Em_melody_dorian_1.mid,melody,E,dorian,,124,4,20,E dorian melody v1
+Melodies/By-Scale/E-minor/Em_melody_dorian_2.mid,melody,E,dorian,,124,4,16,E dorian melody v2
+Melodies/By-Scale/E-minor/Em_melody_harmonic_minor_1.mid,melody,E,harmonic_minor,,124,4,24,E harmonic_minor melody v1
+Melodies/By-Scale/E-minor/Em_melody_harmonic_minor_2.mid,melody,E,harmonic_minor,,124,4,20,E harmonic_minor melody v2
+Melodies/By-Scale/E-minor/Em_melody_minor_pentatonic_1.mid,melody,E,minor_pentatonic,,124,4,24,E minor_pentatonic melody v1
+Melodies/By-Scale/E-minor/Em_melody_minor_pentatonic_2.mid,melody,E,minor_pentatonic,,124,4,24,E minor_pentatonic melody v2
+Melodies/By-Scale/E-minor/Em_melody_natural_minor_1.mid,melody,E,natural_minor,,124,4,20,E natural_minor melody v1
+Melodies/By-Scale/E-minor/Em_melody_natural_minor_2.mid,melody,E,natural_minor,,124,4,24,E natural_minor melody v2
+Melodies/By-Scale/F-minor/Fm_melody_dorian_1.mid,melody,F,dorian,,124,4,20,F dorian melody v1
 Melodies/By-Scale/F-minor/Fm_melody_dorian_2.mid,melody,F,dorian,,124,4,24,F dorian melody v2
-Melodies/By-Scale/F-minor/Fm_melody_harmonic_minor_1.mid,melody,F,harmonic_minor,,124,4,24,F harmonic_minor melody v1
-Melodies/By-Scale/F-minor/Fm_melody_harmonic_minor_2.mid,melody,F,harmonic_minor,,124,4,20,F harmonic_minor melody v2
-Melodies/By-Scale/F-minor/Fm_melody_minor_pentatonic_1.mid,melody,F,minor_pentatonic,,124,4,24,F minor_pentatonic melody v1
+Melodies/By-Scale/F-minor/Fm_melody_harmonic_minor_1.mid,melody,F,harmonic_minor,,124,4,16,F harmonic_minor melody v1
+Melodies/By-Scale/F-minor/Fm_melody_harmonic_minor_2.mid,melody,F,harmonic_minor,,124,4,24,F harmonic_minor melody v2
+Melodies/By-Scale/F-minor/Fm_melody_minor_pentatonic_1.mid,melody,F,minor_pentatonic,,124,4,20,F minor_pentatonic melody v1
 Melodies/By-Scale/F-minor/Fm_melody_minor_pentatonic_2.mid,melody,F,minor_pentatonic,,124,4,24,F minor_pentatonic melody v2
 Melodies/By-Scale/F-minor/Fm_melody_natural_minor_1.mid,melody,F,natural_minor,,124,4,20,F natural_minor melody v1
-Melodies/By-Scale/F-minor/Fm_melody_natural_minor_2.mid,melody,F,natural_minor,,124,4,24,F natural_minor melody v2
-Melodies/By-Scale/Fs-minor/Fsm_melody_dorian_1.mid,melody,Fs,dorian,,124,4,20,Fs dorian melody v1
-Melodies/By-Scale/Fs-minor/Fsm_melody_dorian_2.mid,melody,Fs,dorian,,124,4,20,Fs dorian melody v2
-Melodies/By-Scale/Fs-minor/Fsm_melody_harmonic_minor_1.mid,melody,Fs,harmonic_minor,,124,4,20,Fs harmonic_minor melody v1
+Melodies/By-Scale/F-minor/Fm_melody_natural_minor_2.mid,melody,F,natural_minor,,124,4,20,F natural_minor melody v2
+Melodies/By-Scale/Fs-minor/Fsm_melody_dorian_1.mid,melody,Fs,dorian,,124,4,24,Fs dorian melody v1
+Melodies/By-Scale/Fs-minor/Fsm_melody_dorian_2.mid,melody,Fs,dorian,,124,4,16,Fs dorian melody v2
+Melodies/By-Scale/Fs-minor/Fsm_melody_harmonic_minor_1.mid,melody,Fs,harmonic_minor,,124,4,24,Fs harmonic_minor melody v1
 Melodies/By-Scale/Fs-minor/Fsm_melody_harmonic_minor_2.mid,melody,Fs,harmonic_minor,,124,4,24,Fs harmonic_minor melody v2
 Melodies/By-Scale/Fs-minor/Fsm_melody_minor_pentatonic_1.mid,melody,Fs,minor_pentatonic,,124,4,20,Fs minor_pentatonic melody v1
-Melodies/By-Scale/Fs-minor/Fsm_melody_minor_pentatonic_2.mid,melody,Fs,minor_pentatonic,,124,4,20,Fs minor_pentatonic melody v2
+Melodies/By-Scale/Fs-minor/Fsm_melody_minor_pentatonic_2.mid,melody,Fs,minor_pentatonic,,124,4,16,Fs minor_pentatonic melody v2
 Melodies/By-Scale/Fs-minor/Fsm_melody_natural_minor_1.mid,melody,Fs,natural_minor,,124,4,16,Fs natural_minor melody v1
-Melodies/By-Scale/Fs-minor/Fsm_melody_natural_minor_2.mid,melody,Fs,natural_minor,,124,4,16,Fs natural_minor melody v2
-Melodies/By-Scale/G-minor/Gm_melody_dorian_1.mid,melody,G,dorian,,124,4,16,G dorian melody v1
-Melodies/By-Scale/G-minor/Gm_melody_dorian_2.mid,melody,G,dorian,,124,4,24,G dorian melody v2
+Melodies/By-Scale/Fs-minor/Fsm_melody_natural_minor_2.mid,melody,Fs,natural_minor,,124,4,20,Fs natural_minor melody v2
+Melodies/By-Scale/G-minor/Gm_melody_dorian_1.mid,melody,G,dorian,,124,4,20,G dorian melody v1
+Melodies/By-Scale/G-minor/Gm_melody_dorian_2.mid,melody,G,dorian,,124,4,16,G dorian melody v2
 Melodies/By-Scale/G-minor/Gm_melody_harmonic_minor_1.mid,melody,G,harmonic_minor,,124,4,20,G harmonic_minor melody v1
 Melodies/By-Scale/G-minor/Gm_melody_harmonic_minor_2.mid,melody,G,harmonic_minor,,124,4,16,G harmonic_minor melody v2
 Melodies/By-Scale/G-minor/Gm_melody_minor_pentatonic_1.mid,melody,G,minor_pentatonic,,124,4,24,G minor_pentatonic melody v1
-Melodies/By-Scale/G-minor/Gm_melody_minor_pentatonic_2.mid,melody,G,minor_pentatonic,,124,4,16,G minor_pentatonic melody v2
+Melodies/By-Scale/G-minor/Gm_melody_minor_pentatonic_2.mid,melody,G,minor_pentatonic,,124,4,20,G minor_pentatonic melody v2
 Melodies/By-Scale/G-minor/Gm_melody_natural_minor_1.mid,melody,G,natural_minor,,124,4,16,G natural_minor melody v1
 Melodies/By-Scale/G-minor/Gm_melody_natural_minor_2.mid,melody,G,natural_minor,,124,4,24,G natural_minor melody v2
-Melodies/By-Scale/Gs-minor/Gsm_melody_dorian_1.mid,melody,Gs,dorian,,124,4,24,Gs dorian melody v1
-Melodies/By-Scale/Gs-minor/Gsm_melody_dorian_2.mid,melody,Gs,dorian,,124,4,20,Gs dorian melody v2
-Melodies/By-Scale/Gs-minor/Gsm_melody_harmonic_minor_1.mid,melody,Gs,harmonic_minor,,124,4,20,Gs harmonic_minor melody v1
-Melodies/By-Scale/Gs-minor/Gsm_melody_harmonic_minor_2.mid,melody,Gs,harmonic_minor,,124,4,20,Gs harmonic_minor melody v2
-Melodies/By-Scale/Gs-minor/Gsm_melody_minor_pentatonic_1.mid,melody,Gs,minor_pentatonic,,124,4,24,Gs minor_pentatonic melody v1
-Melodies/By-Scale/Gs-minor/Gsm_melody_minor_pentatonic_2.mid,melody,Gs,minor_pentatonic,,124,4,20,Gs minor_pentatonic melody v2
-Melodies/By-Scale/Gs-minor/Gsm_melody_natural_minor_1.mid,melody,Gs,natural_minor,,124,4,16,Gs natural_minor melody v1
-Melodies/By-Scale/Gs-minor/Gsm_melody_natural_minor_2.mid,melody,Gs,natural_minor,,124,4,16,Gs natural_minor melody v2
+Melodies/By-Scale/Gs-minor/Gsm_melody_dorian_1.mid,melody,Gs,dorian,,124,4,20,Gs dorian melody v1
+Melodies/By-Scale/Gs-minor/Gsm_melody_dorian_2.mid,melody,Gs,dorian,,124,4,16,Gs dorian melody v2
+Melodies/By-Scale/Gs-minor/Gsm_melody_harmonic_minor_1.mid,melody,Gs,harmonic_minor,,124,4,24,Gs harmonic_minor melody v1
+Melodies/By-Scale/Gs-minor/Gsm_melody_harmonic_minor_2.mid,melody,Gs,harmonic_minor,,124,4,24,Gs harmonic_minor melody v2
+Melodies/By-Scale/Gs-minor/Gsm_melody_minor_pentatonic_1.mid,melody,Gs,minor_pentatonic,,124,4,16,Gs minor_pentatonic melody v1
+Melodies/By-Scale/Gs-minor/Gsm_melody_minor_pentatonic_2.mid,melody,Gs,minor_pentatonic,,124,4,24,Gs minor_pentatonic melody v2
+Melodies/By-Scale/Gs-minor/Gsm_melody_natural_minor_1.mid,melody,Gs,natural_minor,,124,4,20,Gs natural_minor melody v1
+Melodies/By-Scale/Gs-minor/Gsm_melody_natural_minor_2.mid,melody,Gs,natural_minor,,124,4,24,Gs natural_minor melody v2
 Progressions/By-Genre/01_Deep-House/Am_01_Deep-House_i-VII-VI-VII_chords.mid,progression,A,natural_minor,01_Deep-House,122,4,20,01_Deep-House chords — A minor i-VII-VI-VII
 Progressions/By-Genre/01_Deep-House/Asm_01_Deep-House_i-VII-VI-VII_chords.mid,progression,As,natural_minor,01_Deep-House,122,4,20,01_Deep-House chords — As minor i-VII-VI-VII
 Progressions/By-Genre/01_Deep-House/Bm_01_Deep-House_i-VII-VI-VII_chords.mid,progression,B,natural_minor,01_Deep-House,122,4,20,01_Deep-House chords — B minor i-VII-VI-VII

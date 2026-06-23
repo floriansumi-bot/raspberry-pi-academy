@@ -143,43 +143,67 @@ def write_midi(path: str, notes: list[Note], bpm: float = 124.0,
     """Write a Format-1 MIDI file: track 0 = tempo/meta, track 1 = notes."""
     tpb = TICKS_PER_BEAT
 
-    # ---- Track 0: tempo + time signature ----
+    track0 = _meta_track(track_name, bpm, time_sig)
+    track1 = _note_track(notes, track_name, channel=0, program=program)
+
+    header = b"MThd" + struct.pack(">IHHH", 6, 1, 2, tpb)
+    with open(path, "wb") as f:
+        f.write(header + track0 + track1)
+
+
+def write_midi_multi(path: str, parts: list[dict], bpm: float = 124.0,
+                     time_sig=(4, 4), song_name: str = "arrangement") -> None:
+    """Write a Format-1 MIDI with one MTrk per part (drums use channel 9).
+
+    parts: list of {name, notes, channel=0, program=None}. Drag the file in and
+    every part lands on its own track."""
+    tpb = TICKS_PER_BEAT
+    chunks = [_meta_track(song_name, bpm, time_sig)]
+    for p in parts:
+        chunks.append(_note_track(p["notes"], p.get("name", "part"),
+                                  channel=p.get("channel", 0),
+                                  program=p.get("program")))
+    header = b"MThd" + struct.pack(">IHHH", 6, 1, len(chunks), tpb)
+    with open(path, "wb") as f:
+        f.write(header + b"".join(chunks))
+
+
+def _meta_track(name: str, bpm: float, time_sig) -> bytes:
     meta = bytearray()
-    meta += _vlq_encode(0) + b"\xFF\x03" + _len_prefixed(track_name.encode("ascii", "replace"))
+    meta += _vlq_encode(0) + b"\xFF\x03" + _len_prefixed(name.encode("ascii", "replace"))
     micros = int(round(60_000_000 / bpm))
     meta += _vlq_encode(0) + b"\xFF\x51\x03" + struct.pack(">I", micros)[1:]
     num, den = time_sig
     denpow = {1: 0, 2: 1, 4: 2, 8: 3, 16: 4}.get(den, 2)
     meta += _vlq_encode(0) + b"\xFF\x58\x04" + bytes([num, denpow, 24, 8])
-    meta += _vlq_encode(0) + b"\xFF\x2F\x00"  # end of track
-    track0 = b"MTrk" + struct.pack(">I", len(meta)) + bytes(meta)
+    meta += _vlq_encode(0) + b"\xFF\x2F\x00"
+    return b"MTrk" + struct.pack(">I", len(meta)) + bytes(meta)
 
-    # ---- Track 1: notes ----
+
+def _note_track(notes: list[Note], name: str, channel: int = 0,
+                program: int | None = None) -> bytes:
+    tpb = TICKS_PER_BEAT
+    ch = channel & 0x0F
     events = []  # (tick, order, status, data1, data2)
     for n in notes:
         on_t = int(round(n.start * tpb))
         off_t = int(round((n.start + n.dur) * tpb))
         v = max(1, min(127, int(n.vel)))
         p = max(0, min(127, int(n.pitch)))
-        # order: note-off (0) before note-on (1) at same tick
-        events.append((off_t, 0, 0x80, p, 0))
-        events.append((on_t, 1, 0x90, p, v))
+        events.append((off_t, 0, 0x80 | ch, p, 0))   # note-off before note-on
+        events.append((on_t, 1, 0x90 | ch, p, v))
     events.sort(key=lambda e: (e[0], e[1]))
 
     body = bytearray()
+    body += _vlq_encode(0) + b"\xFF\x03" + _len_prefixed(name.encode("ascii", "replace"))
     if program is not None:
-        body += _vlq_encode(0) + bytes([0xC0, program & 0x7F])
+        body += _vlq_encode(0) + bytes([0xC0 | ch, program & 0x7F])
     prev = 0
     for tick, _order, status, d1, d2 in events:
-        delta = tick - prev
+        body += _vlq_encode(tick - prev) + bytes([status, d1, d2])
         prev = tick
-        body += _vlq_encode(delta) + bytes([status, d1, d2])
     body += _vlq_encode(0) + b"\xFF\x2F\x00"
-    track1 = b"MTrk" + struct.pack(">I", len(body)) + bytes(body)
-
-    header = b"MThd" + struct.pack(">IHHH", 6, 1, 2, tpb)
-    with open(path, "wb") as f:
-        f.write(header + track0 + track1)
+    return b"MTrk" + struct.pack(">I", len(body)) + bytes(body)
 
 
 def _len_prefixed(data: bytes) -> bytes:
