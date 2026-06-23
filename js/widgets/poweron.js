@@ -12,6 +12,7 @@ const META = {
   ch17: { title: 'Home Assistant', difficulty: 'Medium', time: 'An afternoon', needs: 'Smart plugs or bulbs' },
   ch18: { title: 'Docker', difficulty: 'Medium', time: '~1 hour', needs: 'A Pi 4 or later (2 GB+ RAM)' },
   ch19: { title: 'Local AI', difficulty: 'Hard', time: 'An afternoon', needs: 'A Pi 5 (4 GB+ RAM)' },
+  mcserver: { title: 'Minecraft Server', difficulty: 'Medium', time: 'An afternoon', needs: 'A Pi 5 (8 GB+ recommended)' },
 };
 
 /* ─── animated screen mocks ─────────────────────────────────────────── */
@@ -307,7 +308,51 @@ function mockCh19(screen) {
   screen._cleanup = () => clearInterval(iv);
 }
 
-const MOCKS = { ch13: mockCh13, ch14: mockCh14, ch15: mockCh15, ch16: mockCh16, ch17: mockCh17, ch18: mockCh18, ch19: mockCh19 };
+function mockMcserver(screen) {
+  const players = [
+    { name: 'Alex', ping: 24 },
+    { name: 'Steve', ping: 31 },
+    { name: 'Zoe', ping: 47 },
+  ];
+  let tps = 20.0;
+  let chat = 0;
+  const lines = [
+    'Alex: anyone seen my pickaxe?',
+    'Zoe: building a castle at spawn',
+    'Steve: creeper!! run',
+  ];
+
+  function render() {
+    screen.innerHTML = `
+      <div class="po-label">Minecraft Server — Paper 1.x</div>
+      <div class="po-docker-list">
+        ${players.map(p => `
+          <div class="po-docker-row">
+            <span class="po-docker-dot po-docker-dot--up" ${REDUCED ? '' : 'data-pulse="1"'}></span>
+            <span class="po-docker-name">${p.name}</span>
+            <span class="po-docker-image">survival</span>
+            <span class="po-docker-port">${p.ping} ms</span>
+            <span class="po-docker-status po-docker-status--up">online</span>
+          </div>`).join('')}
+      </div>
+      <div class="po-docker-footer">
+        <span class="po-docker-summary">${players.length} players · ${tps.toFixed(1)} TPS · ${lines[chat]}</span>
+      </div>`;
+  }
+
+  render();
+
+  if (!REDUCED) {
+    const iv = setInterval(() => {
+      tps = 19.6 + Math.random() * 0.4;
+      chat = (chat + 1) % lines.length;
+      render();
+    }, 1800);
+    screen._cleanup = () => clearInterval(iv);
+  }
+}
+
+const MOCKS = { ch13: mockCh13, ch14: mockCh14, ch15: mockCh15, ch16: mockCh16, ch17: mockCh17, ch18: mockCh18, ch19: mockCh19, mcserver: mockMcserver };
 
 /* ─── CSS ────────────────────────────────────────────────────────────── */
 

@@ -1,0 +1,443 @@
+<p class="lead">Your Raspberry Pi 5 makes a genuinely good little Minecraft server — a machine that sits quietly in the corner, sips a few watts of power, and lets you and your friends share the same world day and night. In this project you will turn your Pi into a 24/7 Minecraft server, choose the right edition for the people you play with, keep it running automatically, and (carefully) open it up so friends outside your home can join.</p>
+
+<h2 id="two-editions-of-minecraft">Two Editions, Two Paths</h2>
+
+<p>Before you install anything, you need to know that "Minecraft" is really two different games that cannot directly play together. Which one your friends own decides which server you build — so this is the most important decision in the whole project.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>server</em> is just a program that keeps the shared world running and lets other copies of Minecraft (the <em>clients</em>) connect to it. The server does not need the game's graphics — it only does the bookkeeping — which is exactly why a small computer like the Pi can run it.</div>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Edition</th>
+      <th>Who plays it</th>
+      <th>On the Pi</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Bedrock Edition</strong></td>
+      <td>Phones &amp; tablets (iOS/Android), Xbox, PlayStation, Nintendo Switch, and the Windows 10/11 "Minecraft" app</td>
+      <td>Lighter and faster — the easier path, and the best choice if your friends play on consoles or phones</td>
+    </tr>
+    <tr>
+      <td><strong>Java Edition</strong></td>
+      <td>PC, Mac, and Linux (the original "Minecraft: Java Edition")</td>
+      <td>Heavier, but runs well with an optimised server called PaperMC — choose this if everyone is on a computer and wants mods or plugins</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> A Bedrock player and a Java player cannot join the same ordinary server. Pick the edition that matches the devices your group actually uses. This chapter gives you a full, worked path for <em>both</em> — start with whichever fits.</div>
+
+<h2 id="will-your-pi-5-handle-it">Will Your Pi 5 Handle It?</h2>
+
+<p>Comfortably, yes — especially a Pi 5. The thing that limits a Minecraft server most is memory (RAM), and the Pi 5 has plenty. Here is a realistic guide to how many players you can expect.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Your Pi</th>
+      <th>Bedrock</th>
+      <th>Java (with Paper)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Pi 5, 4 GB</td>
+      <td>A handful of players, smooth</td>
+      <td>2–4 players</td>
+    </tr>
+    <tr>
+      <td>Pi 5, 8 GB</td>
+      <td>Many players, very smooth</td>
+      <td>4–8 players</td>
+    </tr>
+    <tr>
+      <td>Pi 5, 16 GB</td>
+      <td>Plenty of headroom for mods &amp; big worlds</td>
+      <td>8–12+ players</td>
+    </tr>
+    <tr>
+      <td>Pi 4</td>
+      <td>Works, a little slower</td>
+      <td>2–4 players, modest render distance</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> With 8 GB or 16 GB of RAM, your real bottleneck stops being memory and becomes <em>disk speed</em>. A Minecraft world is read and written constantly, and a microSD card is the slowest part of the Pi. Running the server from an SSD (see Chapter 10) removes lag spikes and protects you from the card wearing out. It is the single best upgrade for a busy server.</div>
+
+<h2 id="what-you-will-need">What You Will Need</h2>
+
+<ul>
+  <li>A <strong>Raspberry Pi 5</strong> (4 GB minimum; 8 GB or 16 GB strongly recommended) with the official 27 W power supply.</li>
+  <li>An <strong>active cooler or fan</strong> — a busy server keeps the processor warm, and a hot Pi throttles (slows itself down). The official Active Cooler is ideal.</li>
+  <li>Fast, roomy storage: a good 32 GB+ microSD card, or — much better — an <strong>SSD</strong> over USB or the PCIe/NVMe connector.</li>
+  <li>A <strong>wired Ethernet</strong> connection if you can manage it. Wi-Fi works, but a cable is steadier for a server that is always on.</li>
+  <li>Raspberry Pi OS, already set up, updated, and reachable over the network (Chapters 4 and 9).</li>
+</ul>
+
+<p>You will do everything from the Terminal, so this is also great practice for the command-line skills from Part 2. If your Pi is "headless" (no monitor), connect over SSH (Chapter 9) and follow along exactly the same way.</p>
+
+<div class="tip"><strong>Tip:</strong> Start with a fully updated system. Run <code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code> before you begin.</div>
+
+<h2 id="path-a-a-bedrock-server">Path A — A Bedrock Server (Phones, Consoles, Windows)</h2>
+
+<p>This is the easiest path. Mojang publishes an official Bedrock <em>Dedicated Server</em> for Linux, and the Pi 5 runs the ARM build well. We will download it, run it once, and connect from a phone or console on the same Wi-Fi.</p>
+
+<h3>Step 1 — Make a folder and install a helper</h3>
+
+<pre class="code"><code>mkdir ~/bedrock-server
+cd ~/bedrock-server
+sudo apt install -y unzip</code></pre>
+<div class="explain">
+  <p><strong>Line 1</strong> creates a folder called <code>bedrock-server</code> in your home directory to keep everything tidy. <strong>Line 2</strong> moves into it (<code>cd</code> = "change directory"). <strong>Line 3</strong> installs <code>unzip</code>, the tool that unpacks the download — the Bedrock server arrives as a single compressed <code>.zip</code> file.</p>
+</div>
+
+<h3>Step 2 — Download the Bedrock server</h3>
+
+<p>Open the Chromium web browser on the Pi (or on another computer) and go to the official download page at <code>minecraft.net/en-us/download/server/bedrock</code>. Accept the licence checkbox, then copy the link for the <strong>Ubuntu / Linux</strong> server. Back in the Terminal, download it with <code>wget</code>, pasting the link you copied in place of the example:</p>
+
+<pre class="code"><code>wget https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.x.x.x.zip
+unzip bedrock-server-*.zip</code></pre>
+<div class="explain">
+  <p><strong><code>wget</code></strong> downloads a file straight from a web address to your Pi. <strong><code>unzip</code></strong> then unpacks it, filling your folder with the server program and its configuration files. The <code>*</code> is a wildcard meaning "whatever the version number is", so you do not have to type the long name exactly.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> The official server is built for the <code>x86-64</code> and ARM Linux platforms. On a Pi it runs through the system's ARM support. If you ever see "cannot execute binary file", you downloaded the wrong platform's link — go back and choose the Linux build.</div>
+
+<h3>Step 3 — Configure and run it</h3>
+
+<p>The file <code>server.properties</code> holds every setting. Open it in the <code>nano</code> editor to set a name and a few basics:</p>
+
+<pre class="code"><code>nano server.properties</code></pre>
+<div class="explain">
+  <p>Opens the settings file. Change <code>server-name</code> to whatever you like, set <code>gamemode</code> (e.g. <code>survival</code> or <code>creative</code>), and pick a <code>difficulty</code>. Save and exit with <code>Ctrl + O</code>, <code>Enter</code>, then <code>Ctrl + X</code>. Every line has a short comment above it explaining what it does.</p>
+</div>
+
+<p>Now start the server:</p>
+
+<pre class="code"><code>LD_LIBRARY_PATH=. ./bedrock_server</code></pre>
+<div class="explain">
+  <p>The first part, <code>LD_LIBRARY_PATH=.</code>, tells the program to look for its support files in the current folder (the dot means "here"). <code>./bedrock_server</code> then launches it. You will see lines scroll past ending in <strong>"Server started."</strong> — your world is now live on your home network.</p>
+</div>
+
+<h3>Step 4 — Connect from a phone or console</h3>
+
+<p>First, find your Pi's address on the network:</p>
+
+<pre class="code"><code>hostname -I</code></pre>
+<div class="explain">
+  <p>Prints your Pi's IP address — something like <code>192.168.1.42</code>. The first number is the one you want.</p>
+</div>
+
+<ol class="steps">
+  <li>Open Minecraft on your phone, tablet, or console.</li>
+  <li>Go to <strong>Play &gt; Servers</strong>, then scroll down and choose <strong>Add Server</strong>.</li>
+  <li>Give it any name, enter your Pi's IP address, and leave the port as <strong>19132</strong>.</li>
+  <li>Save, then tap the server to join. You are now playing on your Pi.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> To stop the server cleanly, type <code>stop</code> in the Terminal where it is running and press Enter. This saves the world properly. Never just close the window or pull the power while it is running, or you risk a corrupted world.</div>
+
+<h2 id="path-b-a-java-server-with-papermc">Path B — A Java Server with PaperMC</h2>
+
+<p>If your friends play on PCs, you want Java Edition. The official Java server runs on the Pi, but a community-built version called <strong>PaperMC</strong> is dramatically more efficient and is the standard choice for any Pi server. It is a drop-in replacement that plays identically but uses far less of the Pi's resources.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>Java</em> is the programming language Minecraft's PC edition is written in, so the server needs the Java "runtime" installed to run at all. <em>PaperMC</em> (or just "Paper") is an optimised rebuild of the official server — same game, much better performance, plus support for plugins.</div>
+
+<h3>Step 1 — Install Java</h3>
+
+<p>Modern Minecraft needs Java 21. Install the headless version (no desktop parts, since a server has no graphics):</p>
+
+<pre class="code"><code>sudo apt update
+sudo apt install -y openjdk-21-jre-headless</code></pre>
+<div class="explain">
+  <p><strong>Line 1</strong> refreshes the list of available software. <strong>Line 2</strong> installs the Java 21 runtime. The <code>-jre-headless</code> part means "just enough Java to run programs, with none of the graphical extras" — exactly right for a server. Confirm it worked with <code>java -version</code>.</p>
+</div>
+
+<h3>Step 2 — Download PaperMC</h3>
+
+<pre class="code"><code>mkdir ~/mcserver
+cd ~/mcserver</code></pre>
+<div class="explain">
+  <p>Creates and enters a folder called <code>mcserver</code> to keep the server's files together.</p>
+</div>
+
+<p>Go to <code>papermc.io/downloads/paper</code> in a browser, choose the latest version, and copy the download link for the newest build. Download it into your folder and rename it to something short:</p>
+
+<pre class="code"><code>wget -O paper.jar "https://fill.papermc.io/v3/projects/paper/versions/1.x.x/builds/xxx/downloads/paper-1.x.x-xxx.jar"</code></pre>
+<div class="explain">
+  <p><strong><code>wget -O paper.jar</code></strong> downloads the file and saves it under the simple name <code>paper.jar</code> (the <code>-O</code> flag means "output to this name"). Paste the real link you copied between the quotation marks. A <code>.jar</code> file is a packaged Java program — this one is the whole server.</p>
+</div>
+
+<h3>Step 3 — First run and the EULA</h3>
+
+<p>Minecraft requires you to agree to its End-User Licence Agreement (EULA) before a server will run. The first launch creates the agreement file and then stops:</p>
+
+<pre class="code"><code>java -Xms2G -Xmx6G -jar paper.jar nogui</code></pre>
+<div class="explain">
+  <p><strong><code>-Xms2G</code></strong> and <strong><code>-Xmx6G</code></strong> set the smallest and largest amounts of memory the server may use — here, between 2 and 6 gigabytes. <strong><code>-jar paper.jar</code></strong> runs the server program. <strong><code>nogui</code></strong> turns off the little pop-up window, which a headless Pi does not need. The first run will print a message about the EULA and exit.</p>
+</div>
+
+<p>Open the new <code>eula.txt</code> file, change <code>eula=false</code> to <code>eula=true</code>, and save:</p>
+
+<pre class="code"><code>nano eula.txt</code></pre>
+<div class="explain">
+  <p>Edit the single line so it reads <code>eula=true</code>, which records that you accept Minecraft's licence terms. Save with <code>Ctrl + O</code>, <code>Enter</code>, then exit with <code>Ctrl + X</code>.</p>
+</div>
+
+<p>Now run the same command again — this time the world generates and the server starts:</p>
+
+<pre class="code"><code>java -Xms2G -Xmx6G -jar paper.jar nogui</code></pre>
+<div class="explain">
+  <p>The server creates your world (this takes a minute the first time) and finishes with <strong>"Done!"</strong> followed by a timing. It is now listening for players. Type <code>stop</code> and press Enter to shut it down cleanly whenever you need to.</p>
+</div>
+
+<h3>Step 4 — Choosing how much memory to give it</h3>
+
+<p>The <code>-Xmx</code> number is the most important tuning choice. Give the server a generous slice but always leave several gigabytes for the operating system itself — never assign all of your Pi's RAM.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Your Pi's RAM</th>
+      <th>Sensible setting</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4 GB</td>
+      <td><code>-Xms1G -Xmx2G</code></td>
+    </tr>
+    <tr>
+      <td>8 GB</td>
+      <td><code>-Xms2G -Xmx6G</code></td>
+    </tr>
+    <tr>
+      <td>16 GB</td>
+      <td><code>-Xms4G -Xmx12G</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> Do not set <code>-Xmx</code> to your Pi's full memory. The operating system needs its own share, and an over-allocated server will crash or freeze when the Pi runs out. Leaving 3–4 GB free is the safe rule on an 8 GB or 16 GB board.</div>
+
+<h3>Step 5 — Connect from a PC</h3>
+
+<ol class="steps">
+  <li>In Minecraft: Java Edition, choose <strong>Multiplayer &gt; Add Server</strong>.</li>
+  <li>Enter your Pi's IP address (from <code>hostname -I</code>) as the server address. The default port <strong>25565</strong> is assumed automatically.</li>
+  <li>Click <strong>Done</strong>, then double-click the server to join.</li>
+</ol>
+
+<h2 id="keeping-the-server-running-with-systemd">Keeping the Server Running with systemd</h2>
+
+<p>So far the server only runs while your Terminal window is open — close it, and the server stops. For a real "always-on" server you want it to start automatically when the Pi boots and to keep running in the background. The proper Linux way to do this is a <em>service</em> managed by <code>systemd</code>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <em>systemd</em> is the part of Linux that starts and supervises background programs. Registering your server as a systemd <em>service</em> means the Pi will launch it on boot, restart it if it ever crashes, and keep it running whether or not anyone is logged in.</div>
+
+<p>Create a service definition with <code>nano</code>:</p>
+
+<pre class="code"><code>sudo nano /etc/systemd/system/minecraft.service</code></pre>
+<div class="explain">
+  <p>Opens a new, empty service file in the system folder where services live. You need <code>sudo</code> because this is a protected system location.</p>
+</div>
+
+<p>Paste the following (this example is for the Paper server; adjust the paths and command if you built a Bedrock server):</p>
+
+<pre class="code"><code>[Unit]
+Description=Minecraft Server
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/mcserver
+ExecStart=/usr/bin/java -Xms2G -Xmx6G -jar paper.jar nogui
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+<div class="explain">
+  <p><strong><code>User=pi</code></strong> and <strong><code>WorkingDirectory</code></strong> tell the Pi which account to run as and which folder the server lives in — change <code>pi</code> to your username if it differs. <strong><code>ExecStart</code></strong> is the exact command to launch the server. <strong><code>Restart=on-failure</code></strong> automatically relaunches it if it crashes. <strong><code>WantedBy=multi-user.target</code></strong> means "start this once the Pi has finished booting".</p>
+</div>
+
+<p>Save and exit, then enable and start the service:</p>
+
+<pre class="code"><code>sudo systemctl daemon-reload
+sudo systemctl enable minecraft
+sudo systemctl start minecraft</code></pre>
+<div class="explain">
+  <p><strong>Line 1</strong> tells systemd to re-read its configuration so it notices your new file. <strong>Line 2</strong> (<code>enable</code>) sets the server to start automatically every time the Pi boots. <strong>Line 3</strong> (<code>start</code>) launches it right now without waiting for a reboot.</p>
+</div>
+
+<p>You can check on it, stop it, or read its log at any time:</p>
+
+<pre class="code"><code>sudo systemctl status minecraft
+journalctl -u minecraft -n 50</code></pre>
+<div class="explain">
+  <p><strong>Line 1</strong> shows whether the server is running and a few recent log lines. <strong>Line 2</strong> shows the last 50 lines of its log — the place to look if it will not start. (You met <code>journalctl</code> in the Maintenance chapter.)</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> A systemd service runs without an interactive console, so you cannot simply type <code>stop</code> into it. To send commands to a running server you can install a console manager such as <code>screen</code> or <code>tmux</code> and launch the server inside it, or use a server-management tool. For most home setups, <code>sudo systemctl stop minecraft</code> is all you need.</div>
+
+<h2 id="playing-with-friends-over-the-internet">Playing with Friends Over the Internet</h2>
+
+<p>Everything so far works for anyone on your home Wi-Fi. To let friends join from <em>their</em> homes, the connection has to reach your Pi from the wider internet — and that takes a little care, because anything reachable from the internet can also be probed by strangers.</p>
+
+<div class="warn"><strong>Careful:</strong> Opening a port to the internet exposes your Pi to the whole world. Before you do, read the security chapter (Chapter 21): use a strong password, keep the Pi updated, and consider a firewall. Never reuse an important password on a machine you expose.</div>
+
+<h3>The easy, safe option: a tunnel</h3>
+
+<p>The simplest and safest way to let friends in is a <em>tunnel service</em> such as <strong>playit.gg</strong>, which gives your server a public address without touching your router or exposing your home IP. You install a small program on the Pi, it connects outward to the service, and your friends get an address to join. Because nothing is opened on your router, this avoids the riskiest part of self-hosting.</p>
+
+<h3>The traditional option: port forwarding</h3>
+
+<p>The classic approach is <em>port forwarding</em>: telling your router to send incoming Minecraft traffic to your Pi.</p>
+
+<div class="jargon"><strong>In plain words:</strong> Your router shares one public internet address among every device in your home. <em>Port forwarding</em> is a rule that says "when Minecraft traffic arrives from the internet, send it to the Pi." Without that rule, the router does not know which device the traffic is for, and friends cannot connect.</div>
+
+<ol class="steps">
+  <li>Give your Pi a <strong>fixed (static) IP address</strong> on your home network, so the forwarding rule always points to the right place (the same step you would take for Pi-hole in Chapter 15).</li>
+  <li>Log in to your router's settings page (often <code>192.168.1.1</code> in a browser) and find the <strong>Port Forwarding</strong> section.</li>
+  <li>Forward the right port to your Pi's fixed IP: <strong>TCP 25565</strong> for Java, or <strong>UDP 19132</strong> for Bedrock.</li>
+  <li>Find your home's public IP address (search "what is my IP") and give that to your friends, along with the port.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> Most home internet connections change their public IP address from time to time. A free <em>Dynamic DNS</em> service gives you a memorable name (like <code>myworld.example.net</code>) that always points to your current address, so you do not have to keep sending friends a new number.</div>
+
+<h2 id="backing-up-your-world">Backing Up Your World</h2>
+
+<p>Your world is just a folder — and a precious one once you have built in it. Backing it up is simply a matter of copying that folder somewhere safe, on a schedule.</p>
+
+<pre class="code"><code>cd ~/mcserver
+tar -czf ~/world-backup-$(date +%Y-%m-%d).tar.gz world</code></pre>
+<div class="explain">
+  <p><strong><code>tar -czf</code></strong> bundles a folder into a single compressed archive: <code>c</code> = create, <code>z</code> = compress, <code>f</code> = to this file. The <code>$(date +%Y-%m-%d)</code> part automatically stamps today's date into the filename, so each backup is separate. <code>world</code> is the folder being saved. For Bedrock the world folder lives under <code>worlds/</code> instead — adjust the name accordingly.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Copy the resulting <code>.tar.gz</code> file off the Pi — to a USB drive, another computer, or cloud storage. A backup that lives only on the same SD card as the server will not save you if that card fails. You can automate regular backups with a <code>cron</code> job; see the Maintenance chapter for the idea.</div>
+
+<h2 id="tuning-performance-on-the-pi">Tuning Performance on the Pi</h2>
+
+<p>A few small settings make a big difference to how smooth your server feels on a Pi.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Setting (in <code>server.properties</code>)</th>
+      <th>Suggested value</th>
+      <th>Why</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>view-distance</code></td>
+      <td>6–8</td>
+      <td>How far players can see. This is the biggest single load on the server — lower it if the world feels laggy.</td>
+    </tr>
+    <tr>
+      <td><code>simulation-distance</code></td>
+      <td>4–6</td>
+      <td>How far the world keeps "ticking" (mobs, crops, redstone). Lower means less work for the Pi.</td>
+    </tr>
+    <tr>
+      <td><code>max-players</code></td>
+      <td>Match your RAM</td>
+      <td>Be realistic — a Pi 5 with 8 GB is happy with a handful of players, not a hundred.</td>
+    </tr>
+    <tr>
+      <td><code>spawn-protection</code></td>
+      <td>0</td>
+      <td>Disables a small bit of extra processing around the spawn point you probably do not need.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> Watch the Pi's temperature and load while the server runs busy. In a second Terminal, <code>vcgencmd measure_temp</code> shows the processor temperature and <code>htop</code> shows live CPU and memory use (both covered in the Maintenance chapter). If the temperature climbs above 80 °C, improve cooling before doing anything else.</div>
+
+<p>On the Java server, the server console shows a number called <strong>TPS</strong> (ticks per second). A healthy server runs at <strong>20 TPS</strong>. If that number drops, the Pi is struggling — lower the view distance, reduce players, or move the world to an SSD.</p>
+
+<h2 id="troubleshooting-common-problems">Troubleshooting Common Problems</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Problem</th>
+      <th>Likely cause</th>
+      <th>Fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Friends on the same Wi-Fi cannot connect</strong></td>
+      <td>Wrong IP address, or the server is not actually running</td>
+      <td>Re-check <code>hostname -I</code>, confirm the server says "Done!"/"Server started", and that they used the right port (25565 Java, 19132 Bedrock)</td>
+    </tr>
+    <tr>
+      <td><strong>"Failed to bind to port"</strong></td>
+      <td>The server is already running, or another program uses that port</td>
+      <td>Stop the duplicate (<code>sudo systemctl stop minecraft</code>) before starting again</td>
+    </tr>
+    <tr>
+      <td><strong>Java server crashes on start</strong></td>
+      <td><code>-Xmx</code> set too high, or wrong Java version</td>
+      <td>Lower <code>-Xmx</code> to leave RAM free; confirm <code>java -version</code> shows 21</td>
+    </tr>
+    <tr>
+      <td><strong>"cannot execute binary file" (Bedrock)</strong></td>
+      <td>Downloaded the wrong platform's build</td>
+      <td>Re-download the official Linux server build for ARM</td>
+    </tr>
+    <tr>
+      <td><strong>Sudden lag spikes</strong></td>
+      <td>microSD card too slow for constant world writes</td>
+      <td>Lower <code>view-distance</code>; move the server to an SSD (Chapter 10)</td>
+    </tr>
+    <tr>
+      <td><strong>World won't load after a power cut</strong></td>
+      <td>The Pi lost power mid-write and the world was corrupted</td>
+      <td>Restore your most recent backup; always stop the server cleanly and use a proper power supply</td>
+    </tr>
+    <tr>
+      <td><strong>Friends outside your home cannot join</strong></td>
+      <td>Port forwarding not set, or public IP changed</td>
+      <td>Re-check the router rule and your current public IP, or use a tunnel like playit.gg</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Server</strong> — a program that keeps a shared Minecraft world running and lets other copies of the game (clients) connect to it.</li>
+    <li><strong>Bedrock Edition</strong> — the version of Minecraft for phones, tablets, consoles, and the Windows app; lighter to host and the easiest path on a Pi.</li>
+    <li><strong>Java Edition</strong> — the original PC/Mac/Linux version of Minecraft; heavier to host but best served with PaperMC.</li>
+    <li><strong>PaperMC (Paper)</strong> — a community-built, highly optimised replacement for the official Java server; the standard choice for a Raspberry Pi.</li>
+    <li><strong>JRE (Java Runtime Environment)</strong> — the software that lets a Pi run Java programs such as the Minecraft Java server.</li>
+    <li><strong>-Xmx / -Xms</strong> — the options that set the maximum and minimum memory the Java server may use; leave several gigabytes free for the operating system.</li>
+    <li><strong>EULA</strong> — Minecraft's End-User Licence Agreement, which you must accept (by editing <code>eula.txt</code>) before a Java server will run.</li>
+    <li><strong>systemd service</strong> — a background program supervised by Linux; registering the server as one makes it start on boot and restart after a crash.</li>
+    <li><strong>Port forwarding</strong> — a router rule that sends incoming internet traffic on a given port to a specific device, so friends outside your home can reach your server.</li>
+    <li><strong>Tunnel (e.g. playit.gg)</strong> — a service that gives your server a public address without opening ports on your router or exposing your home IP.</li>
+    <li><strong>Dynamic DNS</strong> — a memorable name that always points to your home's current (changing) public IP address.</li>
+    <li><strong>TPS (ticks per second)</strong> — the heartbeat of a Java server; a healthy value is 20, and lower numbers mean the Pi is overloaded.</li>
+    <li><strong>view-distance</strong> — how far players can see; the single biggest load on the server and the first thing to lower if it lags.</li>
+  </ul>
+</div>
+
+<div class="summary">
+  <h4>Project summary</h4>
+  <ul>
+    <li>Choose your edition by the devices your friends use: <strong>Bedrock</strong> for phones/consoles/Windows (the easy path), <strong>Java</strong> for PCs (use PaperMC).</li>
+    <li>A Pi 5 is a capable host — RAM sets the player count, so 8 GB or 16 GB is ideal; an SSD is the best upgrade for a busy world.</li>
+    <li>For Bedrock, download Mojang's official Linux server, edit <code>server.properties</code>, run it, and connect on port <strong>19132</strong>.</li>
+    <li>For Java, install <strong>Java 21</strong>, download <strong>paper.jar</strong>, accept the EULA in <code>eula.txt</code>, and connect on port <strong>25565</strong>.</li>
+    <li>Give the Java server a generous but safe <code>-Xmx</code> — never all of the Pi's RAM; leave 3–4 GB for the system.</li>
+    <li>Register the server as a <strong>systemd service</strong> so it starts on boot and restarts after a crash.</li>
+    <li>To let friends join from outside your home, prefer a safe <strong>tunnel</strong> like playit.gg, or set up <strong>port forwarding</strong> — and read the security chapter first.</li>
+    <li>Back up your world folder regularly with <code>tar</code> and copy it off the Pi.</li>
+    <li>Tune <code>view-distance</code> and <code>simulation-distance</code> down if the server lags, and watch temperature and TPS.</li>
+  </ul>
+</div>

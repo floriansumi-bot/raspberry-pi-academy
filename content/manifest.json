@@ -49,7 +49,8 @@
     "ch16",
     "ch17",
     "ch18",
-    "ch19"
+    "ch19",
+    "mcserver"
    ]
   },
   {
@@ -1150,9 +1151,61 @@
    ],
    "widgets": []
   },
+  "mcserver": {
+   "id": "mcserver",
+   "n": 20,
+   "title": "Host a Minecraft Server",
+   "kind": "project",
+   "part": "projects",
+   "words": 3644,
+   "read_min": 18,
+   "sections": [
+    {
+     "id": "two-editions-of-minecraft",
+     "title": "Two Editions, Two Paths"
+    },
+    {
+     "id": "will-your-pi-5-handle-it",
+     "title": "Will Your Pi 5 Handle It?"
+    },
+    {
+     "id": "what-you-will-need",
+     "title": "What You Will Need"
+    },
+    {
+     "id": "path-a-a-bedrock-server",
+     "title": "Path A — A Bedrock Server (Phones, Consoles, Windows)"
+    },
+    {
+     "id": "path-b-a-java-server-with-papermc",
+     "title": "Path B — A Java Server with PaperMC"
+    },
+    {
+     "id": "keeping-the-server-running-with-systemd",
+     "title": "Keeping the Server Running with systemd"
+    },
+    {
+     "id": "playing-with-friends-over-the-internet",
+     "title": "Playing with Friends Over the Internet"
+    },
+    {
+     "id": "backing-up-your-world",
+     "title": "Backing Up Your World"
+    },
+    {
+     "id": "tuning-performance-on-the-pi",
+     "title": "Tuning Performance on the Pi"
+    },
+    {
+     "id": "troubleshooting-common-problems",
+     "title": "Troubleshooting Common Problems"
+    }
+   ],
+   "widgets": []
+  },
   "ch20": {
    "id": "ch20",
-   "n": 20,
+   "n": 21,
    "title": "Security & Good Habits",
    "kind": "chapter",
    "part": "looking-after",
@@ -1208,7 +1261,7 @@
   },
   "ch21": {
    "id": "ch21",
-   "n": 21,
+   "n": 22,
    "title": "Maintenance & Troubleshooting",
    "kind": "chapter",
    "part": "looking-after",
@@ -1252,7 +1305,7 @@
   },
   "ch22": {
    "id": "ch22",
-   "n": 22,
+   "n": 23,
    "title": "Where to Go Next",
    "kind": "chapter",
    "part": "looking-after",
@@ -1296,7 +1349,7 @@
   },
   "apxA": {
    "id": "apxA",
-   "n": 23,
+   "n": 24,
    "title": "Command Quick-Reference",
    "kind": "appendix",
    "part": "reference",
@@ -1360,7 +1413,7 @@
   },
   "glos": {
    "id": "glos",
-   "n": 24,
+   "n": 25,
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
@@ -1503,6 +1556,7 @@
   "ch17",
   "ch18",
   "ch19",
+  "mcserver",
   "ch20",
   "ch21",
   "ch22",

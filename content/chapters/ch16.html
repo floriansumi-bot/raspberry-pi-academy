@@ -355,7 +355,7 @@ UUID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX  /mnt/usbdrive  ext4  defaults,nofail 
     <tr>
       <td>Access from outside home</td>
       <td>No (not without complex setup)</td>
-      <td>Yes (with port forwarding — see Chapter 20)</td>
+      <td>Yes (with port forwarding — see Chapter 21)</td>
     </tr>
     <tr>
       <td>Phone app / auto photo backup</td>
@@ -538,7 +538,7 @@ sudo chmod 750 /mnt/usbdrive/nextcloud-data</code></pre>
 
 <h3>Security: keep your cloud private</h3>
 
-<div class="warn"><strong>Careful:</strong> The setup in this chapter makes Nextcloud accessible only on your <em>home network</em>. Do <strong>not</strong> open your router's firewall to expose Nextcloud to the internet without first reading Chapter 20, which covers HTTPS encryption certificates, firewall rules, and using a reverse proxy or VPN tunnel. Exposing a web service to the open internet without those protections could allow strangers to attempt to log in to your cloud or access your files.</div>
+<div class="warn"><strong>Careful:</strong> The setup in this chapter makes Nextcloud accessible only on your <em>home network</em>. Do <strong>not</strong> open your router's firewall to expose Nextcloud to the internet without first reading Chapter 21, which covers HTTPS encryption certificates, firewall rules, and using a reverse proxy or VPN tunnel. Exposing a web service to the open internet without those protections could allow strangers to attempt to log in to your cloud or access your files.</div>
 
 <p>As long as Nextcloud is reachable only on your home Wi-Fi (the default after following this chapter), it is protected by your router's built-in firewall. Visitors to your home cannot reach it unless they are connected to your Wi-Fi.</p>
 
@@ -579,7 +579,7 @@ sudo chmod 750 /mnt/usbdrive/nextcloud-data</code></pre>
 </ul>
 
 <h3>Nextcloud shows a warning about "insecure connection" or "not secure"</h3>
-<p>This is expected when using plain <code>http://</code> rather than encrypted <code>https://</code>. Within your home Wi-Fi, the connection is acceptable — your router already encrypts the Wi-Fi signal itself. If you want a proper padlock in the browser bar (which is especially important before enabling access from outside your home), Chapter 20 explains how to add a proper HTTPS certificate.</p>
+<p>This is expected when using plain <code>http://</code> rather than encrypted <code>https://</code>. Within your home Wi-Fi, the connection is acceptable — your router already encrypts the Wi-Fi signal itself. If you want a proper padlock in the browser bar (which is especially important before enabling access from outside your home), Chapter 21 explains how to add a proper HTTPS certificate.</p>
 
 <h3>Nextcloud is very slow</h3>
 <ul>
@@ -694,7 +694,7 @@ sudo chmod 750 /mnt/usbdrive/nextcloud-data</code></pre>
   <li>Nextcloud, installed as a single snap package, gives you a full personal cloud: browser-based file access, phone photo backup, and calendar and contacts sync — all stored on your own hardware.</li>
   <li>The Nextcloud data folder must be owned by the <code>www-data</code> user — not <code>root</code> or your own account — for the snap to write files correctly.</li>
   <li>The Nextcloud phone app (free, iOS and Android) can automatically back up every photo you take to the Pi whenever your phone is on home Wi-Fi.</li>
-  <li>Keep Nextcloud accessible only on your home network until you have read Chapter 20 on HTTPS and firewall security — never expose it directly to the internet without those protections.</li>
+  <li>Keep Nextcloud accessible only on your home network until you have read Chapter 21 on HTTPS and firewall security — never expose it directly to the internet without those protections.</li>
   <li>Always shut the Pi down gracefully before unplugging it, and consider a UPS to protect against sudden power cuts corrupting your files.</li>
   <li>Follow the 3-2-1 backup rule — at least one copy of your important data should be stored offsite or on a separate physical drive.</li>
 </ul>

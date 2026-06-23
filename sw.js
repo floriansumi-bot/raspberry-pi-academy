@@ -1,5 +1,5 @@
 /* Pi Academy service worker — offline-first runtime caching (no build step) */
-const VERSION = 'pi-academy-v3';
+const VERSION = 'pi-academy-v4';
 const FONTS = VERSION + '-fonts';
 const CORE = [
   './', './index.html',
@@ -22,7 +22,9 @@ self.addEventListener('install', (e) => {
       const extra = [];
       (m.order || []).forEach((id) => {
         extra.push(`./content/chapters/${id}.html`);
-        if (/^ch\d+$/.test(id)) extra.push(`./content/quizzes/${id}.json`);
+        // every lesson/project has a quiz; reference sections (appendix/glossary) do not
+        const kind = m.chapters?.[id]?.kind;
+        if (kind !== 'appendix' && kind !== 'glossary') extra.push(`./content/quizzes/${id}.json`);
       });
       await Promise.allSettled(extra.map((u) => c.add(u)));
     } catch (e) { /* offline first install still works from CORE */ }

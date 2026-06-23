@@ -1,0 +1,61 @@
+{
+  "chapterId": "mcserver",
+  "title": "Host a Minecraft Server",
+  "questions": [
+    {
+      "q": "Your friends all play Minecraft on their phones and an Xbox. Which edition of server should you set up on the Pi?",
+      "choices": [
+        "Java Edition, because it is the original and most compatible version.",
+        "Bedrock Edition, because that is what phones, tablets, and consoles run.",
+        "Either one — Bedrock and Java players can join the same server.",
+        "Neither — consoles cannot connect to a Raspberry Pi server."
+      ],
+      "answer": 1,
+      "explain": "Phones, tablets, Xbox, PlayStation, Switch, and the Windows 10/11 app all run Bedrock Edition, so you need a Bedrock server. Java and Bedrock players cannot join the same ordinary server, so the edition must match the devices your group actually uses."
+    },
+    {
+      "q": "On a Pi 5 with 8 GB of RAM, why should you NOT set the Java server's memory to -Xmx8G?",
+      "choices": [
+        "Minecraft refuses to start with more than 4 GB of memory.",
+        "The operating system needs its own share of RAM, so allocating all of it will cause the server to freeze or crash.",
+        "Higher memory settings always make the server slower.",
+        "The Pi can only address 4 GB of RAM at a time."
+      ],
+      "answer": 1,
+      "explain": "The -Xmx value is the maximum memory the Java server may use, but the Pi's operating system also needs RAM to run. If you hand the whole 8 GB to Minecraft, nothing is left for the system and the Pi will run out of memory and crash. Leaving 3–4 GB free is the safe rule — so -Xmx6G is sensible on an 8 GB board."
+    },
+    {
+      "q": "Why do you run the Java (Paper) server once, then edit eula.txt, before it will actually start your world?",
+      "choices": [
+        "The first run downloads the rest of the server files from the internet.",
+        "Editing eula.txt sets the server's memory limit.",
+        "Minecraft requires you to accept its End-User Licence Agreement; the first run creates eula.txt and stops until you change eula=false to eula=true.",
+        "The first run tests whether your Pi has enough RAM to continue."
+      ],
+      "answer": 2,
+      "explain": "Mojang requires you to agree to the End-User Licence Agreement before any server will run. The first launch generates eula.txt set to false and then exits. You change the line to eula=true to record your acceptance, and the next launch generates the world and starts the server."
+    },
+    {
+      "q": "What is the main advantage of registering your Minecraft server as a systemd service?",
+      "choices": [
+        "It makes the server use less RAM than running it by hand.",
+        "It automatically starts the server when the Pi boots and restarts it if it crashes, with no one logged in.",
+        "It lets Bedrock and Java players connect to the same world.",
+        "It encrypts the connection so the server is safe to expose to the internet."
+      ],
+      "answer": 1,
+      "explain": "Run by hand, the server only lives as long as your Terminal window is open. A systemd service is supervised by Linux: it launches the server on boot, keeps it running in the background whether or not anyone is logged in, and (with Restart=on-failure) relaunches it after a crash — exactly what an always-on server needs."
+    },
+    {
+      "q": "You want friends from their own homes to join, and you want the safest, simplest method. What should you reach for first?",
+      "choices": [
+        "Put the Pi directly on the internet with no firewall so connections are fastest.",
+        "Use a tunnel service such as playit.gg, which gives the server a public address without opening ports on your router or exposing your home IP.",
+        "Email each friend a copy of the world folder to play separately.",
+        "Forward every port on your router to the Pi to be safe."
+      ],
+      "answer": 1,
+      "explain": "A tunnel service like playit.gg connects outward from the Pi and hands your friends a public address, without opening any ports on your router or revealing your home IP — avoiding the riskiest part of self-hosting. Traditional port forwarding also works but exposes your Pi to the internet, so you should secure it (and read the security chapter) first. Forwarding every port is never a good idea."
+    }
+  ]
+}
