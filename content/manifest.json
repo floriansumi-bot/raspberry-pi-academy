@@ -67,7 +67,7 @@
    "id": "maker-lab",
    "label": "The Maker Lab",
    "short": "Learn to code by building",
-   "blurb": "Nine fun builds where every project teaches a named Python or electronics fundamental — including bringing old electronics back to life.",
+   "blurb": "A series of fun builds where every project teaches a named Python or electronics fundamental — including bringing old electronics, LEGO robots and phones back to life.",
    "chapters": [
     "ch23",
     "ch24",
@@ -77,7 +77,9 @@
     "ch28",
     "ch29",
     "ch30",
-    "ch31"
+    "ch31",
+    "ch32",
+    "ch33"
    ]
   },
   {
@@ -1871,9 +1873,33 @@
    ],
    "widgets": []
   },
+  "ch32": {
+   "id": "ch32",
+   "n": 32,
+   "title": "Reanimate a LEGO Mindstorms NXT Robot with AI",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch33": {
+   "id": "ch33",
+   "n": 33,
+   "title": "Recycle an Old Smartphone into Pi Parts",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": []
+  },
   "apxA": {
    "id": "apxA",
-   "n": 32,
+   "n": 34,
    "title": "Command Quick-Reference",
    "kind": "appendix",
    "part": "reference",
@@ -1937,7 +1963,7 @@
   },
   "glos": {
    "id": "glos",
-   "n": 33,
+   "n": 35,
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
@@ -2092,6 +2118,8 @@
   "ch29",
   "ch30",
   "ch31",
+  "ch32",
+  "ch33",
   "apxA",
   "glos"
  ]

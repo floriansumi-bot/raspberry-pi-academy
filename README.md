@@ -9,12 +9,12 @@
 
 ## What it is
 
-Pilot is a zero-build, installable **Progressive Web App** (vanilla JS, ES modules — no framework, no bundler) that reframes a complete beginner's Raspberry Pi 5 book as a **33-lesson learning path**. It is designed for a total beginner: warm, plain-English, and impossible to get lost in.
+Pilot is a zero-build, installable **Progressive Web App** (vanilla JS, ES modules — no framework, no bundler) that reframes a complete beginner's Raspberry Pi 5 book as a **35-lesson learning path**. It is designed for a total beginner: warm, plain-English, and impossible to get lost in.
 
 ### Highlights
 
-- 🛤️ **The Learning Path** — a winding, Duolingo-style trail of all 33 lessons across 7 parts, with persisted progress, completion rings, copper circuit-trace connectors, and a "you are here" marker.
-- 🧪 **The Maker Lab** — a project-driven Part where every build teaches a *named* Python or electronics fundamental: a traffic-light controller (lists & loops), a reaction-timer game (events & timing), a salvaged sound machine and mood lamp (PWM & recycling old electronics), an ultrasonic parking sensor (classes & a 5 V→3.3 V voltage divider), a plant data-logger (files & CSV), a motion alarm from e-waste, and a Flask + HTML/CSS/JavaScript sensor dashboard capstone.
+- 🛤️ **The Learning Path** — a winding, Duolingo-style trail of all 35 lessons across 7 parts, with persisted progress, completion rings, copper circuit-trace connectors, and a "you are here" marker.
+- 🧪 **The Maker Lab** — a project-driven Part where every build teaches a *named* Python or electronics fundamental: a traffic-light controller (lists & loops), a reaction-timer game (events & timing), a salvaged sound machine and mood lamp (PWM & recycling old electronics), an ultrasonic parking sensor (classes & a 5 V→3.3 V voltage divider), a plant data-logger (files & CSV), a motion alarm from e-waste, a Flask + HTML/CSS/JavaScript sensor dashboard capstone, a finale that **reanimates old LEGO Mindstorms NXT 2.0 motors and sensors into an AI-assisted, camera-driven robot**, and an honest, safety-first guide to **harvesting usable parts from a dead smartphone** (battery, speaker, vibration motor — and the whole phone as a wireless camera).
 - 💻 **A real Pi terminal sandbox** — a hand-written Raspberry Pi OS shell (virtual filesystem, history, tab-completion) that runs the commands the book teaches. `man <term>` pulls the glossary; `find <word>` full-text-searches every lesson. The terminal *is* the search engine behind ⌘K.
 - 🔌 **A wireable GPIO board** — an interactive 40-pin pinout + breadboard where you wire an LED through a resistor on GPIO 17, press **Run** on real `gpiozero` code, and watch it blink — with enforced electrical rules and a 3.3 V safety guard that quotes the handbook's exact damage warning.
 - 🍓 **Hero board inspector** — click any component on a Raspberry Pi 5 board to learn what it does and jump to the lesson that uses it.
@@ -61,7 +61,7 @@ js/
   widgets/            board · terminal · gpio · resistor · picker · poweron
 content/
   manifest.json       parts, chapters, sections, reading time
-  chapters/*.html     the 33 lessons
+  chapters/*.html     the 35 lessons
   glossary.json  search-index.json  quizzes/*.json
 sw.js  manifest.webmanifest  assets/
 ```
