@@ -1892,9 +1892,58 @@
    "title": "Recycle an Old Smartphone into Pi Parts",
    "kind": "project",
    "part": "maker-lab",
-   "words": 0,
-   "read_min": 5,
-   "sections": [],
+   "words": 6396,
+   "read_min": 32,
+   "sections": [
+    {
+     "id": "the-honest-truth-about-phone-parts",
+     "title": "The Honest Truth About Phone Parts"
+    },
+    {
+     "id": "name-the-fundamentals",
+     "title": "Name the Fundamentals"
+    },
+    {
+     "id": "safety-first-the-lithium-ion-talk",
+     "title": "Safety First: the Lithium-Ion Talk"
+    },
+    {
+     "id": "reuse-1-the-battery-as-backup-power",
+     "title": "Reuse 1 — the Battery as Backup Power"
+    },
+    {
+     "id": "reuse-2-the-vibration-motor",
+     "title": "Reuse 2 — the Vibration Motor (Haptics)"
+    },
+    {
+     "id": "reuse-3-the-loudspeaker",
+     "title": "Reuse 3 — the Loudspeaker"
+    },
+    {
+     "id": "reuse-4-the-whole-phone-as-a-wireless-camera",
+     "title": "Reuse 4 — the Whole Phone as a Wireless Camera"
+    },
+    {
+     "id": "other-useful-bits",
+     "title": "Other Useful Bits"
+    },
+    {
+     "id": "what-you-genuinely-cant-do-and-why",
+     "title": "What You Genuinely Can't Do — and Why"
+    },
+    {
+     "id": "safety-and-disposal-checklist",
+     "title": "Safety & Disposal Checklist"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own / Where Next"
+    },
+    {
+     "id": "what-youve-learned",
+     "title": "What You've Learned"
+    }
+   ],
    "widgets": []
   },
   "apxA": {
