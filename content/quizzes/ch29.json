@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch29",
+  "title": "Plant Monitor & Data Logger",
+  "questions": [
+    {
+      "q": "Why can't a Raspberry Pi read a smoothly-varying analog sensor directly?",
+      "choices": [
+        "Its GPIO pins are too slow to keep up with analog signals",
+        "It has no ADC (Analogue-to-Digital Converter) — every GPIO pin is purely digital, reading only HIGH or LOW",
+        "Analog sensors need 5 V, which the Pi cannot supply",
+        "The gpiozero library refuses to read analog values"
+      ],
+      "answer": 1,
+      "explain": "Unlike an Arduino, the Pi has no built-in ADC, so its GPIO pins can only distinguish HIGH from LOW. To read a true analog voltage you must add an external ADC such as the MCP3008, or use a sensor that gives a digital output."
+    },
+    {
+      "q": "For a Pi plant monitor, why is a capacitive soil sensor with a digital output a good choice?",
+      "choices": [
+        "It is the only sensor that works at 5 V",
+        "Its digital wet/dry output needs no ADC, and capacitive probes don't corrode in the soil",
+        "It measures temperature as well as moisture",
+        "It connects over SPI and is faster than other sensors"
+      ],
+      "answer": 1,
+      "explain": "A capacitive sensor's onboard chip gives a clean digital HIGH/LOW the Pi can read directly with no ADC, and capacitive probes avoid the corrosion that plagues current-passing resistive sensors."
+    },
+    {
+      "q": "Which DHT22 approach actually works on a Raspberry Pi 5 running Bookworm?",
+      "choices": [
+        "The legacy Adafruit_DHT library installed with pip",
+        "The pigpio daemon (pigpiod) with its DHT helper",
+        "The current adafruit_dht library together with adafruit-blinka, catching occasional checksum errors",
+        "RPi.GPIO with a manual timing loop"
+      ],
+      "answer": 2,
+      "explain": "On the Pi 5, the archived Adafruit_DHT and the pigpio daemon both fail. The working combination is adafruit-circuitpython-dht plus a recent adafruit-blinka (which routes through lgpio), with a retry to handle the DHT22's occasional checksum RuntimeError."
+    },
+    {
+      "q": "Which file mode should a data logger use so that new readings are added without erasing the existing history?",
+      "choices": [
+        "\"w\" (write)",
+        "\"a\" (append)",
+        "\"r\" (read)",
+        "\"x\" (exclusive)"
+      ],
+      "answer": 1,
+      "explain": "Mode \"w\" erases the file first, and \"r\" only reads. Append mode \"a\" adds each new row to the end of the file while keeping everything already logged — exactly what a logger needs."
+    },
+    {
+      "q": "After logging readings to a CSV, what is a clean way to find the warmest temperature of the day?",
+      "choices": [
+        "Open the file in \"w\" mode and overwrite it with the maximum",
+        "Read the rows back with csv.DictReader into a list of dictionaries, pull the temperatures into a list, and use max()",
+        "It is impossible once data is written to a file",
+        "Use a voltage divider to scale the readings"
+      ],
+      "answer": 1,
+      "explain": "Reading the CSV back with csv.DictReader gives a list of dictionaries; a list comprehension extracts the temperature values, and Python's built-in max() (and min()) finds the extremes. This is the standard 'read data back to find min/max' pattern."
+    }
+  ]
+}

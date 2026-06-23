@@ -538,7 +538,7 @@ try:
         all_lights_off()
         zone.led.on()
 
-        print(f"{distance:5.1f} cm  ->  {zone.name}")
+        print(f"{distance:5.1f} cm  -&gt;  {zone.name}")
 
         if zone.beep_gap is not None:
             if time() - last_beep &gt;= zone.beep_gap:
@@ -568,7 +568,7 @@ except KeyboardInterrupt:
   <p><strong>Line 57 — <code>try:</code>:</strong> Wraps the main loop so that pressing Ctrl+C runs the tidy-up code at the bottom instead of crashing.</p>
   <p><strong>Lines 59–60 — read &amp; classify:</strong> Each loop we get the distance, then ask <code>pick_zone()</code> which zone we are in. This is the heart of <em>mapping a measurement to a behaviour</em>.</p>
   <p><strong>Lines 62–63 — <code>all_lights_off()</code> then <code>zone.led.on()</code>:</strong> Clear all lights, then light only the one belonging to the chosen zone. Notice <code>zone.led</code> is the LED object we stored on that zone earlier.</p>
-  <p><strong>Line 65 — <code>print(f"{distance:5.1f} cm  ->  {zone.name}")</code>:</strong> An f-string showing the live reading. <code>:5.1f</code> formats the number in a tidy 5-character-wide field with one decimal place, so the column does not jump about.</p>
+  <p><strong>Line 65 — <code>print(f"{distance:5.1f} cm  -&gt;  {zone.name}")</code>:</strong> An f-string showing the live reading. <code>:5.1f</code> formats the number in a tidy 5-character-wide field with one decimal place, so the column does not jump about.</p>
   <p><strong>Lines 67–74 — the beeping:</strong> If the zone has a <code>beep_gap</code> (not <code>None</code>), and enough time has passed since the last beep, switch the buzzer on for a brief 0.05&nbsp;s click, then off, and record the time. Closer zones have a smaller <code>beep_gap</code>, so the beeps come faster — exactly the parking-sensor effect.</p>
   <p><strong>Lines 75–76 — <code>else: buzzer.off()</code>:</strong> In the Safe zone there is no beeping, so we make sure the buzzer is silent.</p>
   <p><strong>Line 78 — <code>sleep(0.05)</code>:</strong> A short pause so the loop runs about 20 times a second — smooth and responsive without hammering the sensor.</p>

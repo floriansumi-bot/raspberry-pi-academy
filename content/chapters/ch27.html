@@ -386,7 +386,7 @@ import random
 # If your colours look inverted, set active_high=False (common-anode)
 led = RGBLED(red=17, green=27, blue=22)
 
-# A small list of preset moods: name -> (r, g, b) each 0..1
+# A small list of preset moods: name to (r, g, b) each 0..1
 MOODS = {
     "sunset":  (1.0, 0.3, 0.0),
     "ocean":   (0.0, 0.4, 1.0),
@@ -445,7 +445,7 @@ def lava_mode():
 # Choose your mode here:
 print("Mood lamp starting. Press Stop to switch off.")
 mood_cycle()
-# lava_mode()   # <- comment out mood_cycle() above and use this instead</code></pre>
+# lava_mode()   # comment out mood_cycle() above and use this instead</code></pre>
 
 <div class="explain">
   <p><strong>Lines 1&ndash;3 — the imports:</strong> <code>RGBLED</code> for the light, <code>sleep</code> for timing, and <code>random</code> for unpredictability.</p>

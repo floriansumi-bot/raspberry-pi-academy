@@ -1,0 +1,632 @@
+<p class="lead">A houseplant cannot tell you it is thirsty — but your Pi can listen on its behalf. In this chapter you will build a plant monitor that checks the soil and the air, then quietly writes a timestamped row to a file every few minutes, building up a history you can read back to find the driest moment of the day. You will learn how to <strong>open, write and read files</strong>, save tidy data with the <strong>CSV</strong> module, organise readings as a <strong>list of dictionaries</strong>, stamp each one with the <strong>date and time</strong>, and finish with a function that prints a daily summary. On the electronics side you will finally understand the deep difference between <strong>digital and analog</strong> — and why the Pi, alone among hobby boards, has no way to read an analog voltage directly.</p>
+
+
+<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+
+<p>Your finished project is a <strong>data logger</strong>: every N minutes it reads a soil-moisture sensor and a temperature/humidity sensor, appends a timestamped row to a CSV file, and — at the end of a run — reads the whole file back to print a tidy summary (driest reading, warmest reading, and so on). It is the foundation of every weather station, fitness tracker and laboratory instrument ever made: <em>sense, record, review</em>.</p>
+
+<h3>Python fundamentals</h3>
+<ul>
+  <li><strong>Files</strong> — opening a file with <code>open()</code>, writing to it, reading it back, and why the <code>with</code> keyword keeps files safe.</li>
+  <li><strong>CSV</strong> — using Python's built-in <code>csv</code> module to save rows of data that open perfectly in any spreadsheet.</li>
+  <li><strong>Lists of dictionaries</strong> — the natural shape for "many readings, each with several named fields" (time, moisture, temperature…).</li>
+  <li><strong>datetime timestamps</strong> — labelling every reading with the exact date and time it was taken.</li>
+  <li><strong>Loops and a logging function</strong> — a function that takes one reading and appends it, called over and over on a timer.</li>
+  <li><strong>Reading data back to find min/max</strong> — loading the CSV again and scanning it to find the extremes.</li>
+</ul>
+
+<h3>Electronics fundamentals</h3>
+<ul>
+  <li><strong>Digital vs analog</strong> — the difference between a signal that is only ever ON or OFF and one that varies smoothly.</li>
+  <li><strong>Why the Pi has no ADC</strong> — every Pi GPIO pin is digital, so it cannot directly read a smoothly-varying voltage, and what to do about it.</li>
+  <li><strong>A digital capacitive soil-moisture sensor</strong> — read with gpiozero's <code>DigitalInputDevice</code>.</li>
+  <li><strong>A DHT22 temperature/humidity sensor</strong> — with an honest look at the messy library situation on the Pi 5, and the more reliable I²C alternative.</li>
+  <li><strong>The MCP3008 ADC over SPI</strong> — a brief look at how you <em>would</em> read a true analog sensor.</li>
+</ul>
+
+
+<h2 id="digital-vs-analog-and-the-missing-adc">Digital vs Analog &amp; the Missing ADC</h2>
+
+<p>This is the single most important electronics idea in the chapter, and it shapes every sensor choice you make on a Pi.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>digital</strong> signal has only two states — ON or OFF, HIGH or LOW, 1 or 0. An <strong>analog</strong> signal varies smoothly through every value in between, like a dimmer dial rather than a light switch.</div>
+
+<p>A push button is digital: pressed or not pressed. A spinning volume knob is analog: it can sit at any point from fully off to fully on. Many real-world quantities — temperature, light level, the wetness of soil — are naturally analog: they slide smoothly up and down.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 560 230" xmlns="http://www.w3.org/2000/svg">
+  <rect width="560" height="230" fill="#f3f0ff" rx="12"/>
+  <text x="280" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Digital vs Analog signals</text>
+
+  <!-- Digital (left): square wave -->
+  <text x="140" y="56" font-family="sans-serif" font-size="12" fill="#6d28d9" text-anchor="middle" font-weight="bold">Digital — only HIGH or LOW</text>
+  <line x1="40" y1="180" x2="250" y2="180" stroke="#9ca3af" stroke-width="1"/>
+  <line x1="40" y1="80" x2="40" y2="180" stroke="#9ca3af" stroke-width="1"/>
+  <polyline points="40,170 80,170 80,90 130,90 130,170 175,170 175,90 230,90 230,170 250,170" fill="none" stroke="#6d28d9" stroke-width="3"/>
+  <text x="32" y="94" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="end">3.3 V</text>
+  <text x="32" y="184" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="end">0 V</text>
+  <text x="145" y="205" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">jumps between two levels</text>
+
+  <!-- Analog (right): smooth wave -->
+  <text x="420" y="56" font-family="sans-serif" font-size="12" fill="#0ea5a4" text-anchor="middle" font-weight="bold">Analog — any value in between</text>
+  <line x1="310" y1="180" x2="520" y2="180" stroke="#9ca3af" stroke-width="1"/>
+  <line x1="310" y1="80" x2="310" y2="180" stroke="#9ca3af" stroke-width="1"/>
+  <path d="M310,150 Q345,80 380,130 T450,120 T520,100" fill="none" stroke="#0ea5a4" stroke-width="3"/>
+  <text x="302" y="94" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="end">3.3 V</text>
+  <text x="302" y="184" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="end">0 V</text>
+  <text x="415" y="205" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">slides smoothly up and down</text>
+</svg>
+<figcaption>A digital signal flips between two fixed levels; an analog signal varies continuously. Every Pi GPIO pin can only tell HIGH from LOW — it cannot measure where an analog signal sits in between.</figcaption>
+</figure>
+
+<div class="warn"><strong>Careful — the key Pi fact:</strong> <strong>The Raspberry Pi has no analog input. It has no ADC (Analogue-to-Digital Converter) at all.</strong> Every one of its GPIO pins is purely digital — it can only ever tell whether a voltage is below or above the threshold between LOW and HIGH. This surprises people coming from boards like the Arduino, which do have analog inputs. So if a sensor produces a smoothly-varying analog voltage (like a cheap resistive soil probe), the Pi <em>cannot read it directly</em>. You must either choose a sensor that gives a digital output, or add an external ADC chip.</div>
+
+<div class="jargon"><strong>In plain words:</strong> An <strong>ADC</strong> (Analogue-to-Digital Converter) is a chip that measures an analog voltage and reports it as a number a computer can understand. The Pi has none built in; the Arduino does. This is the single biggest difference beginners trip over.</div>
+
+<h3>Your three options on a Pi</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Approach</th>
+      <th>How it works</th>
+      <th>Best for</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Digital-output sensor</td>
+      <td>The sensor has its own little chip that decides "wet/dry" or "bright/dark" and gives a clean HIGH/LOW the Pi reads directly with <code>DigitalInputDevice</code> or <code>Button</code>.</td>
+      <td>Simple yes/no questions — is the soil dry? Easiest by far.</td>
+    </tr>
+    <tr>
+      <td>Digital data sensor (e.g. DHT22, or I²C)</td>
+      <td>The sensor measures internally and sends the Pi a stream of digital bits encoding the actual number (temperature, humidity).</td>
+      <td>Reading true values over one or two wires using a driver library.</td>
+    </tr>
+    <tr>
+      <td>External ADC (e.g. MCP3008 over SPI)</td>
+      <td>An add-on chip measures the analog voltage and tells the Pi the number digitally.</td>
+      <td>When you must read a genuinely analog sensor (a real moisture level, a light dependent resistor).</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>For our plant monitor we use the two friendliest options: a <strong>digital capacitive soil-moisture sensor</strong> for "wet or dry", and a <strong>DHT22</strong> for temperature and humidity. We will look at the MCP3008 briefly at the end for when you outgrow them.</p>
+
+
+<h2 id="choosing-the-sensors">Choosing the Sensors</h2>
+
+<h3>The soil-moisture sensor — choose capacitive, not resistive</h3>
+
+<p>Cheap soil sensors come in two flavours, and the difference matters:</p>
+<ul>
+  <li><strong>Resistive</strong> probes pass a current through the soil between two metal prongs. They are <em>analog</em> (so the Pi cannot read them without an ADC) and, worse, the prongs <strong>corrode</strong> quickly because of the current.</li>
+  <li><strong>Capacitive</strong> probes sense moisture without passing current into the soil, so they last far longer. Crucially, the common capacitive modules include a small comparator chip and a sensitivity screw, giving a clean <strong>digital DO (digital out)</strong> pin: HIGH when dry, LOW when wet (or the reverse, depending on the board). That digital pin plugs straight into a Pi GPIO — no ADC needed.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Capacitive sensors are the right choice for a Pi because their digital output works without an ADC and they don't rot in the pot. Turn the little screw on the board to set the wet/dry threshold: water the plant, then adjust until the onboard LED just switches as the soil dries.</div>
+
+<p>We read its digital DO pin with gpiozero's <code>DigitalInputDevice</code>:</p>
+
+<pre class="code"><code>from gpiozero import DigitalInputDevice
+
+# DO pin of the capacitive sensor on GPIO 17. active_state=False means
+# the sensor pulls the line LOW when it detects moisture.
+soil = DigitalInputDevice(17, pull_up=None, active_state=False)
+
+if soil.value == 1:
+    print("Soil is WET")
+else:
+    print("Soil is DRY")</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import DigitalInputDevice</code>:</strong> <code>DigitalInputDevice</code> is the general-purpose object for reading any HIGH/LOW input — perfect for a sensor whose DO pin is already digital.</p>
+  <p><strong>Line 5 — <code>soil = DigitalInputDevice(17, pull_up=None, active_state=False)</code>:</strong> Reads GPIO 17. The sensor drives the line itself, so we set <code>pull_up=None</code> (no internal resistor) and tell gpiozero that the "active" (detected) state is a LOW line with <code>active_state=False</code>. If your board reads the opposite way, swap to <code>active_state=True</code>.</p>
+  <p><strong>Lines 7–10 — <code>if soil.value == 1:</code>:</strong> <code>soil.value</code> is <code>1</code> when the sensor is active (moisture detected) and <code>0</code> otherwise — a clean digital read, no ADC in sight.</p>
+</div>
+
+<h3>The DHT22 — and an honest word about the Pi 5</h3>
+
+<p>The <strong>DHT22</strong> (and its cheaper cousin the DHT11) measures temperature and humidity and sends the Pi a digital data stream on a single signal wire. It is popular and inexpensive — but on the Raspberry Pi 5 the software story is genuinely awkward, so let's be honest about it.</p>
+
+<div class="warn"><strong>Careful — outdated tutorials will fail on the Pi 5.</strong> Two libraries you will find all over the internet <strong>do not work on the Pi 5</strong>: the old <code>Adafruit_DHT</code> library is archived and fails on Bookworm with Python 3.11; and the <code>pigpio</code> daemon (which some DHT guides rely on) is not supported on the Pi 5 either. If a tutorial tells you to <code>pip install Adafruit_DHT</code> or to start <code>pigpiod</code>, stop — it will not work.</div>
+
+<p>The combination that <em>does</em> work today is the current CircuitPython stack: <code>adafruit-circuitpython-dht</code> together with a recent <code>adafruit-blinka</code> (which routes GPIO through lgpio on the Pi 5). Because of PEP 668 on Bookworm, install them inside a virtual environment:</p>
+
+<pre class="code"><code>python3 -m venv plantenv
+source plantenv/bin/activate
+pip install adafruit-circuitpython-dht adafruit-blinka</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>python3 -m venv plantenv</code>:</strong> Creates a virtual environment (an isolated, private set of Python packages) in a folder called <code>plantenv</code>. This sidesteps Bookworm's "externally-managed-environment" block on system-wide <code>pip</code>.</p>
+  <p><strong>Line 2 — <code>source plantenv/bin/activate</code>:</strong> Switches your terminal into that environment. Your prompt gains a <code>(plantenv)</code> prefix. Run your script from this same activated terminal.</p>
+  <p><strong>Line 3 — <code>pip install ...</code>:</strong> Installs the two libraries that actually work on the Pi 5. <code>adafruit-blinka</code> is the glue that lets CircuitPython libraries talk to the Pi's hardware via lgpio.</p>
+</div>
+
+<p>Reading it then looks like this — note that the DHT22 is fussy and sometimes returns a checksum error, so we catch it and try again:</p>
+
+<pre class="code"><code>import board
+import adafruit_dht
+
+dht = adafruit_dht.DHT22(board.D4)   # data pin on GPIO 4
+
+def read_temp_humidity():
+    """Return (temperature_c, humidity_pct), retrying on checksum errors."""
+    for attempt in range(5):
+        try:
+            return dht.temperature, dht.humidity
+        except RuntimeError:
+            sleep(2)   # a normal hiccup — wait and retry
+    return None, None</code></pre>
+<div class="explain">
+  <p><strong>Lines 1–2 — imports:</strong> <code>board</code> names the Pi's pins the CircuitPython way (<code>board.D4</code> = GPIO 4); <code>adafruit_dht</code> is the working DHT driver.</p>
+  <p><strong>Line 4 — <code>dht = adafruit_dht.DHT22(board.D4)</code>:</strong> Creates the sensor object on GPIO 4.</p>
+  <p><strong>Line 6 — <code>def read_temp_humidity():</code>:</strong> A function that returns a pair of values: the temperature in °C and the humidity as a percentage.</p>
+  <p><strong>Lines 8–13 — the retry loop:</strong> The DHT22 occasionally fails its internal checksum and raises a <code>RuntimeError</code>. Rather than crash, we <code>try</code> up to five times, pausing two seconds between attempts. If every attempt fails, we <code>return None, None</code> so the caller can skip that reading.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> If you want a rock-solid reading with no checksum drama, an <strong>I²C sensor such as the SHT4x or BME280</strong> is the most reliable teaching choice on the Pi 5. It connects to just the two I²C pins (SDA/SCL), needs no divider, and its CircuitPython library is stable. The logging code in this chapter works the same whichever sensor you read from — only the <code>read_temp_humidity()</code> function changes.</div>
+
+<div class="note"><strong>Note:</strong> If you do not have a DHT22 yet, you can still build and learn the whole logger: replace <code>read_temp_humidity()</code> with a version that returns made-up numbers (e.g. <code>return 21.4, 55.0</code>). Every file, CSV and summary idea works identically with stand-in data.</div>
+
+
+<h2 id="files-csv-and-lists-of-dicts">Files, CSV &amp; Lists of Dictionaries</h2>
+
+<p>Before wiring anything, let's master the data side with small examples. These are the Python fundamentals at the heart of the project.</p>
+
+<h3>Opening and writing a file</h3>
+
+<pre class="code"><code>with open("hello.txt", "w") as f:
+    f.write("Hello, plant!\n")
+    f.write("This is line two.\n")</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>with open("hello.txt", "w") as f:</code>:</strong> <code>open()</code> opens (and here creates) a file. The <code>"w"</code> means "write mode" — it starts the file fresh, erasing any old contents. The <code>with</code> keyword is the safe way to open files: it automatically closes the file when the indented block ends, even if something goes wrong. <code>f</code> is our handle to the open file.</p>
+  <p><strong>Lines 2–3 — <code>f.write(...)</code>:</strong> Writes text into the file. <code>\n</code> is a newline character, so each <code>write</code> ends up on its own line.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> The three common file modes are <code>"w"</code> (write — erases first), <code>"a"</code> (append — adds to the end, keeping what's there), and <code>"r"</code> (read — look but don't change). A logger uses <code>"a"</code> so each new reading is added without wiping the history.</div>
+
+<h3>Reading a file back</h3>
+
+<pre class="code"><code>with open("hello.txt", "r") as f:
+    for line in f:
+        print(line.strip())</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>open(..., "r")</code>:</strong> Opens the file in read mode.</p>
+  <p><strong>Line 2 — <code>for line in f:</code>:</strong> Looping over an open file hands you one line at a time — a tidy, memory-friendly way to read even huge files.</p>
+  <p><strong>Line 3 — <code>print(line.strip())</code>:</strong> <code>.strip()</code> removes the trailing newline so we don't print blank gaps between lines.</p>
+</div>
+
+<h3>A list of dictionaries</h3>
+
+<p>A <strong>dictionary</strong> stores named values — perfect for one reading with several fields. A <strong>list of dictionaries</strong> is the natural shape for many such readings.</p>
+
+<pre class="code"><code>readings = [
+    {"time": "09:00", "moisture": "wet", "temp": 20.1},
+    {"time": "09:05", "moisture": "wet", "temp": 20.4},
+    {"time": "09:10", "moisture": "dry", "temp": 21.0},
+]
+
+for r in readings:
+    print(r["time"], "-&gt;", r["temp"], "C")
+
+# Find the warmest reading by scanning the list
+warmest = readings[0]
+for r in readings:
+    if r["temp"] &gt; warmest["temp"]:
+        warmest = r
+print("Warmest:", warmest["temp"], "C at", warmest["time"])</code></pre>
+<div class="explain">
+  <p><strong>Lines 1–5 — <code>readings = [ ... ]</code>:</strong> A list (square brackets) whose items are dictionaries (curly braces). Each dictionary holds named fields: <code>"time"</code>, <code>"moisture"</code>, <code>"temp"</code>. This is exactly how we'll hold our logged data in memory.</p>
+  <p><strong>Lines 7–8 — looping over the list:</strong> Each <code>r</code> is one dictionary; <code>r["temp"]</code> looks up that reading's temperature by name.</p>
+  <p><strong>Lines 11–15 — finding the maximum:</strong> Start by assuming the first reading is warmest, then loop through and keep any reading that beats it. By the end, <code>warmest</code> holds the dictionary with the highest <code>temp</code> — the classic "find the max" pattern you'll reuse on the logged file.</p>
+</div>
+
+<h3>The CSV module</h3>
+
+<p>A <strong>CSV</strong> (Comma-Separated Values) file is the universal format for tables of data — every spreadsheet program opens it. Python's built-in <code>csv</code> module writes and reads it cleanly, handling commas and quoting for you. <code>csv.DictWriter</code> and <code>csv.DictReader</code> pair beautifully with our list of dictionaries.</p>
+
+<pre class="code"><code>import csv
+
+rows = [
+    {"time": "09:00", "moisture": "wet", "temp": 20.1},
+    {"time": "09:05", "moisture": "dry", "temp": 21.0},
+]
+
+with open("demo.csv", "w", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=["time", "moisture", "temp"])
+    writer.writeheader()
+    writer.writerows(rows)</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>import csv</code>:</strong> Brings in Python's built-in CSV tools — nothing to install.</p>
+  <p><strong>Line 8 — <code>open("demo.csv", "w", newline="")</code>:</strong> Opens the CSV for writing. The <code>newline=""</code> is the recommended setting for the csv module so it controls line endings itself (this avoids blank lines on some systems).</p>
+  <p><strong>Line 9 — <code>csv.DictWriter(f, fieldnames=[...])</code>:</strong> Creates a writer that maps dictionary keys to columns. <code>fieldnames</code> sets the column order.</p>
+  <p><strong>Line 10 — <code>writer.writeheader()</code>:</strong> Writes the first row of column names (<code>time,moisture,temp</code>).</p>
+  <p><strong>Line 11 — <code>writer.writerows(rows)</code>:</strong> Writes every dictionary in our list as its own row. To read it back, <code>csv.DictReader</code> turns each row back into a dictionary.</p>
+</div>
+
+<h3>Timestamps with datetime</h3>
+
+<pre class="code"><code>from datetime import datetime
+
+now = datetime.now()
+print(now.strftime("%Y-%m-%d %H:%M:%S"))   # e.g. 2026-06-23 14:05:09</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from datetime import datetime</code>:</strong> Imports the <code>datetime</code> object, which represents a moment in time.</p>
+  <p><strong>Line 3 — <code>now = datetime.now()</code>:</strong> Captures the current date and time right now.</p>
+  <p><strong>Line 4 — <code>now.strftime("%Y-%m-%d %H:%M:%S")</code>:</strong> Formats the moment as readable text: four-digit year, month, day, then hours, minutes, seconds. Putting a timestamp on every reading is what turns a pile of numbers into a history you can chart.</p>
+</div>
+
+
+<h2 id="parts-and-wiring">Parts &amp; Wiring</h2>
+
+<h3>What you need</h3>
+<ul>
+  <li>A Raspberry Pi 5 running Raspberry Pi OS Bookworm</li>
+  <li>1 × capacitive soil-moisture sensor with a digital DO output</li>
+  <li>1 × DHT22 temperature/humidity sensor (or an I²C SHT4x/BME280, or just use stand-in numbers)</li>
+  <li>1 × 10 kΩ resistor (a pull-up for the DHT22 data line, if your DHT22 module doesn't already include one)</li>
+  <li>1 × breadboard and a handful of jumper wires</li>
+</ul>
+
+<div class="warn"><strong>Careful — power off first.</strong> Shut your Pi down fully (Raspberry Pi menu → Shutdown), wait for the green light to go out, and unplug the power before wiring. Both sensors here run from <strong>3.3 V</strong> and their data/DO lines are 3.3 V logic, so — unlike the ultrasonic sensor in the last chapter — <strong>no voltage divider is needed</strong>. Still observe the golden rule: GPIO is 3.3 V logic, and you must never feed a higher voltage into a GPIO input. Re-connect power only after checking your wiring.</div>
+
+<h3>Wiring diagram</h3>
+
+<figure class="fig">
+<svg viewBox="0 0 620 360" xmlns="http://www.w3.org/2000/svg">
+  <rect width="620" height="360" fill="#f3f0ff" rx="12"/>
+  <text x="310" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Plant Monitor — Wiring Diagram</text>
+
+  <!-- Pi header -->
+  <rect x="20" y="60" width="100" height="250" fill="#1f2933" rx="6"/>
+  <text x="70" y="52" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
+  <rect x="24" y="82" width="14" height="11" fill="#f97316" rx="2"/>
+  <text x="42" y="91" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 1 (3.3 V)</text>
+  <rect x="24" y="116" width="14" height="11" fill="#6d28d9" rx="2"/>
+  <text x="42" y="125" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 11 (GPIO 17 soil DO)</text>
+  <rect x="24" y="150" width="14" height="11" fill="#0ea5a4" rx="2"/>
+  <text x="42" y="159" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 7 (GPIO 4 DHT data)</text>
+  <rect x="24" y="184" width="14" height="11" fill="#f97316" rx="2"/>
+  <text x="42" y="193" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 17 (3.3 V)</text>
+  <rect x="24" y="282" width="14" height="11" fill="#374151" rx="2"/>
+  <text x="42" y="291" font-family="sans-serif" font-size="9" fill="#9ca3af">Pin 9 (GND)</text>
+
+  <!-- Soil sensor -->
+  <rect x="380" y="60" width="120" height="70" fill="#3f6212" rx="6"/>
+  <text x="440" y="84" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle">Soil sensor</text>
+  <text x="440" y="100" font-family="sans-serif" font-size="9" fill="#d9f99d" text-anchor="middle">VCC  GND  DO</text>
+
+  <!-- DHT22 -->
+  <rect x="380" y="190" width="120" height="70" fill="#1e3a8a" rx="6"/>
+  <text x="440" y="214" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle">DHT22</text>
+  <text x="440" y="230" font-family="sans-serif" font-size="9" fill="#cbd5e1" text-anchor="middle">+  DATA  −</text>
+
+  <!-- Soil VCC (3.3V orange) -->
+  <line x1="38" y1="87" x2="400" y2="87" stroke="#f97316" stroke-width="3"/>
+  <line x1="400" y1="87" x2="400" y2="130" stroke="#f97316" stroke-width="3"/>
+  <text x="220" y="80" font-family="sans-serif" font-size="9" fill="#f97316">3.3 V → soil VCC</text>
+
+  <!-- Soil DO (purple) -->
+  <line x1="38" y1="121" x2="470" y2="121" stroke="#6d28d9" stroke-width="3"/>
+  <line x1="470" y1="121" x2="470" y2="130" stroke="#6d28d9" stroke-width="3"/>
+  <text x="230" y="115" font-family="sans-serif" font-size="9" fill="#6d28d9">GPIO 17 ← soil DO (digital, no divider)</text>
+
+  <!-- DHT data (teal) -->
+  <line x1="38" y1="155" x2="440" y2="155" stroke="#0ea5a4" stroke-width="3"/>
+  <line x1="440" y1="155" x2="440" y2="190" stroke="#0ea5a4" stroke-width="3"/>
+  <text x="230" y="148" font-family="sans-serif" font-size="9" fill="#0ea5a4">GPIO 4 ← DHT DATA</text>
+
+  <!-- pull-up resistor on data -->
+  <rect x="300" y="172" width="28" height="13" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
+  <text x="314" y="200" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">10kΩ pull-up</text>
+  <line x1="314" y1="155" x2="314" y2="172" stroke="#374151" stroke-width="2"/>
+  <line x1="328" y1="178" x2="360" y2="178" stroke="#f97316" stroke-width="2"/>
+  <line x1="360" y1="178" x2="360" y2="195" stroke="#f97316" stroke-width="2"/>
+
+  <!-- DHT + (3.3V) -->
+  <line x1="38" y1="189" x2="420" y2="189" stroke="#f97316" stroke-width="3"/>
+  <line x1="420" y1="189" x2="420" y2="190" stroke="#f97316" stroke-width="3"/>
+
+  <!-- common ground -->
+  <line x1="38" y1="287" x2="440" y2="287" stroke="#374151" stroke-width="3"/>
+  <line x1="430" y1="130" x2="430" y2="287" stroke="#374151" stroke-width="2"/>
+  <line x1="460" y1="260" x2="460" y2="287" stroke="#374151" stroke-width="2"/>
+  <text x="230" y="305" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">common GND rail → Pin 9 (both sensor grounds)</text>
+
+  <!-- legend -->
+  <text x="310" y="335" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Orange = 3.3 V · Purple/Teal = GPIO signal · Grey = GND. Both data lines are 3.3 V — no divider needed.</text>
+</svg>
+<figcaption>The plant monitor. Both sensors run from 3.3 V; the soil sensor's digital DO goes to GPIO 17 and the DHT22's data line to GPIO 4. An optional 10 kΩ pull-up steadies the DHT data line. Because every signal is already 3.3 V logic, no voltage divider is required here.</figcaption>
+</figure>
+
+<h3>Connection table</h3>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>From (component)</th>
+      <th>To (Pi pin)</th>
+      <th>Via</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Soil sensor VCC</td>
+      <td>Pin 1 (3.3 V)</td>
+      <td>direct</td>
+      <td>Capacitive modules run happily at 3.3 V</td>
+    </tr>
+    <tr>
+      <td>Soil sensor DO (digital out)</td>
+      <td>Pin 11 (GPIO 17)</td>
+      <td>direct</td>
+      <td>Already digital 3.3 V — no divider</td>
+    </tr>
+    <tr>
+      <td>Soil sensor GND</td>
+      <td>Pin 9 (GND)</td>
+      <td>common GND rail</td>
+      <td>Shared with the DHT22</td>
+    </tr>
+    <tr>
+      <td>DHT22 + (VCC)</td>
+      <td>Pin 17 (3.3 V)</td>
+      <td>direct</td>
+      <td>3.3 V supply</td>
+    </tr>
+    <tr>
+      <td>DHT22 DATA</td>
+      <td>Pin 7 (GPIO 4)</td>
+      <td>10 kΩ pull-up to 3.3 V</td>
+      <td>Many DHT22 modules already include the pull-up</td>
+    </tr>
+    <tr>
+      <td>DHT22 − (GND)</td>
+      <td>Pin 9 (GND)</td>
+      <td>common GND rail</td>
+      <td>Shared ground</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> A bare 3-pin DHT22 needs the 10 kΩ pull-up resistor between its DATA line and 3.3 V. The common blue or white DHT22 <em>modules</em> on a small breakout board usually have this resistor built in, so you can skip it — check your board.</div>
+
+
+<h2 id="building-the-data-logger">Building the Data Logger</h2>
+
+<p>Now we assemble the full program. It reads both sensors, appends a timestamped row to a CSV, repeats every N minutes, and prints a daily summary read back from the file. To keep it tidy we put the appending in its own <strong>logging function</strong>.</p>
+
+<p>Open a new file in Thonny, type the program, and save it as <code>plant_logger.py</code>. (Run it from your activated <code>plantenv</code> terminal if you are using a real DHT22.)</p>
+
+<pre class="code"><code>import csv
+import os
+from time import sleep
+from datetime import datetime
+from gpiozero import DigitalInputDevice
+
+# --- sensor objects ---
+soil = DigitalInputDevice(17, pull_up=None, active_state=False)
+
+# If you have a real DHT22, uncomment these two lines and the body of
+# read_temp_humidity() below (and run inside your venv):
+# import board, adafruit_dht
+# dht = adafruit_dht.DHT22(board.D4)
+
+CSV_FILE = "plant_log.csv"
+FIELDS = ["timestamp", "moisture", "temp_c", "humidity_pct"]
+SAMPLE_MINUTES = 5     # how often to take a reading
+
+
+def read_moisture():
+    """Return 'wet' or 'dry' from the digital soil sensor."""
+    return "wet" if soil.value == 1 else "dry"
+
+
+def read_temp_humidity():
+    """Return (temperature_c, humidity_pct). Replace body with real DHT22 code."""
+    # --- real DHT22 version (needs the venv libraries) ---
+    # for _ in range(5):
+    #     try:
+    #         return round(dht.temperature, 1), round(dht.humidity, 1)
+    #     except RuntimeError:
+    #         sleep(2)
+    # return None, None
+    # --- stand-in version so the logger runs without a DHT22 ---
+    return 21.4, 55.0
+
+
+def log_reading():
+    """Take one reading and append it as a timestamped row to the CSV."""
+    temp_c, humidity = read_temp_humidity()
+    row = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "moisture": read_moisture(),
+        "temp_c": temp_c,
+        "humidity_pct": humidity,
+    }
+
+    file_is_new = not os.path.exists(CSV_FILE)
+    with open(CSV_FILE, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=FIELDS)
+        if file_is_new:
+            writer.writeheader()
+        writer.writerow(row)
+
+    print("Logged:", row)
+    return row
+
+
+def print_summary():
+    """Read the whole CSV back and print the day's extremes."""
+    with open(CSV_FILE, "r", newline="") as f:
+        rows = list(csv.DictReader(f))
+
+    if not rows:
+        print("No data yet.")
+        return
+
+    temps = [float(r["temp_c"]) for r in rows if r["temp_c"]]
+    dry_count = sum(1 for r in rows if r["moisture"] == "dry")
+
+    print("\n----- Daily summary -----")
+    print(f"Readings logged : {len(rows)}")
+    if temps:
+        print(f"Warmest         : {max(temps)} C")
+        print(f"Coolest         : {min(temps)} C")
+    print(f"Times soil dry  : {dry_count}")
+    print("-------------------------\n")
+
+
+print("Plant logger started. Press Ctrl+C to stop and see the summary.")
+try:
+    while True:
+        log_reading()
+        sleep(SAMPLE_MINUTES * 60)
+except KeyboardInterrupt:
+    print("\nStopping...")
+    print_summary()</code></pre>
+<div class="explain">
+  <p><strong>Lines 1–5 — imports:</strong> <code>csv</code> for the file format, <code>os</code> to check whether the file already exists, <code>sleep</code> for the timer, <code>datetime</code> for timestamps, and <code>DigitalInputDevice</code> to read the soil sensor.</p>
+  <p><strong>Line 8 — <code>soil = DigitalInputDevice(17, ...)</code>:</strong> The soil-moisture object on GPIO 17, exactly as in the earlier example.</p>
+  <p><strong>Lines 15–17 — settings:</strong> <code>CSV_FILE</code> names our log file; <code>FIELDS</code> lists the column names in order; <code>SAMPLE_MINUTES</code> sets how often we take a reading. Change this one number to sample faster or slower.</p>
+  <p><strong>Lines 20–22 — <code>read_moisture()</code>:</strong> A function returning the word <code>"wet"</code> or <code>"dry"</code> based on the digital soil reading — mapping a HIGH/LOW into a human label.</p>
+  <p><strong>Lines 25–35 — <code>read_temp_humidity()</code>:</strong> Returns a temperature and humidity pair. The commented block is the real DHT22 code (with its checksum retry loop); the active line returns stand-in numbers so you can run the logger even without the sensor wired.</p>
+  <p><strong>Lines 38–56 — <code>log_reading()</code> — the logging function:</strong> This is the heart of the project. It builds a <strong>dictionary</strong> (<code>row</code>) holding a fresh <strong>timestamp</strong> plus the three readings, then appends it to the CSV. <code>os.path.exists(CSV_FILE)</code> tells us if the file is brand new; if so, we write the header row first. Opening in <code>"a"</code> (append) mode means every call adds a row without wiping the history. It returns the row in case the caller wants it.</p>
+  <p><strong>Lines 59–78 — <code>print_summary()</code> — reading data back:</strong> Opens the CSV in read mode and uses <code>csv.DictReader</code> to load every row back into a <strong>list of dictionaries</strong>. The line <code>temps = [float(r["temp_c"]) for r in rows if r["temp_c"]]</code> is a <em>list comprehension</em> that pulls out all the temperatures as numbers. Then <code>max(temps)</code> and <code>min(temps)</code> find the warmest and coolest — the "find min/max by reading data back" goal. <code>dry_count</code> counts how many readings found dry soil.</p>
+  <p><strong>Lines 81–88 — the main loop:</strong> Prints a start message, then loops forever: take one reading (<code>log_reading()</code>), then <code>sleep</code> for <code>SAMPLE_MINUTES × 60</code> seconds before the next. Pressing Ctrl+C raises <code>KeyboardInterrupt</code>, which we catch to print the summary on the way out — a tidy finish.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> While testing, set <code>SAMPLE_MINUTES</code> to a fraction such as <code>0.1</code> (six seconds) so you don't have to wait five minutes between rows. Set it back to 5 (or higher) for real plant monitoring, where things change slowly.</div>
+
+
+<h2 id="running-it">Running It</h2>
+
+<ol class="steps">
+  <li><strong>Check your wiring</strong> against the connection table — both sensors on 3.3 V, grounds shared, soil DO on GPIO 17, DHT data on GPIO 4.</li>
+  <li><strong>Reconnect power</strong> and boot the Pi.</li>
+  <li><strong>If using a real DHT22, activate your venv first:</strong> in a terminal run <code>source plantenv/bin/activate</code>, then start Thonny from that same terminal so it can see the installed libraries. With stand-in numbers you can just run from Thonny directly.</li>
+  <li><strong>Open <code>plant_logger.py</code></strong> and run it. You should see a <code>Logged: {...}</code> line appear each cycle.</li>
+  <li><strong>Watch the file grow.</strong> Open a terminal and run <code>cat plant_log.csv</code> to see your timestamped rows building up.</li>
+  <li><strong>Touch the soil probe</strong> (or dunk it in a glass of water vs leave it dry) and confirm the <code>moisture</code> field flips between <code>wet</code> and <code>dry</code>.</li>
+  <li><strong>Press Ctrl+C</strong> to stop. The program prints a daily summary — the warmest and coolest temperatures and how many times the soil was dry — read straight back from the CSV.</li>
+</ol>
+
+<div class="note"><strong>Note:</strong> The CSV file lands in whatever folder you ran the script from (usually your home folder from Thonny). Double-click it in the Files app and it opens in LibreOffice Calc as a proper spreadsheet, ready to chart.</div>
+
+
+<h2 id="a-look-at-true-analog-the-mcp3008">A Look at True Analog: the MCP3008</h2>
+
+<p>Our capacitive sensor gives a simple wet/dry answer, which is plenty for watering a plant. But what if you wanted the <em>exact</em> moisture percentage, or to read a light-dependent resistor, or any genuinely analog sensor? Then you need to give the Pi the ADC it lacks. The classic, cheap choice is the <strong>MCP3008</strong>: an 8-channel ADC chip that talks to the Pi over the <strong>SPI</strong> bus.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>SPI</strong> (Serial Peripheral Interface) is a way for the Pi to chat with add-on chips over a few dedicated pins. The MCP3008 listens on SPI, measures the analog voltage on one of its 8 input channels, and reports back a number — giving the Pi the analog reading it cannot take itself.</div>
+
+<p>Once SPI is enabled (in <code>raspi-config</code>) and the chip is wired to the SPI pins, gpiozero makes it almost magically simple:</p>
+
+<pre class="code"><code>from gpiozero import MCP3008
+
+# An analog moisture probe on channel 0 of the MCP3008
+moisture = MCP3008(channel=0)
+
+while True:
+    level = moisture.value          # a float from 0.0 to 1.0
+    print(round(level * 100), "% wet")
+    sleep(2)</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import MCP3008</code>:</strong> gpiozero has built-in support for this ADC chip — no separate driver needed.</p>
+  <p><strong>Line 4 — <code>moisture = MCP3008(channel=0)</code>:</strong> Reads channel 0 of the chip (it has 8, numbered 0–7).</p>
+  <p><strong>Line 7 — <code>level = moisture.value</code>:</strong> Returns the analog reading as a number from <code>0.0</code> (0 V) to <code>1.0</code> (3.3 V) — true analog, brought into the digital Pi by the ADC. (There is also <code>.voltage</code>, which gives the reading in volts.)</p>
+  <p><strong>Line 8 — <code>print(round(level * 100), "% wet")</code>:</strong> Scales the 0–1 value into a friendly 0–100% reading.</p>
+</div>
+
+<p>To log analog moisture instead of wet/dry, you would simply swap <code>read_moisture()</code> to return <code>round(moisture.value * 100)</code> — the rest of the logger, CSV and summary code stays exactly the same. That is the payoff of putting each job in its own small function.</p>
+
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Symptom</th>
+      <th>Likely cause</th>
+      <th>Fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Soil reading never changes</td>
+      <td>Threshold screw mis-set, or wrong <code>active_state</code></td>
+      <td>Adjust the screw on the sensor board while watching its LED switch; if wet/dry are swapped, flip <code>active_state</code> between True and False.</td>
+    </tr>
+    <tr>
+      <td><code>ModuleNotFoundError: No module named 'board'</code></td>
+      <td>Blinka not installed, or not in the venv</td>
+      <td>Activate the venv (<code>source plantenv/bin/activate</code>) and <code>pip install adafruit-blinka adafruit-circuitpython-dht</code>.</td>
+    </tr>
+    <tr>
+      <td>DHT22 raises <code>RuntimeError</code> a lot</td>
+      <td>Normal checksum hiccups, or a missing pull-up</td>
+      <td>The retry loop handles occasional errors. If it's constant, add the 10 kΩ pull-up on the data line, or switch to an I²C SHT4x/BME280.</td>
+    </tr>
+    <tr>
+      <td>You followed a tutorial using <code>Adafruit_DHT</code> or <code>pigpio</code> and nothing works</td>
+      <td>Both are unsupported on the Pi 5</td>
+      <td>Use the current <code>adafruit_dht</code> + <code>adafruit-blinka</code> stack instead, as shown above.</td>
+    </tr>
+    <tr>
+      <td>CSV has blank lines between rows</td>
+      <td><code>newline=""</code> was omitted from <code>open()</code></td>
+      <td>Always open CSV files with <code>open(file, mode, newline="")</code>.</td>
+    </tr>
+    <tr>
+      <td>Summary shows no data</td>
+      <td>Program stopped before any reading was logged</td>
+      <td>Let at least one cycle complete (lower <code>SAMPLE_MINUTES</code> while testing) before pressing Ctrl+C.</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<h2 id="make-it-your-own">Make It Your Own</h2>
+
+<ul>
+  <li><strong>Email or beep when the soil is dry.</strong> Inside <code>log_reading()</code>, if the moisture is <code>"dry"</code>, switch on a buzzer (from Chapter 28) or flash an LED to nag you to water the plant.</li>
+  <li><strong>Add more columns.</strong> Because each reading is a dictionary, adding a light sensor is as simple as putting a new key in <code>row</code> and a new name in <code>FIELDS</code>. The CSV grows a column automatically.</li>
+  <li><strong>Run it automatically at boot.</strong> Once you're happy, set the logger to start whenever the Pi powers on using a <code>systemd</code> service or a <code>cron</code> job, so your plant is monitored around the clock with no screen needed.</li>
+  <li><strong>Chart your data.</strong> Open <code>plant_log.csv</code> in LibreOffice Calc and make a line graph of temperature over time — or, looking ahead to the capstone, serve the latest reading to a web page you can check from your phone.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> Logging to a file is the same technique professionals use for weather stations and lab equipment. See the gpiozero docs at <a href="https://gpiozero.readthedocs.io/">gpiozero.readthedocs.io</a> for <code>MCP3008</code>, <code>DigitalInputDevice</code> and more, and the Python docs for the full power of the <code>csv</code> and <code>datetime</code> modules.</div>
+
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Digital signal</strong> - a value that is only ever HIGH or LOW (1 or 0); every Pi GPIO pin is digital.</li>
+  <li><strong>Analog signal</strong> - a value that varies smoothly through every level in between.</li>
+  <li><strong>ADC</strong> - Analogue-to-Digital Converter; a chip that turns an analog voltage into a number. The Pi has none built in.</li>
+  <li><strong>Capacitive soil sensor</strong> - a moisture sensor that gives a clean digital wet/dry output and does not corrode; ideal for the ADC-less Pi.</li>
+  <li><strong>DigitalInputDevice</strong> - the gpiozero object for reading any HIGH/LOW input pin.</li>
+  <li><strong>DHT22</strong> - a digital temperature/humidity sensor; on the Pi 5 use <code>adafruit_dht</code> + <code>adafruit-blinka</code> (legacy <code>Adafruit_DHT</code> and <code>pigpio</code> do not work).</li>
+  <li><strong>MCP3008</strong> - an 8-channel ADC chip read over SPI; gpiozero's <code>MCP3008(channel=0)</code> gives <code>.value</code> 0–1.</li>
+  <li><strong>File mode</strong> - <code>"w"</code> write (erases), <code>"a"</code> append (adds), <code>"r"</code> read.</li>
+  <li><strong>with open(...)</strong> - the safe way to open a file; it closes automatically when the block ends.</li>
+  <li><strong>CSV</strong> - Comma-Separated Values; a universal table format handled by Python's <code>csv</code> module.</li>
+  <li><strong>List of dictionaries</strong> - the natural shape for many readings, each with named fields.</li>
+  <li><strong>datetime / strftime</strong> - tools for capturing the current moment and formatting it as a timestamp string.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>A <strong>digital</strong> signal is only ever HIGH or LOW; an <strong>analog</strong> signal varies smoothly. The <strong>Raspberry Pi has no ADC</strong>, so every GPIO pin can only read digital signals.</li>
+  <li>To sense analog quantities you must pick a sensor with a <strong>digital output</strong> (like a capacitive soil sensor) or add an external <strong>ADC</strong> such as the MCP3008 over SPI.</li>
+  <li>The capacitive soil sensor's digital DO pin reads cleanly with <code>DigitalInputDevice</code>; no voltage divider is needed because it is already 3.3 V logic.</li>
+  <li>On the Pi 5, the legacy <code>Adafruit_DHT</code> and <code>pigpio</code> DHT methods <strong>fail</strong>; use the current <code>adafruit_dht</code> + <code>adafruit-blinka</code> stack (in a venv) and catch occasional checksum errors — or prefer a stable I²C sensor.</li>
+  <li>Files open with <code>open()</code>; use <code>with</code> for safety, <code>"a"</code> mode to append log rows, and <code>"r"</code> to read them back.</li>
+  <li>The <code>csv</code> module's <code>DictWriter</code> and <code>DictReader</code> pair perfectly with a <strong>list of dictionaries</strong>, the natural shape for timestamped readings.</li>
+  <li>Every reading is stamped with a <code>datetime</code> timestamp; reading the CSV back lets you scan for the <strong>min and max</strong> — the warmest and coolest moments of the day.</li>
+  <li>Putting each job in its own small function (read, log, summarise) means swapping in a different sensor — even an analog one via the MCP3008 — changes almost nothing else.</li>
+</ul>
+</div>

@@ -1,5 +1,5 @@
 /* Pi Academy service worker — offline-first runtime caching (no build step) */
-const VERSION = 'pi-academy-v3';
+const VERSION = 'pi-academy-v4';
 const FONTS = VERSION + '-fonts';
 const CORE = [
   './', './index.html',

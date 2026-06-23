@@ -12,7 +12,10 @@
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><strong>Active Cooler</strong></td><td>A small metal heatsink combined with a tiny fan that clips directly onto the Raspberry Pi 5's main chip. It draws heat away and blows it into the air, stopping the Pi from slowing itself down when it gets warm. Many Raspberry Pi 5 starter kits include one already fitted; the official Active Cooler is an inexpensive add-on otherwise.</td></tr>
+    <tr><td><strong>ADC (Analogue-to-Digital Converter)</strong></td><td>A chip that turns a varying voltage (an <em>analogue</em> signal) into numbers a computer can read. The Raspberry Pi has no ADC built in, so to read truly analogue sensors you add one such as the MCP3008, connected over <em>SPI</em>.</td></tr>
     <tr><td><strong>Alias</strong></td><td>A short nickname you create for a longer command. For example, you might create the alias <code>update</code> to stand for <code>sudo apt update &amp;&amp; sudo apt upgrade</code>, so you only have to type one word.</td></tr>
+    <tr><td><strong>Anode</strong></td><td>The positive (+) leg of a <em>diode</em> or <em>LED</em>. On an LED it is the longer leg, and current flows in through it. See also <em>cathode</em>.</td></tr>
+    <tr><td><strong>API (Application Programming Interface)</strong></td><td>An agreed set of commands one piece of software offers so other programs can use it. A <em>Flask</em> web app exposes an API — for example a <code>/api/data</code> address that hands back sensor readings.</td></tr>
     <tr><td><strong>apt</strong></td><td>The main tool for installing, updating, and removing software on Raspberry Pi OS. Its full name is "Advanced Package Tool". You use it by typing <code>sudo apt install &lt;name&gt;</code> in the <em>terminal</em>. Think of it as the Pi's official app store, accessed from the keyboard.</td></tr>
     <tr><td><strong>ARM</strong></td><td>A family of processor designs (short for "Advanced RISC Machine"). The Raspberry Pi 5 uses an ARM-based chip. ARM processors are popular in phones and single-board computers because they are power-efficient. Most software you install on the Pi is compiled specifically for the ARM architecture.</td></tr>
     <tr><td><strong>Argument</strong></td><td>Extra information you pass to a command to tell it what to work on. In <code>ls /home/pi</code>, the folder <code>/home/pi</code> is the argument — it tells the <code>ls</code> command which folder to list.</td></tr>
@@ -31,6 +34,7 @@
     <tr><td><strong>Bootloader</strong></td><td>A tiny program that runs before the operating system. On the Raspberry Pi 5 it lives in a chip on the board (the <em>EEPROM</em>). Its job is to find the operating system on the microSD card (or SSD) and hand control over to it.</td></tr>
     <tr><td><strong>Bookworm</strong></td><td>The codename for Debian version 12, which is the foundation of the current Raspberry Pi OS. Software instructions that say "Bookworm" apply to this version. Debian names its releases after characters from the film Toy Story.</td></tr>
     <tr><td><strong>Breadboard</strong></td><td>A rectangular plastic board full of small holes used for building electronic circuits without soldering. Components and wires push into the holes and are held in place by friction, making it easy to experiment and rearrange. Perfect for beginners learning about <em>GPIO</em>.</td></tr>
+    <tr><td><strong>Buzzer</strong></td><td>A small component that makes sound. An <em>active</em> buzzer has its own built-in tone and only needs switching on and off; a <em>passive</em> buzzer needs the Pi to supply the pitch, letting it play different musical notes.</td></tr>
   </tbody>
 </table>
 
@@ -39,12 +43,15 @@
 <table class="tbl">
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
+    <tr><td><strong>Callback</strong></td><td>A function you hand to a library to be run later — "when" something happens, such as <code>when_motion</code>. You pass it by name, with no brackets, so it is called back at the right moment rather than straight away.</td></tr>
+    <tr><td><strong>Cathode</strong></td><td>The negative (−) leg of a <em>diode</em> or <em>LED</em>. On an LED it is the shorter leg, beside the flat edge of the casing. See also <em>anode</em>.</td></tr>
     <tr><td><strong>CLI (Command-Line Interface)</strong></td><td>A way of controlling a computer by typing text commands rather than clicking icons. The opposite of a <em>GUI</em>. On the Pi, the CLI is accessed through the <em>terminal</em>. It feels unfamiliar at first but becomes very powerful once you know a handful of commands.</td></tr>
     <tr><td><strong>Command</strong></td><td>A word (or short phrase) you type in the terminal to make the computer do something. For example, <code>ls</code> lists files, and <code>pwd</code> shows your current location.</td></tr>
     <tr><td><strong>Config file</strong></td><td>A text file that stores settings for a program. Instead of clicking through menus, you edit the file to change how the program behaves. The most important low-level hardware settings file on the Pi is <code>/boot/firmware/config.txt</code>.</td></tr>
     <tr><td><strong>Container</strong></td><td>A lightweight, self-contained package that includes an application and everything it needs to run (libraries, settings), but shares the Pi's operating system kernel. Containers made with <em>Docker</em> are popular for running server software cleanly without cluttering the system.</td></tr>
     <tr><td><strong>CPU (Central Processing Unit)</strong></td><td>The main "brain" of the computer — the chip that carries out instructions. The Raspberry Pi 5's CPU has four cores (Arm Cortex-A76) running at up to 2.4 GHz, meaning it can work on up to four things at the same time and executes billions of steps per second.</td></tr>
     <tr><td><strong>cron / crontab</strong></td><td>A built-in Linux scheduler that runs commands automatically at times you specify — for example, "back up my files every night at 2 am". You set it up by editing a file called a crontab (cron table) with the command <code>crontab -e</code>.</td></tr>
+    <tr><td><strong>CSV (Comma-Separated Values)</strong></td><td>A simple text format for tables, where each line is a row and commas separate the columns. Spreadsheets and Python’s <code>csv</code> module both read and write it, which makes it ideal for logging sensor data.</td></tr>
     <tr><td><strong>Current</strong></td><td>The flow of electricity through a circuit, measured in amperes (amps, A) or milliamps (mA). Your Pi 5's power supply provides up to 5 A. GPIO pins can each safely supply only about 8–16 mA, so you usually need a <em>resistor</em> to protect an <em>LED</em>.</td></tr>
   </tbody>
 </table>
@@ -55,11 +62,14 @@
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><strong>Debian</strong></td><td>A long-established, free Linux operating system maintained by a worldwide community of volunteers. Raspberry Pi OS is built on top of Debian, so it inherits Debian's software tools, package system, and stability. Ubuntu is also based on Debian.</td></tr>
+    <tr><td><strong>Debounce</strong></td><td>Smoothing out the tiny, rapid on/off flickers a mechanical switch makes at the instant it is pressed. In gpiozero you set a <code>bounce_time</code> so those false extra presses are ignored.</td></tr>
     <tr><td><strong>Desktop Environment</strong></td><td>The visual layer on top of Linux that gives you a <em>GUI</em> — windows, icons, a taskbar, and a file manager. Raspberry Pi OS uses a desktop environment called PIXEL (built on LXDE/Openbox). Without it you would only see a text terminal.</td></tr>
     <tr><td><strong>DHCP (Dynamic Host Configuration Protocol)</strong></td><td>A service (usually running on your home router) that automatically gives every device on your network an <em>IP address</em> when it connects. You rarely need to configure this yourself — it just works.</td></tr>
+    <tr><td><strong>Diode</strong></td><td>A component that lets electricity flow one way only. An <em>LED</em> is a diode that also gives off light; fitting one the wrong way round simply means it stays dark.</td></tr>
     <tr><td><strong>Directory</strong></td><td>Another word for <em>folder</em> — a container that holds files and other directories. On Linux, directories are separated by forward slashes: <code>/home/pi/Documents</code>.</td></tr>
     <tr><td><strong>DNS (Domain Name System)</strong></td><td>The internet's address book. When you type a website name (like <code>raspberrypi.com</code>), DNS converts it into a numeric <em>IP address</em> that computers can actually route to. Your router usually handles DNS automatically.</td></tr>
     <tr><td><strong>Docker</strong></td><td>A popular tool for creating, running, and managing <em>containers</em>. With Docker you can install a complex application (like a media server or a home-automation hub) as a single command without worrying about dependencies conflicting with other software on your Pi.</td></tr>
+    <tr><td><strong>Duty Cycle</strong></td><td>The proportion of time a rapidly switched signal spends "on" versus "off". By varying it with <em>PWM</em>, the Pi can dim an LED or mix a colour — 100% is full brightness, 0% is off.</td></tr>
   </tbody>
 </table>
 
@@ -68,6 +78,7 @@
 <table class="tbl">
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
+    <tr><td><strong>E-waste</strong></td><td>Discarded electronics — old phones, toys, printers, routers. Much of it is a free source of parts (LEDs, motors, sensors) for projects, though some items (mains adapters, microwaves, CRT screens) are dangerous to open.</td></tr>
     <tr><td><strong>EEPROM</strong></td><td>A tiny memory chip on the Raspberry Pi 5 board that stores the <em>bootloader</em> firmware. Unlike the microSD card, it keeps its contents even when power is removed. You can update it with <code>sudo rpi-eeprom-update</code>.</td></tr>
     <tr><td><strong>Ethernet</strong></td><td>A wired networking standard. You plug a standard RJ45 network cable between your Pi and your router to get a fast, reliable internet connection. The Pi 5 supports Gigabit Ethernet (up to 1,000 Mb/s). Wired is always faster and more reliable than Wi-Fi.</td></tr>
     <tr><td><strong>Environment variable</strong></td><td>A named value stored in the shell's memory that programs can read. For example, the variable <code>HOME</code> stores the path to your home folder. You can view all of them with the <code>env</code> command.</td></tr>
@@ -84,6 +95,7 @@
     <tr><td><strong>Firewall</strong></td><td>Software (or hardware) that blocks or allows network traffic according to rules. On the Pi, <em>ufw</em> (Uncomplicated Firewall) is the friendliest way to set up a firewall. Think of it as a bouncer for your Pi's network connections.</td></tr>
     <tr><td><strong>Firmware</strong></td><td>Software that is embedded very deeply in hardware — closer to the machine than the operating system. The Pi's bootloader is firmware. Your router, your printer, and even your keyboard all have firmware.</td></tr>
     <tr><td><strong>Flag / Option</strong></td><td>A short switch you add to a command to change its behaviour. Flags usually start with a hyphen: <code>ls -l</code> adds the <code>-l</code> flag to show a detailed list. Some flags use two hyphens: <code>apt install --yes</code>.</td></tr>
+    <tr><td><strong>Flask</strong></td><td>A small, friendly Python library for building websites and web <em>APIs</em>. A few lines of Flask turn your Pi into a web server you can open from a phone on the same network.</td></tr>
     <tr><td><strong>Folder</strong></td><td>See <em>Directory</em>. Both words mean the same thing — a container for files. "Folder" is the everyday word; "directory" is the technical one you'll see in Linux documentation.</td></tr>
     <tr><td><strong>Function</strong></td><td>In programming, a named block of code that does one specific job. You define it once and can call it by name as many times as you like. In Python: <code>def greet():</code> starts a function called <code>greet</code>.</td></tr>
   </tbody>
@@ -170,6 +182,7 @@
     <tr><td><strong>mDNS / .local</strong></td><td>mDNS (Multicast DNS) is a technology that lets devices on a local network find each other by name without a central <em>DNS</em> server. Your Pi advertises itself as <code>raspberrypi.local</code> so that other computers on the same Wi-Fi can find it by that name instead of its IP address.</td></tr>
     <tr><td><strong>microSD card</strong></td><td>A tiny flash storage card — about the size of a fingernail — used as the main storage for the Raspberry Pi OS. Many starter kits include one, sometimes with Raspberry Pi OS already installed. The Pi reads it through the microSD slot on the underside of the board.</td></tr>
     <tr><td><strong>micro-HDMI</strong></td><td>A smaller variant of the <em>HDMI</em> connector. The Raspberry Pi 5 has two micro-HDMI ports, allowing it to drive two screens simultaneously at up to 4K 60 fps each. You need a micro-HDMI-to-HDMI cable or adapter to connect to a standard TV or monitor.</td></tr>
+    <tr><td><strong>Multimeter</strong></td><td>A handheld tester for electronics. It measures voltage, resistance and continuity, and has a diode setting for checking <em>LED</em> polarity — invaluable for testing salvaged parts.</td></tr>
   </tbody>
 </table>
 
@@ -208,6 +221,7 @@
     <tr><td><strong>Pi-hole</strong></td><td>A DNS-based ad blocker you can run on your Pi. It acts as the DNS server for your whole home network, intercepting requests to known ad-serving domains and blocking them before they reach any device. Works on every phone, tablet, and computer in your home without installing anything on them.</td></tr>
     <tr><td><strong>Pin</strong></td><td>One individual metal connector on the <em>GPIO</em> header. The Pi 5 has 40 pins. Each has a specific role: power supply (3.3 V or 5 V), ground (0 V), or a programmable GPIO pin. Always check a pinout diagram before connecting anything.</td></tr>
     <tr><td><strong>pip</strong></td><td>The standard Python package installer. You use it to add Python libraries not included with Python itself. On Raspberry Pi OS Bookworm, you should use pip inside a <em>virtual environment</em> or install system packages via <code>apt</code> instead of running pip directly into the system Python, which is marked as "externally managed".</td></tr>
+    <tr><td><strong>PIR (Passive Infrared) Sensor</strong></td><td>A motion detector that senses the warmth of a moving person or animal. The common HC-SR501 module sends out a clean 3.3 V signal, so its output connects straight to a GPIO pin with no <em>voltage divider</em>.</td></tr>
     <tr><td><strong>Port (network)</strong></td><td>A numbered "door" on a device's network connection. A single IP address can receive many different types of traffic at once by using different ports. Web traffic uses port 80 (or 443 for secure HTTPS), SSH uses port 22, and so on.</td></tr>
     <tr><td><strong>PWM (Pulse Width Modulation)</strong></td><td>A technique for simulating a variable voltage on a digital output pin by switching it on and off very rapidly. By changing the ratio of on-time to off-time, you can dim an LED, control the speed of a motor, or set the position of a servo. Supported on several GPIO pins of the Pi 5.</td></tr>
     <tr><td><strong>Python</strong></td><td>A beginner-friendly programming language that is enormously popular for Raspberry Pi projects, data analysis, AI, and web development. Its code reads almost like English. Raspberry Pi OS comes with Python 3 pre-installed, and the <em>Thonny</em> IDE is designed for writing Python.</td></tr>
@@ -234,6 +248,7 @@
     <tr><td><strong>Raspberry Pi Imager</strong></td><td>The official, free tool from the Raspberry Pi Foundation for writing (flashing) an operating system image to a microSD card. You run it on your main computer (Windows, macOS, or Linux), choose an OS, choose your card, and it downloads, verifies, and writes everything for you. It also lets you pre-configure Wi-Fi, hostname, and SSH before writing.</td></tr>
     <tr><td><strong>Repository (software)</strong></td><td>An online library of software packages that <em>apt</em> can download from. The official Raspberry Pi and Debian repositories are already configured on your Pi. Third-party software sometimes asks you to add an extra repository before installing.</td></tr>
     <tr><td><strong>Resistor</strong></td><td>A small electronic component that limits the flow of current. On a breadboard, resistors protect LEDs from burning out. They are colour-coded bands on a tiny cylinder. A 330-ohm resistor is the standard choice when connecting an LED to a 3.3 V GPIO pin.</td></tr>
+    <tr><td><strong>RGB LED</strong></td><td>A single <em>LED</em> containing red, green and blue elements. By mixing their brightness with <em>PWM</em> you can make almost any colour. It comes in common-cathode and common-anode types.</td></tr>
     <tr><td><strong>Root (filesystem)</strong></td><td>The very top of the Linux directory tree, written as a single forward slash <code>/</code>. Every file and directory on the system lives somewhere beneath it. It is like the C: drive on Windows, except there is only one tree covering everything.</td></tr>
     <tr><td><strong>root (superuser)</strong></td><td>The all-powerful system administrator account on Linux. The <code>root</code> user can read, change, or delete any file. You become root temporarily by using <em>sudo</em>. Logging in permanently as root is dangerous because a single mistyped command can destroy the entire system.</td></tr>
     <tr><td><strong>RTC (Real-Time Clock)</strong></td><td>A small, battery-backed clock circuit that keeps track of the current time even when the main power is off. The Raspberry Pi 5 has an on-board RTC battery connector. Without a battery in that connector and an internet connection, the Pi's clock resets every time you unplug it.</td></tr>
@@ -245,6 +260,7 @@
 <table class="tbl">
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
+    <tr><td><strong>Salvage</strong></td><td>Recovering useful parts from broken or unwanted electronics rather than buying new ones — a staple of the maker mindset, and kinder to the planet. See <em>e-waste</em>.</td></tr>
     <tr><td><strong>Samba</strong></td><td>A software package that lets Linux computers (including your Pi) share files and printers with Windows computers on the same network. With Samba, your Pi can appear as a shared drive in Windows Explorer.</td></tr>
     <tr><td><strong>scp / SFTP</strong></td><td>Two methods for transferring files securely over a network connection. <code>scp</code> (Secure Copy) is a command-line tool. SFTP (SSH File Transfer Protocol) is used by graphical apps like FileZilla. Both tunnel their traffic through <em>SSH</em>, so they are encrypted.</td></tr>
     <tr><td><strong>Script</strong></td><td>A text file containing a sequence of commands or programming instructions that the computer runs in order. A Python script ends in <code>.py</code>; a Bash shell script often ends in <code>.sh</code>. Scripts are how you automate repetitive tasks.</td></tr>
@@ -270,6 +286,7 @@
     <tr><td><strong>Terminal</strong></td><td>A program that gives you a text window where you can type commands and see the output. On Raspberry Pi OS Desktop, you open it from the taskbar or by pressing <code>Ctrl + Alt + T</code>. "Terminal", "console", and "command prompt" are often used interchangeably.</td></tr>
     <tr><td><strong>Throttling</strong></td><td>When the Pi automatically slows its CPU down to prevent overheating. If the chip temperature rises above a threshold (typically 85 °C on the Pi 5), the Pi reduces its speed to generate less heat. An Active Cooler fitted to the Pi prevents throttling under normal conditions.</td></tr>
     <tr><td><strong>Thonny</strong></td><td>A beginner-friendly Python <em>IDE</em> that comes pre-installed on Raspberry Pi OS. It shows your code on top and the output at the bottom, highlights errors clearly, and includes a simple debugger. It is the recommended way to write Python on the Pi if you are new to programming.</td></tr>
+    <tr><td><strong>Transistor</strong></td><td>A tiny electronic switch (or amplifier) controlled by a small current. It lets a weak GPIO signal switch something thirstier — a motor, a speaker, a bright lamp — that a pin could never drive directly.</td></tr>
   </tbody>
 </table>
 
@@ -280,6 +297,7 @@
   <tbody>
     <tr><td><strong>UART (Universal Asynchronous Receiver/Transmitter)</strong></td><td>A simple two-wire serial communication interface (one wire for sending, one for receiving) used to connect the Pi to devices such as GPS modules, serial displays, and microcontrollers like the Arduino. Available on the GPIO header; enable it in <code>raspi-config</code> under Interface Options.</td></tr>
     <tr><td><strong>ufw (Uncomplicated Firewall)</strong></td><td>A beginner-friendly command-line tool for managing the Linux <em>firewall</em>. With commands like <code>sudo ufw allow ssh</code> and <code>sudo ufw enable</code>, you can quickly set rules for which network connections are allowed.</td></tr>
+    <tr><td><strong>Ultrasonic Sensor</strong></td><td>A distance sensor that sends out a pulse of sound too high to hear and times the echo bouncing back. The popular HC-SR04 measures from a few centimetres to a few metres.</td></tr>
     <tr><td><strong>Undervoltage</strong></td><td>When the Pi does not receive enough electrical voltage from its power supply. The Pi needs a stable 5.1 V; if it drops below about 4.63 V, a yellow lightning bolt appears in the corner of the screen and performance suffers. Always use the official 27 W USB-C power supply, and avoid cheap or long cables.</td></tr>
     <tr><td><strong>USB (Universal Serial Bus)</strong></td><td>The standard connector family used for keyboards, mice, USB drives, and many peripherals. The Pi 5 has two USB 3.0 ports (blue, fast — up to 5 Gb/s) and two USB 2.0 ports (black, standard speed — up to 480 Mb/s). Use the blue USB 3.0 ports for USB drives or SSDs to get the full speed benefit.</td></tr>
     <tr><td><strong>User</strong></td><td>An account on the system with its own files, settings, and permissions. On a fresh Raspberry Pi OS installation, you create your own username during the first-run wizard. Users cannot change system-wide settings without using <em>sudo</em>.</td></tr>
@@ -295,6 +313,7 @@
     <tr><td><strong>venv (Virtual environment)</strong></td><td>An isolated copy of Python — with its own set of installed libraries — that is separate from the system Python. Raspberry Pi OS Bookworm marks the system Python as "externally managed", meaning you cannot install packages into it directly with pip. Create a virtual environment with <code>python3 -m venv myenv</code>, then activate it with <code>source myenv/bin/activate</code> before using <em>pip</em>.</td></tr>
     <tr><td><strong>VNC (Virtual Network Computing)</strong></td><td>A protocol for sharing a graphical desktop over a network. With a VNC client on your main computer (Windows, macOS, or Linux) and VNC enabled on the Pi, you see the Pi's full desktop in a window on that computer and can control it with your mouse and keyboard. Useful when you cannot connect a monitor directly to the Pi.</td></tr>
     <tr><td><strong>Voltage</strong></td><td>The "pressure" that pushes electrical current through a circuit, measured in volts (V). The Pi's GPIO pins output 3.3 V. The power supply provides 5.1 V. Connecting a 5 V signal directly to a 3.3 V GPIO pin can permanently damage the Pi.</td></tr>
+    <tr><td><strong>Voltage Divider</strong></td><td>A pair of resistors that turns a higher voltage into a lower one. It is how you safely feed a 5 V sensor output (such as the HC-SR04’s echo pin) into the Pi’s 3.3 V GPIO.</td></tr>
   </tbody>
 </table>
 
