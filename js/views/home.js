@@ -7,7 +7,7 @@ import { onCleanup } from '../router.js';
 let _io = null;        // path connector observer, disconnected on re-render
 let _justDone = null;  // chapter just completed, for the one-shot reward
 
-const PART_NUM = ['I', 'II', 'III', 'IV', 'V', '—'];
+const PART_NUM = ['I', 'II', 'III', 'IV', 'V', 'VI', '—'];
 
 function firstIncomplete() {
   const o = order();
@@ -69,7 +69,7 @@ export async function renderHome(params, view) {
   const section = el('section', { class: 'path-section wrap', id: 'path-top' });
   section.append(el('div', { class: 'path-intro' },
     el('h2', { text: 'Your learning path' }),
-    el('p', { text: `Twenty-four lessons, grouped into six parts. ${s.done}/${s.total} complete — go in order, or jump to whatever you want to build.` })
+    el('p', { text: `${s.total} lessons, grouped into ${parts().length} parts. ${s.done}/${s.total} complete — go in order, or jump to whatever you want to build.` })
   ));
 
   // "continue where you left off" nudge — gentle, dismissible per session

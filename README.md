@@ -9,12 +9,13 @@
 
 ## What it is
 
-Pilot is a zero-build, installable **Progressive Web App** (vanilla JS, ES modules — no framework, no bundler) that reframes a complete beginner's Raspberry Pi 5 book as a **24-lesson learning path**. It is designed for a total beginner: warm, plain-English, and impossible to get lost in.
+Pilot is a zero-build, installable **Progressive Web App** (vanilla JS, ES modules — no framework, no bundler) that reframes a complete beginner's Raspberry Pi 5 book as a **33-lesson learning path**. It is designed for a total beginner: warm, plain-English, and impossible to get lost in.
 
 ### Highlights
 
-- 🛤️ **The Learning Path** — a winding, Duolingo-style trail of all 24 lessons across 6 parts, with persisted progress, completion rings, copper circuit-trace connectors, and a "you are here" marker.
-- 💻 **A real Pi terminal sandbox** — a hand-written Raspberry Pi OS shell (virtual filesystem, history, tab-completion) that runs the commands the book teaches. `man <term>` pulls the glossary; `find <word>` full-text-searches all 24 lessons. The terminal *is* the search engine behind ⌘K.
+- 🛤️ **The Learning Path** — a winding, Duolingo-style trail of all 33 lessons across 7 parts, with persisted progress, completion rings, copper circuit-trace connectors, and a "you are here" marker.
+- 🧪 **The Maker Lab** — a project-driven Part where every build teaches a *named* Python or electronics fundamental: a traffic-light controller (lists & loops), a reaction-timer game (events & timing), a salvaged sound machine and mood lamp (PWM & recycling old electronics), an ultrasonic parking sensor (classes & a 5 V→3.3 V voltage divider), a plant data-logger (files & CSV), a motion alarm from e-waste, and a Flask + HTML/CSS/JavaScript sensor dashboard capstone.
+- 💻 **A real Pi terminal sandbox** — a hand-written Raspberry Pi OS shell (virtual filesystem, history, tab-completion) that runs the commands the book teaches. `man <term>` pulls the glossary; `find <word>` full-text-searches every lesson. The terminal *is* the search engine behind ⌘K.
 - 🔌 **A wireable GPIO board** — an interactive 40-pin pinout + breadboard where you wire an LED through a resistor on GPIO 17, press **Run** on real `gpiozero` code, and watch it blink — with enforced electrical rules and a 3.3 V safety guard that quotes the handbook's exact damage warning.
 - 🍓 **Hero board inspector** — click any component on a Raspberry Pi 5 board to learn what it does and jump to the lesson that uses it.
 - 🔎 **⌘K command palette** + a **living glossary** — every technical term in the prose links to a hover-definition card, and one shortcut searches lessons, glossary, and the command reference at once.
@@ -60,7 +61,7 @@ js/
   widgets/            board · terminal · gpio · resistor · picker · poweron
 content/
   manifest.json       parts, chapters, sections, reading time
-  chapters/*.html     the 24 lessons
+  chapters/*.html     the 33 lessons
   glossary.json  search-index.json  quizzes/*.json
 sw.js  manifest.webmanifest  assets/
 ```

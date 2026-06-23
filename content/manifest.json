@@ -64,6 +64,23 @@
    ]
   },
   {
+   "id": "maker-lab",
+   "label": "The Maker Lab",
+   "short": "Learn to code by building",
+   "blurb": "Nine fun builds where every project teaches a named Python or electronics fundamental — including bringing old electronics back to life.",
+   "chapters": [
+    "ch23",
+    "ch24",
+    "ch25",
+    "ch26",
+    "ch27",
+    "ch28",
+    "ch29",
+    "ch30",
+    "ch31"
+   ]
+  },
+  {
    "id": "reference",
    "label": "Reference",
    "short": "Cheat-sheet & glossary",
@@ -1294,9 +1311,112 @@
    ],
    "widgets": []
   },
+  "ch23": {
+   "id": "ch23",
+   "n": 23,
+   "title": "Welcome to the Maker Lab: Your Toolkit & Salvaging E-Waste",
+   "kind": "chapter",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": []
+  },
+  "ch24": {
+   "id": "ch24",
+   "n": 24,
+   "title": "Traffic-Light Controller",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch25": {
+   "id": "ch25",
+   "n": 25,
+   "title": "Reaction-Timer Game",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": []
+  },
+  "ch26": {
+   "id": "ch26",
+   "n": 26,
+   "title": "The Salvaged Sound Machine",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": []
+  },
+  "ch27": {
+   "id": "ch27",
+   "n": 27,
+   "title": "Mood Lamp from a Recycled Jar",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": []
+  },
+  "ch28": {
+   "id": "ch28",
+   "n": 28,
+   "title": "Distance Sensor & Parking Assistant",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch29": {
+   "id": "ch29",
+   "n": 29,
+   "title": "Plant Monitor & Data Logger",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": []
+  },
+  "ch30": {
+   "id": "ch30",
+   "n": 30,
+   "title": "Motion-Activated Alarm from E-Waste",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": []
+  },
+  "ch31": {
+   "id": "ch31",
+   "n": 31,
+   "title": "Capstone: Your Sensor Dashboard on the Web",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 0,
+   "read_min": 5,
+   "sections": [],
+   "widgets": []
+  },
   "apxA": {
    "id": "apxA",
-   "n": 23,
+   "n": 32,
    "title": "Command Quick-Reference",
    "kind": "appendix",
    "part": "reference",
@@ -1360,7 +1480,7 @@
   },
   "glos": {
    "id": "glos",
-   "n": 24,
+   "n": 33,
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
@@ -1506,6 +1626,15 @@
   "ch20",
   "ch21",
   "ch22",
+  "ch23",
+  "ch24",
+  "ch25",
+  "ch26",
+  "ch27",
+  "ch28",
+  "ch29",
+  "ch30",
+  "ch31",
   "apxA",
   "glos"
  ]

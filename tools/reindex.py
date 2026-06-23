@@ -10,7 +10,8 @@ chapter HTML.
 """
 import os, re, json
 
-APP = r"C:\Users\flori\Documents\raspberry-pi-academy"
+# Repo root = the parent of this tools/ directory, so the script runs anywhere.
+APP = os.environ.get("ACADEMY_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHDIR = os.path.join(APP, "content", "chapters")
 
 def strip_tags(s):
