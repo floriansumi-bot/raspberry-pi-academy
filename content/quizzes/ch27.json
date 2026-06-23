@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch27",
+  "title": "Mood Lamp from a Recycled Jar",
+  "questions": [
+    {
+      "q": "In PWM, what does the 'duty cycle' control for an LED?",
+      "choices": [
+        "The colour of the light",
+        "The brightness — the fraction of each fast cycle the pin stays on",
+        "The voltage, raising it above 3.3 V",
+        "How many LEDs are connected"
+      ],
+      "answer": 1,
+      "explain": "A pin is only ever fully on or fully off, so brightness comes from the duty cycle: the proportion of each rapid cycle the pin spends on. A duty cycle of 0.5 keeps the LED on half the time, so it looks half as bright. gpiozero uses a 0–1 value per channel."
+    },
+    {
+      "q": "Your RGB LED is wired as common-cathode (the default). When you ask for red, you get cyan, and vice versa. What is wrong and how do you fix it?",
+      "choices": [
+        "The resistors are too large; use smaller ones",
+        "It is actually a common-anode LED; create it with active_high=False and connect the shared leg to 3.3 V",
+        "The GPIO pins are in the wrong numbering system; switch to physical pins",
+        "PWM is disabled; turn it on"
+      ],
+      "answer": 1,
+      "explain": "Inverted colours are the classic sign of a common-anode LED being driven as if it were common-cathode. Setting active_high=False tells gpiozero the channels light when driven LOW, and the shared leg goes to 3.3 V instead of GND."
+    },
+    {
+      "q": "Why does an RGB LED need three resistors instead of one shared resistor on the common leg?",
+      "choices": [
+        "Three resistors make the colours brighter",
+        "Each colour is a separate LED that needs its own current limit; a shared resistor would let the brightness change as colours mix and would not protect each channel",
+        "gpiozero refuses to run with fewer than three resistors",
+        "The extra resistors store charge to smooth the fade"
+      ],
+      "answer": 1,
+      "explain": "Each colour inside the package is a real LED with almost no resistance. One resistor per channel limits each colour's current independently; a single shared resistor would make the brightness of one colour depend on the others and would not protect each LED properly."
+    },
+    {
+      "q": "What does the 'return' keyword do in a function like clamp(value)?",
+      "choices": [
+        "It prints the value to the console",
+        "It hands a result back to whoever called the function, so it can be stored and used",
+        "It ends the whole program",
+        "It repeats the function from the start"
+      ],
+      "answer": 1,
+      "explain": "return passes a value back out of the function to the caller. That is what lets you write half_red = dim((1,0,0), 0.5) and store the result, rather than the function just doing something with no usable answer."
+    },
+    {
+      "q": "Why is a 'while True:' loop a good fit for a mood lamp?",
+      "choices": [
+        "It runs the body exactly once and then stops",
+        "It runs its body over and over forever, so the lamp keeps glowing until you stop the program",
+        "It is the only loop that works with the random module",
+        "It automatically dims the LED to save power"
+      ],
+      "answer": 1,
+      "explain": "while True never ends on its own because True is always true, so the body repeats indefinitely — perfect for a lamp that should keep fading colours until you press Stop. The random module then keeps each cycle unpredictable in lava mode."
+    }
+  ]
+}
