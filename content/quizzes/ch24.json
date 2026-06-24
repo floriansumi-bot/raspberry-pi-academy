@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch24",
+  "title": "Everything Is a File Descriptor",
+  "questions": [
+    {
+      "q": "What is a file descriptor, really?",
+      "choices": ["A hidden file on your microSD card that records what a program has opened", "A small whole number a program holds while something is open, which the kernel maps to the real file, device, pipe or socket", "A special permission flag that lets a program write to protected system files", "The name of the program that is currently reading from the terminal"],
+      "answer": 1,
+      "explain": "A file descriptor is just a small non-negative integer the program holds. The kernel keeps the real details and maps that number to a file, device, pipe or socket. That shared handle is what lets read/write work the same way across very different objects."
+    },
+    {
+      "q": "On your Pi you run two commands. Why do 'cmd > out.txt 2>&1' and 'cmd 2>&1 > out.txt' produce different results?",
+      "choices": ["The first is valid bash; the second is a syntax error that bash silently ignores", "They are identical; bash sorts redirections before applying them", "Redirections apply left to right, and 2>&1 copies wherever FD 1 points at that moment, so the order changes where stderr ends up", "2>&1 always sends stderr to the file, so only the first command actually works"],
+      "answer": 2,
+      "explain": "Redirections are applied strictly left to right, and 2>&1 means 'make FD 2 a copy of wherever FD 1 points right now.' In the first line FD 1 is already the file, so both streams go to the file. In the second, FD 2 copies the terminal before FD 1 moves to the file, so errors stay on screen."
+    },
+    {
+      "q": "A script does: count=0; grep error log | while read -r line; do count=$((count+1)); done; echo \"$count\" — and it prints 0. Why?",
+      "choices": ["grep returns no matching lines, so the loop body never runs", "Each stage of the pipeline runs in its own subshell, so the count was incremented in a child process whose memory vanished when it exited", "Bash variables cannot be used inside a while loop", "The $(( )) arithmetic syntax does not work with the read command"],
+      "answer": 1,
+      "explain": "Each stage of a pipeline runs in its own forked subshell. The while loop incremented count inside that child; when the child exited, its memory (and the new count) was discarded. The parent's count was never touched. Fixes: use process substitution (done < <(grep ...)) or 'shopt -s lastpipe'."
+    },
+    {
+      "q": "What does the 'tee' command do, and why is 'echo \"config\" | sudo tee /etc/app.conf' the idiom for writing to a root-owned file?",
+      "choices": ["tee deletes a file's contents; sudo is needed because deletion requires root", "tee compresses a stream; it runs under sudo so the archive is owned by root", "tee copies its input to file(s) and also passes it through; under sudo it is tee (running as root) that opens the protected file, unlike a > redirect which your shell performs as you", "tee encrypts the stream so only root can read the resulting file"],
+      "answer": 2,
+      "explain": "tee writes its input to file(s) and also passes it on to stdout. With 'sudo cmd > file' the redirection is done by your shell as you, before sudo runs, so it fails on a protected file. Piping into 'sudo tee' means tee itself runs as root and opens the file, which works."
+    },
+    {
+      "q": "Why does process substitution, written as <(cmd), exist?",
+      "choices": ["It runs a command faster by skipping the shell entirely", "It hands a program a 'filename' that is really a live pipe to another command, bridging tools that want a file path with commands that produce output on stdout", "It encrypts a command's output before another program reads it", "It is the only way to redirect standard error into standard output"],
+      "answer": 1,
+      "explain": "Half of Unix tools read from stdin; the other half insist on a filename argument. <(cmd) runs cmd and gives the next program a filename (really a /dev/fd pipe) that reads cmd's output, so you can do things like 'diff <(sort a) <(sort b)' with no temporary files."
+    }
+  ]
+}

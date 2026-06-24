@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch27",
+  "title": "Privilege, the Deep End",
+  "questions": [
+    {
+      "q": "Alice owns a read-only file inside a directory that Bob can write to. Can Bob delete that file, and why?",
+      "choices": ["No - the file is read-only, so nobody but the owner can remove it.", "Yes - deletion is a directory operation, so only write+execute on the directory matters; the file's own permissions are irrelevant.", "No - only root can delete files owned by another user.", "Yes - but only because the file is read-only; a writable file would be protected."],
+      "answer": 1,
+      "explain": "Removing a file means editing the directory's list of names, so the kernel checks write+execute on the directory, not the file. Bob can write the directory, so he can delete Alice's read-only file. The file's own mode is irrelevant - and the sticky bit exists precisely to stop this in shared folders."
+    },
+    {
+      "q": "What does the setuid bit do to an executable, and why is it considered a security minefield?",
+      "choices": ["It makes the program run as whoever launched it; risky because it can be launched by anyone.", "It makes the program run as the file's owner (often root); risky because any bug in it can become full root.", "It encrypts the program so only the owner can read it; risky because the key can be lost.", "It forces the program to ask for a password each time; risky because users reuse passwords."],
+      "answer": 1,
+      "explain": "A setuid binary runs with the file owner's identity, not the caller's - a setuid-root program is root the moment it starts. So any flaw (overflow, command injection, trusting $PATH, following a symlink) can hand an ordinary user full root. That is why capabilities are replacing it."
+    },
+    {
+      "q": "Why does the world-writable /tmp directory (drwxrwxrwt) not let users delete each other's files?",
+      "choices": ["Because of the setgid bit, which forces files into a shared group.", "Because the umask removes the write bit from other users' files.", "Because of the sticky bit (the trailing 't'), which restricts deletion to each file's owner.", "Because /tmp is mounted read-only for everyone except root."],
+      "answer": 2,
+      "explain": "The trailing 't' is the sticky bit. On a directory it overrides the normal rule that directory-write lets you delete anything inside, restricting deletion and renaming to each file's owner (or root). That is exactly what makes a shared, world-writable /tmp safe."
+    },
+    {
+      "q": "Why is granting a binary CAP_NET_BIND_SERVICE better than making it setuid-root, when all it needs is to listen on port 80?",
+      "choices": ["Capabilities run faster than setuid because they skip the kernel permission check.", "It grants only the single power to bind low ports, instead of handing the program all of root's powers.", "Capabilities cannot be audited, so attackers can't find them.", "It makes the binary run as the calling user, which is always safer."],
+      "answer": 1,
+      "explain": "Setuid-root gives a program every power root has and trusts it to behave. A capability hands over just one named slice - here, binding ports below 1024 - and nothing else. A smaller promise is a safer one, which is why capabilities are the modern replacement for setuid-root."
+    },
+    {
+      "q": "Why should you always edit sudoers with visudo and never give NOPASSWD on an editor like vim or a pager like less?",
+      "choices": ["visudo runs faster, and editors are simply slow to start under sudo.", "visudo syntax-checks before saving so a typo can't lock you out, and editors/pagers contain shell escapes that turn a narrow grant into full root.", "visudo encrypts the file, and editors leak the password to the screen.", "visudo backs up the file automatically, and editors overwrite the sudoers file when closed."],
+      "answer": 1,
+      "explain": "visudo refuses to save a broken sudoers file, preventing a single typo from locking you out of sudo entirely. And editors and pagers can spawn a root shell from inside themselves (see GTFOBins), so passwordless sudo on them quietly becomes full root."
+    }
+  ]
+}

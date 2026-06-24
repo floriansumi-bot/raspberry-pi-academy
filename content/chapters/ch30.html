@@ -1,0 +1,159 @@
+<p class="lead">You already met the friendly side of networking in the beginner lesson — connecting to Wi-Fi, finding your Pi's IP, opening an SSH session. This chapter goes deeper into what is actually happening underneath: how a single packet travels from an app, through the kernel, out the wire, and back to the right place; the modern toolset that has quietly replaced the commands half the internet still tells you to use; why DNS resolution almost never works the way people think it does; what SSH is <em>really</em> proving when it lets you in; and how containers get their own private networks out of nothing but the kernel. Your Pi 5 runs full Debian with a real Linux network stack, which makes it a wonderful little networking lab — you can run a tiny server on it and watch the connection from three angles at once, or hand-build the plumbing Docker uses, all on a board that costs less than a textbook. Take your time; this is one of those topics that feels like magic right up until it clicks, and then it feels obvious.</p>
+
+<div class="warn"><strong>Careful:</strong> The firewall and network-namespace work near the end of this lesson can lock you out of a headless Pi. A single wrong <code>nftables</code> default-drop rule will cut your SSH session and leave you unable to reconnect. Do that work on your Pi <strong>with a keyboard and screen attached</strong>, or on a spare Pi, or at the very least with a known way back in — never blind over SSH on a Pi you can't physically reach. The risky firewall project at the end is flagged with a ⚠️.</div>
+
+<h2 id="path-of-a-packet">The path of a packet</h2>
+
+<p>Everything in this lesson makes more sense once you can picture where a packet actually goes. When your program sends data, it does not talk to the network card directly — it writes into a <strong>socket</strong>, and the kernel takes over from there. Outbound, simplified:</p>
+
+<pre class="code"><code>app write()s to a socket
+  &rarr; kernel copies the bytes into a socket buffer
+  &rarr; transport layer: TCP segments / UDP datagrams, with source + dest PORTS
+  &rarr; IP layer: routing decision (which interface? &mdash; via the ROUTING TABLE)
+  &rarr; netfilter hooks: firewall / NAT (this is where nftables runs)
+  &rarr; device driver &rarr; the NIC &rarr; the wire</code></pre>
+
+<p>Inbound runs the same path in reverse. The clever part is the last step: when a packet arrives, the kernel has to decide <em>which of the hundreds of open sockets</em> it belongs to. It does that by <strong>demultiplexing</strong> on the 4-tuple — <code>(source IP:port, destination IP:port)</code>. That tuple is unique per connection, which is the whole reason a single web server listening on port 443 can serve thousands of clients at once: every connection is a different tuple, so the kernel never gets confused about which packet is whose.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A socket is the kernel's idea of "one end of a network conversation" — a thing your program reads from and writes to as if it were a file. A port is just a number that lets one machine host many conversations at once, and the 4-tuple is the full return address that keeps them all straight.</div>
+
+<h2 id="the-modern-toolset">The modern toolset (and the one you should stop using)</h2>
+
+<p>Here is a frustrating truth about Linux networking: most of the commands you will find in old blog posts and Stack Overflow answers are <strong>deprecated</strong>, and worse, they quietly show you an <em>incomplete</em> picture. Knowing the modern replacements is not pedantry — it is the difference between debugging the real state of your Pi and debugging a half-truth.</p>
+
+<div class="warn"><strong>Myth vs reality:</strong> <strong>Myth —</strong> "Use <code>ifconfig</code> to see your interfaces and <code>netstat</code> to see your ports." <strong>Reality —</strong> <code>ifconfig</code>, <code>netstat</code>, <code>route</code>, and <code>iptables</code> are all deprecated, and <code>ifconfig</code> in particular doesn't even show all of an interface's addresses. The maintained, accurate tools are the <code>iproute2</code> suite (<code>ip</code>, <code>ss</code>) and <code>nftables</code> (<code>nft</code>). They are already on your Pi. Use them.</div>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Old (avoid)</th><th>Modern</th><th>For</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>ifconfig</code></td><td><code>ip addr</code>, <code>ip link</code></td><td>interfaces &amp; addresses</td></tr>
+    <tr><td><code>route</code></td><td><code>ip route</code></td><td>the routing table</td></tr>
+    <tr><td><code>netstat</code></td><td><strong><code>ss</code></strong></td><td>sockets &amp; listening ports (faster, more complete)</td></tr>
+    <tr><td><code>arp</code></td><td><code>ip neigh</code></td><td>the ARP / neighbour table</td></tr>
+    <tr><td><code>iptables</code></td><td><strong><code>nftables</code> (<code>nft</code>)</strong></td><td>firewalling (one framework replacing iptables/ip6tables/arptables/ebtables)</td></tr>
+  </tbody>
+</table>
+
+<pre class="code"><code>ip -br addr                 # brief: each interface and its addresses
+ip route                    # the routing table; `ip route get 8.8.8.8` shows the chosen route + iface
+ss -tlnp                    # listening TCP sockets + the owning process (the netstat replacement)
+ss -tan state established   # every established TCP connection
+ip neigh                    # who's on my local segment (the ARP cache)</code></pre>
+
+<p><strong>The key insight:</strong> <code>ss -tlnp</code> is the command you will run a thousand times. It answers the single most common networking question — <em>"what is listening, on which port, owned by which process?"</em> — instantly and completely. On your Pi, start any little server and <code>ss -tlnp</code> will show you exactly where it landed.</p>
+
+<h2 id="dns-is-nsswitch">DNS resolution: it's nsswitch, not resolv.conf</h2>
+
+<p>This is the single most widespread misconception in all of Linux networking, so it is worth slowing down for. When a program resolves a name like <code>example.com</code>, it does not "do DNS" directly. It calls <code>getaddrinfo()</code>, and the <em>first</em> thing that function consults is the <code>hosts:</code> line in <code>/etc/nsswitch.conf</code>, which lists the <strong>sources to try, in order</strong>:</p>
+
+<pre class="code"><code># /etc/nsswitch.conf
+hosts: files mdns4_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] dns
+#      &larr; /etc/hosts     &larr; mDNS (.local)               &larr; systemd-resolved   &larr; classic DNS</code></pre>
+
+<ul>
+  <li><code>files</code> &rarr; <code>/etc/hosts</code>. This is checked <em>first</em>, which is precisely why a line in <code>/etc/hosts</code> can <strong>override</strong> whatever DNS would say.</li>
+  <li><code>mdns4_minimal</code> &rarr; multicast DNS, the magic that lets <code>raspberrypi.local</code> resolve on your LAN with no DNS server at all.</li>
+  <li>Only the final <code>dns</code> backend reads <code>/etc/resolv.conf</code> for its list of nameservers.</li>
+  <li>On systemd-resolved systems, the <code>resolve</code> backend queries a local stub listening at <strong><code>127.0.0.53</code></strong>, and <code>/etc/resolv.conf</code> is often just a symlink to a file that stub generates.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> The classic confusion — "I put the right nameserver in <code>/etc/resolv.conf</code> but resolution still does something weird" — is almost never <code>resolv.conf</code>'s fault. It is usually nsswitch ordering, a stale <code>/etc/hosts</code> entry winning before DNS ever runs, or the systemd-resolved stub at <code>127.0.0.53</code> in the middle. Chase the order, not the file.</div>
+
+<pre class="code"><code>dig example.com A           # query one specific record type
+dig +trace example.com      # walk the chain yourself: root &rarr; TLD &rarr; authoritative
+resolvectl status           # what systemd-resolved is actually doing (per-link servers, DNSSEC)
+getent hosts example.com    # resolve THE WAY APPS DO &mdash; through nsswitch, not just DNS</code></pre>
+
+<p>That last one is the tell: <code>dig</code> talks straight to a DNS server, but <code>getent hosts</code> goes through the exact same nsswitch path your applications use — so when <code>dig</code> and <code>getent</code> disagree, you have just proved the difference matters.</p>
+
+<h2 id="how-ssh-really-works">How SSH actually works</h2>
+
+<p>You SSH into your Pi all the time, but the part most people never picture is the <strong>asymmetry</strong> — there are two completely separate identity checks happening, in two directions. Four steps:</p>
+
+<ol>
+  <li><strong>TCP connect</strong> on port 22 (by default).</li>
+  <li><strong>Key exchange.</strong> Using something like ECDH, both sides derive a <em>shared symmetric session key</em> over the open, insecure channel — without ever transmitting that key. From this point on, all traffic is symmetrically encrypted.</li>
+  <li><strong>Host key verification.</strong> The <em>server</em> proves <em>its</em> identity using its <strong>host key</strong>, and your client checks that against <code>~/.ssh/known_hosts</code>. The famous "authenticity of host can't be established" prompt is simply <em>first contact</em> — you have never seen this Pi's host key before. A <em>changed</em>-key warning later means either the Pi was rebuilt (reflashed SD card &rarr; new host key) or someone is impersonating it.</li>
+  <li><strong>Client authentication.</strong> Now <em>you</em> prove who you are. With public-key auth, the server holds your <strong>public</strong> key in <code>~/.ssh/authorized_keys</code> and challenges you to prove you possess the matching <strong>private</strong> key — which <em>never leaves your machine</em>. Password auth is the weaker fallback.</li>
+</ol>
+
+<p><strong>The key insight:</strong> these are two independent proofs pointing in opposite directions. The <em>host key</em> authenticates the server to you; <em>your keypair</em> authenticates you to the server. Neither secret is ever sent across the wire. And everything fancy — local/remote/dynamic tunnels, <code>ProxyJump</code>, agent forwarding — all rides on top of that one already-established encrypted channel.</p>
+
+<pre class="code"><code>ssh-keygen -t ed25519 -C "you@host"     # a modern key (prefer ed25519 over RSA-2048)
+ssh-copy-id pi@raspberrypi.local         # install your PUBLIC key into the Pi's authorized_keys
+ssh -L 8080:localhost:3000 pi@raspberrypi  # LOCAL forward: your :8080 &rarr; the Pi's :3000
+ssh -R 8080:localhost:3000 pi@public       # REMOTE forward: expose a NAT'd local service outward
+ssh -D 1080 pi@raspberrypi                 # DYNAMIC: a SOCKS proxy tunnelled through the Pi</code></pre>
+
+<div class="jargon"><strong>In plain words:</strong> An SSH tunnel quietly carries some <em>other</em> connection inside your encrypted SSH session. <code>-L</code> (local) makes a port on your laptop pop out on the far side — handy for reaching a database or a dev server running on your Pi as if it were local. <code>-R</code> (remote) does the reverse, exposing something on your side out through the server. <code>-D</code> (dynamic) turns the whole thing into a general-purpose SOCKS proxy.</div>
+
+<h2 id="namespaces-and-veth">Network namespaces &amp; veth: container networking, the primitive</h2>
+
+<p>Here is the idea that makes container networking stop being mysterious. A <strong>network namespace</strong> is a private copy of the entire network stack: its own interfaces, its own routing table, its own firewall rules, its own port space. Two processes can <em>both</em> bind port 8080 with no conflict at all, as long as they live in different namespaces — because to the kernel they are on different networks entirely.</p>
+
+<p>But an isolated namespace with only a loopback interface can't talk to anything. To connect it to the outside world, you use a <strong>veth pair</strong> — a <em>virtual ethernet cable</em>. It always comes as two linked ends: whatever goes in one end comes out the other. You put one end inside the namespace and leave the other on the host (usually plugged into a bridge), and now the two can pass packets. That is the entire trick.</p>
+
+<pre class="code"><code>sudo ip netns add ns1
+sudo ip netns exec ns1 ip addr        # inside ns1: only loopback &mdash; a totally isolated stack
+# create a veth pair, move one end into ns1, give both ends IPs, and the two can ping each other
+nsenter -t &lt;pid&gt; -n ss -tlnp          # run ss INSIDE a running container's netns, from the host</code></pre>
+
+<p>This is the <em>exact</em> mechanism Docker and Podman use under the hood — when you run a container on your Pi, it gets a namespace and a veth pair stitched to a host bridge, and nothing more magical than that. You will assemble it by hand in the next chapter on containers, but the project below lets you wire two namespaces together today with zero containers involved.</p>
+
+<h2 id="nftables-firewall">Firewalling with nftables</h2>
+
+<p><code>nftables</code> replaces the whole sprawling <code>iptables</code> family with one clean framework. The most useful pattern is a <strong>default-drop</strong> input policy: deny everything by default, then explicitly allow only what you need. Here is a minimal, safe host policy for a Pi:</p>
+
+<pre class="code"><code># /etc/nftables.conf &mdash; default-drop input, but never lock yourself out
+table inet filter {
+  chain input {
+    type filter hook input priority 0; policy drop;
+    ct state established,related accept     # allow replies to connections WE started
+    iif "lo" accept                          # always allow loopback
+    tcp dport 22 accept                      # SSH &mdash; KEEP THIS or you lock yourself out of the Pi
+    ip protocol icmp accept                  # allow ping
+  }
+}</code></pre>
+
+<p>Two ideas carry this whole config. First, <strong>default-drop</strong>: the <code>policy drop</code> line means anything not explicitly accepted is silently discarded — a deny-by-default posture that is the heart of a good firewall. Second, <strong>stateful filtering</strong>: the <code>ct state established,related accept</code> line uses the kernel's connection tracker so that replies to connections <em>you</em> initiated come back in automatically. Without it, a default-drop policy would block the responses to your own outbound requests, and basic things like <code>apt update</code> would hang.</p>
+
+<div class="warn"><strong>Careful — the line that matters most:</strong> <code>tcp dport 22 accept</code> is what keeps your SSH session alive. If you load a default-drop ruleset on a headless Pi <em>without</em> an SSH-allow rule, your current session dies and you cannot reconnect — you are locked out of your own Pi. Always keep the SSH rule, test new rulesets with a keyboard and screen attached (or on a spare Pi), and have a way back in before you run <code>nft -f</code>. Friendlier front-ends like <code>ufw</code> and <code>firewalld</code> generate nftables rules underneath and make this a little harder to get wrong.</div>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<ol class="steps">
+  <li><strong>Run a server and watch it from every angle.</strong> On your Pi, launch <code>python3 -m http.server 8000</code>. In another session, while you <code>curl localhost:8000</code> from the Pi, find the listening socket with <code>ss -tlnp</code>, map the port to the process with <code>sudo lsof -i :8000</code>, and watch the raw packets with <code>sudo tcpdump -i lo port 8000</code>. You are now seeing the same single connection from three layers at once — socket, process-and-file-descriptor, and wire.</li>
+  <li><strong>DNS resolution lab.</strong> Run <code>dig +trace example.com</code> and watch the name resolve from the root servers downward — root, then the TLD, then the authoritative server. Now add a line to <code>/etc/hosts</code> pointing some name at <code>127.0.0.1</code>, and prove with <code>getent hosts thatname</code> that your <code>/etc/hosts</code> entry beats DNS — a hands-on demonstration of nsswitch ordering. Compare <code>dig</code> (pure DNS) against <code>getent</code> (the app path) and watch them disagree.</li>
+  <li><strong>SSH key auth + hardening.</strong> Generate an <code>ed25519</code> key on your laptop, install it onto the Pi with <code>ssh-copy-id</code>, and <strong>confirm key login works before changing anything else</strong>. Then in the Pi's <code>/etc/ssh/sshd_config</code> set <code>PasswordAuthentication no</code> and <code>PermitRootLogin no</code>, restart <code>sshd</code>, and optionally add <code>fail2ban</code>. You have just turned off the weakest door while keeping your own key working.</li>
+  <li><strong>⚠️ nftables host firewall.</strong> Write the default-drop ruleset above into <code>/etc/nftables.conf</code>, keeping the <code>tcp dport 22 accept</code> line. Load it with <code>sudo nft -f /etc/nftables.conf</code>, verify with <code>sudo nft list ruleset</code>, and confirm a <em>new</em> inbound port (try the <code>python3 -m http.server 8000</code> from project 1) is now blocked from another machine while your SSH session survives. Do this with a keyboard and screen on the Pi, or on a spare Pi — a mistake here cuts SSH and there is no remote undo.</li>
+</ol>
+
+<h2 id="go-deeper">Go deeper</h2>
+
+<ul>
+  <li><a href="https://jvns.ca/">Julia Evans — networking &amp; DNS zines/blog</a> — "How DNS works," tcpdump explainers, and the friendliest networking writing anywhere.</li>
+  <li><a href="https://beej.us/guide/bgnet/">Beej's Guide to Network Programming</a> — the classic free introduction to sockets in C; the layer everything above sits on.</li>
+  <li><a href="https://wiki.archlinux.org/title/Nftables">ArchWiki — nftables</a> — accurate, current, practical reference for the firewall framework (and its neighbours for network config and dnsmasq).</li>
+  <li><a href="https://blogs.igalia.com/dpino/2016/04/10/network-namespaces/">Network namespaces tutorial (Igalia / dpino)</a> — the canonical hands-on netns + veth walkthrough.</li>
+  <li><a href="https://goteleport.com/blog/ssh-tunneling-explained/">goteleport.com — SSH tunneling explained</a> — a clear treatment of <code>-L</code> / <code>-R</code> / <code>-D</code> forwarding.</li>
+</ul>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>socket</strong> - The kernel's endpoint of a network conversation that a program reads from and writes to; demultiplexed to the right connection by the 4-tuple of source/destination IP and port.</li>
+    <li><strong>4-tuple</strong> - The <code>(src IP:port, dst IP:port)</code> address that uniquely identifies a connection, letting one server port serve thousands of clients at once.</li>
+    <li><strong>ss</strong> - The modern, faster replacement for <code>netstat</code>; <code>ss -tlnp</code> shows what is listening, on which port, owned by which process.</li>
+    <li><strong>ip (iproute2)</strong> - The maintained replacement for the deprecated <code>ifconfig</code>/<code>route</code>/<code>arp</code>; manages interfaces, addresses, routes, and the neighbour table.</li>
+    <li><strong>nsswitch.conf</strong> - The file whose <code>hosts:</code> line sets the <em>order</em> of name-resolution sources (files, mDNS, DNS); the real reason resolution behaves as it does — not <code>resolv.conf</code>.</li>
+    <li><strong>resolv.conf</strong> - The file listing DNS nameservers, read only by the <code>dns</code> backend at the end of the nsswitch order; often a symlink to systemd-resolved's generated config.</li>
+    <li><strong>SSH host key</strong> - The key with which the <em>server</em> proves its identity to your client (checked against <code>~/.ssh/known_hosts</code>); one of SSH's two independent proofs.</li>
+    <li><strong>public-key auth</strong> - How <em>you</em> prove your identity to the server: it holds your public key in <code>authorized_keys</code> and challenges you to prove you hold the matching private key, which never leaves your machine.</li>
+    <li><strong>SSH tunnel</strong> - A connection carried inside the encrypted SSH session: <code>-L</code> local forward, <code>-R</code> remote forward, <code>-D</code> dynamic SOCKS proxy.</li>
+    <li><strong>network namespace</strong> - A private copy of the whole network stack (interfaces, routes, firewall, port space); the isolation primitive containers are built on.</li>
+    <li><strong>veth pair</strong> - A virtual ethernet "cable" of two linked ends used to connect a network namespace to the host; how containers reach the outside world.</li>
+    <li><strong>nftables</strong> - The modern firewall framework replacing the iptables family; supports stateful, default-drop policies via the kernel's connection tracker (<code>ct state</code>).</li>
+  </ul>
+</div>

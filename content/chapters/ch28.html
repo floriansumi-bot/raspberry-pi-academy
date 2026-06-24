@@ -1,0 +1,203 @@
+<p class="lead">In the last lesson you met a strange truth in passing: you can delete a file you can't write, and you can be locked out of deleting a file you fully own. The reason is the single idea this whole chapter is built on — <strong>a filename is not the file</strong>. The file is a numbered object called an <em>inode</em>; the name is just a pointer to it, kept in a directory. Once that clicks, a dozen Linux mysteries fall into place at once: why <code>mv</code> is instant, why deleting an open file doesn't free any space, why a backup of ten copies can cost the size of one. We're going deeper now — past the commands, into how storage really works underneath. And it's all real on your Pi, because your Pi boots off a microSD card or SSD running full Debian, and inodes, links, and journaling apply to every byte of it.</p>
+
+<h2 id="the-inode-the-file-behind-the-name">The inode: the file behind the name</h2>
+
+<p>When you create a file, the kernel quietly does two separate things. First it allocates an <strong>inode</strong> — a small numbered record holding everything about the file <em>except its name</em>: the owner, the permissions, the timestamps, the size, a count of how many names point at it, and the pointers to the actual data blocks on the disk. Then, second, it adds a <strong>directory entry</strong> — a single line in the parent directory that says "the name <code>notes.txt</code> means inode number 8472".</p>
+
+<p>So the name and the file are genuinely two different things, living in two different places. You can look at both:</p>
+
+<pre class="code"><code>ls -i notes.txt        # show just the inode number behind this name
+stat notes.txt         # the whole inode: size, blocks, link count, uid/gid, the three timestamps
+df -i                  # inode usage per filesystem -- yes, you can run OUT of inodes</code></pre>
+
+<div class="jargon"><strong>In plain words:</strong> A directory is just a phone book — a list mapping names to inode numbers. The inode is the actual person. The name in the book is only a way to look them up. Change the book and you change who answers to a name; you haven't touched the person.</div>
+
+<p>That <code>df -i</code> line hides a real-world gotcha worth knowing on a Pi. Each inode is a fixed slot, and a filesystem is created with a finite number of them. If you fill a card with millions of tiny files — think a runaway cache or a huge mail spool — you can run <strong>out of inodes</strong> while <code>df</code> still shows gigabytes free, and new files will fail with "No space left on device" even though there clearly is space. When that happens, <code>df -i</code> is the command that tells you the truth.</p>
+
+<p><strong>The key insight:</strong> the name is a pointer, and the inode is the real object. Almost everything else in this lesson is just that one fact playing out in different situations.</p>
+
+<h2 id="hard-links-vs-symlinks">Hard links vs symlinks</h2>
+
+<p>If a name is just a pointer to an inode, then nothing stops <em>two</em> names from pointing at the <em>same</em> inode. That's a <strong>hard link</strong>: a second directory entry for the exact same file. There's no "original" and no "copy" — both names are equal peers pointing at one inode, and the inode's <em>link count</em> simply goes up by one.</p>
+
+<p>A <strong>symbolic link</strong> (symlink, or soft link) is a completely different animal. It's a tiny file of its own, with its own inode, whose entire content is a <em>path string</em> — literally the text of where to look. Following it means reading that string and going to that path, wherever it leads.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Hard link</th>
+      <th>Symbolic (soft) link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>What it is</strong></td>
+      <td>another directory entry pointing at the <em>same inode</em></td>
+      <td>a tiny file whose content is a <em>path string</em></td>
+    </tr>
+    <tr>
+      <td><strong>Is there an "original"?</strong></td>
+      <td>no — all names are equal peers</td>
+      <td>yes — it points at a <em>name</em></td>
+    </tr>
+    <tr>
+      <td><strong>Can it cross filesystems?</strong></td>
+      <td>no (inode numbers are per-filesystem)</td>
+      <td>yes</td>
+    </tr>
+    <tr>
+      <td><strong>Can it point to a directory?</strong></td>
+      <td>no (generally)</td>
+      <td>yes</td>
+    </tr>
+    <tr>
+      <td><strong>If the target moves or is deleted?</strong></td>
+      <td>unaffected — data lives until link count hits 0</td>
+      <td><strong>breaks</strong> — becomes a dangling link</td>
+    </tr>
+    <tr>
+      <td><strong>How you make one</strong></td>
+      <td><code>ln a b</code></td>
+      <td><code>ln -s target name</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<pre class="code"><code>echo hi &gt; a
+ln a b               # hard link: 'ls -i' now shows a and b with the SAME inode number
+rm a                 # b still works perfectly -- the data is freed only when link count -> 0
+ln -s /etc/hosts h   # soft link: h's content is literally the string "/etc/hosts"</code></pre>
+
+<p>That difference in the last two rows is where people get burned, so it's worth saying plainly. A hard link doesn't care what happens to the other names — delete every other entry and the data stays alive as long as <em>one</em> name (one link) remains. A symlink, by contrast, only remembers a <em>path</em>. Move or rename the thing it points at and the symlink doesn't follow; it just keeps pointing at a path where nothing lives any more — a <strong>dangling</strong> link. <code>ls</code> often shows these in an alarming red.</p>
+
+<p><strong>The key insight:</strong> a hard link points at the <em>file</em> (the inode); a symlink points at a <em>name</em>. That's why moving the target breaks one and not the other.</p>
+
+<h2 id="why-mv-is-instant">Why mv is instant — and why moving across disks isn't</h2>
+
+<p>Here's a satisfying payoff. When you <code>mv</code> a 100 GB file to a new location <em>on the same filesystem</em>, it happens instantly. No progress bar, no waiting. Why? Because a move within one filesystem doesn't touch the data at all — it just <strong>rewrites a directory entry</strong>. The inode never changes; only the name pointing at it does. Renaming is editing the phone book, not moving the person.</p>
+
+<p>But <code>mv</code> that same file to a <em>different</em> filesystem — say from the microSD card to a USB drive — and suddenly it takes real time. That's because the destination is a separate filesystem with its own, separate set of inode numbers. There's no way to just re-point a name; the data has to be genuinely <em>copied</em> across and then the original deleted. Same command, completely different amount of work, and now you know why.</p>
+
+<p>This is also exactly why hard links can't cross filesystems: a hard link is two names sharing one inode number, and an inode number only means anything <em>within its own filesystem</em>. A symlink can cross freely because it stores a path string, which works anywhere.</p>
+
+<h2 id="deleting-an-open-file">The myth of "rm frees space"</h2>
+
+<p>This one surprises almost everyone, and it's the source of a classic Pi headache: a disk that's mysteriously full with nothing to show for it.</p>
+
+<div class="warn"><strong>Myth vs reality:</strong> <strong>Myth —</strong> "When I <code>rm</code> a file, its disk space is freed immediately." <strong>Reality —</strong> <code>rm</code> performs an <em>unlink</em>: it removes the <strong>name</strong> and decrements the inode's link count. The inode and its data blocks are freed only when the link count reaches 0 <strong>and no process still has the file open</strong>. So if a running program is holding the file, deleting its name frees nothing — the program keeps reading and writing it happily, and the disk space stays consumed until that program closes the file or exits.</div>
+
+<p>This is the "phantom disk space" bug in the flesh. A log file grows huge, someone <code>rm</code>s it to reclaim space, but the service that writes the log still has it open — so the space never comes back. The tell-tale sign is that <code>df</code> (which asks the filesystem how full it is) reports the disk nearly full, while <code>du</code> (which adds up the files it can actually <em>see</em> by name) reports far less. The gap between them is space held hostage by deleted-but-still-open files.</p>
+
+<pre class="code"><code>df -h /                       # filesystem says: nearly full
+du -sh / 2&gt;/dev/null          # adding up visible files says: much less -- where's the rest?
+sudo lsof +L1                 # the smoking gun: open files whose link count has dropped to 0
+sudo lsof | grep deleted     # same idea, shown as '(deleted)' next to the path</code></pre>
+
+<p>The fix is simply to make the process let go: restart the service (or, more surgically, truncate the file through its open file descriptor). And far from being a bug, this behaviour is a <em>feature</em> that log rotation depends on — a logger can keep writing to a file that's already been unlinked and replaced, with no gap and no crash, exactly because the open descriptor keeps the old inode alive until the process is told to reopen.</p>
+
+<h2 id="the-fhs">The FHS: where things live and why</h2>
+
+<p>Now that you trust the plumbing, a quick map of the house. The <strong>Filesystem Hierarchy Standard</strong> gives every top-level directory a defined job, so software written anywhere knows where to put things. On your Pi these are the ones worth committing to memory:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Path</th>
+      <th>What it holds</th>
+      <th>Mnemonic</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>/etc</code></td><td>system <strong>config</strong>, as plain text files</td><td>"editable text config"</td></tr>
+    <tr><td><code>/var</code></td><td><strong>variable</strong> data: logs (<code>/var/log</code>), spools, caches, databases</td><td>grows over time</td></tr>
+    <tr><td><code>/usr</code></td><td>read-only installed programs &amp; data (<code>/usr/bin</code>, <code>/usr/lib</code>)</td><td>the "installed software" tree</td></tr>
+    <tr><td><code>/bin /sbin /lib</code></td><td>core binaries — now usually <strong>symlinks into <code>/usr</code></strong> ("usr-merge")</td><td>legacy → unified</td></tr>
+    <tr><td><code>/opt</code></td><td>self-contained third-party packages</td><td>"optional" add-ons</td></tr>
+    <tr><td><code>/srv</code></td><td>data this host serves out (web, ftp)</td><td>"served"</td></tr>
+    <tr><td><code>/run</code></td><td>volatile runtime state (PIDs, sockets) — a tmpfs, gone on reboot</td><td>RAM-backed</td></tr>
+    <tr><td><code>/tmp</code></td><td>scratch space (often tmpfs; cleaned on boot)</td><td>throwaway</td></tr>
+    <tr><td><code>/home</code></td><td>user home directories (your <code>/home/pi</code>)</td><td>you</td></tr>
+    <tr><td><code>/proc /sys /dev</code></td><td><strong>virtual</strong> — kernel-generated, not on disk</td><td>windows into the kernel</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> Those last three — <code>/proc</code>, <code>/sys</code>, <code>/dev</code> — and <code>/run</code> aren't really "on the card" at all. They're <strong>virtual filesystems</strong>: <code>/proc</code> and <code>/sys</code> are live windows the kernel paints for you, and <code>/run</code> and often <code>/tmp</code> are <strong>tmpfs</strong>, which lives in RAM and vanishes at reboot. Fast, but never put anything there you want to keep.</div>
+
+<h2 id="journaling">Journaling: surviving a power cut</h2>
+
+<p>Pis get unplugged. No clean shutdown, just the cord — and yet the card almost always comes back fine. That's <strong>journaling</strong> doing its job. A journal is a small write-ahead log: before the filesystem makes a change, it writes down its <em>intention</em> to make that change. Then it does the work. If the power dies mid-write, the filesystem on the next boot simply <strong>replays the journal</strong> to finish or undo the half-done operation — a few seconds — instead of laboriously scanning every inode on the whole card with <code>fsck</code>.</p>
+
+<p>Your Pi's ext4 filesystem journals by default in a mode called <code>data=ordered</code>: it journals the metadata, but guarantees the actual <em>data</em> is safely on the disk <em>before</em> the metadata that points to it is committed. That ordering is the pragmatic sweet spot — it protects you from the worst corruption without the speed cost of journaling every byte twice.</p>
+
+<div class="tip"><strong>Tip:</strong> Journaling protects the filesystem's <em>structure</em>, not necessarily the last few seconds of your <em>data</em>. For a Pi that gets yanked off power a lot, still shut down cleanly when you can — and keep backups (see the last project).</div>
+
+<h2 id="ext4-vs-the-big-servers">What your Pi uses (ext4) vs what big servers use</h2>
+
+<p>Raspberry Pi OS formats your card as <strong>ext4</strong>, and that's the right default: boring, reliable, and bulletproof. But it's worth knowing what the bigger filesystems add, because the comparison teaches one genuinely beautiful idea — copy-on-write.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Filesystem</th>
+      <th>Character</th>
+      <th>Reach for it when</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>ext4</strong></td><td>the reliable default (what your Pi uses); journaling, extents; no snapshots or checksums</td><td>you want boring and bulletproof</td></tr>
+    <tr><td><strong>XFS</strong></td><td>high-throughput, great with huge files and many parallel writers; can grow but <em>not shrink</em></td><td>big data, many parallel writers</td></tr>
+    <tr><td><strong>btrfs</strong></td><td><strong>copy-on-write</strong>: snapshots, subvolumes, checksums (catches bit-rot), built-in RAID, compression</td><td>snapshots &amp; integrity on Linux-native storage</td></tr>
+    <tr><td><strong>ZFS</strong></td><td>the integrity gold standard: CoW, end-to-end checksums, snapshots, volume management + RAID-Z; RAM-hungry</td><td>data you must not lose — NAS and storage servers</td></tr>
+  </tbody>
+</table>
+
+<p>The magic word in the bottom two rows is <strong>copy-on-write</strong> (CoW). On btrfs and ZFS, taking a snapshot is nearly instant and nearly free, because <em>nothing is actually copied</em>. A snapshot just says "remember all the blocks exactly as they are right now" and shares them. Only when a block later <em>changes</em> does the filesystem write a fresh copy of that one block, leaving the old one in place for the snapshot to keep pointing at. Hence the name: copy <em>on write</em>, not before.</p>
+
+<p><strong>The key insight:</strong> a CoW snapshot of a 50 GB volume costs essentially zero space and zero time at first, then grows only by the size of what you change afterwards. That's what makes effortless point-in-time rollbacks possible on the big servers — and, interestingly, the same dedup idea is exactly what we'll use to fake snapshots on your plain ext4 Pi in the last project, using hard links.</p>
+
+<h2 id="lvm">LVM: a flexible layer beneath the filesystem</h2>
+
+<p>One more layer to name, because you'll meet it on bigger Linux boxes even if your Pi doesn't use it by default. <strong>LVM</strong> (the Logical Volume Manager) sits <em>between</em> raw disks and the filesystem, turning rigid partitions into a flexible, resizable pool:</p>
+
+<pre class="code"><code>physical disks  ->  PV (physical volume)  ->  VG (volume group = a pool)  ->  LV (logical volume)  ->  filesystem</code></pre>
+
+<p>With LVM you can grow a "partition" across several disks, snapshot it, or migrate it to new hardware — all without repartitioning. It's a software-defined, stretchy abstraction over the physical disks. (btrfs and ZFS fold this same capability <em>into</em> the filesystem; with ext4 or XFS you add LVM underneath to get it.) To see the whole stack of disks, partitions, and mounts on any Linux box:</p>
+
+<pre class="code"><code>lsblk                  # the block-device tree: disks -> partitions -> mountpoints
+findmnt                # what's mounted where, as a readable tree
+mount | column -t      # the same information, one mount per line</code></pre>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<ol class="steps">
+  <li><strong>Watch an inode and a link count with your own eyes.</strong> Run <code>echo hi &gt; a</code>, then <code>ls -li a</code> and note the inode number and the link count (the small number after the permissions). Now hard-link it twice with <code>ln a b</code> and <code>ln a c</code>, and add a symlink with <code>ln -s a s</code>. Run <code>ls -li a b c s</code>: <code>a</code>, <code>b</code>, and <code>c</code> all share one inode number and the link count now reads 3, while <code>s</code> has its own inode and an arrow pointing at <code>a</code>. Finally delete the "original" with <code>rm a</code>: confirm <code>b</code> and <code>c</code> still print "hi" perfectly (the data lives on, link count now 2) but <code>s</code> is now <strong>dangling</strong> and broken. Explain every number out loud — that's the lesson.</li>
+  <li><strong>Prove that deleting an open file frees nothing.</strong> In one terminal, start a process that holds a file open and keeps writing: <code>yes &gt; /tmp/big.log &amp;</code> (let it grow for a few seconds, then note the size). In a second terminal, watch <code>df -h /tmp</code> shrink. Now <code>rm /tmp/big.log</code> — and watch <code>df</code> <em>not</em> recover the space, while <code>du -sh /tmp</code> can't even see the file any more. Run <code>sudo lsof +L1</code> or <code>sudo lsof | grep deleted</code> to find the still-open deleted file. Then <code>kill</code> the <code>yes</code> process and watch <code>df</code> finally jump back. You just reproduced the phantom-disk bug — and the mechanism log rotation relies on.</li>
+  <li><strong>Build a Time-Machine-style backup with <code>rsync --link-dest</code>.</strong> Plug in a USB drive. Make a snapshots folder on it, then back up your home directory so that <em>unchanged</em> files are hard-linked to the previous snapshot instead of copied: <code>rsync -a --link-dest=/mnt/usb/backups/latest /home/pi/ /mnt/usb/backups/$(date +%F-%H%M)/</code>, then repoint a <code>latest</code> symlink at the new snapshot. Run it twice with a small change in between, and check the disk usage: ten snapshots of a 1 GB home folder cost roughly 1 GB plus only what changed, because every unchanged file is one inode shared across all snapshots. You've just rebuilt copy-on-write snapshots out of plain ext4 and hard links.</li>
+</ol>
+
+<h2 id="go-deeper">Go deeper</h2>
+
+<ul>
+  <li><a href="https://nostarch.com/howlinuxworks3">How Linux Works, 3rd ed. — ch. 4 (disks &amp; filesystems)</a> — the clearest book treatment of inodes, mounts, and LVM. (Paid)</li>
+  <li><a href="https://wiki.archlinux.org/title/File_systems">ArchWiki — File systems / LVM / Btrfs</a> — accurate, practical, and distro-agnostic. (Free)</li>
+  <li><a href="https://man7.org/tlpi/">The Linux Programming Interface, ch. 14–18 (files, directories, links)</a> — the syscall-level truth about inodes and links. (Paid)</li>
+  <li><a href="https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html">Filesystem Hierarchy Standard 3.0</a> — the actual spec for what goes where. (Free)</li>
+</ul>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>inode</strong> - The real file object: a numbered record holding metadata (owner, permissions, timestamps, size, link count) and pointers to the data blocks — everything <em>except</em> the name.</li>
+    <li><strong>directory entry</strong> - A single line in a directory mapping a name to an inode number; this is where a filename actually lives.</li>
+    <li><strong>hard link</strong> - A second directory entry pointing at the same inode; an equal peer, not a copy. The data survives until the inode's link count drops to 0.</li>
+    <li><strong>symlink (soft link)</strong> - A tiny file whose content is a path string; it points at a <em>name</em>, so it breaks (dangles) if the target is moved or deleted.</li>
+    <li><strong>link count</strong> - The number of hard links (names) pointing at an inode; the data is freed only when this reaches 0 and no process holds the file open.</li>
+    <li><strong>unlink</strong> - What <code>rm</code> really does: remove a name and decrement the link count, rather than directly erase data.</li>
+    <li><strong>FHS (Filesystem Hierarchy Standard)</strong> - The standard giving each top-level directory (<code>/etc</code>, <code>/var</code>, <code>/usr</code>…) a defined job.</li>
+    <li><strong>journaling</strong> - A write-ahead log of intended changes that lets a filesystem replay (not full-scan) after a crash; ext4 on the Pi uses <code>data=ordered</code>.</li>
+    <li><strong>copy-on-write (CoW)</strong> - The btrfs/ZFS technique where a snapshot shares blocks and a fresh copy of a block is written only when it changes — making snapshots near-instant and near-free.</li>
+    <li><strong>tmpfs</strong> - A RAM-backed filesystem (<code>/run</code>, often <code>/tmp</code>) that is fast and volatile — gone at reboot.</li>
+    <li><strong>LVM (Logical Volume Manager)</strong> - A resizable abstraction (PV → VG → LV) between raw disks and the filesystem, allowing growth, migration, and snapshots without repartitioning.</li>
+  </ul>
+</div>

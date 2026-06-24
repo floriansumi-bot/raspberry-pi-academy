@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch31",
+  "title": "Demystifying Docker",
+  "questions": [
+    {
+      "q": "In the Linux kernel, what exactly is a 'container'?",
+      "choices": [
+        "A special kernel object created by a dedicated create_container() system call",
+        "An ordinary process placed into namespaces and cgroups, usually with its own root filesystem",
+        "A lightweight virtual machine with its own emulated kernel",
+        "A feature provided only by Docker that the kernel itself knows nothing about until Docker is installed"
+      ],
+      "answer": 1,
+      "explain": "There is no 'container' object in the kernel and no create_container() call. A container is just a normal process that the kernel has put into namespaces (changing what it can see) and cgroups (limiting what it can use), usually with a swapped-in root filesystem. Docker, Podman, and Kubernetes are orchestration glue over those primitives."
+    },
+    {
+      "q": "Why is the user namespace considered the security keystone of containers?",
+      "choices": [
+        "It encrypts all traffic leaving the container",
+        "It limits how much CPU and memory the container can consume",
+        "It maps in-container UID 0 (root) to an unprivileged UID on the host, so a breakout does not hand over real root",
+        "It hides the host's process list from the container"
+      ],
+      "answer": 2,
+      "explain": "Inside a user namespace a process can be 'root' (UID 0) internally while mapping to a powerless high UID on the host. So even a container breakout lands the attacker as nobody, not host root. This is exactly what makes rootless containers (Podman, rootless Docker) safe."
+    },
+    {
+      "q": "cgroups v2 are used to do what for a container?",
+      "choices": [
+        "Give it a private network stack with its own interfaces and routes",
+        "Limit and account the resources it uses, such as CPU, memory, I/O, and process count",
+        "Provide it with a separate root filesystem to live in",
+        "Make its first process appear as PID 1"
+      ],
+      "answer": 1,
+      "explain": "Namespaces isolate visibility; cgroups limit resources. cgroup v2 caps CPU, memory, I/O, and PIDs through a filesystem interface — you literally write numbers into files like cpu.max and memory.max. That is what 'docker run --cpus' and '--memory' do under the hood."
+    },
+    {
+      "q": "What is the difference between 'unshare' and 'nsenter'?",
+      "choices": [
+        "'unshare' creates new namespaces to build a container; 'nsenter' enters the existing namespaces of a running process to debug it",
+        "'unshare' limits CPU usage; 'nsenter' limits memory usage",
+        "'unshare' is for Docker only; 'nsenter' is for Podman only",
+        "They are aliases for the same command with no real difference"
+      ],
+      "answer": 0,
+      "explain": "They are mirror images. 'unshare' makes brand-new namespaces and runs a process inside them — that is how you build a container by hand. 'nsenter' joins the namespaces a process is already in — perfect for debugging a running container, even one too minimal to have its own shell."
+    },
+    {
+      "q": "Inside a container with its own PID namespace, your application runs as PID 1. Why does 'docker run --init' inject a tiny init such as tini?",
+      "choices": [
+        "Because containers cannot start without a process named 'tini'",
+        "Because PID 1 must reap orphaned zombies and forward signals, and most apps were not written to do that job",
+        "Because tini decrypts the container image before it runs",
+        "Because the kernel refuses to assign PID 1 to anything but a dedicated init binary"
+      ],
+      "answer": 1,
+      "explain": "PID 1 has special duties: reaping zombie children and forwarding signals like SIGTERM. An ordinary app running as PID 1 usually does neither, so 'docker stop' ends up SIGKILLing it ungracefully and zombies pile up. '--init' drops in a small, correct init (tini or dumb-init) to handle those duties — the same PID-1 responsibility from ordinary Linux, surfacing in a container."
+    }
+  ]
+}

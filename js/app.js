@@ -54,7 +54,7 @@ function maybeBoot() {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const lines = [
     'Pilot OS 1.0  (Raspberry Pi 5, 16GB)', 'BCM2712 Cortex-A76 @ 2.4GHz ... OK',
-    'Mounting course content ............ OK', 'Loading 24 lessons ................. OK',
+    'Mounting course content ............ OK', 'Loading 34 lessons ................. OK',
     'GPIO sandbox ....................... READY', 'Terminal engine .................... READY',
     'Welcome aboard.'
   ];

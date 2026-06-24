@@ -1,0 +1,155 @@
+<p class="lead">Every time you type a command on your Pi, something quietly remarkable happens underneath: a process is born, runs your program, and dies — and the shell is right there to catch its last breath. In this chapter we go deeper than "type a command and watch it run." You'll see <em>how</em> processes are actually created, why "zombie" and "orphan" mean very different things, how a single keystroke like Ctrl-C turns into a signal, and the real difference between <code>&amp;</code>, <code>nohup</code>, and <code>disown</code>. Your Pi 5 runs full Debian with systemd and bash, so every word here applies to the little board on your desk.</p>
+
+<h2 id="fork-and-exec">fork + exec: the two-step behind everything</h2>
+
+<p>Here's a fact that surprises most people: on Linux, a brand-new process is <strong>never</strong> created from nothing. There is no "make me a fresh program" button. Instead, Unix has exactly two moves, and your shell uses them millions of times a day.</p>
+
+<ul>
+  <li><strong><code>fork()</code></strong> — clone the current process. You now have two nearly identical processes: the parent and a child copy. The child even keeps the same open files.</li>
+  <li><strong><code>exec()</code></strong> — replace the program running inside a process with a different one, <em>keeping the same PID and the same open files</em>. The memory gets overwritten with the new program, but the wrapper stays.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> Think of <code>fork</code> as a photocopier that duplicates a worker, and <code>exec</code> as that copy taking off its uniform and putting on a completely different one — same employee badge number, brand-new job. The shell forks a copy of itself, and the copy then "becomes" <code>ls</code> by calling <code>exec</code>.</div>
+
+<p>When you run <code>ls</code> in your Pi's terminal, this is the dance:</p>
+
+<pre class="code"><code>shell process
+   | fork()              clone: child is a near-identical copy (same open files!)
+   v
+child (still the shell's code)
+   | set up redirections  rearrange files 0/1/2 here, because they survive exec
+   | exec("/bin/ls")      overwrite memory with ls; SAME pid, SAME open files
+   v
+child is now ls, already wired up to your terminal
+   | exit(0)
+   v
+shell wait()s, collects the exit code -&gt; $?</code></pre>
+
+<p><strong>The key insight:</strong> shell redirection (the <code>&gt;</code>, <code>&lt;</code>, and <code>|</code> you've already met) works <em>because</em> <code>fork</code> preserves the file table and <code>exec</code> does not reset it. The shell forks, the child quietly points its output at your file, <em>then</em> execs your command — which inherits the redirected output and never even knows it was redirected. One model, two parts, endless consequences.</p>
+
+<div class="tip"><strong>Tip:</strong> You can watch this happen for real on your Pi. Run <code>strace -f -e trace=clone,execve,wait4 bash -c 'ls &gt; /tmp/x'</code> and you'll see the <code>clone</code> (fork), the <code>execve</code>, and the <code>wait4</code> with your own eyes. Install it first with <code>sudo apt install strace</code>.</div>
+
+<h2 id="the-process-tree">The process tree, PID 1, orphans &amp; zombies</h2>
+
+<p>Every process on your Pi has a parent, recorded as its <strong>PPID</strong> (parent process ID). Follow those parents upward and you always arrive at the same place: <strong>PID 1</strong>, which on a modern Pi is <code>systemd</code>. The kernel starts PID 1 at boot, and the whole tree grows from there.</p>
+
+<pre class="code"><code>pstree -p                          # the whole tree, with PIDs
+ps -eo pid,ppid,stat,cmd           # STAT column: Z=zombie  D=uninterruptible  S=sleep  R=running  +=foreground</code></pre>
+
+<p>Two states confuse almost everyone, so let's pin them down precisely.</p>
+
+<h3>Zombie (the misunderstood one)</h3>
+
+<p>A <strong>zombie</strong> — shown as <code>Z</code> or "defunct" — is a process that has <em>already exited</em> but whose parent hasn't yet called <code>wait()</code> to collect its exit status. A zombie holds <em>no memory</em> and runs no code. It is just a PID and an exit code lingering in the process table, waiting to be read.</p>
+
+<div class="warn"><strong>Careful:</strong> You <strong>cannot kill a zombie</strong> — it is already dead. <code>kill -9</code> does nothing to it, because there is nothing left to kill. A pile of zombies means the <em>parent</em> is buggy and isn't reaping its children. The fix is always to fix or kill the <strong>parent</strong>, which lets PID 1 clean up the leftovers.</div>
+
+<h3>Orphan (the harmless one)</h3>
+
+<p>An <strong>orphan</strong> is a process whose parent died first. The kernel notices and <strong>re-parents it to PID 1</strong>, which dutifully reaps it when it finishes. Orphans are completely normal and harmless.</p>
+
+<p><strong>The key insight:</strong> a zombie is a <em>pathology</em> (a parent that forgot its job); an orphan is <em>routine</em> (the system tidying up automatically). They sound similar but they are opposites in spirit.</p>
+
+<div class="note"><strong>Note:</strong> This matters more than it looks, especially when you start running containers on your Pi later. Inside a container, <em>your app is often PID 1</em>. If it doesn't reap children and forward signals the way a real init does, you get zombie buildup and <code>docker stop</code> hangs (because nothing handles the shutdown signal). That's exactly why <code>docker run --init</code> and tools like <code>tini</code> exist. PID 1 is special — and now you know why.</div>
+
+<h2 id="signals">Signals — the precise, commonly-botched distinctions</h2>
+
+<p>A <strong>signal</strong> is a short, asynchronous notification the kernel delivers to a process — a tap on the shoulder saying "something happened, deal with it." A handful matter day to day, and the differences between them trip people up constantly.</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Signal</th><th>#</th><th>Catchable?</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>SIGTERM</strong></td><td>15</td><td>yes</td><td>"Please shut down." The polite default of <code>kill</code>. The app gets to clean up first.</td></tr>
+    <tr><td><strong>SIGINT</strong></td><td>2</td><td>yes</td><td>Ctrl-C — interrupt the program running in the foreground.</td></tr>
+    <tr><td><strong>SIGHUP</strong></td><td>1</td><td>yes</td><td>Originally "the terminal hung up"; now widely repurposed as "reload your config" for daemons (e.g. <code>nginx -s reload</code>).</td></tr>
+    <tr><td><strong>SIGKILL</strong></td><td>9</td><td><strong>NO</strong></td><td>Uncatchable, unblockable, unignorable. The kernel destroys the process outright. No cleanup runs.</td></tr>
+    <tr><td><strong>SIGSTOP / SIGCONT</strong></td><td>19 / 18</td><td>STOP: no</td><td>Pause / resume. The basis of Ctrl-Z plus <code>fg</code> and <code>bg</code>.</td></tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Myth vs reality:</strong> The myth is "<code>kill -9</code> is how you kill a process." The reality is that <code>kill -9</code> (SIGKILL) is the <strong>brutal last resort</strong>. Because it can't be caught, the process gets <em>no chance</em> to flush buffers, finish writes, release locks, or reap its own children — so you can corrupt data, strand locks, and leave zombies behind. Always send SIGTERM first (plain <code>kill PID</code>, no flag) and escalate to <code>-9</code> only if the process ignores you. And SIGKILL isn't even omnipotent: a process stuck in <strong>uninterruptible sleep</strong> (state <code>D</code>, blocked inside a syscall — usually waiting on disk or a slow USB drive on your Pi) won't die even to SIGKILL until that I/O completes.</div>
+
+<pre class="code"><code>kill -l                    # list every signal name and number
+kill 1234                  # polite: sends SIGTERM
+kill -TERM 1234            # exactly the same, but explicit
+kill -HUP $(pgrep nginx)   # tell nginx to reload its config
+kill -9 1234              # SIGKILL — only after TERM has been ignored</code></pre>
+
+<h2 id="background-and-detach">&amp;, nohup, disown — three different things people conflate</h2>
+
+<p>You'll often want a long job to keep running on your Pi while you do something else — or even after you close the terminal or log out over SSH. Three tools get mixed up here, and they work by genuinely different mechanisms.</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>You run</th><th>Mechanism</th><th>Survives terminal close?</th><th>Redirects output?</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>cmd &amp;</code></td><td>Background job, still a child of the shell</td><td>Often <strong>no</strong> (gets SIGHUP)</td><td>No</td></tr>
+    <tr><td><code>nohup cmd &amp;</code></td><td>Sets the process to <strong>ignore SIGHUP</strong>; sends output to <code>nohup.out</code></td><td><strong>Yes</strong></td><td>Yes</td></tr>
+    <tr><td><code>cmd &amp;</code> then <code>disown</code></td><td>Removes the job from the <strong>shell's</strong> job table, so it won't be sent SIGHUP on exit</td><td><strong>Yes</strong></td><td>No</td></tr>
+  </tbody>
+</table>
+
+<p><strong>The key insight:</strong> they solve overlapping problems by <em>different mechanisms</em>. <code>nohup</code> changes the process's signal disposition <em>before</em> launch. <code>disown</code> changes the <em>shell's bookkeeping</em> <em>after</em> launch. Plain <code>&amp;</code> does neither robustly — it just runs the job in the background and crosses its fingers.</p>
+
+<div class="tip"><strong>Tip:</strong> For real detachment on a Pi you SSH into, the modern answers are nicer than any of these. Use a <strong>tmux</strong> or <strong>screen</strong> session for interactive work you want to reconnect to later, or a proper <strong>systemd service</strong> (or <code>systemd-run --user --scope</code>) for anything that should outlive your login and restart on boot. You'll meet systemd services properly a little later.</div>
+
+<h2 id="job-control">Job control &amp; sessions (where Ctrl-C and Ctrl-Z come from)</h2>
+
+<p>Here's where those familiar keystrokes finally make sense. A terminal <strong>session</strong> has exactly one <strong>foreground process group</strong> and any number of background groups. When you build a pipeline like <code>a | b | c</code>, all three commands join a <em>single</em> process group — which is why one Ctrl-C stops the whole pipeline at once, not just the last stage.</p>
+
+<p>The terminal translates your keystrokes into signals sent to the foreground group:</p>
+
+<ul>
+  <li><strong>Ctrl-C</strong> sends SIGINT — interrupt.</li>
+  <li><strong>Ctrl-\</strong> sends SIGQUIT — interrupt plus a core dump.</li>
+  <li><strong>Ctrl-Z</strong> sends SIGTSTP — suspend. Then <code>bg</code> resumes it in the background, <code>fg</code> pulls it back to the foreground, and <code>jobs</code> lists what you've got.</li>
+</ul>
+
+<pre class="code"><code>sleep 1000        # now press Ctrl-Z to suspend it
+jobs              # [1]+  Stopped    sleep 1000
+bg %1             # resume it in the background
+fg %1             # pull it back to the foreground</code></pre>
+
+<div class="jargon"><strong>In plain words:</strong> "Foreground" just means the program currently holding the keyboard — the one your typing and Ctrl-C go to. "Background" jobs are still running but no longer connected to your keystrokes. Job control is simply your shell letting you shuffle programs between those two states.</div>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<p>These hands-on labs drive every idea above. They're safe to run on your everyday Pi, but if you'd rather experiment freely, do them on a spare microSD card you can re-flash if anything goes sideways.</p>
+
+<ol class="steps">
+  <li><strong>Signals &amp; job-control survey.</strong> Start a <code>sleep 500</code>, suspend it with Ctrl-Z, then juggle it with <code>jobs</code>, <code>bg %1</code>, and <code>fg %1</code>. Open a second terminal, find its PID with <code>pgrep sleep</code>, and send it <code>kill -STOP</code> then <code>kill -CONT</code> then <code>kill -TERM</code>. Prove to yourself that SIGTERM ends it cleanly.</li>
+  <li><strong>SIGKILL can't be trapped.</strong> Write a tiny bash script with <code>trap 'echo caught' SIGTERM</code> and an infinite loop. Send it SIGTERM and watch it print "caught" — then send <code>kill -9</code> and watch it vanish without a word. You've just felt the difference between catchable and uncatchable.</li>
+  <li><strong>Zombie &amp; orphan lab.</strong> Make a zombie (a parent that forks a child, the child exits, but the parent never waits) and an orphan (a parent that exits before its child). Watch both with <code>ps -eo pid,ppid,stat,cmd</code> and <code>pstree -p</code>. Confirm you <em>cannot</em> <code>kill -9</code> the zombie, and that the orphan's PPID has become 1.</li>
+  <li><strong>Graceful shutdown handler.</strong> Write a worker script that <code>trap</code>s SIGTERM and SIGINT, finishes its in-flight task, deletes its temp files, and <em>then</em> exits — instead of dying instantly. In bash: <code>trap 'cleanup' SIGTERM SIGINT EXIT</code>. This is exactly the pattern a well-behaved systemd service or container app must follow to shut down cleanly.</li>
+</ol>
+
+<h2 id="go-deeper">Go deeper</h2>
+
+<ul>
+  <li><a href="https://mywiki.wooledge.org/ProcessManagement">Greg's Wiki — ProcessManagement</a> — the correct, myth-free reference on jobs, signals, and <code>wait</code>.</li>
+  <li><a href="https://jvns.ca/">Julia Evans — signals and "How do signals work?"</a> — the friendliest mental model anywhere for signal delivery and handlers.</li>
+  <li><a href="https://nimfsoft.art/blog/2025/07/23/c-safe-signal-handling-self-pipe/">The Self-Pipe Trick</a> — why signal handlers are a minefield and how to handle them safely in C.</li>
+  <li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/">Operating Systems: Three Easy Pieces — Processes &amp; the API</a> — <code>fork</code>/<code>exec</code>/<code>wait</code> explained from first principles, free online textbook.</li>
+  <li><a href="https://man7.org/tlpi/">The Linux Programming Interface (chs. 24–27 and 20–22)</a> — the definitive deep dive into fork/exec/wait and signals.</li>
+</ul>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>fork()</strong> - The system call that clones the calling process into a near-identical child, which keeps the same open files. Every new process starts as a fork of an existing one.</li>
+    <li><strong>exec()</strong> - The system call that replaces the program running inside a process with a different one, keeping the same PID and open files. Forks then exec to launch a new command.</li>
+    <li><strong>PID / PPID</strong> - A process's own ID and its parent's ID. Following PPIDs upward always leads to PID 1.</li>
+    <li><strong>PID 1</strong> - The first process the kernel starts (systemd on a modern Pi); the root of the process tree and the adopter of all orphans.</li>
+    <li><strong>Zombie (defunct)</strong> - A process that has exited but whose parent hasn't collected its exit status yet. It holds no memory and cannot be killed — the parent must reap it.</li>
+    <li><strong>Orphan</strong> - A process whose parent died first; the kernel re-parents it to PID 1, which reaps it. Normal and harmless.</li>
+    <li><strong>Signal</strong> - An asynchronous notification the kernel delivers to a process, such as SIGTERM, SIGINT, or SIGKILL.</li>
+    <li><strong>SIGTERM (15)</strong> - The polite default of <code>kill</code>: asks a process to shut down so it can clean up first. Catchable.</li>
+    <li><strong>SIGKILL (9)</strong> - The uncatchable kill: the kernel destroys the process with no cleanup. A last resort, not a first move.</li>
+    <li><strong>nohup</strong> - Launches a command set to ignore SIGHUP and redirects its output to <code>nohup.out</code>, so it survives the terminal closing.</li>
+    <li><strong>disown</strong> - Removes a job from the shell's job table after launch, so the shell won't send it SIGHUP on exit.</li>
+    <li><strong>Job control</strong> - The shell's ability to suspend, background, and foreground jobs via Ctrl-Z, <code>bg</code>, <code>fg</code>, and <code>jobs</code>.</li>
+  </ul>
+</div>

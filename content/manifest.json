@@ -64,6 +64,24 @@
    ]
   },
   {
+   "id": "linux-in-depth",
+   "label": "Linux, In Depth",
+   "short": "How it really works",
+   "blurb": "Now that you're at home on your Pi, go under the hood: the shell, processes, the kernel, permissions, storage, systemd, networking and containers — how Linux really works.",
+   "chapters": [
+    "ch23",
+    "ch24",
+    "ch25",
+    "ch26",
+    "ch27",
+    "ch28",
+    "ch29",
+    "ch30",
+    "ch31",
+    "ch32"
+   ]
+  },
+  {
    "id": "reference",
    "label": "Reference",
    "short": "Cheat-sheet & glossary",
@@ -1296,7 +1314,7 @@
   },
   "apxA": {
    "id": "apxA",
-   "n": 23,
+   "n": 33,
    "title": "Command Quick-Reference",
    "kind": "appendix",
    "part": "reference",
@@ -1360,7 +1378,7 @@
   },
   "glos": {
    "id": "glos",
-   "n": 24,
+   "n": 34,
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
@@ -1481,6 +1499,450 @@
     }
    ],
    "widgets": []
+  },
+  "ch23": {
+   "id": "ch23",
+   "n": 23,
+   "title": "The Shell Is a Programming Language",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 2363,
+   "read_min": 12,
+   "sections": [
+    {
+     "id": "the-expansion-pipeline",
+     "title": "The Expansion Pipeline Nobody Teaches You"
+    },
+    {
+     "id": "word-splitting-and-quoting",
+     "title": "Word Splitting: The Number One Source of Real Bugs"
+    },
+    {
+     "id": "subshells-substitution-heredocs",
+     "title": "Subshells, Command Substitution and Here-Docs"
+    },
+    {
+     "id": "exit-codes-and-the-safe-header",
+     "title": "Exit Codes and the Defensive Script Header"
+    },
+    {
+     "id": "builtins-vs-externals",
+     "title": "Builtins vs Externals: Why cd Can't Be a Program"
+    },
+    {
+     "id": "login-vs-interactive-shells",
+     "title": "Login vs Interactive: Why PATH Works in the Terminal but Not in Cron"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try It on Your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go Deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch24": {
+   "id": "ch24",
+   "n": 24,
+   "title": "Everything Is a File Descriptor",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 2944,
+   "read_min": 15,
+   "sections": [
+    {
+     "id": "the-real-slogan",
+     "title": "The Real Slogan: Everything Is a File Descriptor"
+    },
+    {
+     "id": "redirection-is-fd-surgery",
+     "title": "Redirection Is File-Descriptor Surgery"
+    },
+    {
+     "id": "pipes-concurrency-and-backpressure",
+     "title": "Pipes: Concurrency and Automatic Flow Control"
+    },
+    {
+     "id": "tee-split-a-stream",
+     "title": "tee: Splitting a Stream in Two"
+    },
+    {
+     "id": "process-substitution",
+     "title": "Process Substitution: Turning a Command Into a \"Filename\""
+    },
+    {
+     "id": "windows-into-the-kernel",
+     "title": "Windows Into the Kernel: /dev, /proc and /sys"
+    },
+    {
+     "id": "named-pipes-and-sockets",
+     "title": "Named Pipes and Unix Sockets: Files With No Disk Content"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try it on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch25": {
+   "id": "ch25",
+   "n": 25,
+   "title": "Processes, Signals & Job Control",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 2171,
+   "read_min": 11,
+   "sections": [
+    {
+     "id": "fork-and-exec",
+     "title": "fork + exec: the two-step behind everything"
+    },
+    {
+     "id": "the-process-tree",
+     "title": "The process tree, PID 1, orphans & zombies"
+    },
+    {
+     "id": "signals",
+     "title": "Signals — the precise, commonly-botched distinctions"
+    },
+    {
+     "id": "background-and-detach",
+     "title": "&, nohup, disown — three different things people conflate"
+    },
+    {
+     "id": "job-control",
+     "title": "Job control & sessions (where Ctrl-C and Ctrl-Z come from)"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try it on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch26": {
+   "id": "ch26",
+   "n": 26,
+   "title": "The Kernel Boundary",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 3409,
+   "read_min": 17,
+   "sections": [
+    {
+     "id": "the-kernel-boundary",
+     "title": "The Kernel Boundary"
+    },
+    {
+     "id": "syscall-vs-library-call",
+     "title": "Syscall vs. Library Call — Not the Same Thing"
+    },
+    {
+     "id": "strace-watching-the-syscalls",
+     "title": "strace — Watching What a Program Really Does"
+    },
+    {
+     "id": "the-observability-toolkit",
+     "title": "The Observability Toolkit — Match the Symptom to the Layer"
+    },
+    {
+     "id": "perf-and-ebpf",
+     "title": "perf and eBPF — The Modern Frontier"
+    },
+    {
+     "id": "virtual-memory-and-the-oom-killer",
+     "title": "Virtual Memory and the OOM Killer"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try it on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch27": {
+   "id": "ch27",
+   "n": 27,
+   "title": "Users, Permissions & Privilege",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 2880,
+   "read_min": 14,
+   "sections": [
+    {
+     "id": "the-bits-fast-recap",
+     "title": "The bits, fast (a quick recap)"
+    },
+    {
+     "id": "the-delete-surprise",
+     "title": "The delete surprise: you can erase a file you can't write"
+    },
+    {
+     "id": "the-special-bits",
+     "title": "The special bits: where it gets interesting"
+    },
+    {
+     "id": "why-setuid-is-a-minefield",
+     "title": "Why setuid is a security minefield"
+    },
+    {
+     "id": "umask-the-bits-you-remove",
+     "title": "umask: the bits you remove"
+    },
+    {
+     "id": "capabilities-splitting-root",
+     "title": "Capabilities: splitting root into ~40 pieces"
+    },
+    {
+     "id": "sudo-and-sudoers",
+     "title": "sudo and sudoers: least privilege for humans"
+    },
+    {
+     "id": "pam-pluggable-authentication",
+     "title": "PAM: why login logic isn't hardcoded"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try it on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch28": {
+   "id": "ch28",
+   "n": 28,
+   "title": "Filesystems & Storage",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 3008,
+   "read_min": 15,
+   "sections": [
+    {
+     "id": "the-inode-the-file-behind-the-name",
+     "title": "The inode: the file behind the name"
+    },
+    {
+     "id": "hard-links-vs-symlinks",
+     "title": "Hard links vs symlinks"
+    },
+    {
+     "id": "why-mv-is-instant",
+     "title": "Why mv is instant — and why moving across disks isn't"
+    },
+    {
+     "id": "deleting-an-open-file",
+     "title": "The myth of \"rm frees space\""
+    },
+    {
+     "id": "the-fhs",
+     "title": "The FHS: where things live and why"
+    },
+    {
+     "id": "journaling",
+     "title": "Journaling: surviving a power cut"
+    },
+    {
+     "id": "ext4-vs-the-big-servers",
+     "title": "What your Pi uses (ext4) vs what big servers use"
+    },
+    {
+     "id": "lvm",
+     "title": "LVM: a flexible layer beneath the filesystem"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try it on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch29": {
+   "id": "ch29",
+   "n": 29,
+   "title": "systemd & the Boot Process",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 2762,
+   "read_min": 14,
+   "sections": [
+    {
+     "id": "the-boot-chain",
+     "title": "The boot chain (and the chicken-and-egg it solves)"
+    },
+    {
+     "id": "why-systemd-won",
+     "title": "Why systemd won (despite the flame wars)"
+    },
+    {
+     "id": "units-everything-is-a-unit",
+     "title": "Units: everything is a unit"
+    },
+    {
+     "id": "systemctl-and-journalctl",
+     "title": "systemctl and journalctl: the power tools"
+    },
+    {
+     "id": "timers-vs-cron",
+     "title": "Timers vs. cron"
+    },
+    {
+     "id": "cgroups-the-foundation",
+     "title": "cgroups: the engine underneath"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try it on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch30": {
+   "id": "ch30",
+   "n": 30,
+   "title": "Networking, In Depth",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 2799,
+   "read_min": 14,
+   "sections": [
+    {
+     "id": "path-of-a-packet",
+     "title": "The path of a packet"
+    },
+    {
+     "id": "the-modern-toolset",
+     "title": "The modern toolset (and the one you should stop using)"
+    },
+    {
+     "id": "dns-is-nsswitch",
+     "title": "DNS resolution: it's nsswitch, not resolv.conf"
+    },
+    {
+     "id": "how-ssh-really-works",
+     "title": "How SSH actually works"
+    },
+    {
+     "id": "namespaces-and-veth",
+     "title": "Network namespaces & veth: container networking, the primitive"
+    },
+    {
+     "id": "nftables-firewall",
+     "title": "Firewalling with nftables"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try it on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch31": {
+   "id": "ch31",
+   "n": 31,
+   "title": "Containers From Scratch",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 2688,
+   "read_min": 13,
+   "sections": [
+    {
+     "id": "what-a-container-really-is",
+     "title": "What a container really is"
+    },
+    {
+     "id": "namespaces-isolating-what-a-process-can-see",
+     "title": "Namespaces: isolating what a process can see"
+    },
+    {
+     "id": "cgroups-v2-limiting-what-a-process-can-use",
+     "title": "cgroups v2: limiting what a process can use"
+    },
+    {
+     "id": "unshare-and-nsenter-containers-by-hand",
+     "title": "unshare and nsenter: containers by hand"
+    },
+    {
+     "id": "assemble-a-container-by-hand",
+     "title": "Assemble a container by hand"
+    },
+    {
+     "id": "pid-1-and-why-containers-need-an-init",
+     "title": "PID 1, and why containers need an init"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Try it on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Go deeper"
+    }
+   ],
+   "widgets": []
+  },
+  "ch32": {
+   "id": "ch32",
+   "n": 32,
+   "title": "Build Your Own & Capstones",
+   "kind": "chapter",
+   "part": "linux-in-depth",
+   "words": 2896,
+   "read_min": 14,
+   "sections": [
+    {
+     "id": "rebuild-to-understand",
+     "title": "Rebuild to understand"
+    },
+    {
+     "id": "build-your-own-classics",
+     "title": "Build-your-own classics"
+    },
+    {
+     "id": "modern-cli-toolbox",
+     "title": "A modern CLI toolbox"
+    },
+    {
+     "id": "try-it-on-your-pi",
+     "title": "Capstones — build something real on your Pi"
+    },
+    {
+     "id": "go-deeper",
+     "title": "Where to go next"
+    }
+   ],
+   "widgets": []
   }
  },
  "order": [
@@ -1506,6 +1968,16 @@
   "ch20",
   "ch21",
   "ch22",
+  "ch23",
+  "ch24",
+  "ch25",
+  "ch26",
+  "ch27",
+  "ch28",
+  "ch29",
+  "ch30",
+  "ch31",
+  "ch32",
   "apxA",
   "glos"
  ]

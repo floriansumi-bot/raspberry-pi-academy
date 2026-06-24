@@ -1,0 +1,178 @@
+<p class="lead">This is the last lesson of the Linux track, and it's a different kind of lesson. Up to now you've been <em>learning how Linux works</em> — the shell, processes, files, permissions, networking, systemd, containers. Now we close the loop: you're going to <strong>rebuild the tools you've been using</strong> so the models finally click into your bones, and then <strong>ship a real, always-on service on your Pi</strong> — hardened, behind nginx, with TLS and monitoring. Your Raspberry Pi 5 is the perfect target for all of this. It's a full Debian machine with systemd, it's yours to break, and unlike a throwaway cloud droplet it sits on your desk drawing two watts, ready to be a tiny always-on server. By the end you'll have built something you'd be happy to point a friend's browser at — and you'll understand every layer underneath it.</p>
+
+<p>There's an idea worth saying out loud before we start: <strong>you don't truly understand a system until you've rebuilt a piece of it.</strong> Reading about <code>fork</code> and <code>exec</code> is fine. Writing a 200-line shell that actually forks and execs a command, and discovering <em>for yourself</em> why <code>cd</code> can't be a child process, is a different category of understanding. This lesson has two halves — build-your-own classics, then integration capstones — and you should pick the projects that excite you. Depth beats coverage. Go deep on two and you'll learn more than skimming all of them.</p>
+
+<h2 id="rebuild-to-understand">Rebuild to understand</h2>
+
+<p>Reimplementing a tool forces you to confront the model behind it. You can't hand-wave past the part you didn't really get, because the computer won't run hand-waving. Each project below maps directly back to lessons earlier in this track — so as you build, you're not learning something new so much as <em>finishing</em> something you already started.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Build your own X" isn't about producing a better <code>cat</code> — the real <code>cat</code> is fine. It's that the act of writing it drags the hidden assumptions into the open, where you have to make them concrete. The throwaway program is the byproduct; the understanding is the product.</div>
+
+<h2 id="build-your-own-classics">Build-your-own classics</h2>
+
+<p>Here are five classic projects, smallest first, each anchored to the earlier lessons it draws on. Start with the easy confidence-builders and work up to the keystone projects — the tiny shell and the PID-1 init — that reorganise how you think about the whole system.</p>
+
+<h3>1. Clone the simple ones: <code>cat</code>, <code>wc</code>, <code>head</code></h3>
+
+<p>Write <code>cat</code>, <code>wc</code>, and <code>head</code> in C or Python. They look trivial and they almost are — but you'll wrestle with the genuinely fiddly bits every real Unix tool handles: parsing arguments, reading from <em>either</em> standard input <em>or</em> file arguments (the classic "read from a pipe when given no filename" behaviour), buffered I/O, and counting lines versus words versus bytes correctly. Small, fast, satisfying wins to warm up on.</p>
+
+<p><strong>Draws on:</strong> the shell and standard streams (stdin/stdout/stderr), redirection and pipes.</p>
+
+<h3>2. A tiny shell — the keystone project</h3>
+
+<p>This is the one that changes how you see everything. Write a REPL — read a line, tokenise it, then <code>fork()</code> a child, have the child <code>execvp()</code> the command, and have the parent <code>waitpid()</code> for it to finish. That loop <em>is</em> a shell. Then add a couple of builtins, <code>cd</code> and <code>exit</code>, and you'll hit the lesson that no amount of reading teaches as well as one bug does:</p>
+
+<p><strong>The key insight:</strong> <code>cd</code> <em>must</em> be a builtin — it has to run in the shell process itself, not in a forked child. If you try to make <code>cd</code> an external command, it forks a child, the child changes <em>its own</em> directory, and the child exits. The parent shell never moved. Watching your own shell "fail" to change directory until you make <code>cd</code> a builtin teaches the fork/exec/wait model permanently.</p>
+
+<p>Once the basic shell works, add pipes with <code>pipe()</code> and <code>dup2()</code> — wiring one command's stdout to the next command's stdin is exactly the redirection model you learned, now seen from the <em>producing</em> side.</p>
+
+<p><strong>Draws on:</strong> the shell, processes (fork/exec/wait), redirection and pipes. A wonderful guide is <a href="https://brennan.io/2015/01/16/write-a-shell-in-c/">Stephen Brennan's ~200-line C shell</a> — read it, type it, then extend it.</p>
+
+<h3>3. An HTTP server from raw sockets</h3>
+
+<p>Frameworks hide what HTTP actually is. Strip the magic away. Start with this one-liner to watch the raw wire format with your own eyes:</p>
+
+<pre class="code"><code>while true; do printf 'HTTP/1.1 200 OK\r\n\r\nhello' | nc -l 8080; done</code></pre>
+
+<p>Point a browser at <code>http://your-pi:8080</code> and you'll see <code>hello</code> — you just served HTTP with a shell loop and <code>nc</code>. Now write the real thing: <code>socket()</code> &rarr; <code>bind()</code> &rarr; <code>listen()</code> &rarr; <code>accept()</code> &rarr; <code>recv()</code>/<code>send()</code>, and parse the request line (<code>GET /path HTTP/1.1</code>) yourself. After this, "a web server" stops being a black box and becomes a program you could have written — because you did.</p>
+
+<p><strong>Draws on:</strong> networking and sockets, the shell.</p>
+
+<h3>4. A simple <code>init</code> / PID 1 — the capstone of the process model</h3>
+
+<p>Inside a container, run a process as <strong>PID 1</strong>: launch a child, <strong>forward signals to it</strong> (so <code>docker stop</code> actually reaches your app), and <strong>reap zombie processes</strong> by calling <code>wait()</code> in a loop. When this works, you'll understand in your bones why containers need a tiny init like <code>tini</code>, and why PID 1 is special.</p>
+
+<div class="jargon"><strong>In plain words:</strong> when a process exits, it leaves behind a little "zombie" entry in the process table until its <em>parent</em> collects the exit status with <code>wait()</code>. Normally <code>init</code> adopts and reaps orphans automatically. But the kernel gives PID 1 no special help here — if <em>your</em> program is PID 1 and never calls <code>wait()</code>, zombies pile up forever. That's why a bare app run as PID 1 in a container needs a real init in front of it.</div>
+
+<p><strong>Draws on:</strong> processes and signals, containers. Compare your result to <a href="https://github.com/Yelp/dumb-init">dumb-init</a> and <a href="https://github.com/krallin/tini">tini</a> — the real-world ~200-line versions of exactly what you wrote.</p>
+
+<h3>5. <code>grep</code> and <code>ls</code> clones</h3>
+
+<p><code>grep</code> is line filtering: read lines, test each against a substring or a regex, print the matches. <code>ls</code> is more revealing than it looks — <code>readdir()</code> to walk the directory, <code>stat()</code> each entry, then <em>format the mode field</em> yourself, turning the permission bits back into the <code>rwxr-xr-x</code> string you've read a thousand times. Building <code>ls</code> means producing the permissions display from the <em>other</em> side of everything you learned about permissions.</p>
+
+<p><strong>Draws on:</strong> the shell, the filesystem, permissions.</p>
+
+<div class="tip"><strong>Tip:</strong> Want graded specs instead of going freestyle? <a href="https://codingchallenges.fyi/">codingchallenges.fyi</a> has staged, language-agnostic specs for <code>cat</code>/<code>wc</code>/<code>grep</code>/<code>cut</code>/shell, and <a href="https://app.codecrafters.io/catalog">CodeCrafters</a> gives you a real test suite for build-your-own shell/git/http-server/redis. Both turn "build a thing" into "pass these checks", which makes progress concrete and keeps you honest.</div>
+
+<h2 id="modern-cli-toolbox">A modern CLI toolbox</h2>
+
+<p>Before the capstones, a gift for daily life. There's a whole generation of command-line tools — mostly rewritten in Rust or Go — that are faster, have saner defaults, are <code>.gitignore</code>-aware, and are genuinely nicer to live in. None are <em>required</em>; the standard tools this track taught are what's on every server you'll ever SSH into, and you should keep them in muscle memory. But adopting a handful of these will compound across everything you do.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Tool</th>
+      <th>Replaces</th>
+      <th>Why it's nicer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="https://github.com/BurntSushi/ripgrep"><code>ripgrep</code> (<code>rg</code>)</a></td>
+      <td><code>grep -r</code></td>
+      <td>Skips <code>.gitignore</code>d files and binaries by default, multithreaded, much faster: <code>rg -i TODO --type py</code>.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/sharkdp/fd"><code>fd</code></a></td>
+      <td><code>find</code></td>
+      <td>Sane syntax (<code>fd '\.py$'</code> vs <code>find . -name '*.py'</code>), parallel, <code>.gitignore</code>-aware, coloured.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/junegunn/fzf"><code>fzf</code></a></td>
+      <td>— (new power)</td>
+      <td>Interactive fuzzy finder. Bind it to <kbd>Ctrl-R</kbd> for fuzzy shell history; pipe anything into it: <code>vim $(fzf)</code>. The single highest-ROI install.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/jqlang/jq"><code>jq</code></a></td>
+      <td>— (new power)</td>
+      <td>A query/transform <em>language</em> for JSON. Indispensable for APIs: <code>curl … | jq '.items[] | {name,id}'</code>. JSON is everywhere; learn it.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/sharkdp/bat"><code>bat</code></a></td>
+      <td><code>cat</code></td>
+      <td>Syntax highlighting, line numbers, a git change gutter, and automatic paging.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/eza-community/eza"><code>eza</code></a></td>
+      <td><code>ls</code></td>
+      <td>Colours, icons, git status, and a built-in <code>--tree</code> view.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/tmux/tmux/wiki"><code>tmux</code></a></td>
+      <td>— (new power)</td>
+      <td>Persistent terminal sessions that <strong>survive disconnection</strong> — reattach after your SSH drops mid-task — plus split panes and multiple windows.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/ajeetdsouza/zoxide"><code>zoxide</code></a></td>
+      <td><code>cd</code></td>
+      <td>Jump to frequent directories by "frecency": <code>z proj</code> instead of <code>cd ~/code/work/project</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Two of these earn special mention because you'll use them constantly on the Pi. <strong><code>tmux</code></strong> is the one "old" tool in the list and it's essential for remote work: start a named session, do your thing, and when your SSH connection drops mid-upgrade your shells keep running — reattach and they're exactly where you left them.</p>
+
+<pre class="code"><code>tmux new -s work      # start a named session
+# Ctrl-b "  split horizontally   Ctrl-b %  split vertically   Ctrl-b d  detach
+tmux attach -t work   # reattach later — your shells kept running the whole time</code></pre>
+
+<p>And <strong><code>jq</code></strong> turns the wall of JSON every modern API returns into something you can actually slice:</p>
+
+<pre class="code"><code>curl -s https://api.github.com/repos/torvalds/linux | jq '{name, stars: .stargazers_count}'
+rg --json TODO | jq -r 'select(.type=="match") | .data.path.text'</code></pre>
+
+<div class="tip"><strong>Tip:</strong> Don't alias <code>ls=eza</code> and <code>cat=bat</code> on day one — you'll get tangled up the moment you SSH into a plain server that doesn't have them. Learn the standard tools first (this track did that deliberately), then add the modern ones as personal quality-of-life. If you adopt only three, make them <code>fzf</code>, <code>ripgrep</code>, and <code>jq</code>.</div>
+
+<h2 id="try-it-on-your-pi">Capstones — build something real on your Pi</h2>
+
+<p>Now the payoff. These four capstones combine multiple lessons into the real-world shape you'd actually deploy. The cloud world does this on a throwaway droplet with a public IP — but your <strong>Pi is the droplet</strong>. It's an always-on Linux box you control completely, which makes it the ideal place to make these mistakes safely and learn from them. Do them in order; each builds on the last. Use a spare microSD card so you can wipe and start over fearlessly.</p>
+
+<ol class="steps">
+  <li><strong>Harden your Pi into a proper little server.</strong> Starting from a fresh Raspberry Pi OS install, build a secure baseline: create a <strong>non-root <code>sudo</code> user</strong> and stop logging in as the default account; switch SSH to <strong>key-only authentication</strong> (set <code>PasswordAuthentication no</code> and <code>PermitRootLogin no</code> in <code>sshd_config</code>) so passwords can't be brute-forced; put up an <strong><code>nftables</code> default-drop firewall</strong> that allows <em>only</em> SSH and your app's ports and denies everything else by default; and enable <strong><code>unattended-upgrades</code></strong> so security patches install themselves. Test that you can still log in <em>from a second terminal</em> before you close your working session — locking yourself out is the classic first mistake, and a default-drop firewall is exactly how it happens. <em>Pulls together: users &amp; permissions, networking &amp; firewalls, SSH.</em></li>
+
+  <li><strong>Deploy an app behind nginx with a hardened systemd service and TLS.</strong> Run your app — any language, or the HTTP server you built in the first half — as a <strong>hardened systemd service</strong> bound to <code>localhost</code>, using the lockdown directives <code>DynamicUser=yes</code>, <code>ProtectSystem=strict</code>, and <code>NoNewPrivileges=true</code> (and <code>AmbientCapabilities=CAP_NET_BIND_SERVICE</code> only if it truly needs a low port). Put <strong>nginx in front as a reverse proxy</strong>, forwarding public requests to your app on localhost. If you have a domain pointed at your Pi, add <strong>Let's Encrypt TLS</strong> with <code>certbot</code> for real HTTPS. Confirm graceful restarts with <code>systemctl reload nginx</code> and that your app's logs land in <code>journalctl -u yourapp</code>. This is the standard production deployment shape — and now you've built it from primitives you understand. <em>Pulls together: systemd, permissions &amp; capabilities, networking.</em></li>
+
+  <li><strong>Add real monitoring.</strong> Install <code>node_exporter</code> (which exposes your Pi's CPU, memory, disk, and temperature as metrics), <strong>Prometheus</strong> (which scrapes and stores those metrics over time), and <strong>Grafana</strong> (which graphs them) — <em>each as its own systemd unit</em>. Import a host dashboard and wire one alert, such as "disk over 85% full". <em>Pulls together: the observability mindset, systemd, networking.</em></li>
+
+  <li><strong>Tie it all together in one reproducible bootstrap script.</strong> Fold capstones 1&ndash;3 into a <strong>single idempotent bootstrap script</strong> (a shell script, or an Ansible playbook if you want to go further): a freshly flashed Pi becomes a hardened host running a TLS-terminated, monitored app under systemd — from zero, repeatably. The real test: if you can reflash the card, run one command, and get the exact same working server back, you've <em>operationalised the entire track</em>. That's not a toy — that's the muscle real infrastructure engineering is built on. <em>Pulls together: everything.</em></li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> Prometheus and Grafana have <em>no built-in authentication on their raw metrics endpoints</em>. Bind <code>node_exporter</code> and Prometheus to <code>localhost</code> only — never expose them to the open internet — and reach Grafana through nginx with a login, or over an SSH tunnel. An open Prometheus is a free map of your machine for anyone who finds it.</div>
+
+<div class="note"><strong>Note:</strong> Because your Pi sits on your home network, capstone 2's Let's Encrypt step needs a domain name and a way for the certificate challenge to reach your Pi (a port-forward on your router, or a DNS challenge). If that's more than you want to set up today, do everything else and use a self-signed certificate or plain HTTP on your LAN — the systemd-and-nginx shape is the lesson; public TLS is the optional flourish.</div>
+
+<p><strong>The key insight:</strong> none of these capstones introduces a genuinely new concept. Every piece — the non-root user, the firewall, the hardened service, the reverse proxy, the metrics — is something you already met. The capstone is learning to <em>compose</em> them into a system that stays up, stays patched, and stays observable. That composition <em>is</em> systems engineering, and you can now do it on hardware that fits in your palm.</p>
+
+<h2 id="go-deeper">Where to go next</h2>
+
+<p>You've covered the model from the shell all the way down to the kernel boundary and back up through containers and deployment. That's a real foundation — most people who use Linux every day never build it. Here's where the road keeps going, whenever you're ready:</p>
+
+<ul>
+  <li><a href="https://github.com/codecrafters-io/build-your-own-x">build-your-own-x</a> — a huge curated index of "build your own &lt;shell / docker / database / web server / …&gt;" tutorials. Your menu of next projects.</li>
+  <li><a href="https://codingchallenges.fyi/">codingchallenges.fyi</a> — John Crickett's staged, language-agnostic build-your-own-tool challenges. Perfect for going deeper on the classics above.</li>
+  <li><a href="https://codecrafters.io/">CodeCrafters</a> — test-graded "build your own shell / git / docker / http-server / redis", with a real suite checking each stage.</li>
+  <li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/">Operating Systems: Three Easy Pieces (OSTEP)</a> — the free, friendly textbook for the systems theory under all of this (processes, scheduling, memory, filesystems).</li>
+  <li><a href="https://beej.us/guide/bgnet/">Beej's Guide to Network Programming</a> — the legendary free guide to sockets, the foundation for your HTTP server.</li>
+  <li><a href="https://www.linuxfromscratch.org/">Linux From Scratch</a> — compile a complete Linux system from source. The ultimate "how does the whole userland fit together" project.</li>
+  <li><a href="glos.html">The in-app glossary &amp; command reference</a> — every term and command from this track in one searchable place, for whenever a name slips your mind.</li>
+</ul>
+
+<p>That's the end of the Linux track. You started not knowing what a shell really was; you can now read a process tree, reason about permissions and capabilities, wire up a firewall, write a systemd unit, and explain what a container actually is — and you can build the tools underneath all of it. The best way to keep it is to keep using it: pick a capstone, run it on your Pi, and break something. That's still the fastest way to learn. Well done getting here.</p>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>fork / exec / wait</strong> - The trio at the heart of the shell: <code>fork()</code> makes a child process, the child <code>exec()</code>s the command, and the parent <code>wait()</code>s for it. Building a shell makes this concrete — and shows why <code>cd</code> must be a builtin.</li>
+    <li><strong>builtin</strong> - A command the shell runs in its own process rather than forking a child for, because it must change the shell's own state — the textbook case being <code>cd</code>.</li>
+    <li><strong>PID 1 / init</strong> - The first process in a system or container; it must forward signals to its children and <strong>reap zombies</strong> with <code>wait()</code>, which is why containers use a tiny init like <code>tini</code>.</li>
+    <li><strong>zombie / reaping</strong> - A finished process whose exit status no parent has collected yet; the parent "reaps" it by calling <code>wait()</code>. A PID-1 that never reaps lets zombies accumulate.</li>
+    <li><strong>reverse proxy</strong> - A server (here nginx) that sits in front of your app, receives public requests, and forwards them to the app on localhost — adding TLS, logging, and a single front door.</li>
+    <li><strong>Let's Encrypt</strong> - A free, automated certificate authority; with <code>certbot</code> it issues and renews real HTTPS certificates for a domain, so your Pi can serve genuine TLS.</li>
+    <li><strong>node_exporter</strong> - A small service that exposes a host's metrics (CPU, memory, disk, temperature) for Prometheus to scrape; the standard way to monitor a Linux machine.</li>
+    <li><strong>default-drop firewall</strong> - A firewall policy (e.g. with <code>nftables</code>) that blocks all traffic by default and allows only explicitly permitted ports — the safe baseline for an internet-facing host.</li>
+    <li><strong>ripgrep (<code>rg</code>)</strong> - A fast, modern <code>grep</code> replacement that skips <code>.gitignore</code>d files and binaries by default and searches in parallel.</li>
+    <li><strong>fzf</strong> - An interactive fuzzy finder you pipe lists into; bound to <kbd>Ctrl-R</kbd> it turns shell-history search into instant fuzzy matching.</li>
+    <li><strong>jq</strong> - A query and transform language for JSON, indispensable for slicing the output of modern APIs from the command line.</li>
+    <li><strong>tmux</strong> - A terminal multiplexer whose sessions survive disconnection, so remote work keeps running when your SSH connection drops; also splits panes and windows.</li>
+  </ul>
+</div>

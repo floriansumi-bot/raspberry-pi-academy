@@ -1,0 +1,237 @@
+<p class="lead">You already trust your Raspberry Pi 5 to come alive when you flip the power, and you've poked at logs and services without ever asking <em>who</em> brings the whole machine up. This chapter goes one layer deeper, to the most foundational sequence in the system: the boot chain, and the program at the end of it — <strong>systemd</strong>, the very first process the kernel starts and the manager of everything that follows. This is genuinely great territory for a Pi owner. Once you can wrap your own script in a service that starts on boot, or replace a fragile cron line with a timer that even catches up missed runs, you have the exact toolkit a home-server project needs. Take your time; this is the chapter where "my Pi just runs my thing now" finally clicks.</p>
+
+<h2 id="the-boot-chain">The boot chain (and the chicken-and-egg it solves)</h2>
+
+<p>Booting is not one big leap. It's a <strong>chain of progressively more capable loaders</strong>, each just smart enough to find and hand off to the next, ending at PID 1: systemd. On a typical PC the chain looks like this:</p>
+
+<pre class="code"><code>1. Firmware (UEFI / BIOS)   - power-on; UEFI reads the FAT EFI System Partition, runs a .efi loader
+2. Bootloader (GRUB)        - menu; loads the KERNEL (vmlinuz) + INITRAMFS into RAM; passes the kernel cmdline
+3. Kernel                   - decompresses, inits hardware/drivers, mounts the initramfs as a TEMPORARY root
+4. initramfs                - tiny RAM root: loads disk/FS drivers, unlocks LUKS, assembles LVM/RAID,
+                             finds the REAL root fs, then pivot_root's onto it
+5. systemd (PID 1)         - activates default.target, pulling in all dependencies IN PARALLEL
+6. Target reached          - login prompt / display manager</code></pre>
+
+<p>The deepest "aha" in the whole sequence is <strong>why the initramfs exists</strong>. The kernel can't mount your real root filesystem until it has the <em>driver</em> for that disk and that filesystem — but the driver lives <em>on</em> the root filesystem. Chicken, meet egg. The <strong>initramfs</strong> (a small, self-contained root filesystem that lives in RAM and carries exactly those drivers) breaks the loop: the bootloader loads it into memory first, the kernel uses it to load whatever is needed to reach the real root, and then it pivots onto the real thing and discards the temporary one.</p>
+
+<div class="jargon"><strong>In plain words:</strong> The initramfs is a tiny emergency toolkit the kernel keeps in RAM. It contains just enough drivers to find and open your <em>real</em> disk — the disk that holds all the <em>other</em> drivers. Without it the kernel would be locked out of the very filesystem it needs to finish booting.</div>
+
+<div class="note"><strong>Note — how your Pi actually boots:</strong> A Raspberry Pi has no BIOS, no UEFI, and no GRUB. A Pi 5 starts from a tiny bootloader baked into an <strong>EEPROM chip</strong> on the board. That firmware reads the <strong>FAT boot partition</strong> of your microSD card (or NVMe/USB), where it finds <code>config.txt</code> (the Pi's hardware-and-boot settings file), the <strong>kernel</strong> image, and an <strong>initramfs</strong>, loads them, and jumps into the kernel — which then hands off to systemd exactly as on a PC. So steps 1 and 2 above are firmware-on-EEPROM plus files-on-the-boot-partition rather than UEFI plus GRUB, but from the kernel onward (steps 3 to 6) your Pi and a PC are identical. We keep the PC chain here because it's worth knowing for any Linux box you meet — just remember your Pi takes the firmware shortcut.</div>
+
+<p>You can watch the whole sequence on your own Pi:</p>
+
+<pre class="code"><code>cat /proc/cmdline                 # the exact kernel command line you booted with (root=PARTUUID=... ro ...)
+systemd-analyze                   # total boot time, split: firmware | loader | kernel | userspace
+systemd-analyze critical-chain    # the dependency chain that actually gated your boot
+systemd-analyze blame             # which units took longest
+lsinitramfs /boot/initramfs* | head   # what's inside the initramfs (needs initramfs-tools)</code></pre>
+
+<div class="explain">
+  <p><code>/proc/cmdline</code> is a virtual file the kernel fills in with the parameters it was handed at boot — on a Pi that line comes from <code>cmdline.txt</code> on the boot partition rather than from GRUB. <code>systemd-analyze</code> and its sub-commands turn the abstract "boot chain" into concrete numbers you can read and optimise.</p>
+</div>
+
+<h2 id="why-systemd-won">Why systemd won (despite the flame wars)</h2>
+
+<p>Before systemd, the classic init was <strong>SysV init</strong>: a set of serial shell scripts run one after another in numbered order. It worked, but it had real, structural limits — and systemd was built to answer each one.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>SysV init problem</th>
+      <th>systemd's answer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Serial, slow boot — one script at a time</td>
+      <td><strong>Parallel</strong> startup driven by declared dependencies</td>
+    </tr>
+    <tr>
+      <td>Couldn't reliably track a daemon's children (a double-fork "lost" them)</td>
+      <td>Every service lives in its own <strong>cgroup</strong> — systemd sees <em>all</em> its processes and can stop them cleanly</td>
+    </tr>
+    <tr>
+      <td>No resource control</td>
+      <td>cgroup-enforced <code>MemoryMax=</code>, <code>CPUQuota=</code>, and more, per service</td>
+    </tr>
+    <tr>
+      <td>Logging was ad-hoc text files, each service different</td>
+      <td><strong>journald</strong>: structured, indexed logs captured from each service's stdout/stderr automatically</td>
+    </tr>
+    <tr>
+      <td>No socket activation / on-demand start</td>
+      <td><code>.socket</code> units start a service on the first connection to it</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>You don't have to <em>like</em> systemd to recognise it solved real problems the alternatives didn't. That's why every major distribution — Raspberry Pi OS included — adopted it.</p>
+
+<h2 id="units-everything-is-a-unit">Units: everything is a unit</h2>
+
+<p>systemd manages <strong>units</strong>, and the kind of each unit is given by its filename suffix. Once you internalise this list, most of systemd stops being mysterious:</p>
+
+<ul>
+  <li><code>.service</code> — a daemon or process (the kind you'll write most).</li>
+  <li><code>.socket</code> — a listening socket that can start a service on demand.</li>
+  <li><code>.target</code> — a named synchronisation point or grouping; targets replace SysV "runlevels" (<code>multi-user.target</code> is roughly the old runlevel 3 / server, <code>graphical.target</code> the old runlevel 5 / desktop).</li>
+  <li><code>.timer</code> — a scheduled trigger, the modern replacement for cron.</li>
+  <li><code>.mount</code> / <code>.automount</code> — filesystem mounts.</li>
+  <li><code>.path</code> — react to a filesystem change.</li>
+  <li><code>.slice</code> / <code>.scope</code> — cgroup resource groupings.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>unit</em> is just one thing systemd knows how to manage, described by a small text file. A <em>service</em> is a unit that runs a program; a <em>target</em> is a unit that is really a labelled checkpoint — "the system has reached this state" — that other units can depend on or be pulled in by.</div>
+
+<p>Here is a minimal but genuinely modern, hardened service. This is the kind of file you'd write to run your own Pi project — say a Python sensor logger or a small web API:</p>
+
+<pre class="code"><code># /etc/systemd/system/myapi.service
+[Unit]
+Description=My API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/myapi
+Restart=on-failure                 # respawn on crash - a supervisor, for free
+DynamicUser=yes                    # ephemeral unprivileged user, auto-created - no manual useradd
+AmbientCapabilities=CAP_NET_BIND_SERVICE   # bind :80 without root
+NoNewPrivileges=yes
+ProtectSystem=strict               # / is mounted read-only to this service
+ProtectHome=yes
+PrivateTmp=yes                     # its own /tmp, invisible to the rest of the system
+MemoryMax=512M                     # cgroup-enforced hard cap
+
+[Install]
+WantedBy=multi-user.target         # what `systemctl enable` hooks it into</code></pre>
+
+<div class="explain">
+  <p>The file has three sections. <code>[Unit]</code> describes the service and its ordering ("start me after the network is up"). <code>[Service]</code> says how to run it, with the security and resource knobs. <code>[Install]</code> is read only by <code>systemctl enable</code> and decides which target pulls the service in at boot. The <code>Restart=on-failure</code> line alone is worth the price of admission — it gives you crash supervision without writing a single line of babysitting code.</p>
+</div>
+
+<p>The lifecycle, after you've saved that file, is three commands:</p>
+
+<pre class="code"><code>sudo systemctl daemon-reload       # re-read unit files after editing one
+sudo systemctl enable --now myapi  # start it now AND on every boot
+systemctl status myapi             # state + recent log lines + the cgroup's processes</code></pre>
+
+<p><strong>The key insight:</strong> the moment your script lives in a <code>.service</code> file, you get crash recovery, start-on-boot, clean shutdown, resource limits, and automatic logging — all declared in a dozen lines of plain text, with no daemon-writing skill required. That is the single biggest upgrade you can make to a hobby Pi project.</p>
+
+<h2 id="systemctl-and-journalctl">systemctl and journalctl: the power tools</h2>
+
+<p>Two commands do most of the day-to-day work. <code>systemctl</code> inspects and controls units; <code>journalctl</code> reads the logs.</p>
+
+<pre class="code"><code>systemctl status ssh              # the most useful single command: state, PID, cgroup, last log lines
+systemctl list-units --failed     # what's broken right now
+systemctl cat nginx               # the EFFECTIVE unit (vendor file + your drop-ins combined)
+sudo systemctl edit nginx         # create a drop-in override - NEVER edit vendor files directly
+systemd-cgls                      # the cgroup tree, grouped by service</code></pre>
+
+<p>journald is systemd's logging service. Because every service runs in its own cgroup, journald can capture each service's stdout and stderr <em>directly</em> and store them as <strong>structured</strong> (field-based), indexed logs — not just flat text:</p>
+
+<pre class="code"><code>journalctl -u nginx -f             # follow one unit, live
+journalctl -u nginx --since "10 min ago"
+journalctl -p err -b               # priority error-and-worse, this boot (-b -1 = previous boot)
+journalctl -k                      # kernel messages (like dmesg, but persisted across boots)</code></pre>
+
+<div class="explain">
+  <p><code>-u</code> scopes the log to one unit, which turns "find my service's output in a wall of text" into a one-liner. <code>-b</code> limits to the current boot — invaluable on a Pi that you reboot often, or that lost power and you want to know what it said <em>last</em> time (<code>-b -1</code>).</p>
+</div>
+
+<p><strong>The aha that changes how you write services:</strong> because journald grabs stdout and stderr automatically, your program should simply <strong>log to stdout</strong>. No logfile paths to choose, no log directory to create, no <code>logrotate</code> config, no file permissions to get wrong. The platform handles storage, rotation, and indexing for you. (This is exactly why "12-factor" apps are told to log to stdout — systemd makes it the path of least resistance.)</p>
+
+<h2 id="timers-vs-cron">Timers vs. cron</h2>
+
+<p>You've likely met <code>cron</code> for scheduled jobs. systemd <strong>timers</strong> do the same thing but, for anything service-shaped, do it better. A timer is just a <code>.timer</code> unit that activates a matching <code>.service</code> on a schedule.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Capability</th>
+      <th>cron</th>
+      <th>systemd timer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Calendar schedule</td>
+      <td>yes</td>
+      <td><code>OnCalendar=daily</code>, <code>*-*-* 04:00:00</code>, and more</td>
+    </tr>
+    <tr>
+      <td>Relative / monotonic ("30 min after boot")</td>
+      <td>no</td>
+      <td><code>OnBootSec=</code>, <code>OnUnitActiveSec=</code></td>
+    </tr>
+    <tr>
+      <td>Ran while the machine was <strong>off</strong>?</td>
+      <td>silently skipped</td>
+      <td><code>Persistent=true</code> runs the missed job at next boot</td>
+    </tr>
+    <tr>
+      <td>Logging</td>
+      <td>you wire it up yourself</td>
+      <td>automatic, via journald</td>
+    </tr>
+    <tr>
+      <td>Runs inside a tracked cgroup</td>
+      <td>no</td>
+      <td>yes (it's just a service)</td>
+    </tr>
+    <tr>
+      <td>Dependencies / ordering</td>
+      <td>no</td>
+      <td>yes</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>That <code>Persistent=true</code> row is the one that matters most on a Pi. Cron's deepest weakness is that a job scheduled for 4 a.m. is simply <em>lost</em> if the machine happened to be powered off then — and a Pi at home is off, asleep, or unplugged far more often than a server. A timer with <code>Persistent=true</code> remembers it missed the run and fires it at the next boot, so your nightly backup actually happens even if "nightly" sometimes lands at 9 a.m. the following day.</p>
+
+<pre class="code"><code>systemctl list-timers --all        # every timer: last run, next run, what it triggers</code></pre>
+
+<p>cron is still perfectly fine for simple per-user jobs, and there's no shame in using it. Reach for a timer when you want logging, catch-up runs, dependencies, or resource control — which is most of the time for a real project.</p>
+
+<h2 id="cgroups-the-foundation">cgroups: the engine underneath</h2>
+
+<p>One idea quietly powers half of what makes systemd good: the <strong>cgroup</strong> (control group). It's a kernel feature that (a) groups processes together so systemd can track and stop <em>all</em> of a service's processes — even ones that tried to escape by double-forking — and (b) limits and accounts their CPU, memory, and I/O. Every systemd service is automatically placed in its own cgroup. Modern systems, your Pi included, use <strong>cgroup v2</strong>, a single unified hierarchy.</p>
+
+<p>You met cgroups here as systemd's engine. The very same primitive is what containers (Docker and friends) use to box in and limit their workloads — so the <code>MemoryMax=512M</code> line in the service above and a container's memory limit are, underneath, the exact same mechanism viewed from two angles.</p>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<ol class="steps">
+  <li><strong>Turn a script into a boot service.</strong> Write a tiny script that loops and prints the time and temperature every few seconds (use <code>vcgencmd measure_temp</code>). Drop a <code>.service</code> file for it in <code>/etc/systemd/system/</code> with <code>ExecStart=</code> pointing at your script and <code>Restart=on-failure</code>, then run <code>sudo systemctl daemon-reload</code> and <code>sudo systemctl enable --now mything</code>. Confirm it's alive with <code>systemctl status mything</code>, watch its output with <code>journalctl -u mything -f</code>, then <code>kill</code> the process and watch systemd respawn it. Reboot the Pi and confirm it came back on its own. You now have a proper service.</li>
+  <li><strong>Replace a cron job with a timer.</strong> Take a backup script you'd normally cron, and instead write a <code>backup.service</code> (the job) plus a <code>backup.timer</code> with <code>OnCalendar=daily</code> and <code>Persistent=true</code>. Enable the timer, then check <code>systemctl list-timers</code> to see its next run. To prove the catch-up magic, set the calendar time to a moment in the past while the Pi is off (or shut down past a scheduled run), boot up, and watch the missed job fire immediately — something plain cron silently refuses to do.</li>
+  <li><strong>Debug a deliberately broken unit.</strong> Write a service with three planted faults: a wrong path in <code>ExecStart=</code>, a <code>WorkingDirectory=</code> that doesn't exist, and a missing <code>After=</code> dependency. Then diagnose each one using <em>only</em> <code>systemctl status myunit</code>, <code>journalctl -u myunit -b</code>, and <code>systemd-analyze verify myunit.service</code>. Practise telling apart "the unit file itself is wrong" (systemd refuses to start it) from "the command ran but failed" (a non-zero exit code in the logs). This triage skill is most of real-world systemd work.</li>
+  <li><strong>Map your Pi's boot.</strong> Run <code>systemd-analyze</code>, then <code>systemd-analyze critical-chain</code>, then <code>systemd-analyze blame</code>. Find the single slowest unit on your Pi and the dependency chain that actually gated boot. Finally read <code>/proc/cmdline</code> and explain each kernel parameter on it — remembering that on a Pi this line comes from <code>cmdline.txt</code> on the boot partition, not from GRUB.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> Do the riskier experiments — anything that could leave a service stuck in a crash-loop or a timer misbehaving — on <strong>a spare microSD card</strong> or a fresh Raspberry Pi OS install, not the Pi you depend on day to day. A broken unit can't brick your hardware, but it can make a boot hang for a couple of minutes, and it's far calmer to learn that on a throwaway card.</div>
+
+<h2 id="go-deeper">Go deeper</h2>
+
+<ul>
+  <li><a href="https://www.freedesktop.org/software/systemd/man/latest/">systemd documentation (freedesktop.org)</a> — the canonical man-page index covering units, <code>systemctl</code>, journald, and the sandboxing options.</li>
+  <li><a href="https://wiki.archlinux.org/title/Systemd">ArchWiki — systemd / Timers / Sandboxing</a> — the best practical systemd reference anywhere; the examples translate directly to Raspberry Pi OS.</li>
+  <li><a href="https://www.digitalocean.com/community/tutorials/understanding-systemd-units-and-unit-files">DigitalOcean — Understanding systemd units and unit files</a> — a gentle, example-driven introduction.</li>
+  <li><a href="https://nostarch.com/howlinuxworks3">How Linux Works, 3rd ed. — ch. 6 (how the kernel boots) and ch. 17 (systemd)</a> — the clearest book-length treatment of this material.</li>
+</ul>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Boot chain</strong> — the sequence of ever-more-capable loaders (firmware, bootloader, kernel, initramfs, systemd) that brings a machine up, each handing off to the next.</li>
+    <li><strong>initramfs</strong> — a tiny root filesystem the kernel loads into RAM at boot, carrying just enough drivers to find and mount the real root filesystem; it breaks the "driver lives on the disk you can't yet read" chicken-and-egg.</li>
+    <li><strong>EEPROM / boot partition (the Pi's start)</strong> — on a Raspberry Pi 5 the bootloader lives in an EEPROM chip and reads <code>config.txt</code>, the kernel, and the initramfs from the FAT boot partition; there is no BIOS, UEFI, or GRUB.</li>
+    <li><strong>systemd</strong> — PID 1, the first userspace process; a dependency-driven, parallelised service manager that activates the default target and supervises everything else.</li>
+    <li><strong>unit</strong> — any single thing systemd manages, described by a text file and typed by its suffix (<code>.service</code>, <code>.timer</code>, <code>.target</code>, and so on).</li>
+    <li><strong>service</strong> — a <code>.service</code> unit that runs a program, with declarative options for restarts, security sandboxing, and resource limits.</li>
+    <li><strong>target</strong> — a <code>.target</code> unit acting as a named synchronisation point or grouping; the modern replacement for SysV runlevels (e.g. <code>multi-user.target</code>).</li>
+    <li><strong>journald</strong> — systemd's logging service, which captures each service's stdout/stderr via its cgroup and stores structured, indexed, queryable logs read with <code>journalctl</code>.</li>
+    <li><strong>timer</strong> — a <code>.timer</code> unit that triggers a service on a schedule; a cron replacement that adds logging, dependencies, and catch-up runs via <code>Persistent=true</code>.</li>
+    <li><strong>cgroup (control group)</strong> — the kernel mechanism that groups a service's processes so systemd can track and stop them all, and that enforces CPU/memory/I-O limits; also the foundation of containers.</li>
+    <li><strong>SysV init</strong> — the older init system of serial, numbered shell scripts that systemd replaced; serial, hard to supervise, and without resource control.</li>
+    <li><strong>systemd-analyze</strong> — the tool that reports boot timing (<code>blame</code>), the gating dependency chain (<code>critical-chain</code>), and unit correctness (<code>verify</code>).</li>
+  </ul>
+</div>

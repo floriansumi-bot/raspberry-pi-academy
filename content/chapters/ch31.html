@@ -1,0 +1,179 @@
+<p class="lead">By now you have used Docker in this course — to self-host a service, to run something without polluting your Pi's main system. It probably felt a little like magic: one command, and suddenly there's a tidy, isolated little Linux inside your Linux. This lesson pulls the curtain back. We are going deeper, and demystifying Docker completely. Here is the secret, stated plainly up front: <strong>a container is not a special kind of thing.</strong> It is an ordinary process — just like the ones you have started a hundred times — that the kernel has placed into some clever boxes called <em>namespaces</em> and <em>cgroups</em>. Your Pi 5 runs a full 64-bit Linux kernel with all of these primitives built in, so you can assemble a container by hand, with nothing but commands you already half-know. After this, Docker will never feel like magic again — it will feel like a very nice convenience wrapper, which is exactly what it is.</p>
+
+<div class="warn"><strong>Careful:</strong> The hands-on parts of this lesson create new namespaces, chroot into a downloaded filesystem, and write limits into kernel control files. None of it is exotic, but it does need <code>sudo</code> and it does touch low-level kernel machinery. Do it on a Pi you are happy to experiment with — a spare microSD card or a fresh Raspberry Pi OS install — not the one running anything you care about. Every command here is reversible by simply exiting the shell or rebooting, but read before you paste.</div>
+
+<h2 id="what-a-container-really-is">What a container really is</h2>
+
+<p>Reach for the most ordinary mental picture of a running program: a process, with a number (its PID), reading and writing files, owning some memory, maybe holding a network connection. That is the whole starting point. To turn that ordinary process into "a container", Linux does two separate jobs:</p>
+
+<ul>
+  <li><strong>Namespaces</strong> change <em>what the process can see.</em> They give it a private view of one slice of the system — its own process list, its own network, its own filesystem tree — so that from the inside it looks like it has the whole machine to itself.</li>
+  <li><strong>cgroups</strong> change <em>what the process can use.</em> They cap how much CPU, memory, or I/O the process (and its children) are allowed to consume, so one container cannot starve the others.</li>
+</ul>
+
+<p>Add a swapped-in root filesystem — a little self-contained userland to live in — and that's it. That's a container.</p>
+
+<div class="tip"><strong>The key insight:</strong> There is no "container" object anywhere in the Linux kernel. You will never find a <code>create_container()</code> system call. Docker, Podman, and Kubernetes are <em>orchestration glue</em> wrapped around primitives — namespaces, cgroups, a root filesystem — that you can drive by hand. The kernel does not know the word "container". It only knows processes that happen to be wearing some isolation.</div>
+
+<div class="jargon"><strong>In plain words:</strong> A container is a process in a costume. The costume (namespaces) changes what it sees in the mirror; a leash (cgroups) limits how much it can eat. Underneath the costume it is the same kind of process as everything else on your Pi.</div>
+
+<h2 id="namespaces-isolating-what-a-process-can-see">Namespaces: isolating what a process can see</h2>
+
+<p>A namespace virtualises one kind of global kernel resource, so the processes inside get their own private version of it. There are eight of them, and each isolates exactly one thing:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Namespace</th>
+      <th>Isolates</th>
+      <th>Effect inside</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>mnt</strong> (mount)</td><td>the mount table</td><td>its own filesystem tree</td></tr>
+    <tr><td><strong>pid</strong></td><td>process IDs</td><td>its first process is <strong>PID 1</strong>; cannot see host processes</td></tr>
+    <tr><td><strong>net</strong></td><td>the whole network stack</td><td>own interfaces, routes, firewall, ports</td></tr>
+    <tr><td><strong>user</strong></td><td>UID / GID mappings</td><td><strong>root inside (UID 0) maps to an unprivileged UID outside</strong></td></tr>
+    <tr><td><strong>uts</strong></td><td>hostname / domainname</td><td>its own <code>hostname</code></td></tr>
+    <tr><td><strong>ipc</strong></td><td>SysV / POSIX IPC</td><td>isolated shared memory and message queues</td></tr>
+    <tr><td><strong>cgroup</strong></td><td>the cgroup root view</td><td>hides the host's cgroup hierarchy</td></tr>
+    <tr><td><strong>time</strong></td><td>boot / monotonic clock offsets</td><td>(newest; kernel 5.6+, which your Pi 5 has)</td></tr>
+  </tbody>
+</table>
+
+<p>Mix and match them. Docker hands a container a fresh set of most of these; a lightweight sandbox might use only one or two. They are independent dials.</p>
+
+<h3>The security keystone: the user namespace</h3>
+
+<p>Of the eight, the <strong>user namespace</strong> is the one to understand deeply, because it is what makes containers genuinely safe rather than merely tidy. Inside a user namespace, a process can <em>be</em> UID 0 — "root" — with all the apparent powers of root, while on the host that same process maps to a powerless, high-numbered UID that owns nothing important.</p>
+
+<p>The consequence is large: even if an attacker breaks <em>out</em> of a container, they do not land as root on your Pi. They land as nobody. This is exactly what makes <strong>rootless containers</strong> possible — Podman and rootless Docker let an ordinary, unprivileged user run containers without ever touching real root.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "root" inside a rootless container is a stage costume, not real power. The actor is allowed to play the king on stage (inside), but the moment they walk off into the street (the host) they are an ordinary citizen again. A breakout hands the attacker the costume, not the crown.</div>
+
+<h2 id="cgroups-v2-limiting-what-a-process-can-use">cgroups v2: limiting what a process can use</h2>
+
+<p>Where namespaces isolate <em>visibility</em>, <strong>cgroups</strong> (control groups) limit and account <em>resources</em>: CPU, memory, I/O, and the number of processes. Modern systems — including current Raspberry Pi OS — use <strong>cgroup v2</strong>, a single unified hierarchy that is far cleaner than the old v1 tangle of one separate tree per resource.</p>
+
+<p>The beautiful part is how plain the interface is. cgroups are a <strong>filesystem</strong>. You create a control group by making a directory, and you set limits by writing numbers into files:</p>
+
+<pre class="code"><code># Create a cgroup, cap it at 50% of one CPU and 100 MB, run a process inside it:
+sudo mkdir /sys/fs/cgroup/demo
+echo '50000 100000' | sudo tee /sys/fs/cgroup/demo/cpu.max      # 50ms per 100ms = half a core
+echo $((100*1024*1024)) | sudo tee /sys/fs/cgroup/demo/memory.max
+echo $$ | sudo tee /sys/fs/cgroup/demo/cgroup.procs             # move THIS shell into it
+# now anything you run here is throttled to half a core and OOM-killed past 100 MB</code></pre>
+
+<div class="explain">
+  <strong>mkdir /sys/fs/cgroup/demo</strong> — creating the directory <em>is</em> creating the cgroup; the kernel populates it with control files automatically.<br>
+  <strong>cpu.max = "50000 100000"</strong> — allow 50,000 microseconds of CPU time per 100,000-microsecond window, i.e. 50% of one core.<br>
+  <strong>memory.max</strong> — a hard ceiling in bytes; cross it and the kernel OOM-kills a process in the group.<br>
+  <strong>echo $$ &gt; cgroup.procs</strong> — <code>$$</code> is the current shell's PID; writing it here moves this shell (and everything it later launches) into the group.
+</div>
+
+<p>Two cgroup-v2 rules are worth remembering: processes may only live in <strong>leaf</strong> cgroups (the "no internal processes" rule), and each controller is switched on top-down through a file called <code>cgroup.subtree_control</code>.</p>
+
+<div class="note"><strong>Note:</strong> When Docker says <code>--memory=100m</code> or <code>--cpus=0.5</code>, this is literally what it does under the hood — write those exact numbers into a cgroup it created for your container. No magic, just file writes.</div>
+
+<h2 id="unshare-and-nsenter-containers-by-hand">unshare and nsenter: containers by hand</h2>
+
+<p>Two small command-line tools let you drive namespaces directly, and they are perfect mirror images of each other:</p>
+
+<ul>
+  <li><strong><code>unshare</code></strong> — creates <em>new</em> namespaces and runs a process inside them. This is how you <em>build</em> a container.</li>
+  <li><strong><code>nsenter</code></strong> — <em>enters existing</em> namespaces of a process that is already running. This is how you <em>debug</em> a container — even one so minimal it has no shell or tools of its own.</li>
+</ul>
+
+<pre class="code"><code># Become PID 1 in your own pid + mount + user namespace, "root" but unprivileged on the host:
+unshare --user --map-root-user --pid --mount --fork bash
+#   inside:  id      -&gt; uid=0(root)      (a fake, mapped root)
+#            ps aux  -&gt; almost nothing   (its own pid namespace)
+
+# From the host, enter a running container's network namespace to inspect its sockets:
+sudo nsenter -t &lt;pid&gt; -n ss -tlnp</code></pre>
+
+<div class="explain">
+  <strong>unshare --user --map-root-user</strong> — make a new user namespace and map your UID to 0 inside it (rootless "root").<br>
+  <strong>--pid --mount --fork</strong> — also new PID and mount namespaces; <code>--fork</code> is required because the process that <em>creates</em> a PID namespace is not itself in it — its child becomes PID 1.<br>
+  <strong>nsenter -t &lt;pid&gt; -n</strong> — join the network namespace (<code>-n</code>) of the process with PID <code>&lt;pid&gt;</code>, then run <code>ss -tlnp</code> there to list its listening sockets. Replace <code>&lt;pid&gt;</code> with the real PID.
+</div>
+
+<div class="tip"><strong>Tip:</strong> <code>nsenter</code> is the single most useful trick for debugging real Docker containers. A container built <code>FROM scratch</code> may have no shell at all — but you can still step into its network or mount namespace from the host with <code>nsenter</code> and use the host's tools to look around.</div>
+
+<h2 id="assemble-a-container-by-hand">Assemble a container by hand</h2>
+
+<p>Here is the recipe Docker automates, in full: <strong>new namespaces + a root filesystem + cgroup limits</strong>, then <code>exec</code> your program. The only piece we have not gathered yet is the root filesystem — a tiny userland for the process to live in. We will use Alpine Linux, which ships a minimal root filesystem that is only a few megabytes.</p>
+
+<div class="warn"><strong>Careful — get the right architecture.</strong> Your Raspberry Pi is <strong>ARM</strong>, not x86. You must download the <strong>aarch64</strong> (ARM64) Alpine rootfs, <em>not</em> the x86_64 one you'll see in most internet tutorials. An x86_64 binary simply will not run on the Pi's CPU. Look for a file named like <code>alpine-minirootfs-3.20.0-aarch64.tar.gz</code>.</div>
+
+<pre class="code"><code># 1. Get a tiny ARM64 root filesystem for the Pi:
+mkdir alpine-root &amp;&amp; cd alpine-root
+curl -sL https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-minirootfs-3.20.0-aarch64.tar.gz | tar xz
+cd ..
+
+# 2. New PID + mount namespaces, chroot into the rootfs, remount /proc, exec a shell:
+sudo unshare --pid --fork --mount-proc \
+  chroot alpine-root /bin/sh
+#   inside: you are PID 1, you see only the Alpine userland, /proc reflects only your namespace</code></pre>
+
+<div class="explain">
+  <strong>curl ... aarch64 ... | tar xz</strong> — download the ARM64 Alpine mini rootfs and unpack it straight into <code>alpine-root/</code>.<br>
+  <strong>unshare --pid --fork</strong> — new PID namespace; the forked child becomes PID 1 inside it.<br>
+  <strong>--mount-proc</strong> — also new mount namespace, with a fresh <code>/proc</code> mounted so tools like <code>ps</code> reflect <em>this</em> namespace, not the host's.<br>
+  <strong>chroot alpine-root /bin/sh</strong> — switch the root directory to the Alpine tree and run its shell. Inside, <code>echo $$</code> prints <code>1</code> and <code>ps</code> sees almost nothing.
+</div>
+
+<p>That is a container. Add a network namespace and a <code>veth</code> pair for networking, write CPU and memory limits into a cgroup as shown above, and swap <code>chroot</code> for <code>pivot_root</code> (which gives proper, leak-free mount isolation), and you have reproduced the core of <code>docker run</code>. What Docker adds on top is genuinely valuable — <strong>images</strong> (layered, content-addressed filesystems stacked with <strong>overlayfs</strong>), a <strong>registry</strong> to pull them from, automatic networking, and a friendly UX — but <em>none</em> of it is a secret kernel feature. It is all convenience over the primitives you just used.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>overlayfs</strong> lets Docker stack read-only image layers under a thin writable layer, so a hundred containers can share one base image without copying it a hundred times. It is the same kind of mount trick you met with filesystems — Docker just automates the stacking.</div>
+
+<h2 id="pid-1-and-why-containers-need-an-init">PID 1, and why containers need an init</h2>
+
+<p>There is one consequence of all this that bites people in production, and it follows straight from the process model. In a normal Linux system, PID 1 is <code>init</code> (systemd on your Pi), and it has two special duties: it <strong>reaps</strong> orphaned zombie processes, and it <strong>forwards signals</strong> sensibly. Inside a container with its own PID namespace, <em>your application</em> is PID 1 — and it probably was not written to do those jobs.</p>
+
+<p>Two things go wrong as a result:</p>
+
+<ul>
+  <li>If your app ignores <code>SIGTERM</code> (many do, by default, when they are PID 1), then <code>docker stop</code> waits ten seconds and then <code>SIGKILL</code>s it — an ungraceful, abrupt shutdown every time.</li>
+  <li>If your app spawns children and does not reap them, the zombies pile up, because there is no real init underneath to clean them away.</li>
+</ul>
+
+<p><strong>The key insight:</strong> this is exactly why <code>docker run --init</code> exists — it injects a tiny, correct init process (such as <strong>tini</strong> or <code>dumb-init</code>) as PID 1, which reaps zombies and forwards signals so your app does not have to. The flag is not a workaround for a Docker quirk; it is the same PID-1 responsibility from ordinary Linux, surfacing in a place you did not expect.</p>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<p>Docker on a Raspberry Pi is hugely popular, and now you can see the primitives it sits on. Work through these in order on a spare microSD card or fresh install.</p>
+
+<ol class="steps">
+  <li><strong>Map the namespaces.</strong> Without running anything risky, write down all eight namespaces and, for each, one sentence on what it isolates plus one real consequence (for example, "user ns → rootless containers"). Then run <code>lsns</code> to list the namespaces live on your Pi and notice which processes share which.</li>
+  <li><strong>One-command mini-container.</strong> Download the <strong>aarch64</strong> Alpine rootfs as shown above, then run <code>sudo unshare --pid --fork --mount-proc chroot ./alpine-root /bin/sh</code>. Inside, confirm you are PID 1 with <code>echo $$</code>, that <code>ps</code> sees almost nothing, and that your hostname and mounts are isolated. Then answer for yourself: <em>why did <code>/proc</code> have to be remounted?</em></li>
+  <li><strong>Limit it with cgroups v2.</strong> Create <code>/sys/fs/cgroup/demo</code>, set <code>cpu.max</code> and <code>memory.max</code>, drop a CPU-hungry process into it (even <code>yes &gt; /dev/null</code> works), and <em>watch</em> the throttling in <code>top</code>. Then push a process past <code>memory.max</code> and find the OOM-kill recorded in <code>dmesg</code>. Resource control as nothing but file writes.</li>
+  <li><strong>Hand-assemble, then compare to Docker.</strong> Combine namespaces (add a network namespace and a <code>veth</code> pair if you are feeling brave), a <code>pivot_root</code> into the rootfs, and a cgroup with limits, all in one script that ends by <code>exec</code>ing a shell. Then run the same workload with <code>docker run</code> and enumerate <em>exactly</em> what Docker added on top of your script. Nothing demystifies containers faster than this side-by-side.</li>
+</ol>
+
+<h2 id="go-deeper">Go deeper</h2>
+
+<ul>
+  <li><a href="https://github.com/lizrice/containers-from-scratch">Liz Rice — containers-from-scratch (Go)</a> — a ~100-line runtime plus her "Building a container from scratch" talk; the canonical hands-on intro. Trace every namespace flag and cgroup write back to this lesson.</li>
+  <li><a href="https://blog.lizzie.io/linux-containers-in-500-loc.html">Lizzie Dixon — "Linux containers in 500 lines of code"</a> — the deep C version (a different author — do not confuse the two). Every primitive here, spelled out in code.</li>
+  <li><a href="https://wizardzines.com/zines/containers/">Julia Evans — "How Containers Work" zine</a> — illustrated, intuition-first; the friendliest possible pictures of namespaces and cgroups.</li>
+  <li><a href="https://github.com/p8952/bocker">bocker — Docker in ~100 lines of bash</a> — read it to watch namespaces + cgroups + veth + a copy-on-write filesystem combine into a runtime. Run only in its bundled VM.</li>
+  <li><a href="https://man7.org/linux/man-pages/man7/namespaces.7.html">namespaces(7) and cgroups(7) man pages</a> — the authoritative kernel reference for both primitives.</li>
+</ul>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Container</strong> — not a kernel object, but an ordinary process placed into namespaces and cgroups, usually with its own root filesystem.</li>
+  <li><strong>Namespace</strong> — a kernel feature that gives a process a private view of one global resource (processes, network, mounts, users, hostname, IPC, cgroups, or time).</li>
+  <li><strong>cgroup v2</strong> — control groups in their unified hierarchy; limit and account CPU, memory, I/O, and process count via files under <code>/sys/fs/cgroup</code>.</li>
+  <li><strong>User namespace</strong> — the namespace that maps in-container UID 0 to an unprivileged host UID; the security keystone that makes rootless containers safe.</li>
+  <li><strong>Rootless container</strong> — a container run by an unprivileged user (Podman, rootless Docker), where in-container "root" has no real power on the host.</li>
+  <li><strong>unshare</strong> — the command that creates new namespaces and runs a process inside them; how you build a container by hand.</li>
+  <li><strong>nsenter</strong> — the command that enters the existing namespaces of a running process; how you debug a container from the host.</li>
+  <li><strong>chroot / pivot_root</strong> — swap the root filesystem for a process; <code>pivot_root</code> is the proper, leak-free version Docker uses.</li>
+  <li><strong>overlayfs</strong> — the layered, copy-on-write filesystem Docker stacks image layers with, so many containers share one base image.</li>
+  <li><strong>PID 1 / init (tini)</strong> — the first process in a PID namespace; it must reap zombies and forward signals, which is why <code>docker run --init</code> injects a small init like tini.</li>
+  <li><strong>cpu.max / memory.max</strong> — the cgroup-v2 control files that cap CPU quota and memory; what <code>--cpus</code> and <code>--memory</code> write to under the hood.</li>
+</ul>
+</div>

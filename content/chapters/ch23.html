@@ -1,0 +1,184 @@
+<p class="lead">You already know how to type commands into the terminal on your Pi. This lesson pulls back the curtain on what really happens in the split second after you press <kbd>Enter</kbd> — because the shell isn't just a command launcher, it's a full programming language that rewrites your line before any program ever runs. Once you see that hidden "rewrite" step, a whole class of confusing bash bugs turns into simple mechanics.</p>
+
+<p><strong>The key insight:</strong> before a single program starts, bash transforms your command line through a fixed, multi-stage <em>expansion pipeline</em>. Nearly every "weird shell bug" is really you not knowing what the shell did to your line <em>before</em> it handed it off. Learn the pipeline, and the magic becomes mechanics.</p>
+
+<div class="warn"><strong>Careful:</strong> This lesson has you deliberately break things to learn how they work — including running <code>rm</code> on oddly named files. Do your experiments in a throwaway folder, and if you want to be extra safe, do the destructive parts on a spare microSD card you can re-flash, not the Pi you care about. Everything here runs on the full 64-bit Debian Linux your Pi 5 boots into, with the same bash you use every day.</p></div>
+
+<h2 id="the-expansion-pipeline">The Expansion Pipeline Nobody Teaches You</h2>
+
+<p>When you press <kbd>Enter</kbd>, bash doesn't just run what you typed. It first rewrites the line through a series of steps, <em>in this exact order, every single time</em>:</p>
+
+<pre class="code"><code>brace expansion   {a,b}      → a b
+tilde expansion   ~          → /home/you
+parameter/var     $x ${x}    → the value
+command subst     $(cmd)     → cmd's stdout
+arithmetic        $((1+1))   → 2
+WORD SPLITTING    on $IFS    → splits unquoted results into separate words
+GLOBBING          * ? [..]   → expands to matching filenames
+quote removal                → strips the quotes themselves</code></pre>
+
+<p>By the time your program actually starts, it just receives a finished list of strings (its <code>argv</code>). It has <strong>no idea</strong> you typed <code>*</code> or <code>$x</code>. The shell already resolved all of it and handed over the final words.</p>
+
+<div class="jargon"><strong>In plain words:</strong> Think of the shell as an editor that reads your sentence, swaps in all the placeholders, splits it into words, and only <em>then</em> calls the program — passing it the finished sentence. The program never sees your shorthand.</div>
+
+<p>Open a terminal on your Pi and try this:</p>
+
+<pre class="code"><code>echo *</code></pre>
+
+<p>It prints the names of the files in your current folder. Why? Because the shell expanded <code>*</code> into that file list before <code>echo</code> ever ran. <code>echo</code> just dutifully printed the words it was handed.</p>
+
+<p>The same thing happens with <code>ls *.txt</code>: <code>ls</code> never sees the <code>*</code>. The <em>shell</em> expands <code>*.txt</code> into the matching filenames and passes <code>ls</code> the final list. If nothing matches, bash (by default) hands over the literal string <code>*.txt</code> — which is why you sometimes see <code>ls: cannot access '*.txt'</code>. That error is the shell's doing, not <code>ls</code>'s.</p>
+
+<p><strong>The key insight:</strong> globbing is done by the <em>shell</em>, for <em>every</em> command. <code>rm *</code>, <code>git add *</code>, <code>cp * dir/</code> — the program always receives an already-expanded file list. The program is not "smart about wildcards." The shell is.</p>
+
+<h2 id="word-splitting-and-quoting">Word Splitting: The Number One Source of Real Bugs</h2>
+
+<p>Look back at the pipeline. After your variables are expanded, any <strong>unquoted</strong> result is split into separate words on <code>$IFS</code> (the "internal field separator," which by default is space, tab, and newline). Then each of those words is glob-expanded. This single behavior causes more broken scripts than anything else in shell.</p>
+
+<pre class="code"><code>file="my report.txt"
+rm $file          # BUG: becomes  rm my report.txt  → two arguments
+rm "$file"        # CORRECT: one argument, the actual filename</code></pre>
+
+<div class="explain">
+<strong>The unquoted line</strong> — bash expands <code>$file</code> to <code>my report.txt</code>, then splits on the space into two words. <code>rm</code> is told to delete a file called <code>my</code> and a file called <code>report.txt</code> — neither of which exists.<br>
+<strong>The quoted line</strong> — the double quotes suppress word splitting, so <code>rm</code> receives one argument: the real filename, space and all.
+</div>
+
+<p><strong>The rule you will never break again: quote your variables.</strong> Use <code>"$var"</code> and <code>"$@"</code> (not <code>$*</code>) essentially always. The only time you actually <em>want</em> splitting is a rare, deliberate case — and then you do it on purpose, with your eyes open.</p>
+
+<p>This one habit eliminates a huge class of failures all at once: spaces in filenames, empty variables silently vanishing, and stray glob characters in your data getting expanded by surprise. There's even a free tool, <strong>ShellCheck</strong>, that exists largely to nag you about exactly this — run it on every script you write.</p>
+
+<p>Two settings let you control what happens when a glob matches nothing:</p>
+
+<pre class="code"><code>shopt -s nullglob   # no match → expands to nothing (instead of the literal pattern)
+shopt -s failglob   # no match → error out loudly</code></pre>
+
+<h3>Three Quoting Tools — Pick Deliberately</h3>
+
+<table>
+  <thead>
+    <tr><th>Quote</th><th>Expands $var, $()?</th><th>Splits / globs?</th><th>Use it for</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>'single'</code></td><td>No — fully literal</td><td>No</td><td>exact literal text, regexes, <code>sed</code>/<code>awk</code> programs</td></tr>
+    <tr><td><code>"double"</code></td><td>Yes</td><td>No (suppressed)</td><td><strong>variables</strong> — the everyday sweet spot</td></tr>
+    <tr><td><code>\</code> (backslash)</td><td>escapes one char</td><td>—</td><td>a single special character</td></tr>
+  </tbody>
+</table>
+
+<p>A single-quoted string can't contain a single quote at all. And <code>"$var"</code> is what you want about 95% of the time. When in doubt, reach for double quotes.</p>
+
+<h2 id="subshells-substitution-heredocs">Subshells, Command Substitution and Here-Docs</h2>
+
+<p>These three tools come up constantly once you start writing real scripts on your Pi.</p>
+
+<p>A <strong>subshell</strong> <code>( ... )</code> runs in a forked child process. Any variable changes or <code>cd</code> done inside it <em>do not</em> affect the parent. So <code>(cd /tmp &amp;&amp; do_stuff)</code> leaves you in exactly the directory you started in — handy when you want to pop somewhere, do a job, and come back without thinking about it.</p>
+
+<p><strong>Command substitution</strong> <code>$(cmd)</code> runs <code>cmd</code> in a subshell, captures its standard output, strips trailing newlines, and (if you leave it unquoted) word-splits the result. Prefer <code>$(...)</code> over the older backtick form <code>`cmd`</code> — it nests cleanly and reads far better.</p>
+
+<pre class="code"><code>now=$(date +%H:%M)
+echo "It is $now on your Pi"</code></pre>
+
+<p>A <strong>here-doc</strong> feeds a whole block of text into a command's standard input:</p>
+
+<pre class="code"><code>cat &lt;&lt;EOF          # expands $vars inside
+Hello $USER
+EOF
+
+cat &lt;&lt;'EOF'        # quoted delimiter → NO expansion (literal)
+Costs $100 and $PATH stays literal
+EOF
+
+cat &lt;&lt;-EOF         # the dash strips leading TABS (for indenting in scripts)
+	indented in source, flush in output
+EOF</code></pre>
+
+<div class="explain">
+<strong>Unquoted <code>EOF</code></strong> — variables like <code>$USER</code> get expanded inside the block.<br>
+<strong>Quoted <code>'EOF'</code></strong> — nothing is expanded; <code>$100</code> and <code>$PATH</code> stay literal. Perfect for writing out a config file that contains dollar signs.<br>
+<strong>The <code>&lt;&lt;-</code> dash</strong> — strips leading tab characters so you can indent the here-doc neatly inside a function or loop.
+</div>
+
+<p>And a <strong>here-string</strong> feeds a command just one string: <code>grep foo &lt;&lt;&lt; "$line"</code>.</p>
+
+<h2 id="exit-codes-and-the-safe-header">Exit Codes and the Defensive Script Header</h2>
+
+<p>Every command returns a whole number from <strong>0 to 255</strong>. <strong>0 means success</strong>; anything non-zero means some kind of failure. The special variable <code>$?</code> holds the last command's code. <code>&amp;&amp;</code> runs the next command only on success; <code>||</code> runs it only on failure.</p>
+
+<pre class="code"><code>mkdir build &amp;&amp; cd build       # cd only if mkdir worked
+command -v jq || echo "jq not installed"</code></pre>
+
+<p>Here is the header worth putting at the top of every non-trivial script you write on your Pi:</p>
+
+<pre class="code"><code>#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'</code></pre>
+
+<div class="explain">
+<strong>set -e</strong> — exit on any unhandled non-zero command. (Caveats: it's ignored inside <code>if</code>/<code>&amp;&amp;</code>/<code>||</code> conditions and has some historical surprises — treat it as a safety net, not a replacement for real error handling.)<br>
+<strong>set -u</strong> — error on <em>unset</em> variables. Catches typos like <code>$flie</code> instantly instead of silently using an empty value.<br>
+<strong>set -o pipefail</strong> — a pipeline's exit code becomes the last non-zero stage, not just the final command's. Without it, <code>false | true</code> "succeeds" and you silently miss the failure.<br>
+<strong>IFS=$'\n\t'</strong> — drops the space from the field separator, so word-splitting only happens on newlines and tabs. Much safer around filenames with spaces.
+</div>
+
+<h2 id="builtins-vs-externals">Builtins vs Externals: Why cd Can't Be a Program</h2>
+
+<p>When you type a command with no slash in it, bash searches <code>$PATH</code> from left to right and runs the first matching file it finds. But some commands don't live in a file at all — they run <em>inside</em> the shell process itself. These are called <strong>builtins</strong>.</p>
+
+<p><strong>The key insight:</strong> <code>cd</code> <em>must</em> be a builtin. A normal program runs in a <em>child</em> process, and a child can't change its <em>parent's</em> working directory. So if <code>cd</code> were an external program, it would change directory in the child, then the child would exit — and you'd be exactly where you started. For that reason <code>cd</code>, <code>export</code>, <code>read</code>, <code>[</code>, and <code>pwd</code> are builtins by necessity. A few commands exist as <em>both</em> a builtin and an external file (<code>echo</code>, <code>test</code>, <code>printf</code>, <code>kill</code>), with subtly different behavior.</p>
+
+<pre class="code"><code>type -a echo      # builtin, alias, function, or file? AND where
+command -v ls     # what would actually run
+hash -r           # clear bash's PATH cache (fixes "command not found" after moving a binary)</code></pre>
+
+<div class="warn"><strong>Myth vs reality:</strong> The myth is "use <code>which</code> to find a command." The reality is that <code>which</code> is an <em>external</em> program that knows nothing about builtins, shell functions, or aliases — so it lies about <code>cd</code>, your custom <code>ll</code> alias, and more. Use <strong><code>type -a</code></strong> instead. It's shell-aware and tells you the truth about what will actually run.</div>
+
+<h2 id="login-vs-interactive-shells">Login vs Interactive: Why PATH Works in the Terminal but Not in Cron</h2>
+
+<p>Two <em>independent</em> questions decide which startup files bash reads when it launches — and getting this wrong is behind one of the most common "it works for me but not in the script" head-scratchers.</p>
+
+<ul>
+  <li><strong>Login shell</strong> (SSH into your Pi, a console login, or <code>bash -l</code>): reads <code>/etc/profile</code>, then the <em>first</em> of <code>~/.bash_profile</code>, <code>~/.bash_login</code>, or <code>~/.profile</code>.</li>
+  <li><strong>Interactive non-login</strong> (opening a new terminal tab on the Pi desktop): reads <code>~/.bashrc</code>.</li>
+  <li><strong>Non-interactive</strong> (a script, or a cron job): reads <em>neither</em> by default — only <code>$BASH_ENV</code> if that's set.</li>
+</ul>
+
+<p><strong>The key insight:</strong> "My alias / PATH / custom tool works in my terminal but the cron job can't find it" is almost always this. Cron runs non-interactive and non-login, with a bare-bones environment — none of your <code>~/.bashrc</code> customizations exist there. The classic fix is to source <code>~/.bashrc</code> from <code>~/.bash_profile</code>, and to never assume your comfy interactive environment exists inside a script.</p>
+
+<h2 id="try-it-on-your-pi">Try It on Your Pi</h2>
+
+<p>The best way to lock this in is to make the shell misbehave on purpose, in a safe folder, then fix it. Pick a couple of these.</p>
+
+<ol class="steps">
+  <li><strong>Break it on purpose (easiest — do this today).</strong> In a throwaway folder, create files literally named <code>my file.txt</code>, <code>-rf</code>, <code>$HOME</code>, and <code>*.txt</code>. Then write a loop that processes them and watch unquoted variables and globs detonate. Fix every case with proper quoting. Nothing teaches word-splitting like watching <code>rm $file</code> go wrong in a sandbox. <em>Teaches: word splitting, globbing, and why you quote.</em></li>
+  <li><strong>A prompt that tells you things (easy).</strong> Build a custom <code>PS1</code> in <code>~/.bashrc</code> that shows your current git branch, the previous command's exit code (colored red on failure), and the working directory. The catch: you must capture <code>$?</code> <em>first</em>, before any other command clobbers it. <em>Teaches: the shell environment, exit codes, prompt expansion.</em></li>
+  <li><strong>A dotfiles repo with an install script (intermediate).</strong> Put your <code>.bashrc</code>, <code>.vimrc</code> and friends in a git repo, and write an installer that symlinks them into <code>$HOME</code>. Running it twice must be safe (idempotent). <em>Teaches: symlinks, idempotency, and quoting paths correctly.</em></li>
+  <li><strong>A CLI tool with real argument parsing (intermediate).</strong> Write a bash tool with <code>-h</code>/<code>--help</code>, short flags via <code>getopts</code>, and git-style subcommands dispatched by a <code>case</code> statement. Make it pass ShellCheck with zero warnings. <em>Teaches: <code>getopts</code>, <code>OPTARG</code>/<code>OPTIND</code>, and the standard usage convention.</em></li>
+</ol>
+
+<h2 id="go-deeper">Go Deeper</h2>
+
+<ul>
+  <li><a href="https://linuxcommand.org/tlcl.php">The Linux Command Line — Part IV (Shell Scripting)</a> — the canonical free book; chapters 24–36 are pure scripting. (Free PDF.)</li>
+  <li><a href="https://mywiki.wooledge.org/BashFAQ">Greg's Wiki / BashFAQ</a> — the single best correct reference for bash gotchas: quoting, <code>while read</code> subshells, process management. (Free.)</li>
+  <li><a href="https://www.shellcheck.net/">ShellCheck</a> — paste any script and it explains every bug with a linked wiki page. Run it on everything. (Free.)</li>
+  <li><a href="https://www.gnu.org/software/bash/manual/">The Bash Hackers Wiki / GNU Bash manual</a> — the authoritative spec for when you need the exact rule. (Free.)</li>
+</ul>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Expansion pipeline</strong> — the fixed sequence of rewrites (brace, tilde, variable, command substitution, arithmetic, word splitting, globbing, quote removal) that bash applies to every command line before running it.</li>
+    <li><strong>Globbing</strong> — the shell expanding wildcard patterns like <code>*</code>, <code>?</code>, and <code>[..]</code> into matching filenames. Done by the shell, not by the program you're running.</li>
+    <li><strong>Word splitting</strong> — bash breaking an unquoted expansion into separate words on <code>$IFS</code> (space, tab, newline by default). The top cause of scripts breaking on filenames with spaces.</li>
+    <li><strong>IFS</strong> — the Internal Field Separator: the set of characters bash splits unquoted words on. Default is space, tab, and newline.</li>
+    <li><strong>Quoting</strong> — wrapping text in single quotes (fully literal), double quotes (expand variables but no splitting), or backslash (escape one character) to control what the shell does to it.</li>
+    <li><strong>Command substitution</strong> — <code>$(cmd)</code>, which runs a command, captures its output, and substitutes it into the line. Preferred over backticks.</li>
+    <li><strong>Subshell</strong> — a forked child shell created by <code>( ... )</code>; changes to variables or directory inside it don't affect the parent.</li>
+    <li><strong>Here-doc</strong> — <code>&lt;&lt;EOF ... EOF</code>, a way to feed a multi-line block of text into a command's standard input.</li>
+    <li><strong>Exit code</strong> — the 0–255 number a command returns; 0 is success, non-zero is failure. Stored in <code>$?</code>.</li>
+    <li><strong>Builtin</strong> — a command that runs inside the shell process itself (like <code>cd</code>, <code>export</code>, <code>pwd</code>) rather than as a separate program file.</li>
+    <li><strong>pipefail</strong> — the <code>set -o pipefail</code> option that makes a pipeline report failure if any stage fails, not just the last one.</li>
+    <li><strong>Login vs interactive shell</strong> — the two independent axes that determine which startup files bash reads; the reason a tool can work in your terminal but not in a cron job.</li>
+  </ul>
+</div>
