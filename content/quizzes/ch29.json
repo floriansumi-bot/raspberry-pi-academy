@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch29",
+  "title": "Boot, PID 1, and the Service Manager",
+  "questions": [
+    {
+      "q": "Why does Linux need an initramfs at boot instead of just mounting the real root filesystem directly?",
+      "choices": ["Because the root filesystem is encrypted and the password must be typed before the kernel loads.", "Because the kernel needs the driver for the disk and filesystem, but that driver lives on the very root filesystem it can't yet read - the initramfs carries those drivers in RAM to break the loop.", "Because the bootloader can only load files smaller than the real root filesystem.", "Because systemd refuses to start unless an initramfs has been mounted first."],
+      "answer": 1,
+      "explain": "It's a chicken-and-egg problem: the kernel can't mount the real root until it has that disk/filesystem driver, but the driver lives on the root it can't yet read. The initramfs is a small RAM root that carries exactly those drivers, so the kernel boots it first, uses it to reach the real root, then pivots onto it."
+    },
+    {
+      "q": "In systemd, what is the difference between a service and a target?",
+      "choices": ["A service is a config file and a target is a log file.", "A service runs a program (a .service unit); a target is a named synchronisation point or grouping of units (a .target unit), replacing SysV runlevels.", "A service runs only on boot, while a target runs only on a schedule.", "They are two names for the same thing - 'target' is just the older term for 'service'."],
+      "answer": 1,
+      "explain": "Both are units, but a .service runs an actual program with restart and sandboxing options, whereas a .target is a labelled checkpoint or grouping that other units depend on or are pulled in by. Targets replace the old SysV runlevels - multi-user.target is roughly runlevel 3, graphical.target roughly runlevel 5."
+    },
+    {
+      "q": "Which set of advantages best explains why systemd replaced SysV init?",
+      "choices": ["It boots services one at a time in a guaranteed order, uses simple text logfiles, and avoids cgroups for speed.", "It starts services in parallel by declared dependencies, puts each service in its own cgroup so it can track and stop all of its processes, and unifies logging via journald.", "It is written in a faster language and uses less RAM, with no other structural differences.", "It removed shell scripting entirely and requires every service to be a compiled binary."],
+      "answer": 1,
+      "explain": "SysV ran serial shell scripts, lost track of double-forking daemons, had no resource control, and logged ad-hoc. systemd answers each: parallel dependency-driven startup, a per-service cgroup that captures every process (and enforces limits), and journald capturing each service's stdout/stderr as structured logs."
+    },
+    {
+      "q": "Your nightly backup is scheduled for 4 a.m., but your Pi is often powered off overnight. Why does a systemd timer with Persistent=true succeed where a plain cron job fails?",
+      "choices": ["cron can't express a daily schedule, but a timer can.", "Persistent=true makes the timer remember a missed run and execute it at the next boot, whereas cron silently skips any job whose time passed while the machine was off.", "The timer keeps the Pi awake at 4 a.m. so the job always runs on time.", "cron only works on servers, not on Raspberry Pi OS."],
+      "answer": 1,
+      "explain": "cron simply skips a job if the machine was off at its scheduled time - the run is lost. A timer with Persistent=true records that it missed the run and fires it at the next boot, so the backup actually happens even if 'nightly' sometimes lands the next morning. That catch-up behaviour is the key win on an often-off Pi."
+    },
+    {
+      "q": "Where should a service you write under systemd send its log output, and why?",
+      "choices": ["To its own logfile in /var/log, because systemd cannot read program output.", "To stdout (and stderr), because journald captures a service's stdout/stderr automatically via its cgroup - so you skip logfile paths, rotation, and permissions.", "To a syslog socket you open by hand, because journald only stores kernel messages.", "Nowhere - services should stay silent so they don't fill the SD card."],
+      "answer": 1,
+      "explain": "Because journald grabs each service's stdout/stderr automatically through its cgroup, the simplest and best choice is to just log to stdout. The platform then handles storage, rotation, and indexing - no logfile paths, no logrotate, no file permissions to manage. This is exactly why 12-factor apps log to stdout."
+    }
+  ]
+}

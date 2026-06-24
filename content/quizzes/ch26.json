@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch26",
+  "title": "Seeing Through the Kernel Boundary",
+  "questions": [
+    {
+      "q": "Your program calls strlen() and printf() many times, then you trace it with strace. You see almost no calls related to strlen but only a few write() calls even though printf ran a thousand times. Why?",
+      "choices": [
+        "strace cannot see strlen or printf because they are too fast to capture",
+        "strlen is pure userland math that makes no syscall, and printf buffers its output in userland and flushes to the kernel in chunks via write()",
+        "printf and strlen are both system calls, but strace only logs the first few of each",
+        "The program was compiled without debugging symbols, so the library calls are hidden"
+      ],
+      "answer": 1,
+      "explain": "strace watches the kernel boundary (system calls), not library calls. strlen runs entirely in userland and never bothers the kernel. printf formats and buffers in userland, then makes occasional write() syscalls to flush the buffer — so a thousand printf calls collapse into a handful of write() calls. To watch the library layer itself you would use ltrace instead."
+    },
+    {
+      "q": "A program on your Pi reports a vague error and you suspect it can't find its configuration file. Which command shows you exactly which paths it tried and which one failed?",
+      "choices": [
+        "strace -e trace=openat app 2>&1 | grep -i config",
+        "lsof -i :443",
+        "dmesg -T | grep -i oom",
+        "cat /proc/<pid>/maps"
+      ],
+      "answer": 0,
+      "explain": "strace filtered to the openat syscall shows every path the program tries to open, in order. A line ending in ENOENT ('no such file') tells you exactly which config path it looked for and didn't find — no guessing required. The other commands answer different questions: open ports, OOM kills, and memory layout respectively."
+    },
+    {
+      "q": "You deleted a large log file on your Pi to free space, but 'df -h' still shows the disk as full while 'du' finds nothing taking up room. What is going on, and which tool finds the culprit?",
+      "choices": [
+        "The microSD card is failing; run dmesg to confirm hardware errors",
+        "A process still has the deleted file open, so its data isn't freed until that handle closes; lsof +L1 finds it",
+        "df is simply wrong after a delete and a reboot is required to refresh it",
+        "The space was reclaimed but the filesystem cache hasn't updated; clear it with strace"
+      ],
+      "answer": 1,
+      "explain": "On Linux, deleting a file's name does not free its data while a process still holds the file open — the data lives until the last file descriptor closes. That's why df sees the space as used but du can't find the file. 'lsof +L1' lists deleted-but-still-open files; restarting the offending process closes the handle and reclaims the space."
+    },
+    {
+      "q": "A memory-hungry job on your 8 GB Pi 5 'just vanished' with no error message, and 'echo $?' shows 137. What almost certainly happened?",
+      "choices": [
+        "The program finished successfully — 137 is a normal completion code",
+        "It hit a permissions error (EACCES) and was blocked by the kernel",
+        "The kernel's OOM killer terminated it with SIGKILL when the system ran out of memory (137 = 128 + 9)",
+        "The CPU throttled due to heat and paused the process indefinitely"
+      ],
+      "answer": 2,
+      "explain": "Exit code 137 is 128 + 9, meaning the process was terminated by signal 9 (SIGKILL). When a Pi runs out of RAM plus swap, the kernel's Out-Of-Memory killer scores every process and kills the highest scorer with SIGKILL to save the system — so the process didn't crash on its own, the kernel executed it. Confirm instantly with 'dmesg -T | grep -i oom'."
+    },
+    {
+      "q": "A process on your Pi shows VmSize of about 2 GB but VmRSS of about 80 MB in /proc/<pid>/status. Should you worry that it's about to run the Pi out of memory?",
+      "choices": [
+        "Yes — VmSize is the real memory in use, and 2 GB is dangerous on a Pi",
+        "No — VmSize is the virtual reservation (mostly untouched promises); VmRSS is the real physical RAM in use, and 80 MB is tiny",
+        "Yes — any process over 1 GB virtual will trigger the OOM killer immediately",
+        "It's impossible to tell without running strace on the process first"
+      ],
+      "answer": 1,
+      "explain": "Thanks to demand paging and overcommit, a process can reserve a large virtual address space (VmSize) while only a fraction is backed by real RAM. VmRSS (resident set size) is the actual physical memory in use — here just 80 MB. RSS, not virtual size, is the number that matters for 'am I about to run out of memory?' Beginners often panic at the big VmSize for no reason."
+    }
+  ]
+}

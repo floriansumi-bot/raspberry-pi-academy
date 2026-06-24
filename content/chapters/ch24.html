@@ -1,0 +1,225 @@
+<p class="lead">You have heard the famous Unix slogan: "everything is a file." It sounds mystical, but it hides one of the most beautiful ideas in computing — and your Raspberry Pi 5 uses it constantly. This is the "going deeper" track: the same warm explanations as before, but now we lift the lid and look at how it really works underneath.</p>
+
+<h2 id="the-real-slogan">The Real Slogan: Everything Is a File Descriptor</h2>
+
+<p>"Everything is a file" does <em>not</em> mean every single thing is literally a file sitting on your microSD card. It means that wildly different things — a text file, your keyboard, the screen, a network connection, even live information from inside the Linux kernel — are all reached through the <strong>same small set of operations</strong>: open, read, write, close. One toolkit, over many different kinds of object. That uniformity is the deepest idea in Unix, and it is why one command can pipe into another no matter what they actually do.</p>
+
+<p>The handle that ties all of this together is called a <strong>file descriptor</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>file descriptor</strong> (FD) is just a small whole number — like a ticket number — that your program holds while it has something open. The kernel keeps the real details (which file, where you are up to, read or write); your program only ever waves the little number around and says "read from number 3" or "write to number 1."</div>
+
+<p>Every program on your Pi starts life with three file descriptors already open by convention:</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>FD number</th>
+      <th>Name</th>
+      <th>Where it points by default</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0</code></td>
+      <td><strong>stdin</strong> (standard input)</td>
+      <td>Your keyboard</td>
+    </tr>
+    <tr>
+      <td><code>1</code></td>
+      <td><strong>stdout</strong> (standard output)</td>
+      <td>Your terminal</td>
+    </tr>
+    <tr>
+      <td><code>2</code></td>
+      <td><strong>stderr</strong> (standard error)</td>
+      <td>Your terminal</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>That split between FD 1 (normal results) and FD 2 (errors) is why you can save a program's output to a file while still seeing its error messages on screen. They travel down two separate pipes.</p>
+
+<div class="warn"><strong>Myth vs reality:</strong> The myth says "everything is a file, so I can <code>open()</code> a network socket by its path." Reality: network sockets are the famous exception — you create them with a special <code>socket()</code> call, not by opening a path. So the precise slogan is <strong>"everything is a file <em>descriptor</em>."</strong> Once you <em>have</em> the descriptor, reading and writing work the same way for everything. How you first <em>get</em> the descriptor is what differs.</div>
+
+<h2 id="redirection-is-fd-surgery">Redirection Is File-Descriptor Surgery</h2>
+
+<p>When you type <code>cmd &gt; out.txt</code>, the <code>&gt;</code> does not magically "send output to a file." What actually happens is that your shell quietly rewires file descriptor 1 to point at <code>out.txt</code> <em>before your program even starts running</em>. The program then writes to FD 1 as usual, blissfully unaware that "the terminal" is now a file.</p>
+
+<pre class="code"><code>cmd &gt; out.txt          # point FD 1 (stdout) at out.txt
+cmd 2&gt; err.txt         # point FD 2 (stderr) at err.txt
+cmd &gt; out.txt 2&gt;&amp;1     # FD 1 -&gt; the file, THEN FD 2 -&gt; "wherever 1 points now"
+cmd 2&gt;&amp;1 &gt; out.txt     # FD 2 -&gt; "wherever 1 points now", THEN FD 1 -&gt; file. DIFFERENT!</code></pre>
+<div class="explain">
+  <p><code>2&gt;&amp;1</code> reads as: "make file descriptor 2 a copy of whatever file descriptor 1 refers to <em>at this exact moment</em>." The key word is <em>moment</em> — it is a snapshot, not a permanent link.<br>
+  In the third line, FD 1 is sent to the file first, so when <code>2&gt;&amp;1</code> runs, FD 2 copies "the file." Both end up in <code>out.txt</code>. Good.<br>
+  In the fourth line, the order is flipped. <code>2&gt;&amp;1</code> runs while FD 1 still points at the terminal, so FD 2 becomes "the terminal." Only <em>then</em> does FD 1 move to the file. Result: errors still go to your screen, normal output goes to the file. Same characters, opposite effect.</p>
+</div>
+
+<p><strong>The key insight:</strong> redirections are applied strictly left to right, and <code>2&gt;&amp;1</code> copies wherever FD 1 points <em>right now</em>. Order matters. To capture both streams into one file, put the redirection of FD 1 <em>first</em>: <code>cmd &gt; out.txt 2&gt;&amp;1</code>. Bash also offers the shorthand <code>cmd &amp;&gt; out.txt</code>, which means "both streams to this file."</p>
+
+<div class="note"><strong>Note:</strong> Why can the shell do this surgery before your program runs? Because of how Linux launches programs (the fork-then-exec model, covered in the next lesson). The shell makes a child, rearranges the child's descriptors 0, 1 and 2, and only then loads your program. Your program inherits the new wiring and never knows it was changed.</div>
+
+<h3>The <code>sudo ... &gt; file</code> Trap</h3>
+
+<p>This trips up almost everyone at least once on their Pi:</p>
+
+<pre class="code"><code>sudo echo "dtparam=on" &gt; /boot/firmware/config.txt     # FAILS: Permission denied
+echo "dtparam=on" | sudo tee -a /boot/firmware/config.txt  # works</code></pre>
+<div class="explain">
+  <p>In the first line, <code>sudo</code> only elevates the <code>echo</code> command. But the redirection <code>&gt;</code> is performed by <em>your shell</em>, running as <em>you</em>, before <code>sudo</code> ever starts. Your ordinary user cannot open that protected file, so it fails.<br>
+  In the second line, <code>tee</code> itself runs under <code>sudo</code> (as root), so it is <code>tee</code> that opens the file — and root is allowed. The <code>-a</code> appends instead of overwriting. This is <em>the</em> idiom for writing to a root-owned file.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> Files like <code>/boot/firmware/config.txt</code> control how your Pi boots. Practise this redirection idea on a throwaway file in your home folder first, and ideally experiment on a spare microSD card you can re-flash, so a mistake never touches your working system.</div>
+
+<h2 id="pipes-concurrency-and-backpressure">Pipes: Concurrency and Automatic Flow Control</h2>
+
+<p>When you write <code>a | b</code>, the shell creates a small in-memory buffer in the kernel (around 64 KiB) and wires <code>a</code>'s stdout straight into <code>b</code>'s stdin. A pipe is never a file on your card — it exists only as a pair of file descriptors.</p>
+
+<p>Here is the lovely part: <code>a</code> and <code>b</code> run <strong>at the same time</strong>. If <code>b</code> is slow and the buffer fills up, <code>a</code> simply <em>pauses</em> until <code>b</code> catches up. You get automatic flow control — what engineers call <em>backpressure</em> — completely for free, with no effort from you.</p>
+
+<pre class="code"><code># The Unix philosophy in one line: small tools, composed.
+awk '{print $1}' access.log | sort | uniq -c | sort -rn | head
+#   extract column 1     | group | count | rank   | top 10</code></pre>
+<div class="explain">
+  <p>Five tiny tools, each doing one job, chained into something powerful. <code>awk</code> pulls out the first field of each line; <code>sort</code> groups identical lines together; <code>uniq -c</code> counts the duplicates; <code>sort -rn</code> ranks them highest-first; <code>head</code> shows the top few. None of them knows about the others. That is the whole magic of pipes.</p>
+</div>
+
+<h3>Why <code>cmd | while read</code> "Forgets" Your Variables</h3>
+
+<p>This is a classic Pi-scripting head-scratcher. You expect a count, and you get zero:</p>
+
+<pre class="code"><code>count=0
+grep error /var/log/syslog | while read -r line; do
+    count=$((count + 1))
+done
+echo "$count"     # prints 0  -- but why?!</code></pre>
+
+<div class="warn"><strong>Myth vs reality:</strong> The myth is "the loop ran, so <code>count</code> must have changed." Reality: <strong>each stage of a pipeline runs in its own separate child process</strong> (a subshell). The <code>while</code> loop incremented <code>count</code> inside that child. When the child finished, its memory — and your new count — vanished with it. The parent shell's <code>count</code> was never touched.</div>
+
+<p>Two clean fixes, both worth knowing:</p>
+
+<pre class="code"><code># Fix 1: process substitution, so the loop runs in YOUR shell, not a child
+count=0
+while read -r line; do
+    count=$((count + 1))
+done &lt; &lt;(grep error /var/log/syslog)
+echo "$count"     # correct count
+
+# Fix 2: tell bash to run the last pipeline stage in the parent
+shopt -s lastpipe
+count=0
+grep error /var/log/syslog | while read -r line; do count=$((count + 1)); done
+echo "$count"</code></pre>
+<div class="explain">
+  <p>Fix 1 replaces the pipe with <code>&lt; &lt;(...)</code> (process substitution, explained just below). The loop now runs directly in your shell, so the variable survives.<br>
+  Fix 2 uses <code>shopt -s lastpipe</code>, a bash option that runs the <em>final</em> stage of a pipeline in the parent shell instead of a child. It works in scripts where job control is off.</p>
+</div>
+
+<h2 id="tee-split-a-stream">tee: Splitting a Stream in Two</h2>
+
+<p><code>tee</code> is the plumber's T-joint. It reads its input, writes a copy to one or more files, <em>and</em> passes the same data straight through to the next command. You see it on screen and save it to disk at once.</p>
+
+<pre class="code"><code>sudo apt full-upgrade 2&gt;&amp;1 | tee upgrade.log | grep -i error
+echo "some config" | sudo tee /etc/myapp.conf
+sensors 2&gt;&amp;1 | tee -a temps.log</code></pre>
+<div class="explain">
+  <p>Line 1: run a big upgrade, fold its errors into the same stream with <code>2&gt;&amp;1</code>, save <em>everything</em> to <code>upgrade.log</code>, but only show lines containing "error" on screen. Nothing is lost.<br>
+  Line 2: the write-to-a-root-owned-file idiom from earlier — <code>tee</code> runs as root and opens the file.<br>
+  Line 3: <code>-a</code> appends to the log instead of overwriting it, so each run adds to the history.</p>
+</div>
+
+<h2 id="process-substitution">Process Substitution: Turning a Command Into a "Filename"</h2>
+
+<p>Half of the Unix tools on your Pi read from standard input. The other half insist on being handed a <em>filename</em> as an argument. Process substitution is the clever adapter that bridges the two worlds.</p>
+
+<p>When you write <code>&lt;(cmd)</code>, the shell runs <code>cmd</code> and hands the next program a special filename (really something like <code>/dev/fd/63</code>) that, when read, delivers <code>cmd</code>'s output. The other program thinks it is reading an ordinary file — but there is no file, just a pipe wearing a filename costume.</p>
+
+<pre class="code"><code>diff &lt;(sort a.txt) &lt;(sort b.txt)          # compare two sorted lists, no temp files
+comm -13 &lt;(sort old.txt) &lt;(sort new.txt)  # show only the lines new to new.txt
+while read -r x; do echo "$x"; done &lt; &lt;(produce)   # the pipeline-variable fix
+some_cmd &gt; &gt;(tee run.log)                  # OUTPUT substitution: tee a stream inline</code></pre>
+<div class="explain">
+  <p><code>diff</code> wants two filenames, but you want to compare two <em>sorted</em> lists. Process substitution gives <code>diff</code> two "files" that are actually live <code>sort</code> outputs — no temporary files to create or clean up.<br>
+  The last line flips it around: <code>&gt; &gt;(tee run.log)</code> is <em>output</em> process substitution. It sends a command's output into the <code>tee</code> process as if writing to a file.</p>
+</div>
+
+<p><strong>The key insight:</strong> <code>&lt;(...)</code> exists precisely because some tools speak "stdin" and others speak "file path." It is the universal translator between the two.</p>
+
+<h2 id="windows-into-the-kernel">Windows Into the Kernel: /dev, /proc and /sys</h2>
+
+<p>Here is where "everything is a file" becomes genuinely magical on your Pi. Three special folders — <code>/dev</code>, <code>/proc</code> and <code>/sys</code> — look like normal directories, but they are <strong>virtual filesystems</strong>. The files inside them do not exist on your microSD card. The kernel invents their contents on the spot, every time you read them. They are how you inspect and control the whole system with nothing more than <code>cat</code> and <code>echo</code>.</p>
+
+<pre class="code"><code>cat /dev/null                       # the "bit bucket" -- anything sent here disappears
+head -c 16 /dev/urandom | xxd       # 16 bytes of real kernel randomness, as a "file"
+
+ls -l /proc/self/fd/                # YOUR process's open file descriptors, as symlinks
+cat /proc/cpuinfo                   # live details of your Pi 5's four CPU cores
+cat /proc/meminfo                   # live memory usage, no special tool needed
+readlink /proc/$$/exe               # the path to the shell binary you are running now
+
+cat /sys/class/net/*/operstate      # are your network interfaces up or down?
+cat /sys/class/thermal/thermal_zone0/temp   # your Pi's CPU temperature, in milli-degrees</code></pre>
+<div class="explain">
+  <p><code>/dev/null</code> is the void — write to it to throw output away. <code>/dev/urandom</code> hands out randomness as if it were an endless file. <code>head -c 16</code> takes just the first 16 bytes.<br>
+  <code>/proc</code> is a live X-ray of your running system. <code>/proc/cpuinfo</code> and <code>/proc/meminfo</code> are exactly what tools like <code>top</code> read under the hood — they are mostly just <code>/proc</code> parsers. <code>$$</code> is the shell's own process ID.<br>
+  <code>/sys</code> exposes the device and driver model. Reading <code>thermal_zone0/temp</code> gives your Pi's temperature; divide by 1000 to get degrees Celsius.</p>
+</div>
+
+<ul>
+  <li><strong><code>/dev</code></strong> — device nodes. <code>/dev/sda</code> might be a USB disk, <code>/dev/null</code> is the void, <code>/dev/urandom</code> is randomness, <code>/dev/gpiochip0</code> is your Pi's GPIO pins.</li>
+  <li><strong><code>/proc</code></strong> — a live, per-process and system-wide view of the <em>kernel's</em> own state. Each running program has a folder <code>/proc/&lt;pid&gt;/</code> that is a complete X-ray: its open descriptors, memory layout, current directory, and environment.</li>
+  <li><strong><code>/sys</code></strong> — the structured view of devices, drivers and tunable settings. Some of these you can even <em>write</em> to, to change hardware behaviour like the CPU governor.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Next time you wonder how a "system tool" works, try to find the file it reads. On your Pi, <code>cat /proc/loadavg</code> shows the same load numbers as <code>uptime</code>, and <code>cat /proc/meminfo</code> is the source <code>free</code> reads from. Once you see this, the whole system stops feeling like a black box.</div>
+
+<h2 id="named-pipes-and-sockets">Named Pipes and Unix Sockets: Files With No Disk Content</h2>
+
+<p>An ordinary pipe (<code>a | b</code>) only connects two commands you launched together. But sometimes two <em>unrelated</em> programs need to talk. For that, Linux lets a pipe have a name on the filesystem.</p>
+
+<pre class="code"><code>mkfifo /tmp/mypipe
+# In terminal A:   cat /tmp/mypipe        (waits here, blocked, until someone writes)
+# In terminal B:   echo hello &gt; /tmp/mypipe   (now terminal A prints "hello")</code></pre>
+<div class="explain">
+  <p><code>mkfifo</code> creates a <strong>named pipe</strong> (a FIFO) — a pipe with a filename, so two completely separate programs can connect to it. Notice that the reader <em>blocks</em>, patiently waiting, until a writer shows up. That blocking is the built-in handshake.</p>
+</div>
+
+<p>A close cousin is the <strong>Unix domain socket</strong>. It also appears in the filesystem as a special file, but instead of opening it you <em>connect</em> to it. It is faster than networking over <code>localhost</code> because it skips the network stack entirely, and it can pass credentials and even file descriptors between processes. Your Pi uses these everywhere without you noticing: databases, the Docker daemon, and systemd all communicate through Unix sockets.</p>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<ol class="steps">
+  <li><strong>The redirection-order experiment.</strong> Write a tiny script that prints "working..." to stderr and "result" to stdout (use <code>echo working... &gt;&amp;2</code> for the error line). Run it four ways: plain, <code>&gt; out.txt</code>, <code>&gt; out.txt 2&gt;&amp;1</code>, and <code>2&gt;&amp;1 &gt; out.txt</code>. Compare what lands on screen versus in the file. <em>Teaches: file-descriptor duplication and why redirection order changes the result.</em></li>
+  <li><strong>A log-analysis pipeline.</strong> Point <code>cat /var/log/syslog</code> (or any log) into a chain of <code>grep</code>, <code>awk</code>, <code>sort</code>, <code>uniq -c</code> and <code>head</code> to answer real questions: which program logs the most, the busiest hour, the top repeated messages. No scripts — just composed tools. <em>Teaches: the pipe philosophy and the <code>sort | uniq -c | sort -rn</code> counting idiom.</em></li>
+  <li><strong>A /proc-only system dashboard.</strong> Write a <code>sysinfo</code> script that reads <em>only</em> from <code>/proc</code> and <code>/sys</code> — no <code>free</code>, <code>top</code> or <code>uptime</code> allowed — to print uptime, load average, memory used, and your Pi's CPU temperature. <em>Teaches: that the system "tools" are mostly just <code>/proc</code> parsers, and "everything is a file" in action.</em></li>
+  <li><strong>Two programs over a FIFO.</strong> Build a tiny job queue: one script <code>echo</code>es commands into <code>/tmp/jobs</code>, another <code>read</code>s from it and runs them. Watch the writer block when no reader is listening. <em>Teaches: named pipes, blocking behaviour, and talking between processes without sockets.</em></li>
+</ol>
+
+<h2 id="go-deeper">Go deeper</h2>
+
+<ul>
+  <li><a href="https://jvns.ca/">Julia Evans — "Bite Size Linux" and blog</a> — illustrated, intuition-first explainers on file descriptors and pipes; some of the clearest writing on this anywhere. (Free blog.)</li>
+  <li><a href="https://beej.us/guide/bgipc/">Beej's Guide to Unix IPC</a> — pipes, FIFOs, sockets and shared memory, in friendly C. (Free.)</li>
+  <li><a href="https://man7.org/tlpi/">The Linux Programming Interface (Kerrisk), ch. 4–5 and 44–57</a> — the definitive treatment of descriptors, pipes and sockets. (Paid book; free sample chapters online.)</li>
+  <li><a href="https://mywiki.wooledge.org/BashFAQ/024">Greg's Wiki — BashFAQ 024</a> — the canonical write-up of the <code>while read</code> subshell trap. (Free.)</li>
+  <li><a href="https://www.shellcheck.net/wiki/SC2031">ShellCheck SC2031</a> — the linter rule that catches the lost-variable pipeline bug for you. (Free.)</li>
+</ul>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>File descriptor (FD)</strong> — a small whole number a program holds while something is open; the kernel maps it to the real file, device, pipe or socket. The unifying handle behind "everything is a file."</li>
+    <li><strong>stdin / stdout / stderr</strong> — file descriptors 0, 1 and 2, open by convention in every program: input, normal output, and error output respectively.</li>
+    <li><strong>Redirection</strong> — using <code>&gt;</code>, <code>&lt;</code> or <code>2&gt;</code> to point a file descriptor at a file (or another descriptor) before a program runs. Applied strictly left to right.</li>
+    <li><strong><code>2&gt;&amp;1</code></strong> — "make FD 2 a copy of wherever FD 1 points <em>at this moment</em>." A snapshot, not a live link, which is why redirection order changes the outcome.</li>
+    <li><strong>Pipe</strong> — a kernel buffer wiring one program's stdout into another's stdin; the two run concurrently with automatic backpressure. Exists only as descriptors, never as a file on disk.</li>
+    <li><strong>Subshell</strong> — a child process the shell forks to run a pipeline stage; its variable changes vanish when it exits, which is why <code>cmd | while read</code> can "forget" a counter.</li>
+    <li><strong>tee</strong> — a tool that copies its input to one or more files <em>and</em> passes it through, letting you save and see a stream at once. The idiom for writing to root-owned files via <code>sudo tee</code>.</li>
+    <li><strong>Process substitution</strong> — <code>&lt;(cmd)</code> or <code>&gt;(cmd)</code>, which hands a program a "filename" that is really a live pipe to another command. Bridges stdin-readers and file-path-takers.</li>
+    <li><strong>/proc</strong> — a virtual filesystem the kernel generates on read, exposing live per-process and system-wide state; the real source most "system tools" read from.</li>
+    <li><strong>/sys</strong> — a virtual filesystem exposing the device and driver model and tunable settings, some of which you can write to, to control hardware.</li>
+    <li><strong>Named pipe (FIFO)</strong> — a pipe given a filename with <code>mkfifo</code>, so unrelated processes can connect; the reader blocks until a writer appears.</li>
+    <li><strong>Unix domain socket</strong> — a socket that appears as a special file but is connected to, not opened; faster than localhost networking and able to pass credentials and descriptors between processes.</li>
+  </ul>
+</div>

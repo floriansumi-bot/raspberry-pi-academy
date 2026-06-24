@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch32",
+  "title": "Build It, Ship It",
+  "questions": [
+    {
+      "q": "While writing your own tiny shell, you try to implement cd as an external command (fork a child, have it run the directory change, then exit). The shell never seems to change directory. Why?",
+      "choices": ["The kernel blocks child processes from calling chdir() for security reasons.", "The child changes its own working directory and then exits; the parent shell's directory never moved, which is why cd must be a builtin that runs in the shell process itself.", "fork() failed silently because the shell ran out of process slots.", "cd needs the setuid bit to change directories, and forked children drop it."],
+      "answer": 1,
+      "explain": "A forked child gets its own copy of the working directory. It chdir()s and exits, taking that change to the grave; the parent shell is untouched. The only fix is to handle cd in the shell process directly — which is exactly why cd, and a few others, must be builtins rather than forked external commands."
+    },
+    {
+      "q": "You run your application as PID 1 inside a container with no init in front of it. Over time the process table fills with defunct (zombie) entries. What went wrong?",
+      "choices": ["PID 1 ran out of memory and started leaking processes.", "The container's filesystem is read-only, so exited processes can't be cleaned up.", "Nothing is calling wait() to reap children, and the kernel gives PID 1 no automatic reaping — so finished children stay as zombies, which is why containers use a tiny init like tini.", "Zombies are normal and harmless; they clear themselves after a timeout."],
+      "answer": 2,
+      "explain": "When a process exits it stays a zombie until its parent collects its status with wait(). Normally init reaps orphans automatically — but the kernel does not give that behaviour to PID 1 for free. If your app is PID 1 and never reaps, zombies pile up. A minimal init like tini or dumb-init sits at PID 1 precisely to reap them (and forward signals)."
+    },
+    {
+      "q": "In capstone 2 you put nginx in front of your app and bind the app to localhost. What is nginx doing as a reverse proxy?",
+      "choices": ["It compiles your app into a faster binary before serving it.", "It receives public requests and forwards them to your app on localhost, giving you a single front door for TLS, logging, and routing.", "It replaces your app entirely and serves static files only.", "It opens your app directly to the internet so clients connect to it without an intermediary."],
+      "answer": 1,
+      "explain": "A reverse proxy sits in front of your application: clients talk to nginx, and nginx forwards the requests to the app listening on localhost. That gives you one place to terminate TLS, write access logs, and route traffic — and it keeps the app itself off the public interface."
+    },
+    {
+      "q": "When adding monitoring in capstone 3, why bind node_exporter and Prometheus to localhost (and reach Grafana through nginx or an SSH tunnel)?",
+      "choices": ["Localhost binding makes the metrics scrape faster by skipping the network stack.", "Prometheus and the raw metrics endpoints have no built-in authentication, so exposing them publicly hands anyone a detailed map of your machine.", "Grafana refuses to start unless Prometheus is on localhost.", "Binding to localhost encrypts the metrics traffic automatically."],
+      "answer": 1,
+      "explain": "Prometheus has no built-in authentication, and node_exporter's metrics endpoint is wide open by design. Exposed to the internet, they reveal your host's internals to anyone who finds the port. Binding them to localhost and reaching Grafana behind nginx (with a login) or via SSH keeps that surface private."
+    },
+    {
+      "q": "Why does ripgrep (rg) often return far fewer — and more relevant — results than grep -r in a code repository, with no extra flags?",
+      "choices": ["rg only searches files that have been modified recently.", "rg skips files listed in .gitignore (and binary files) by default, so build output and vendored junk don't clutter the results.", "rg searches only the first match in each file and stops.", "rg requires a regex and silently ignores plain-text searches."],
+      "answer": 1,
+      "explain": "By default ripgrep respects .gitignore and skips binary files, so it won't waste time or output on node_modules, build artifacts, or compiled blobs the way grep -r does. That sensible default — plus multithreading — is a big part of why rg is both faster and cleaner in a real repo."
+    }
+  ]
+}

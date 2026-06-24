@@ -1,0 +1,36 @@
+{
+  "chapterId": "ch25",
+  "title": "Processes, Signals & Job Control",
+  "questions": [
+    {
+      "q": "When your shell runs a command like 'ls', how is the new process actually created on Linux?",
+      "choices": ["The kernel builds a brand-new process from scratch for the program.", "The shell forks a copy of itself, then the copy calls exec to replace its program with ls.", "The shell asks systemd (PID 1) to spawn ls directly.", "exec creates a new process and fork loads the program into it."],
+      "answer": 1,
+      "explain": "A new process is never made from nothing. The shell calls fork() to clone itself, then the child calls exec() to overwrite its memory with ls — keeping the same PID and open files. That FD-preserving step is exactly why shell redirection works."
+    },
+    {
+      "q": "You spot several zombie (defunct) processes in 'ps'. What is actually going on, and what fixes it?",
+      "choices": ["They are using lots of memory; kill -9 each one to free it.", "They are orphans the kernel forgot; reboot to clear them.", "They have exited but their parent hasn't reaped them; you can't kill a zombie, so fix or kill the parent.", "They are stuck in uninterruptible sleep; wait for their disk I/O to finish."],
+      "answer": 2,
+      "explain": "A zombie has already exited — it holds no memory and runs no code, just a PID and exit code waiting to be collected. You can't kill something that's already dead, so kill -9 does nothing. The real culprit is a parent that isn't reaping, so you fix or kill the parent and PID 1 cleans up."
+    },
+    {
+      "q": "A process's parent dies while the process is still running. What happens to it?",
+      "choices": ["It becomes a zombie and must be killed manually.", "It is immediately terminated by the kernel.", "It is re-parented to PID 1, which will reap it — this is normal and harmless.", "It keeps the dead parent's PPID until it exits on its own."],
+      "answer": 2,
+      "explain": "This is an orphan, not a zombie. The kernel re-parents it to PID 1 (systemd), which dutifully reaps it when it finishes. Orphans are routine; zombies are the pathology. The two are often confused but are essentially opposites."
+    },
+    {
+      "q": "Why is 'kill -9' (SIGKILL) considered a brutal last resort rather than the normal way to stop a process?",
+      "choices": ["It is slower than SIGTERM because the kernel has to confirm it twice.", "It can't be caught, so the process gets no chance to flush data, release locks, or reap children — risking corruption and zombies.", "It only works on processes you started yourself, unlike SIGTERM.", "It always leaves the process running if it is in the background."],
+      "answer": 1,
+      "explain": "SIGKILL is uncatchable, so the process runs no cleanup at all — buffers aren't flushed, locks aren't released, children aren't reaped. Send SIGTERM first (plain 'kill PID') to let it shut down gracefully, and escalate to -9 only if it ignores you. SIGKILL isn't even all-powerful: a process in uninterruptible (D) sleep won't die until its I/O completes."
+    },
+    {
+      "q": "You start a long job over SSH and want it to keep running after you log out. How do plain '&', 'nohup', and 'disown' differ?",
+      "choices": ["All three do the same thing; the names are just aliases.", "'&' alone reliably survives logout; nohup and disown are only for redirecting output.", "nohup makes the process ignore SIGHUP before launch; disown removes the job from the shell's table after launch; plain '&' does neither robustly.", "disown changes the signal before launch and nohup changes the shell's bookkeeping after launch."],
+      "answer": 2,
+      "explain": "They solve overlapping problems by different mechanisms. nohup sets the process to ignore SIGHUP before it starts (and redirects output to nohup.out); disown changes the shell's own job bookkeeping after the job is running so it won't be sent SIGHUP on exit; plain '&' just backgrounds the job and does neither robustly. For real detachment, tmux/screen or a systemd service is the modern answer."
+    }
+  ]
+}

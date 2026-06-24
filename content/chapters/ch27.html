@@ -1,0 +1,180 @@
+<p class="lead">You already met permissions in the beginner lesson — the friendly <code>rwx</code> triad and a little octal arithmetic. This chapter goes deeper into the part that actually trips people up and matters for security: how permissions behave on <em>directories</em>, the three "special bits" that bend the normal rules, why a single setuid binary can hand away the keys to the whole Pi, and the modern tools — capabilities, a carefully written <code>sudoers</code>, and PAM — that replace the old all-or-nothing idea of "root". Your Pi 5 runs full Debian with systemd and bash, so everything here is real and everything here is yours to break. Take your time; this is genuinely interesting once it clicks.</p>
+
+<div class="warn"><strong>Careful:</strong> This lesson has you edit the <code>sudoers</code> file and build a setuid binary — two of the few things on a Linux box that can lock you out of your own administrator account or open a real security hole. Do the risky steps on a <strong>spare microSD card or a fresh Raspberry Pi OS install</strong>, not the Pi you rely on day to day. Each risky project below is flagged with a ⚠️.</div>
+
+<h2 id="the-bits-fast-recap">The bits, fast (a quick recap)</h2>
+
+<p>Every file and directory carries a 10-character mode that <code>ls -l</code> prints: a type character followed by three triads — <strong>user</strong>, <strong>group</strong>, <strong>other</strong> — each made of <code>r</code> (read = 4), <code>w</code> (write = 2), and <code>x</code> (execute = 1). Add the numbers per triad and you get the octal form you set with <code>chmod</code>.</p>
+
+<pre class="code"><code>-rwxr-x---   means   user rwx (7)   group r-x (5)   other --- (0)   =   chmod 750</code></pre>
+
+<p>That much you know. The interesting wrinkle — and the bridge into everything else in this lesson — is that on a <strong>directory</strong> the very same three bits mean something completely different.</p>
+
+<h3>What rwx means on a directory</h3>
+
+<ul>
+  <li><strong><code>x</code> (execute) on a directory</strong> = the right to <em>traverse</em> it — to <code>cd</code> into it and reach files inside <em>by name</em>. Without <code>x</code> you cannot touch anything in the directory even if you know it is there.</li>
+  <li><strong><code>r</code> (read) on a directory</strong> = the right to <em>list the names</em> inside it (what <code>ls</code> shows). You can have <code>x</code> without <code>r</code>: you can open files whose names you already know, but you cannot list what is there.</li>
+  <li><strong><code>w</code> (write) on a directory</strong> = the right to <em>create, delete, or rename entries</em> inside it.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> A directory is really just a list of names that point to files. Permissions on the directory control who may edit that <em>list</em> — not the contents of the files the list points to.</div>
+
+<h2 id="the-delete-surprise">The delete surprise: you can erase a file you can't write</h2>
+
+<p>This is the single most surprising consequence of the rule above, and it catches almost everyone the first time.</p>
+
+<div class="warn"><strong>Myth vs reality:</strong> <strong>Myth —</strong> "I can't delete a file unless I'm allowed to write to it." <strong>Reality —</strong> deletion is a <em>directory</em> operation. To remove <code>reports/secret.txt</code> you need <code>w</code> and <code>x</code> on <code>reports/</code> — the file's own permissions are completely irrelevant. You can delete a read-only file you don't even own, as long as you can write its directory. And the mirror image is just as true: you can be <em>unable</em> to delete a file you fully own if its directory is not writable by you.</div>
+
+<p><strong>The key insight:</strong> a file's name does not live in the file — it lives in the directory. Removing a name is editing the directory's list, so the directory's permissions are what the kernel checks. (You'll see why in the next lesson on filesystems, where names and files are truly separate things.) The sticky bit, coming up shortly, exists precisely to tame this behaviour in shared folders like <code>/tmp</code>.</p>
+
+<h2 id="the-special-bits">The special bits: where it gets interesting</h2>
+
+<p>Above the familiar nine permission bits sit three more, the "special bits". Each one changes the rules in a focused, powerful way.</p>
+
+<ul>
+  <li><strong>setuid</strong> (<code>u+s</code>, octal <code>4000</code>) — when set on an executable, the program runs with the <em>file owner's</em> identity instead of the identity of whoever launched it. The classic example is <code>/usr/bin/passwd</code>: it is owned by root and setuid, so an ordinary user can change their password — which means editing the protected file <code>/etc/shadow</code> — but only through <code>passwd</code>'s narrow, carefully written logic.</li>
+  <li><strong>setgid</strong> (<code>g+s</code>, octal <code>2000</code>) — on a file, the program runs with the file's <em>group</em>. On a <strong>directory</strong> it does something far more useful: every new file created inside <em>inherits the directory's group</em> rather than the creator's primary group. This is the trick behind shared team folders.</li>
+  <li><strong>sticky bit</strong> (<code>+t</code>, octal <code>1000</code>) — on a directory, only a file's <em>owner</em> (or root) may delete or rename it, even when the directory itself is world-writable. This is exactly the fix for the "delete surprise" above.</li>
+</ul>
+
+<pre class="code"><code>ls -ld /tmp                 # drwxrwxrwt   -- note the trailing 't': sticky bit
+ls -l  /usr/bin/passwd      # -rwsr-xr-x   -- note the 's' in the user triad: setuid
+chmod 2775 shared/          # setgid directory: new files inherit its group</code></pre>
+
+<div class="note"><strong>Note:</strong> An uppercase <code>S</code> or <code>T</code> in <code>ls -l</code> means the special bit is set but the matching execute bit is <em>not</em> — usually a mistake worth a second look. A lowercase <code>s</code>/<code>t</code> means both are set, which is normally what you want.</div>
+
+<h3>Why /tmp uses the sticky bit</h3>
+
+<p><code>/tmp</code> is world-writable so any program, run by any user, can drop a scratch file there. Without the sticky bit, "world-writable directory" would mean <em>anyone can delete anyone else's files</em> — exactly the delete surprise, weaponised. The trailing <code>t</code> on <code>drwxrwxrwt</code> restricts deletion to each file's owner, so everyone can create freely but nobody can clobber a neighbour's work.</p>
+
+<h2 id="why-setuid-is-a-minefield">Why setuid is a security minefield</h2>
+
+<p>A setuid-root binary is, in plain terms, <strong>a privilege boundary you have handed to every unprivileged user on the machine</strong>. The instant that program starts, it is root — so <em>any</em> flaw in it becomes a path to full root access. A buffer overflow, a command injection, blindly trusting <code>$PATH</code> or <code>$IFS</code>, or following a symlink it shouldn't: each can turn an ordinary user into the administrator of your Pi.</p>
+
+<p>Because the stakes are so high, three things are worth burning into memory:</p>
+
+<ol>
+  <li>The whole industry is moving <em>away</em> from setuid toward fine-grained <strong>capabilities</strong> (next section), which hand out one slice of root's power instead of all of it.</li>
+  <li>The Linux kernel <strong>ignores the setuid bit on scripts</strong>. A timing race around the <code>#!</code> shebang made setuid scripts hopelessly unsafe, so only compiled binaries honour the bit. A "setuid shell script" silently runs with your normal privileges.</li>
+  <li>You should periodically <strong>audit</strong> what is setuid on your system and ask whether each one truly needs to be.</li>
+</ol>
+
+<pre class="code"><code>find / -perm -4000 -type f 2&gt;/dev/null     # list every setuid binary on the Pi</code></pre>
+
+<div class="explain">The <code>-perm -4000</code> test matches any file whose setuid bit is set (the leading <code>-</code> means "at least these bits"). <code>-type f</code> limits it to regular files, and <code>2&gt;/dev/null</code> throws away the "permission denied" noise from directories you can't read so the real results stand out.</div>
+
+<h2 id="umask-the-bits-you-remove">umask: the bits you remove</h2>
+
+<p><code>umask</code> isn't a permission you grant — it's a mask that is <em>subtracted</em> from the defaults whenever a new file or directory is created. Files start from <code>666</code> and directories from <code>777</code> (no execute on plain files by default), and the umask carves bits away from that starting point.</p>
+
+<pre class="code"><code>umask                 # show the current mask (commonly 022 on the Pi)
+# umask 022  ->  new files become 644, new directories 755   (the usual default)
+# umask 077  ->  new files become 600, new directories 700   (private: owner only)
+# umask 002  ->  keeps group-write on, which pairs nicely with a setgid shared dir</code></pre>
+
+<div class="tip"><strong>Tip:</strong> A umask of <code>077</code> is a quick way to make everything you create from that shell readable only by you — handy when you're handling keys or personal data on a shared Pi.</div>
+
+<h2 id="capabilities-splitting-root">Capabilities: splitting root into ~40 pieces</h2>
+
+<p>The deepest fix for the setuid problem is to stop treating "root" as a single switch. Modern Linux decomposes root's powers into roughly forty discrete <strong>capabilities</strong>, so a process can be granted only the one tiny power it actually needs and nothing else.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Capability</th>
+      <th>What it lets a process do</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>CAP_NET_BIND_SERVICE</code></td>
+      <td>Bind to ports below 1024 <strong>without being root</strong> — this kills the old "run nginx as root just to listen on port 80" anti-pattern.</td>
+    </tr>
+    <tr>
+      <td><code>CAP_NET_RAW</code></td>
+      <td>Open raw network sockets (how <code>ping</code> works).</td>
+    </tr>
+    <tr>
+      <td><code>CAP_DAC_OVERRIDE</code></td>
+      <td>Bypass the normal file read/write/execute permission checks.</td>
+    </tr>
+    <tr>
+      <td><code>CAP_SYS_ADMIN</code></td>
+      <td>The dangerous catch-all grab-bag — so broad you should treat it as "basically root".</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre class="code"><code># Grant just one capability to a binary instead of making it setuid-root:
+sudo setcap 'cap_net_bind_service=+ep' /usr/local/bin/myserver
+getcap /usr/local/bin/myserver
+sudo getcap -r / 2&gt;/dev/null            # audit: what on this Pi already has capabilities?</code></pre>
+
+<div class="jargon"><strong>In plain words:</strong> A capability is a single named power that used to belong only to root. Instead of giving a program <em>all</em> of root, you hand it the one key it needs — like letting a delivery driver into the lobby without giving them the master key to every flat.</div>
+
+<p><strong>The key insight:</strong> setuid-root says "be the all-powerful administrator and please behave"; a capability says "you may do exactly this one thing and nothing more". The second is a smaller, safer promise. The <em>even better</em> pattern is to declare capabilities per service in systemd (you'll meet systemd properly later) using <code>AmbientCapabilities=</code>, <code>CapabilityBoundingSet=</code>, and <code>NoNewPrivileges=true</code> — that keeps the policy centralised and auditable, with no special bits living loose on binaries, and the bounding set hard-caps what the service could <em>ever</em> acquire.</p>
+
+<h2 id="sudo-and-sudoers">sudo and sudoers: least privilege for humans</h2>
+
+<p><code>sudo</code> runs a single command as another user — root by default — after checking the rules in <code>/etc/sudoers</code> and its drop-in directory <code>/etc/sudoers.d/</code>. The grammar reads like a sentence: <em>who</em> may run <em>what</em>, <em>where</em>, and <em>as whom</em>.</p>
+
+<pre class="code"><code># /etc/sudoers.d/deploy   -- a drop-in file; never hand-edit /etc/sudoers directly
+deploy  ALL=(root) NOPASSWD: /usr/bin/systemctl restart myapp, /usr/bin/journalctl -u myapp
+#  who   host=(runas)  option    exactly which commands, by absolute path</code></pre>
+
+<div class="explain">Read it left to right: the user <code>deploy</code>, on any host (<code>ALL=</code>), may run as <code>root</code>, without typing a password (<code>NOPASSWD:</code>), <em>only</em> the two exact commands listed. Anything else is refused. Naming the full absolute path matters — without it, a different program with the same name earlier on <code>$PATH</code> could be substituted.</div>
+
+<div class="warn"><strong>Careful — always use <code>visudo</code>:</strong> Edit sudoers <em>only</em> through <code>sudo visudo</code> (or <code>sudo visudo -f /etc/sudoers.d/deploy</code> for a drop-in). It syntax-checks the file <em>before</em> saving and refuses to write a broken one. A single stray character in sudoers can lock you out of <code>sudo</code> entirely — and since the Pi's root account has no password, that can mean no administrator access at all until you boot from another card to repair it.</div>
+
+<div class="warn"><strong>Careful — never <code>NOPASSWD</code> a pager or editor:</strong> Do not grant passwordless sudo on anything with a built-in shell escape — editors (<code>vim</code>, <code>nano</code>), pagers (<code>less</code>, <code>more</code>, <code>man</code>), and tools like <code>find</code>, <code>awk</code>, <code>tar</code>, or any language interpreter. Each can spawn a root shell from inside itself, turning a narrow grant into full root. Cross-check <em>every</em> sudo rule you write against <strong>GTFOBins</strong>, a catalogue of exactly these escapes.</div>
+
+<div class="tip"><strong>Tip:</strong> Run <code>sudo -l</code> to print everything the current user is allowed to run via sudo. It's the fastest way to review a grant — yours or a teammate's — before trusting it.</div>
+
+<h2 id="pam-pluggable-authentication">PAM: why login logic isn't hardcoded</h2>
+
+<p>Here's a question worth pausing on: <code>login</code>, <code>sshd</code>, <code>sudo</code>, and <code>su</code> all need to check "is this person who they claim to be?" — yet none of them contains its own password-checking code. They all call out to <strong>PAM</strong> (Pluggable Authentication Modules), which consults a stack of small modules defined per program in <code>/etc/pam.d/</code>, across four phases:</p>
+
+<ul>
+  <li><strong>auth</strong> — who are you? (password, SSH key, a 2FA token, a fingerprint)</li>
+  <li><strong>account</strong> — are you allowed <em>right now</em>? (account expired? login restricted to certain hours?)</li>
+  <li><strong>password</strong> — the rules for <em>changing</em> the secret (length, complexity, history)</li>
+  <li><strong>session</strong> — set-up and tear-down: mount the home directory, apply resource limits with <code>pam_limits</code>, write the login to the logs</li>
+</ul>
+
+<p><strong>The key insight:</strong> because every login program defers to the same PAM stack, you can add two-factor authentication, LDAP logins, or per-user resource limits to <em>all of them at once</em> — without touching <code>sshd</code> or <code>sudo</code> at all. You edit the policy, not the programs. It's the same "a layer of indirection solves it" idea you keep meeting in Linux, applied to authentication itself.</p>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<ol class="steps">
+  <li><strong>Build a shared team folder with setgid.</strong> Create two users and a shared group: <code>sudo adduser alice</code>, <code>sudo adduser bob</code>, <code>sudo groupadd team</code>, then add both with <code>sudo usermod -aG team alice</code> (and the same for bob). Make a folder <code>sudo mkdir /srv/team</code>, give it the group with <code>sudo chgrp team /srv/team</code>, and set <code>sudo chmod 2775 /srv/team</code> — the leading <code>2</code> is the setgid bit. Log in as alice, create a file, then log in as bob and confirm the file belongs to group <code>team</code> and bob can edit it. (Add <code>umask 002</code> in each user's shell so new files stay group-writable.)</li>
+  <li><strong>Reproduce the /tmp sticky-bit behaviour, then escape it with an ACL.</strong> Make a world-writable folder <code>sudo mkdir /srv/scratch &amp;&amp; sudo chmod 1777 /srv/scratch</code> — the leading <code>1</code> is the sticky bit. As alice create a file there; as bob confirm you <em>cannot</em> delete it. Then grant one specific extra user access with an ACL: <code>setfacl -m u:carol:rw somefile</code>, read it back with <code>getfacl somefile</code>, and notice the <code>+</code> that now appears in <code>ls -l</code> — your sign that an ACL is in play beyond the normal owner/group/other.</li>
+  <li><strong>⚠️ Lock down sudo with a drop-in.</strong> Using <code>sudo visudo -f /etc/sudoers.d/deploy</code>, give a <code>deploy</code> user <code>NOPASSWD</code> on <em>only</em> restarting one service and reading its logs — nothing else. Switch to <code>deploy</code>, run <code>sudo -l</code> to confirm the grant, then deliberately try to break out (for example by getting a pager to spawn a shell) and confirm you can't. Audit your rule line against GTFOBins. Do this on a spare card so a sudoers mistake can't strand you.</li>
+  <li><strong>⚠️ Write a safe setuid demo, then watch the kernel refuse a script.</strong> Write a tiny C program that does one narrow privileged thing and immediately drops back to its real UID; compile it, <code>sudo chown root</code>, and <code>sudo chmod u+s</code> it. Print <code>getuid()</code> versus <code>geteuid()</code> to see real, effective, and saved UIDs split apart — the same model <code>passwd</code> uses. Then make a setuid <em>shell script</em>, run it, and confirm it runs with your <em>ordinary</em> privileges: proof the kernel ignores the setuid bit on scripts. Build this on a spare install, never on a Pi you depend on.</li>
+</ol>
+
+<h2 id="go-deeper">Go deeper</h2>
+
+<ul>
+  <li><a href="https://gtfobins.github.io/">GTFOBins</a> — the catalogue of ordinary binaries that can break out of restricted privilege; essential for understanding sudoers and setuid risk.</li>
+  <li><a href="https://www.cs.umd.edu/~jkatz/TEACHING/comp_sec_F04/downloads/setuid.pdf">"Setuid Demystified" (Chen, Wagner, et al.)</a> — the classic paper on why setuid is so easy to get dangerously wrong.</li>
+  <li><a href="https://man7.org/linux/man-pages/man7/capabilities.7.html">capabilities(7) man page</a> — the authoritative list of capabilities and their exact semantics.</li>
+  <li><a href="https://wiki.archlinux.org/title/Users_and_groups">ArchWiki — Users and groups</a> — clear, correct, practical coverage of users, groups, and sudo.</li>
+  <li><a href="https://overthewire.org/wargames/">OverTheWire: Bandit &amp; Narnia</a> — free wargames that make permissions and privilege escalation visceral and hands-on.</li>
+</ul>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Directory execute (traverse) bit</strong> - The <code>x</code> permission on a directory: the right to enter it and reach files inside by name, separate from the <code>r</code> bit that lists names.</li>
+    <li><strong>setuid</strong> - A special bit (octal <code>4000</code>) that makes an executable run as its file owner rather than the caller; how <code>passwd</code> can edit <code>/etc/shadow</code> as root. Ignored on scripts.</li>
+    <li><strong>setgid</strong> - A special bit (octal <code>2000</code>); on a directory it makes new files inherit the directory's group, the basis of shared team folders.</li>
+    <li><strong>sticky bit</strong> - A special bit (octal <code>1000</code>) on a directory that lets only a file's owner (or root) delete it, even when the directory is world-writable; why <code>/tmp</code> is safe.</li>
+    <li><strong>umask</strong> - A mask of permission bits subtracted from the defaults (<code>666</code> for files, <code>777</code> for directories) when something new is created.</li>
+    <li><strong>capability</strong> - One named slice of root's power (e.g. <code>CAP_NET_BIND_SERVICE</code>) that can be granted alone, the modern, safer alternative to setuid-root.</li>
+    <li><strong>sudoers / visudo</strong> - The policy file defining who may run what via <code>sudo</code>, and the editor that syntax-checks it before saving so a typo can't lock you out.</li>
+    <li><strong>GTFOBins</strong> - A catalogue of common binaries (editors, pagers, archivers) that contain shell escapes, used to spot dangerous sudo grants.</li>
+    <li><strong>PAM (Pluggable Authentication Modules)</strong> - The stacked framework that <code>login</code>, <code>sshd</code>, <code>sudo</code>, and <code>su</code> all call for authentication, so policy changes apply everywhere at once.</li>
+    <li><strong>ACL (Access Control List)</strong> - The escape hatch (<code>setfacl</code>/<code>getfacl</code>) for granting one specific user or group access beyond the three owner/group/other classes; shown by a <code>+</code> in <code>ls -l</code>.</li>
+  </ul>
+</div>

@@ -1,0 +1,248 @@
+<p class="lead">By now you can drive your Raspberry Pi 5 with confidence — install software, read logs, fix a stubborn boot. This chapter goes one layer deeper, to the most important boundary in the whole system: the line between your programs and the kernel. Once you can <em>see</em> what a program actually asks the operating system to do, an enormous class of "it just doesn't work" mysteries becomes solvable in seconds. The same tools the professionals use run perfectly on your Pi.</p>
+
+<h2 id="the-kernel-boundary">The Kernel Boundary</h2>
+
+<p>Your Raspberry Pi runs a full Debian-based Linux (Raspberry Pi OS), and like every Linux system it draws a hard line between two worlds. On one side is <em>userland</em> — every program you run, from <code>ls</code> to a Python script to a web browser. On the other side is the <em>kernel</em> — the privileged core that actually controls the hardware: the CPU, the RAM, the microSD card, the network chip.</p>
+
+<p>The big idea: userland is <strong>not allowed</strong> to touch hardware, other programs' memory, or kernel data directly. The only doorway is a <strong>system call</strong> — a controlled, deliberate request that switches the CPU from unprivileged mode into privileged mode, runs a small piece of trusted kernel code on your behalf, and then returns. Every meaningful thing a program does to the outside world — open a file, send a network packet, allocate memory, start another program — ultimately becomes one or more system calls.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>system call</em> (or "syscall") is your program politely knocking on the kernel's door and asking it to do something only the kernel is permitted to do. Reading a file, for example, is not something your program does itself — it asks the kernel to do it. If you can watch those knocks, you can see exactly what a program is really doing.</div>
+
+<p><strong>The key insight:</strong> once you can observe the syscalls a program makes, you no longer have to guess. The error message might be vague or missing entirely, but the syscall layer never lies — it shows the exact file that wasn't found, the exact socket that refused the connection, the exact moment a program sat down to wait.</p>
+
+<h2 id="syscall-vs-library-call">Syscall vs. Library Call — Not the Same Thing</h2>
+
+<p>This distinction trips up almost everyone at first, and getting it straight tells you which tool to reach for.</p>
+
+<ul>
+  <li>A <strong>library call</strong> — like <code>printf</code>, <code>malloc</code>, or <code>strlen</code> — runs <em>inside your own process</em>, in userland. It may <em>eventually</em> make a system call, or it may not. <code>strlen</code> is pure userland arithmetic: it never bothers the kernel. <code>printf</code> formats your text in userland, <em>buffers</em> it, and only later makes a <code>write</code> syscall. <code>malloc</code> hands out memory it already has and only calls the kernel (via <code>brk</code> or <code>mmap</code>) when it needs more.</li>
+  <li>A <strong>system call</strong> — like <code>write</code>, <code>openat</code>, <code>mmap</code>, or <code>execve</code> — is a request that crosses into the kernel. It costs a mode switch, which is relatively expensive, so libraries deliberately <em>batch</em> them.</li>
+</ul>
+
+<p>The standard C library (<code>libc</code>) is a thin, buffering wrapper that sits <em>on top of</em> the raw syscalls. <code>fopen</code> (buffered, a library function) sits on top of <code>open</code> (the syscall). This is why, if you trace a program that <code>printf</code>s a thousand lines, you see only a handful of <code>write</code> calls — the library quietly collected the output in userland and flushed it to the kernel in big chunks.</p>
+
+<pre class="code"><code>your code  -&gt;  libc (printf, malloc, fopen)  -&gt;  SYSCALL (write, mmap, open)  -&gt;  kernel
+                  ltrace watches here              strace watches here</code></pre>
+<div class="explain">
+  <p>Two different tools watch two different layers. <code>ltrace</code> watches the <em>library</em> calls (what functions inside libc your program called). <code>strace</code> watches the <em>system</em> calls (what your program asked the kernel to do). Knowing which layer your question lives in tells you which tool to pick.</p>
+</div>
+
+<h2 id="strace-watching-the-syscalls">strace — Watching What a Program Really Does</h2>
+
+<p><code>strace</code> traces the system calls a process makes, at the exact moment it talks to the kernel. When something "just doesn't work" and the error message is useless, <code>strace</code> shows you the truth. It is, without exaggeration, one of the most useful debugging tools most people have never tried.</p>
+
+<p>It is not installed by default on Raspberry Pi OS, but it is a single command away:</p>
+
+<pre class="code"><code>sudo apt install strace lsof</code></pre>
+<div class="explain">
+  <p>Installs both of this chapter's main tools at once: <code>strace</code> (for watching system calls) and <code>lsof</code> (for listing open files, which we meet shortly). Both are small and completely safe to have on your Pi.</p>
+</div>
+
+<p>Here are the patterns you will use again and again:</p>
+
+<pre class="code"><code>strace ls                            # every syscall that 'ls' makes
+strace -f ./app                      # -f: follow forked child processes too
+strace -e trace=openat,stat ./app    # only the file-opening syscalls
+strace -e trace=network curl host    # only socket / connect / send / recv
+strace -p 1234                       # ATTACH to an already-running process (PID 1234)
+strace -c ls                         # summary: which syscalls dominate, time spent
+strace -f -o trace.txt ./app         # save the full trace to a file</code></pre>
+<div class="explain">
+  <p>The <code>-e trace=</code> filter is what makes <code>strace</code> usable in practice — an unfiltered trace is a firehose. The <code>-p</code> form is special: it lets you peek inside a process that is <em>already running</em> (for example, one that appears frozen) without restarting it. Use <kbd>Ctrl</kbd> + <kbd>C</kbd> to detach.</p>
+</div>
+
+<h3>Three killer use cases</h3>
+
+<ul>
+  <li><strong>"It can't find its config file."</strong> Run <code>strace -e trace=openat app 2&gt;&amp;1 | grep -i config</code> and you will see <em>exactly</em> which paths the program tried, in order. A line ending in <code>ENOENT</code> means "no such file" — so you can see precisely where it looked and why it gave up. No more guessing where a tool keeps its settings.</li>
+  <li><strong>"It hangs — is it busy or stuck?"</strong> Attach with <code>strace -p PID</code>. If the process is parked inside <code>read</code>, <code>futex</code>, <code>poll</code>, or <code>accept</code>, it is <em>waiting</em> on something (input, a lock, the network) — not computing. If instead it is rattling through a stream of syscalls, it is genuinely working. This one trick replaces hours of staring at a frozen terminal.</li>
+  <li><strong>"Permission denied — but on what?"</strong> The failing syscall names the exact file or socket, and the error code <code>EACCES</code> tells you it was a permissions problem. You stop guessing and go straight to the offending path.</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> Attaching <code>strace</code> to a process briefly slows it down, because every syscall now has to be reported. That is fine for debugging on your Pi, but avoid tracing a busy production service unless you have to — and never leave a trace running on something time-sensitive. Tracing a program you do not trust is also a way to learn what it is quietly doing.</div>
+
+<h2 id="the-observability-toolkit">The Observability Toolkit — Match the Symptom to the Layer</h2>
+
+<p>The real senior-engineer skill is not memorising commands — it is asking <em>"which layer is lying to me?"</em> and reaching for the matching tool. Keep this table handy; it turns a vague symptom into a specific tool.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Layer</th>
+      <th>Tool</th>
+      <th>Reach for it when…</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>System calls (the kernel boundary)</td>
+      <td><strong><code>strace</code></strong></td>
+      <td>"What is it <em>really</em> doing? Why does it fail or hang?"</td>
+    </tr>
+    <tr>
+      <td>Library / function calls</td>
+      <td><strong><code>ltrace</code></strong></td>
+      <td>"Which libc/OpenSSL function returned the bad value?" (flaky on modern, statically built binaries)</td>
+    </tr>
+    <tr>
+      <td>Open files, sockets, ports</td>
+      <td><strong><code>lsof</code></strong></td>
+      <td>"Who is holding this file or port?" "What is eating my disk?"</td>
+    </tr>
+    <tr>
+      <td>Live process internals</td>
+      <td><strong><code>/proc/&lt;pid&gt;/</code></strong></td>
+      <td>Memory map, open file descriptors, state, what it is sleeping on</td>
+    </tr>
+    <tr>
+      <td>CPU hotspots</td>
+      <td><strong><code>perf</code></strong></td>
+      <td>"Where is the CPU time actually going?"</td>
+    </tr>
+    <tr>
+      <td>Kernel-level tracing</td>
+      <td><strong><code>bpftrace</code> / eBPF</strong></td>
+      <td>"Trace <em>every</em> file open or network event, system-wide, live"</td>
+    </tr>
+    <tr>
+      <td>Kernel messages</td>
+      <td><strong><code>dmesg</code></strong></td>
+      <td>OOM kills, hardware/driver errors, undervoltage, segfaults</td>
+    </tr>
+    <tr>
+      <td>Service logs</td>
+      <td><strong><code>journalctl</code></strong></td>
+      <td>What a systemd background service logged</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>lsof — "list open files" (and on Linux, almost everything is a file)</h3>
+
+<p>On Linux, files, sockets, and devices are all reached through the same "open file" mechanism, so a single tool can answer a surprising range of questions:</p>
+
+<pre class="code"><code>lsof -i :443              # which process is using / listening on port 443
+lsof -p 1234              # every file and socket that process 1234 has open
+lsof /var/log/app.log     # who has this file open (why won't it unmount?)
+lsof +L1                  # DELETED-but-still-open files — the disk-space mystery culprit</code></pre>
+<div class="explain">
+  <p><code>lsof -i</code> answers "what is using this port?" — invaluable when a server on your Pi reports the address is already in use. <code>lsof +L1</code> lists files that have been deleted from disk but are still held open by a running process, which is the key to one of the most baffling problems in all of Linux.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <em>file descriptor</em> is just a numbered handle the kernel gives your program when it opens a file or a network connection. <code>lsof</code> lists those handles for every process, so you can see exactly what each program is touching.</div>
+
+<p><strong>The classic disk-space mystery:</strong> someone deletes a huge log file with <code>rm</code>, yet <code>df</code> still reports the disk as full while <code>du</code> finds nothing taking up space. What happened? A process still has the deleted file <em>open</em>. On Linux a file's data survives until the last open handle closes — deleting the <em>name</em> is not the same as freeing the <em>data</em>. <code>lsof +L1</code> finds the guilty process; restarting it closes the handle and the space comes back instantly. This is a real production incident you can now diagnose in under a minute, and it is very much a Pi problem too, where the microSD card has limited room.</p>
+
+<h3>/proc/&lt;pid&gt;/ — a live X-ray of any process</h3>
+
+<p>Linux exposes the kernel's view of every running process as a set of virtual files under <code>/proc</code>. They are not real files on the card — reading them asks the kernel for live information:</p>
+
+<pre class="code"><code>cat  /proc/1234/status                  # memory, threads, state, user IDs
+ls -l /proc/1234/fd/                     # every open file descriptor, as a symlink
+cat  /proc/1234/maps                     # full memory layout: libraries, heap, stack
+cat  /proc/1234/cmdline | tr '\0' ' '    # the exact command line it was started with
+cat  /proc/1234/wchan                    # the kernel function it is currently sleeping in</code></pre>
+<div class="explain">
+  <p><code>/proc/&lt;pid&gt;/wchan</code> pairs beautifully with <code>strace -p</code>: when a process is stuck, <code>wchan</code> names the exact kernel function it is waiting inside, telling you <em>what</em> it is blocked on without reading a single line of source code. (Replace <code>1234</code> with the real process ID, which you can find with <code>htop</code> or <code>pidof</code>.)</p>
+</div>
+
+<h3>dmesg — the kernel's own diary</h3>
+
+<pre class="code"><code>dmesg -T -w                 # follow kernel messages live, with human timestamps
+dmesg -T | grep -i oom      # did the kernel's memory killer strike? (see below)</code></pre>
+<div class="explain">
+  <p><code>dmesg</code> prints the kernel's internal log. It is the first place to look for "the kernel killed my process," USB or microSD card errors, undervoltage warnings on the Pi, driver problems, and segfaults. The <code>-T</code> flag turns raw timestamps into readable dates.</p>
+</div>
+
+<h2 id="perf-and-ebpf">perf and eBPF — The Modern Frontier</h2>
+
+<p>Two more tools are worth knowing exist, even if you do not master them today:</p>
+
+<ul>
+  <li><strong><code>perf</code></strong> is a sampling profiler backed by the CPU's own hardware counters. <code>perf top</code> shows the hottest functions <em>live</em>; <code>perf record -g ./app</code> followed by <code>perf report</code> gives a call-graph profile you can even turn into a flame graph. It answers "where is my CPU time actually going?" — and the answer is often a surprise, which is exactly why measuring beats guessing.</li>
+  <li><strong>eBPF</strong> (driven by <code>bpftrace</code>) lets you run tiny, safety-checked programs <em>inside the kernel</em>, attached to events, with almost no overhead and no rebooting. It powers most modern observability tools.</li>
+</ul>
+
+<pre class="code"><code># Every file opened, system-wide, live — with the program that opened it:
+sudo bpftrace -e 'tracepoint:syscalls:sys_enter_openat { printf("%s %s\n", comm, str(args-&gt;filename)); }'</code></pre>
+<div class="explain">
+  <p>You do not need to learn eBPF now — just know it is how professionals answer questions that used to require patching and recompiling the kernel. On a Pi it is a fun way to watch, in real time, every file the whole system opens.</p>
+</div>
+
+<h2 id="virtual-memory-and-the-oom-killer">Virtual Memory and the OOM Killer</h2>
+
+<p>This last section is especially relevant on a Raspberry Pi, because a Pi has modest RAM (commonly 4 GB or 8 GB), and running out of memory behaves in a way that confuses almost everyone the first time they hit it.</p>
+
+<h3>Every pointer your program sees is a (useful) lie</h3>
+
+<p>Programs never touch physical RAM addresses directly. Each process gets its own <strong>virtual address space</strong>, and the CPU's memory unit translates those virtual addresses to physical pages on the fly, separately for every process. This buys you three things:</p>
+
+<ul>
+  <li><strong>Isolation for free</strong> — process A's address <code>0x1000</code> and process B's <code>0x1000</code> point at <em>different</em> physical memory. One program cannot read another's memory just by guessing an address.</li>
+  <li><strong>Demand paging</strong> — memory you "allocate" is not backed by real RAM until you actually <em>touch</em> it. The kernel hands out promises and only commits a real page on first use.</li>
+  <li><strong>Overcommit</strong> — because of demand paging, Linux happily lets programs allocate <em>more</em> total memory than physically exists, betting they will not use it all at once. Usually that bet pays off. Sometimes it doesn't.</li>
+</ul>
+
+<pre class="code"><code>cat /proc/&lt;pid&gt;/status    # VmRSS = real RAM in use; VmSize = virtual size (the "promise")
+cat /proc/&lt;pid&gt;/maps      # the full virtual layout: code, libraries, heap, stack</code></pre>
+<div class="explain">
+  <p>In <code>/proc/&lt;pid&gt;/status</code>, two numbers matter. <strong>VmSize</strong> is the <em>virtual</em> size — the total memory the process has reserved, most of which may never be touched. <strong>VmRSS</strong> is the <em>resident set size</em> — the actual physical RAM the process is using right now.</p>
+</div>
+
+<p><strong>The key insight:</strong> <code>VmSize</code> (virtual) is almost always much larger than <code>VmRSS</code> (real). A process reporting 2 GB of "virtual" memory might be using only 80 MB of actual RAM. Beginners panic at the big virtual number; the one that matters for "am I about to run out of RAM?" is <strong>RSS</strong>.</p>
+
+<h3>The OOM killer — what happens when the bet fails</h3>
+
+<p>When the system genuinely runs out of memory (RAM plus swap), the kernel does something dramatic to save itself: it invokes the <strong>Out-Of-Memory killer</strong>. The OOM killer scores every process by its <code>oom_score</code> — roughly, how much memory killing it would free — and then <strong>kills the highest scorer</strong>. Your program did not crash of its own accord. The kernel deliberately executed it to keep the whole machine alive.</p>
+
+<pre class="code"><code>dmesg -T | grep -i 'killed process'      # the OOM killer's verdict and its victim
+cat /proc/&lt;pid&gt;/oom_score                 # a process's current score
+echo -1000 &gt; /proc/&lt;pid&gt;/oom_score_adj    # protect a critical process (run as root)</code></pre>
+<div class="explain">
+  <p><code>dmesg</code> records every OOM kill with the name and PID of the victim, so it confirms the diagnosis instantly. The <code>oom_score_adj</code> file lets you bias the decision — a very negative value tells the kernel "please don't pick this one," which is handy for protecting an important service on a memory-tight Pi.</p>
+</div>
+
+<p>Two ways to give your Pi more breathing room before the OOM killer ever fires: <strong>swap</strong> extends RAM onto the microSD card (slow, but it buys time and prevents premature kills), and <strong>zram</strong> is a compressed, RAM-backed swap that is much faster — often the better choice on a Pi, since it avoids hammering the card. In containers, hitting a cgroup <code>memory.max</code> limit triggers the same mechanism, scoped to just that container.</p>
+
+<p><strong>The aha that closes the loop:</strong> "My process just vanished — no error, no traceback, exit code 137" is almost always the OOM killer. The 137 comes from 128 + 9: the process was terminated by signal 9 (<code>SIGKILL</code>), which is exactly how the OOM killer ends a process. Whenever a program disappears silently on your Pi — especially something memory-hungry like a large build, an image generator, or a big data job — your very first move is <code>dmesg -T | grep -i oom</code>. It connects straight back to the start of this chapter: when in doubt, ask the kernel.</p>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<ol class="steps">
+  <li><strong>Trace which config a program opens.</strong> Pick a program that reads a config file — <code>git</code>, <code>curl</code>, or <code>ssh</code> are perfect. Run <code>strace -f -e trace=openat git status 2&gt;&amp;1 | grep -i config</code> and watch it list every path it tries, in order. Now rename one of those files and run it again: you will see the failed attempt end in <code>ENOENT</code>. You will never again wonder where a tool looks for its settings.</li>
+  <li><strong>Diagnose a hang.</strong> In one terminal run <code>sleep 600</code> (a program that does nothing but wait). In another, find its PID with <code>pidof sleep</code>, then run <code>strace -p PID</code> and <code>cat /proc/PID/wchan</code>. You will see it parked in a waiting syscall — proof, without reading any source code, that it is blocked rather than busy.</li>
+  <li><strong>Solve the phantom disk-space bug.</strong> Start a process writing to a log (for example, <code>ping raspberrypi.com &gt; /tmp/big.log &amp;</code>), then <code>rm /tmp/big.log</code> while it is still running. Notice that <code>df -h</code> still shows the space as used while the file no longer appears. Run <code>sudo lsof +L1</code> to find the deleted-but-open file, then stop that process to reclaim the space. You have just solved a real production incident.</li>
+  <li><strong>Trigger and read an OOM kill.</strong> Carefully — and only on a Pi you don't mind rebooting — run a deliberate memory hog such as <code>tail /dev/zero</code> (it allocates forever). When the Pi runs out of memory the kernel will kill it. Confirm with <code>dmesg -T | grep -i oom</code> and find the exit code with <code>echo $?</code> (look for 137). Then read about giving the Pi more headroom with zram.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> The fourth project deliberately starves your Pi of memory. It can make the system briefly unresponsive and may kill other programs, so close anything important first, save your work, and be ready to reboot. Never run a memory-exhaustion test on a Pi doing real work.</div>
+
+<h2 id="go-deeper">Go deeper</h2>
+
+<ul>
+  <li><a href="https://wizardzines.com/zines/strace/">Julia Evans — the strace zine and blog</a> — the friendliest possible introduction; the strace zine is free.</li>
+  <li><a href="https://www.brendangregg.com/">Brendan Gregg's site</a> — the authority on Linux performance, <code>perf</code>, flame graphs, and eBPF. Start with the "Linux Performance" page.</li>
+  <li><a href="https://github.com/bpftrace/bpftrace/blob/master/man/adoc/bpftrace.adoc">bpftrace one-liners and reference</a> — practical eBPF tracing recipes.</li>
+  <li><a href="https://man7.org/linux/man-pages/">The strace(1) and lsof(8) man pages</a> — the authoritative flag references.</li>
+  <li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/">OSTEP — the Virtual Memory chapters</a> — a free, beautifully clear textbook on how virtual memory, paging, and the OOM situation really work.</li>
+</ul>
+
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>System call (syscall)</strong> — a controlled request from a userland program to the kernel; the only legitimate way for a program to reach hardware, files, the network, or more memory.</li>
+    <li><strong>Userland vs. kernel</strong> — userland is every ordinary program; the kernel is the privileged core that controls the hardware. The boundary between them is crossed only by system calls.</li>
+    <li><strong>Library call</strong> — a function such as <code>printf</code> or <code>malloc</code> that runs inside your own process and may or may not make a syscall; libc buffers and batches calls to the kernel.</li>
+    <li><strong>strace</strong> — a tool that traces the system calls a process makes, revealing exactly what it asks the kernel to do; ideal for "why does it fail or hang?"</li>
+    <li><strong>ltrace</strong> — the library-call equivalent of <code>strace</code>, showing which libc/library functions a program calls (less reliable on modern static binaries).</li>
+    <li><strong>lsof</strong> — "list open files"; shows which process holds a file, socket, or port, and finds deleted-but-still-open files with <code>+L1</code>.</li>
+    <li><strong>/proc</strong> — a virtual filesystem exposing live, per-process kernel data: memory maps, open file descriptors, state, and what a process is sleeping on.</li>
+    <li><strong>File descriptor</strong> — the numbered handle the kernel gives a process for each open file or socket.</li>
+    <li><strong>Virtual memory / demand paging</strong> — each process has its own address space; allocated memory is backed by real RAM only when first touched.</li>
+    <li><strong>RSS vs. virtual size</strong> — VmRSS is the real physical RAM a process uses now; VmSize is the larger virtual reservation. RSS is the number that matters for running out of memory.</li>
+    <li><strong>Overcommit</strong> — Linux allowing programs to allocate more memory than physically exists, betting they won't use it all at once.</li>
+    <li><strong>OOM killer</strong> — the kernel's Out-Of-Memory killer, which terminates the highest-scoring process when memory runs out; a process killed this way exits with code 137 (128 + signal 9).</li>
+    <li><strong>swap / zram</strong> — ways to extend RAM: swap onto the microSD card (slow), or compressed RAM-backed zram (fast) — useful headroom on a memory-tight Pi.</li>
+    <li><strong>dmesg</strong> — the kernel's message log; the first place to confirm an OOM kill, hardware error, or undervoltage on the Pi.</li>
+  </ul>
+</div>
