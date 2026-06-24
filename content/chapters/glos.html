@@ -30,6 +30,8 @@
   <tbody>
     <tr><td><strong>Bash</strong></td><td>The most common <em>shell</em> (command interpreter) on Linux and Raspberry Pi OS. When you open a terminal and start typing commands, Bash is the program reading your input and running the right programs. The name stands for "Bourne Again Shell".</td></tr>
     <tr><td><strong>Bluetooth</strong></td><td>A short-range wireless technology for connecting devices — keyboards, mice, speakers, headphones — without cables. The Raspberry Pi 5 has Bluetooth 5.0 built in, which is reliable up to about 10 metres from the Pi.</td></tr>
+    <tr><td><strong>BMS (Battery Management System)</strong></td><td>A small circuit that protects a rechargeable battery from being over-charged, over-discharged, or short-circuited. A salvaged phone cell should always keep its protection board attached.</td></tr>
+    <tr><td><strong>Boost Converter</strong></td><td>A small circuit that raises a lower voltage to a higher one — for example lifting a 3.7 V battery up to the 5 V a Raspberry Pi needs.</td></tr>
     <tr><td><strong>Boot / Booting</strong></td><td>The process of switching a computer on and loading the operating system until it is ready to use. When you press the Pi's power button, it "boots". The word comes from the old saying "pulling yourself up by your bootstraps".</td></tr>
     <tr><td><strong>Bootloader</strong></td><td>A tiny program that runs before the operating system. On the Raspberry Pi 5 it lives in a chip on the board (the <em>EEPROM</em>). Its job is to find the operating system on the microSD card (or SSD) and hand control over to it.</td></tr>
     <tr><td><strong>Bookworm</strong></td><td>The codename for Debian version 12, which is the foundation of the current Raspberry Pi OS. Software instructions that say "Bookworm" apply to this version. Debian names its releases after characters from the film Toy Story.</td></tr>
@@ -45,6 +47,7 @@
   <tbody>
     <tr><td><strong>Callback</strong></td><td>A function you hand to a library to be run later — "when" something happens, such as <code>when_motion</code>. You pass it by name, with no brackets, so it is called back at the right moment rather than straight away.</td></tr>
     <tr><td><strong>Cathode</strong></td><td>The negative (−) leg of a <em>diode</em> or <em>LED</em>. On an LED it is the shorter leg, beside the flat edge of the casing. See also <em>anode</em>.</td></tr>
+    <tr><td><strong>Class-D Amplifier</strong></td><td>A highly efficient kind of audio amplifier used in small modules (such as the MAX98357A) to drive a loudspeaker from a low-power source like the Pi.</td></tr>
     <tr><td><strong>CLI (Command-Line Interface)</strong></td><td>A way of controlling a computer by typing text commands rather than clicking icons. The opposite of a <em>GUI</em>. On the Pi, the CLI is accessed through the <em>terminal</em>. It feels unfamiliar at first but becomes very powerful once you know a handful of commands.</td></tr>
     <tr><td><strong>Command</strong></td><td>A word (or short phrase) you type in the terminal to make the computer do something. For example, <code>ls</code> lists files, and <code>pwd</code> shows your current location.</td></tr>
     <tr><td><strong>Config file</strong></td><td>A text file that stores settings for a program. Instead of clicking through menus, you edit the file to change how the program behaves. The most important low-level hardware settings file on the Pi is <code>/boot/firmware/config.txt</code>.</td></tr>
@@ -80,6 +83,8 @@
   <tbody>
     <tr><td><strong>E-waste</strong></td><td>Discarded electronics — old phones, toys, printers, routers. Much of it is a free source of parts (LEDs, motors, sensors) for projects, though some items (mains adapters, microwaves, CRT screens) are dangerous to open.</td></tr>
     <tr><td><strong>EEPROM</strong></td><td>A tiny memory chip on the Raspberry Pi 5 board that stores the <em>bootloader</em> firmware. Unlike the microSD card, it keeps its contents even when power is removed. You can update it with <code>sudo rpi-eeprom-update</code>.</td></tr>
+    <tr><td><strong>Encoder</strong></td><td>A sensor that reports how far and how fast a motor shaft has turned. LEGO NXT motors have one built in, letting your code measure exact angles and distances. See <em>quadrature encoder</em>.</td></tr>
+    <tr><td><strong>ESD (Electrostatic Discharge)</strong></td><td>The tiny spark of static electricity that can jump from your hand to a component and silently damage it. Touch something earthed before handling bare electronics.</td></tr>
     <tr><td><strong>Ethernet</strong></td><td>A wired networking standard. You plug a standard RJ45 network cable between your Pi and your router to get a fast, reliable internet connection. The Pi 5 supports Gigabit Ethernet (up to 1,000 Mb/s). Wired is always faster and more reliable than Wi-Fi.</td></tr>
     <tr><td><strong>Environment variable</strong></td><td>A named value stored in the shell's memory that programs can read. For example, the variable <code>HOME</code> stores the path to your home folder. You can view all of them with the <code>env</code> command.</td></tr>
   </tbody>
@@ -119,6 +124,8 @@
 <table class="tbl">
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
+    <tr><td><strong>H-bridge</strong></td><td>An arrangement of four electronic switches that lets a controller run a motor forwards or backwards and vary its speed. It is the standard way to drive a motor from a Pi, since a GPIO pin cannot do it directly. See <em>motor driver</em>.</td></tr>
+    <tr><td><strong>Haptics</strong></td><td>Feedback you feel rather than see or hear — typically a small vibration motor buzzing, as used in phones and game controllers.</td></tr>
     <tr><td><strong>HAT (Hardware Attached on Top)</strong></td><td>An add-on board that plugs onto the Pi's 40-pin GPIO header and sits on top of it. HATs follow a standard that includes an ID chip so the Pi can recognise what is attached. Examples: a HAT with an M.2 slot for an NVMe SSD, a display HAT, or a motor-driver HAT.</td></tr>
     <tr><td><strong>HDMI (High-Definition Multimedia Interface)</strong></td><td>The standard cable for sending video and audio to a TV or monitor. The Raspberry Pi 5 has two <em>micro-HDMI</em> ports — smaller than the full-size HDMI port on most TVs and monitors, so you need an adapter or a micro-HDMI-to-HDMI cable (often included in starter kits).</td></tr>
     <tr><td><strong>Home Assistant</strong></td><td>An open-source smart-home platform you can run on your Pi. It lets you control smart bulbs, thermostats, door locks, and hundreds of other devices from one dashboard — without sending your data to a third-party cloud.</td></tr>
@@ -132,11 +139,13 @@
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><strong>I2C (Inter-Integrated Circuit)</strong></td><td>A simple two-wire communication protocol used to connect sensors, displays, and other small electronic components to the Raspberry Pi via the <em>GPIO</em> header. "I-squared-C" or "I-two-C" is how you say it. You enable I2C in <code>raspi-config</code> under Interface Options.</td></tr>
+    <tr><td><strong>I2S (Inter-IC Sound)</strong></td><td>A digital audio connection. The Pi 5 has no headphone socket, so an I2S amplifier such as the MAX98357A is a clean way to add sound.</td></tr>
     <tr><td><strong>IDE (Integrated Development Environment)</strong></td><td>A program that makes writing code easier by combining a text editor, error highlighting, and a way to run your code all in one window. <em>Thonny</em> is the IDE pre-installed on Raspberry Pi OS for Python beginners.</td></tr>
     <tr><td><strong>Image (disk image)</strong></td><td>A single file that is an exact copy of an entire storage device — every file and every piece of system data. When you "flash" Raspberry Pi OS to a microSD card, you are writing a disk image. The file usually ends in <code>.img</code> or <code>.img.xz</code>.</td></tr>
     <tr><td><strong>Image (Docker image)</strong></td><td>In the Docker world, an image is the blueprint for a <em>container</em> — it contains the application and all its dependencies, frozen and ready to run. You download images from Docker Hub and turn them into running containers.</td></tr>
     <tr><td><strong>Input (GPIO)</strong></td><td>When a GPIO pin is set to input mode, the Pi reads the voltage on that pin — HIGH (3.3 V) or LOW (0 V) — to detect whether a button has been pressed, a sensor has triggered, or another signal has arrived. The opposite of <em>Output (GPIO)</em>.</td></tr>
     <tr><td><strong>IP address</strong></td><td>A unique numerical label assigned to every device on a network. Local addresses look like <code>192.168.1.42</code>. Your router assigns one to your Pi automatically via <em>DHCP</em>. An IP address is like a postal address for network traffic.</td></tr>
+    <tr><td><strong>IP Webcam</strong></td><td>An app that turns a phone or camera into a network camera, streaming video over Wi-Fi to an address other devices — such as your Pi — can read.</td></tr>
   </tbody>
 </table>
 
@@ -169,6 +178,7 @@
     <tr><td><strong>Library</strong></td><td>A collection of pre-written code that your program can use. Instead of writing code to control a GPIO pin from scratch, you import the <code>gpiozero</code> library and use its ready-made functions. Libraries save enormous amounts of time.</td></tr>
     <tr><td><strong>LibreELEC</strong></td><td>A tiny, specialised Linux operating system built solely to run <em>Kodi</em>. It boots straight into Kodi, uses minimal resources, and is designed to be very stable. It is a separate OS from Raspberry Pi OS — you flash it to its own card.</td></tr>
     <tr><td><strong>Linux</strong></td><td>A free, open-source operating system kernel created by Linus Torvalds in 1991. "Linux" is now used loosely to mean any operating system built on that kernel — including Raspberry Pi OS, Ubuntu, and Debian. It runs most of the world's servers and all Android phones.</td></tr>
+    <tr><td><strong>Lithium-ion Battery (Li-ion)</strong></td><td>The rechargeable battery in phones and laptops. Powerful but hazardous: never puncture, bend, or use a swollen one, and always keep its protection board attached.</td></tr>
     <tr><td><strong>LLM (Large Language Model)</strong></td><td>The type of artificial intelligence behind chatbots like ChatGPT and Claude. An LLM is trained on vast amounts of text and learns to predict and generate human-sounding language. You can run small LLMs locally on your Pi using tools like <em>Ollama</em>.</td></tr>
     <tr><td><strong>localhost</strong></td><td>A special name (and the IP address <code>127.0.0.1</code>) that always refers to the computer you are currently using. If you run a web server on your Pi and open <code>http://localhost</code> in a browser on the same Pi, you see that server's output.</td></tr>
   </tbody>
@@ -182,6 +192,8 @@
     <tr><td><strong>mDNS / .local</strong></td><td>mDNS (Multicast DNS) is a technology that lets devices on a local network find each other by name without a central <em>DNS</em> server. Your Pi advertises itself as <code>raspberrypi.local</code> so that other computers on the same Wi-Fi can find it by that name instead of its IP address.</td></tr>
     <tr><td><strong>microSD card</strong></td><td>A tiny flash storage card — about the size of a fingernail — used as the main storage for the Raspberry Pi OS. Many starter kits include one, sometimes with Raspberry Pi OS already installed. The Pi reads it through the microSD slot on the underside of the board.</td></tr>
     <tr><td><strong>micro-HDMI</strong></td><td>A smaller variant of the <em>HDMI</em> connector. The Raspberry Pi 5 has two micro-HDMI ports, allowing it to drive two screens simultaneously at up to 4K 60 fps each. You need a micro-HDMI-to-HDMI cable or adapter to connect to a standard TV or monitor.</td></tr>
+    <tr><td><strong>MIPI</strong></td><td>The family of high-speed connections phones use for their cameras (CSI) and screens (DSI). The connectors and drivers are proprietary, which is why a phone camera or screen cannot simply be plugged into a Pi.</td></tr>
+    <tr><td><strong>Motor Driver</strong></td><td>A board (built around an <em>H-bridge</em>, such as the DRV8833 or L298N) that takes low-power signals from the Pi and switches the higher current a motor needs.</td></tr>
     <tr><td><strong>Multimeter</strong></td><td>A handheld tester for electronics. It measures voltage, resistance and continuity, and has a diode setting for checking <em>LED</em> polarity — invaluable for testing salvaged parts.</td></tr>
   </tbody>
 </table>
@@ -203,6 +215,7 @@
   <tbody>
     <tr><td><strong>Ollama</strong></td><td>A free, open-source tool that makes it easy to download and run <em>LLMs</em> (AI language models) on your own computer — including the Raspberry Pi 5. With one command you can pull a model and chat with it entirely offline.</td></tr>
     <tr><td><strong>Open source</strong></td><td>Software whose source code (the human-readable instructions that make it work) is freely available for anyone to read, use, modify, and share. Raspberry Pi OS, Linux, Python, LibreOffice, and VLC are all open source. It is the opposite of proprietary software like Microsoft Windows.</td></tr>
+    <tr><td><strong>OpenCV</strong></td><td>A popular free library for working with images and video in Python — reading a camera, finding shapes and colours, and feeding pictures to AI models.</td></tr>
     <tr><td><strong>Operating system (OS)</strong></td><td>The fundamental software that manages all the hardware and lets you run applications. Windows 11 is an operating system. So is Raspberry Pi OS. The OS sits between the hardware and your apps, handling memory, files, networking, and security so apps don't have to.</td></tr>
     <tr><td><strong>Output (GPIO)</strong></td><td>When a GPIO pin is set to output mode, the Pi controls its voltage level — pulling it HIGH (3.3 V) or LOW (0 V) — to switch something on or off, such as an LED or a relay. The opposite of <em>Input (GPIO)</em>.</td></tr>
   </tbody>
@@ -233,6 +246,7 @@
 <table class="tbl">
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
+    <tr><td><strong>Quadrature Encoder</strong></td><td>An <em>encoder</em> with two offset signals that reveal not just how far a shaft turned but in which direction. The two "tacho" wires of an NXT motor form a quadrature encoder.</td></tr>
     <tr><td><strong>Quantisation</strong></td><td>A technique for making <em>LLM</em> (AI) models smaller and faster by storing their internal numbers with less precision. For example, a "Q4" quantised model uses 4-bit numbers instead of 32-bit, shrinking it to roughly one-eighth of the size with only a small loss in quality. This is how large AI models can run on the Pi's limited RAM.</td></tr>
   </tbody>
 </table>
@@ -249,6 +263,7 @@
     <tr><td><strong>Repository (software)</strong></td><td>An online library of software packages that <em>apt</em> can download from. The official Raspberry Pi and Debian repositories are already configured on your Pi. Third-party software sometimes asks you to add an extra repository before installing.</td></tr>
     <tr><td><strong>Resistor</strong></td><td>A small electronic component that limits the flow of current. On a breadboard, resistors protect LEDs from burning out. They are colour-coded bands on a tiny cylinder. A 330-ohm resistor is the standard choice when connecting an LED to a 3.3 V GPIO pin.</td></tr>
     <tr><td><strong>RGB LED</strong></td><td>A single <em>LED</em> containing red, green and blue elements. By mixing their brightness with <em>PWM</em> you can make almost any colour. It comes in common-cathode and common-anode types.</td></tr>
+    <tr><td><strong>RJ12</strong></td><td>The small six-wire telephone-style connector LEGO used on NXT motors and sensors. The NXT version has an offset latch, so the plug is keyed differently from a standard phone lead.</td></tr>
     <tr><td><strong>Root (filesystem)</strong></td><td>The very top of the Linux directory tree, written as a single forward slash <code>/</code>. Every file and directory on the system lives somewhere beneath it. It is like the C: drive on Windows, except there is only one tree covering everything.</td></tr>
     <tr><td><strong>root (superuser)</strong></td><td>The all-powerful system administrator account on Linux. The <code>root</code> user can read, change, or delete any file. You become root temporarily by using <em>sudo</em>. Logging in permanently as root is dangerous because a single mistyped command can destroy the entire system.</td></tr>
     <tr><td><strong>RTC (Real-Time Clock)</strong></td><td>A small, battery-backed clock circuit that keeps track of the current time even when the main power is off. The Raspberry Pi 5 has an on-board RTC battery connector. Without a battery in that connector and an internet connection, the Pi's clock resets every time you unplug it.</td></tr>
@@ -299,6 +314,7 @@
     <tr><td><strong>ufw (Uncomplicated Firewall)</strong></td><td>A beginner-friendly command-line tool for managing the Linux <em>firewall</em>. With commands like <code>sudo ufw allow ssh</code> and <code>sudo ufw enable</code>, you can quickly set rules for which network connections are allowed.</td></tr>
     <tr><td><strong>Ultrasonic Sensor</strong></td><td>A distance sensor that sends out a pulse of sound too high to hear and times the echo bouncing back. The popular HC-SR04 measures from a few centimetres to a few metres.</td></tr>
     <tr><td><strong>Undervoltage</strong></td><td>When the Pi does not receive enough electrical voltage from its power supply. The Pi needs a stable 5.1 V; if it drops below about 4.63 V, a yellow lightning bolt appears in the corner of the screen and performance suffers. Always use the official 27 W USB-C power supply, and avoid cheap or long cables.</td></tr>
+    <tr><td><strong>UPS (Uninterruptible Power Supply)</strong></td><td>A battery backup that keeps a device running through a power cut. A Pi UPS HAT does this safely — a better choice than a harvested phone cell for most projects.</td></tr>
     <tr><td><strong>USB (Universal Serial Bus)</strong></td><td>The standard connector family used for keyboards, mice, USB drives, and many peripherals. The Pi 5 has two USB 3.0 ports (blue, fast — up to 5 Gb/s) and two USB 2.0 ports (black, standard speed — up to 480 Mb/s). Use the blue USB 3.0 ports for USB drives or SSDs to get the full speed benefit.</td></tr>
     <tr><td><strong>User</strong></td><td>An account on the system with its own files, settings, and permissions. On a fresh Raspberry Pi OS installation, you create your own username during the first-run wizard. Users cannot change system-wide settings without using <em>sudo</em>.</td></tr>
   </tbody>

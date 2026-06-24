@@ -44,8 +44,16 @@
   "def": "A short-range wireless technology for connecting devices — keyboards, mice, speakers, headphones — without cables. The Raspberry Pi 5 has Bluetooth 5.0 built in, which is reliable up to about 10 metres from the Pi."
  },
  {
+  "term": "BMS (Battery Management System)",
+  "def": "A small circuit that protects a rechargeable battery from being over-charged, over-discharged, or short-circuited. A salvaged phone cell should always keep its protection board attached."
+ },
+ {
   "term": "Bookworm",
   "def": "The codename for Debian version 12, which is the foundation of the current Raspberry Pi OS. Software instructions that say \"Bookworm\" apply to this version. Debian names its releases after characters from the film Toy Story."
+ },
+ {
+  "term": "Boost Converter",
+  "def": "A small circuit that raises a lower voltage to a higher one — for example lifting a 3.7 V battery up to the 5 V a Raspberry Pi needs."
  },
  {
   "term": "Boot / Booting",
@@ -70,6 +78,10 @@
  {
   "term": "Cathode",
   "def": "The negative (−) leg of a <em>diode</em> or <em>LED</em>. On an LED it is the shorter leg, beside the flat edge of the casing. See also <em>anode</em>."
+ },
+ {
+  "term": "Class-D Amplifier",
+  "def": "A highly efficient kind of audio amplifier used in small modules (such as the MAX98357A) to drive a loudspeaker from a low-power source like the Pi."
  },
  {
   "term": "CLI (Command-Line Interface)",
@@ -148,8 +160,16 @@
   "def": "A tiny memory chip on the Raspberry Pi 5 board that stores the <em>bootloader</em> firmware. Unlike the microSD card, it keeps its contents even when power is removed. You can update it with <code>sudo rpi-eeprom-update</code>."
  },
  {
+  "term": "Encoder",
+  "def": "A sensor that reports how far and how fast a motor shaft has turned. LEGO NXT motors have one built in, letting your code measure exact angles and distances. See <em>quadrature encoder</em>."
+ },
+ {
   "term": "Environment variable",
   "def": "A named value stored in the shell's memory that programs can read. For example, the variable <code>HOME</code> stores the path to your home folder. You can view all of them with the <code>env</code> command."
+ },
+ {
+  "term": "ESD (Electrostatic Discharge)",
+  "def": "The tiny spark of static electricity that can jump from your hand to a component and silently damage it. Touch something earthed before handling bare electronics."
  },
  {
   "term": "Ethernet",
@@ -208,6 +228,14 @@
   "def": "A visual way of using a computer — windows, buttons, icons, and menus you click with a mouse. The opposite of the <em>CLI</em>. Raspberry Pi OS Desktop is a GUI. Most beginners start here before learning the terminal."
  },
  {
+  "term": "H-bridge",
+  "def": "An arrangement of four electronic switches that lets a controller run a motor forwards or backwards and vary its speed. It is the standard way to drive a motor from a Pi, since a GPIO pin cannot do it directly. See <em>motor driver</em>."
+ },
+ {
+  "term": "Haptics",
+  "def": "Feedback you feel rather than see or hear — typically a small vibration motor buzzing, as used in phones and game controllers."
+ },
+ {
   "term": "HAT (Hardware Attached on Top)",
   "def": "An add-on board that plugs onto the Pi's 40-pin GPIO header and sits on top of it. HATs follow a standard that includes an ID chip so the Pi can recognise what is attached. Examples: a HAT with an M.2 slot for an NVMe SSD, a display HAT, or a motor-driver HAT."
  },
@@ -228,6 +256,10 @@
   "def": "A simple two-wire communication protocol used to connect sensors, displays, and other small electronic components to the Raspberry Pi via the <em>GPIO</em> header. \"I-squared-C\" or \"I-two-C\" is how you say it. You enable I2C in <code>raspi-config</code> under Interface Options."
  },
  {
+  "term": "I2S (Inter-IC Sound)",
+  "def": "A digital audio connection. The Pi 5 has no headphone socket, so an I2S amplifier such as the MAX98357A is a clean way to add sound."
+ },
+ {
   "term": "IDE (Integrated Development Environment)",
   "def": "A program that makes writing code easier by combining a text editor, error highlighting, and a way to run your code all in one window. <em>Thonny</em> is the IDE pre-installed on Raspberry Pi OS for Python beginners."
  },
@@ -246,6 +278,10 @@
  {
   "term": "IP address",
   "def": "A unique numerical label assigned to every device on a network. Local addresses look like <code>192.168.1.42</code>. Your router assigns one to your Pi automatically via <em>DHCP</em>. An IP address is like a postal address for network traffic."
+ },
+ {
+  "term": "IP Webcam",
+  "def": "An app that turns a phone or camera into a network camera, streaming video over Wi-Fi to an address other devices — such as your Pi — can read."
  },
  {
   "term": "Jellyfin",
@@ -280,6 +316,10 @@
   "def": "A free, open-source operating system kernel created by Linus Torvalds in 1991. \"Linux\" is now used loosely to mean any operating system built on that kernel — including Raspberry Pi OS, Ubuntu, and Debian. It runs most of the world's servers and all Android phones."
  },
  {
+  "term": "Lithium-ion Battery (Li-ion)",
+  "def": "The rechargeable battery in phones and laptops. Powerful but hazardous: never puncture, bend, or use a swollen one, and always keep its protection board attached."
+ },
+ {
   "term": "LLM (Large Language Model)",
   "def": "The type of artificial intelligence behind chatbots like ChatGPT and Claude. An LLM is trained on vast amounts of text and learns to predict and generate human-sounding language. You can run small LLMs locally on your Pi using tools like <em>Ollama</em>."
  },
@@ -300,6 +340,14 @@
   "def": "A tiny flash storage card — about the size of a fingernail — used as the main storage for the Raspberry Pi OS. Many starter kits include one, sometimes with Raspberry Pi OS already installed. The Pi reads it through the microSD slot on the underside of the board."
  },
  {
+  "term": "MIPI",
+  "def": "The family of high-speed connections phones use for their cameras (CSI) and screens (DSI). The connectors and drivers are proprietary, which is why a phone camera or screen cannot simply be plugged into a Pi."
+ },
+ {
+  "term": "Motor Driver",
+  "def": "A board (built around an <em>H-bridge</em>, such as the DRV8833 or L298N) that takes low-power signals from the Pi and switches the higher current a motor needs."
+ },
+ {
   "term": "Multimeter",
   "def": "A handheld tester for electronics. It measures voltage, resistance and continuity, and has a diode setting for checking <em>LED</em> polarity — invaluable for testing salvaged parts."
  },
@@ -318,6 +366,10 @@
  {
   "term": "Open source",
   "def": "Software whose source code (the human-readable instructions that make it work) is freely available for anyone to read, use, modify, and share. Raspberry Pi OS, Linux, Python, LibreOffice, and VLC are all open source. It is the opposite of proprietary software like Microsoft Windows."
+ },
+ {
+  "term": "OpenCV",
+  "def": "A popular free library for working with images and video in Python — reading a camera, finding shapes and colours, and feeding pictures to AI models."
  },
  {
   "term": "Operating system (OS)",
@@ -376,6 +428,10 @@
   "def": "A beginner-friendly programming language that is enormously popular for Raspberry Pi projects, data analysis, AI, and web development. Its code reads almost like English. Raspberry Pi OS comes with Python 3 pre-installed, and the <em>Thonny</em> IDE is designed for writing Python."
  },
  {
+  "term": "Quadrature Encoder",
+  "def": "An <em>encoder</em> with two offset signals that reveal not just how far a shaft turned but in which direction. The two \"tacho\" wires of an NXT motor form a quadrature encoder."
+ },
+ {
   "term": "Quantisation",
   "def": "A technique for making <em>LLM</em> (AI) models smaller and faster by storing their internal numbers with less precision. For example, a \"Q4\" quantised model uses 4-bit numbers instead of 32-bit, shrinking it to roughly one-eighth of the size with only a small loss in quality. This is how large AI models can run on the Pi's limited RAM."
  },
@@ -406,6 +462,10 @@
  {
   "term": "RGB LED",
   "def": "A single <em>LED</em> containing red, green and blue elements. By mixing their brightness with <em>PWM</em> you can make almost any colour. It comes in common-cathode and common-anode types."
+ },
+ {
+  "term": "RJ12",
+  "def": "The small six-wire telephone-style connector LEGO used on NXT motors and sensors. The NXT version has an offset latch, so the plug is keyed differently from a standard phone lead."
  },
  {
   "term": "Root (filesystem)",
@@ -510,6 +570,10 @@
  {
   "term": "Undervoltage",
   "def": "When the Pi does not receive enough electrical voltage from its power supply. The Pi needs a stable 5.1 V; if it drops below about 4.63 V, a yellow lightning bolt appears in the corner of the screen and performance suffers. Always use the official 27 W USB-C power supply, and avoid cheap or long cables."
+ },
+ {
+  "term": "UPS (Uninterruptible Power Supply)",
+  "def": "A battery backup that keeps a device running through a power cut. A Pi UPS HAT does this safely — a better choice than a harvested phone cell for most projects."
  },
  {
   "term": "USB (Universal Serial Bus)",
