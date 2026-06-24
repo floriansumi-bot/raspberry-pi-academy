@@ -1879,9 +1879,66 @@
    "title": "Reanimate a LEGO Mindstorms NXT Robot with AI",
    "kind": "project",
    "part": "maker-lab",
-   "words": 0,
-   "read_min": 5,
-   "sections": [],
+   "words": 7907,
+   "read_min": 40,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "meet-the-nxt-parts-you-can-reuse",
+     "title": "Meet the NXT 2.0 Parts You Can Reuse"
+    },
+    {
+     "id": "the-nxt-connector-decoded",
+     "title": "The NXT Connector, Decoded"
+    },
+    {
+     "id": "inside-the-nxt-motor",
+     "title": "Inside the NXT Motor"
+    },
+    {
+     "id": "driving-the-motors-the-h-bridge",
+     "title": "Driving the Motors Safely — the H-bridge"
+    },
+    {
+     "id": "code-a-robot-class",
+     "title": "Code: a Robot Class You Can Drive"
+    },
+    {
+     "id": "reading-the-wheels-the-encoder",
+     "title": "Reading the Wheels — the Encoder"
+    },
+    {
+     "id": "reading-a-sensor-the-touch-bumper",
+     "title": "Reading a Sensor — the Touch Bumper"
+    },
+    {
+     "id": "giving-the-robot-ai-eyes",
+     "title": "Giving the Robot AI Eyes"
+    },
+    {
+     "id": "putting-it-all-together",
+     "title": "Putting It All Together"
+    },
+    {
+     "id": "the-easy-route-brickpi3",
+     "title": "The Easy Route: BrickPi3"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "safety-checklist",
+     "title": "Safety Checklist"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own / Where to Go Next"
+    }
+   ],
    "widgets": [
     "gpio"
    ]
@@ -2016,8 +2073,8 @@
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
-   "words": 6969,
-   "read_min": 35,
+   "words": 7468,
+   "read_min": 37,
    "sections": [
     {
      "id": "how-to-use-this-glossary",
