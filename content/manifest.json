@@ -79,7 +79,8 @@
     "ch30",
     "ch31",
     "ch32",
-    "ch33"
+    "ch33",
+    "ch34"
    ]
   },
   {
@@ -2003,9 +2004,65 @@
    ],
    "widgets": []
   },
+  "ch34": {
+   "id": "ch34",
+   "n": 34,
+   "title": "Capstone: The Junkbox AI Rover",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 7531,
+   "read_min": 38,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "the-architecture",
+     "title": "The Architecture"
+    },
+    {
+     "id": "recap-how-the-parts-connect",
+     "title": "Recap: How the Parts Connect"
+    },
+    {
+     "id": "step-1-the-drive-base-as-a-module",
+     "title": "Step 1 — The Drive Base as a Module"
+    },
+    {
+     "id": "step-2-give-it-eyes",
+     "title": "Step 2 — Give It Eyes"
+    },
+    {
+     "id": "step-3-see-a-target",
+     "title": "Step 3 — See a Target (Colour Tracking)"
+    },
+    {
+     "id": "step-4-the-follow-behaviour",
+     "title": "Step 4 — The Follow Behaviour and the State Machine"
+    },
+    {
+     "id": "step-5-a-web-remote",
+     "title": "Step 5 — A Web Remote"
+    },
+    {
+     "id": "putting-it-all-together",
+     "title": "Putting It All Together"
+    },
+    {
+     "id": "safety-checklist",
+     "title": "Safety Checklist"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own / Where to Go Next"
+    }
+   ],
+   "widgets": []
+  },
   "apxA": {
    "id": "apxA",
-   "n": 34,
+   "n": 35,
    "title": "Command Quick-Reference",
    "kind": "appendix",
    "part": "reference",
@@ -2069,12 +2126,12 @@
   },
   "glos": {
    "id": "glos",
-   "n": 35,
+   "n": 36,
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
-   "words": 7468,
-   "read_min": 37,
+   "words": 7591,
+   "read_min": 38,
    "sections": [
     {
      "id": "how-to-use-this-glossary",
@@ -2226,6 +2283,7 @@
   "ch31",
   "ch32",
   "ch33",
+  "ch34",
   "apxA",
   "glos"
  ]

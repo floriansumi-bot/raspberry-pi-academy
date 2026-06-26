@@ -252,6 +252,10 @@
   "def": "A human-friendly name for a device on a network. The Pi's default hostname is <code>raspberrypi</code>. You can reach it from another computer on the same network as <code>raspberrypi.local</code> (using <em>mDNS</em>), which is much easier than remembering an IP address."
  },
  {
+  "term": "HSV",
+  "def": "A way of describing colour by Hue, Saturation and Value (brightness) rather than red/green/blue. It makes it far easier for code to pick out \"all the red things\" in a camera image — which is how a robot can track a coloured ball. (In <em>OpenCV</em>, hue runs 0–179.)"
+ },
+ {
   "term": "I2C (Inter-Integrated Circuit)",
   "def": "A simple two-wire communication protocol used to connect sensors, displays, and other small electronic components to the Raspberry Pi via the <em>GPIO</em> header. \"I-squared-C\" or \"I-two-C\" is how you say it. You enable I2C in <code>raspi-config</code> under Interface Options."
  },
@@ -342,6 +346,10 @@
  {
   "term": "MIPI",
   "def": "The family of high-speed connections phones use for their cameras (CSI) and screens (DSI). The connectors and drivers are proprietary, which is why a phone camera or screen cannot simply be plugged into a Pi."
+ },
+ {
+  "term": "MJPEG (Motion JPEG)",
+  "def": "A simple video format that sends a stream of separate JPEG images. It is an easy way to show a live camera feed on a web page served from your Pi."
  },
  {
   "term": "Motor Driver",
@@ -522,6 +530,10 @@
  {
   "term": "SSH key",
   "def": "A pair of mathematically linked files — a private key (kept on your PC) and a public key (stored on the Pi) — that let you log in via <em>SSH</em> without typing a password. It is both more convenient and more secure than password login. You generate a key pair with <code>ssh-keygen</code> on your PC."
+ },
+ {
+  "term": "State Machine",
+  "def": "A way of organising a program around a set of distinct \"modes\" (states) and the rules for switching between them — for example a robot that is either manually driven, following a target, or avoiding an obstacle."
  },
  {
   "term": "Storage",
