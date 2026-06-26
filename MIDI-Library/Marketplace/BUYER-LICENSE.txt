@@ -1,0 +1,46 @@
+EDM MIDI ESSENTIALS — VOL. 1
+ROYALTY-FREE MIDI LICENSE AGREEMENT
+================================================================
+
+This MIDI pack ("the Product") consists of MIDI data only (no audio
+samples). By downloading or using the Product you agree to the terms below.
+
+1. GRANT OF LICENSE
+   You are granted a perpetual, worldwide, non-exclusive, royalty-free
+   license to use the MIDI files in the Product in an unlimited number of
+   your own musical productions, both commercial and non-commercial,
+   including songs, beats, soundtracks, live performance, streaming, and
+   sync. No attribution is required.
+
+2. OWNERSHIP OF YOUR MUSIC
+   Music you create using these MIDI files is yours. No royalties, fees,
+   or further payments are owed to the Product author for your releases.
+
+3. RESTRICTIONS
+   You MAY NOT:
+   (a) resell, relicense, redistribute, share, or give away the MIDI files
+       themselves, in whole or in part, in their original or any modified/
+       reformatted MIDI form;
+   (b) include the MIDI files (as MIDI) in any other sample/MIDI pack,
+       library, construction kit, or competing product;
+   (c) claim authorship of the MIDI files themselves.
+   Rendering a MIDI file to audio inside your own track and releasing that
+   track IS permitted (that's the whole point).
+
+4. NOTE ON MUSICAL BUILDING BLOCKS
+   Common chord progressions, scales, and rhythmic patterns are not
+   protected by copyright and remain free for everyone to use. This license
+   governs the specific MIDI files in this Product, not the underlying
+   musical theory.
+
+5. NO WARRANTY
+   The Product is provided "as is" without warranty of any kind. The author
+   is not liable for any damages arising from its use.
+
+6. TERMINATION
+   This license terminates automatically if you breach any term. On
+   termination you must stop using and delete the Product (your previously
+   released music remains licensed).
+
+Copyright (c) 2026. All rights reserved.
+================================================================
