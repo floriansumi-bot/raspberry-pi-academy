@@ -176,6 +176,10 @@
   "def": "A wired networking standard. You plug a standard RJ45 network cable between your Pi and your router to get a fast, reliable internet connection. The Pi 5 supports Gigabit Ethernet (up to 1,000 Mb/s). Wired is always faster and more reliable than Wi-Fi."
  },
  {
+  "term": "EV3",
+  "def": "The third-generation LEGO Mindstorms controller and its motors and sensors. Its motors are like the NXT’s but their encoders read cleanly at 3.3 V, making them a little friendlier to wire to a Raspberry Pi."
+ },
+ {
   "term": "File",
   "def": "A named collection of data stored on a disk — a document, a photo, a program, or a settings file. On Linux, almost everything is treated as a file, including hardware devices."
  },
@@ -412,6 +416,10 @@
   "def": "A DNS-based ad blocker you can run on your Pi. It acts as the DNS server for your whole home network, intercepting requests to known ad-serving domains and blocking them before they reach any device. Works on every phone, tablet, and computer in your home without installing anything on them."
  },
  {
+  "term": "PID",
+  "def": "A control recipe — Proportional, Integral, Derivative — that steers a robot smoothly toward a target by reacting to the size of its error, how long it has persisted, and how fast it is changing. The proportional part alone already gives gentle line-following."
+ },
+ {
   "term": "Pin",
   "def": "One individual metal connector on the <em>GPIO</em> header. The Pi 5 has 40 pins. Each has a specific role: power supply (3.3 V or 5 V), ground (0 V), or a programmable GPIO pin. Always check a pinout diagram before connecting anything."
  },
@@ -458,6 +466,10 @@
  {
   "term": "raspi-config",
   "def": "The official Raspberry Pi configuration tool, launched from the terminal with <code>sudo raspi-config</code>. It gives you a text-based menu for changing settings such as enabling <em>SSH</em>, <em>I2C</em>, <em>SPI</em>, the camera, Wi-Fi country, display resolution, and the hostname — all without needing to edit config files by hand."
+ },
+ {
+  "term": "Reflectance Sensor",
+  "def": "A small sensor (such as the TCRT5000) that shines infra-red light at a surface and measures how much bounces back, so a robot can tell a dark line from a pale floor."
  },
  {
   "term": "Repository (software)",
@@ -614,6 +626,14 @@
  {
   "term": "Voltage Divider",
   "def": "A pair of resistors that turns a higher voltage into a lower one. It is how you safely feed a 5 V sensor output (such as the HC-SR04’s echo pin) into the Pi’s 3.3 V GPIO."
+ },
+ {
+  "term": "Vosk",
+  "def": "A free, offline speech-to-text engine light enough to run on a Raspberry Pi. It turns spoken words into text without any internet connection, so your voice never leaves the Pi."
+ },
+ {
+  "term": "Wake Word",
+  "def": "A trigger phrase (like “hey robot”) that a device listens for before it starts acting on commands — the same idea as “Hey Siri”, but it can run entirely on your Pi."
  },
  {
   "term": "Wayland",

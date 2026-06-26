@@ -9,14 +9,14 @@
 
 ## What it is
 
-Pilot is a zero-build, installable **Progressive Web App** (vanilla JS, ES modules — no framework, no bundler) that reframes a complete beginner's Raspberry Pi 5 book as a **46-lesson learning path**. It starts from total beginner — warm, plain-English, impossible to get lost in — branches into a **"Linux, In Depth"** part that takes you under the hood (the shell as a language, file descriptors, processes & signals, the kernel boundary, systemd, networking, containers), and a hands-on **"Maker Lab"** part where every build teaches a named Python or electronics idea while bringing dead electronics — including old LEGO robots and phones — back to life.
+Pilot is a zero-build, installable **Progressive Web App** (vanilla JS, ES modules — no framework, no bundler) that reframes a complete beginner's Raspberry Pi 5 book as a **49-lesson learning path**. It starts from total beginner — warm, plain-English, impossible to get lost in — branches into a **"Linux, In Depth"** part that takes you under the hood (the shell as a language, file descriptors, processes & signals, the kernel boundary, systemd, networking, containers), and a hands-on **"Maker Lab"** part where every build teaches a named Python or electronics idea while bringing dead electronics — including old LEGO robots and phones — back to life.
 
 ### Highlights
 
-- 🛤️ **The Learning Path** — a winding, Duolingo-style trail of all 46 lessons across 8 parts, with persisted progress, completion rings, copper circuit-trace connectors, and a "you are here" marker.
+- 🛤️ **The Learning Path** — a winding, Duolingo-style trail of all 49 lessons across 8 parts, with persisted progress, completion rings, copper circuit-trace connectors, and a "you are here" marker.
 - 🧪 **The Maker Lab** — a project-driven Part (VII) where every build teaches a *named* Python or electronics fundamental: a traffic light (lists & loops), a reaction game, a salvaged sound machine and mood lamp (PWM & recycling), an ultrasonic parking sensor (a 5 V→3.3 V voltage divider), a plant data-logger (files & CSV), a motion alarm from e-waste, a Flask + JS sensor dashboard, an AI-assisted robot reanimated from **LEGO Mindstorms NXT** parts, an honest guide to **recycling old smartphone parts**, and a Junkbox AI rover capstone — plus an EV3 variant, a line-follower, and offline voice control.
 - 🐧 **A "Linux, In Depth" track** — ten advanced lessons (Part VI) that go past the basics into how Linux *really* works, written in the same warm voice but unafraid of internals: the expansion pipeline, `fork`/`exec`, namespaces & cgroups, and more — every concept applying directly to the full Debian/systemd Linux on your Pi 5. Earns the **Under the Hood** badge.
-- 💻 **A real Pi terminal sandbox** — a hand-written Raspberry Pi OS shell (virtual filesystem, history, tab-completion) that runs the commands the book teaches. `man <term>` pulls the glossary; `find <word>` full-text-searches all 46 lessons. The terminal *is* the search engine behind ⌘K.
+- 💻 **A real Pi terminal sandbox** — a hand-written Raspberry Pi OS shell (virtual filesystem, history, tab-completion) that runs the commands the book teaches. `man <term>` pulls the glossary; `find <word>` full-text-searches all 49 lessons. The terminal *is* the search engine behind ⌘K.
 - 🔌 **A wireable GPIO board** — an interactive 40-pin pinout + breadboard where you wire an LED through a resistor on GPIO 17, press **Run** on real `gpiozero` code, and watch it blink — with enforced electrical rules and a 3.3 V safety guard that quotes the handbook's exact damage warning.
 - 🍓 **Hero board inspector** — click any component on a Raspberry Pi 5 board to learn what it does and jump to the lesson that uses it.
 - 🔎 **⌘K command palette** + a **living glossary** — every technical term in the prose links to a hover-definition card, and one shortcut searches lessons, glossary, and the command reference at once.
@@ -62,7 +62,7 @@ js/
   widgets/            board · terminal · gpio · resistor · picker · poweron
 content/
   manifest.json       parts, chapters, sections, reading time
-  chapters/*.html     the 46 lessons
+  chapters/*.html     the 49 lessons
   glossary.json  search-index.json  quizzes/*.json
 sw.js  manifest.webmanifest  assets/
 ```

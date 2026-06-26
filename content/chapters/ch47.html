@@ -1,0 +1,555 @@
+<p class="lead">In Lesson 44 you built the Junkbox AI Rover and drove it from a web remote in your hand. In this chapter you give it ears. You will speak the words "forward", "left", "right" or "stop" out loud, a USB microphone will catch them, and a tiny offline speech engine called <strong>Vosk</strong> will turn your voice into text &mdash; entirely on the Pi, with no internet and nothing sent to a cloud. Along the way you will learn the Python that ties a live microphone to a robot: a <strong>microphone capture loop</strong> with <code>sounddevice</code>, a <strong>recogniser</strong> that streams audio to text, <strong>keyword matching</strong> to find a command inside a sentence, and a <strong>dispatch dictionary</strong> that maps each command word to a method on the <code>Robot</code> class you already wrote.</p>
+<div class="widget-mount" data-widget="gpio"></div>
+
+
+<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+
+<p>By the end of this lesson your rover obeys spoken commands. Say "forward" and it rolls; say "stop" and it halts; say "left" or "right" and it spins. Everything runs offline on the Pi 5 itself, fast enough to feel live. You will not rewire a single motor &mdash; the driving is done in Lesson 44. What is new is the <em>voice front-end</em>: the software glue from microphone to motor.</p>
+
+<p>The whole pipeline is four stages: a <strong>microphone</strong> feeds raw sound into <strong>Vosk</strong>, which turns it into text; you <strong>match keywords</strong> in that text; and a matched keyword <strong>calls a method</strong> on your imported <code>Robot</code>. One small Python program holds it all.</p>
+
+<h3>Python fundamentals (named)</h3>
+<ul>
+  <li><strong>A microphone capture loop</strong> &mdash; using the <code>sounddevice</code> library to open a live audio stream at 16&nbsp;kHz mono and feed it, block by block, into a recogniser. This is the same shape as Lesson 44's camera loop, but for sound instead of pictures.</li>
+  <li><strong>Streaming speech-to-text with Vosk</strong> &mdash; a <code>KaldiRecognizer</code> object that accepts audio and hands back recognised words as JSON, with <em>partial</em> results as you speak and a <em>final</em> result when you pause.</li>
+  <li><strong>Keyword matching</strong> &mdash; pulling a known command out of a recognised sentence by splitting it into words and checking each against a set. This is plain Python string handling, no AI required.</li>
+  <li><strong>A dispatch dictionary</strong> &mdash; a dictionary that maps each command word (the key) to the function it should run (the value). Instead of a long ladder of <code>if</code>/<code>elif</code>, you look the word up and call what you find. It reinforces <strong>functions</strong> and the <strong>classes</strong> from Lesson 44.</li>
+</ul>
+
+<h3>AI / audio fundamentals (named)</h3>
+<ul>
+  <li><strong>Offline speech-to-text</strong> &mdash; why running the recogniser on the device (rather than sending your voice to a cloud service) matters for privacy and for working with no internet, and why <strong>Vosk</strong> with its small model is the right live-command tool on a Pi 5, where the heavier <strong>Whisper</strong> from Lesson 19 is not.</li>
+  <li><strong>Constraining the vocabulary</strong> &mdash; telling Vosk to listen for only a fixed list of words. A recogniser that can <em>only</em> hear five commands is both faster and far more accurate than one trying to transcribe every word in English.</li>
+</ul>
+
+<h3>Hardware fundamentals (named)</h3>
+<ul>
+  <li><strong>Audio input on the Pi 5</strong> &mdash; the honest truth that the Pi 5 has <em>no</em> analogue audio input and no on-board microphone, so you must add a <strong>USB microphone</strong>, and how to confirm the Pi can see it.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> You do not need the full rover to follow this chapter. The voice front-end is a program in its own right: if your wheels are not built yet, the same code prints each recognised command to the screen, so you can learn the whole pipeline with nothing but a USB microphone plugged into your Pi. Where the robot is missing, the words and the ideas still teach you everything.</div>
+
+
+<h2 id="why-offline-speech-recognition">Why Offline Speech Recognition?</h2>
+
+<p>When you talk to a smart speaker, your voice is usually recorded, sent over the internet to a company's servers, turned into text there, and the answer sent back. That has three costs: it needs a <strong>live internet connection</strong>, it adds <strong>delay</strong> while the audio travels there and back, and your <strong>voice leaves your home</strong> and lands on someone else's computer.</p>
+
+<p>A robot that obeys voice commands should not depend on any of that. It might roam a garden with no Wi-Fi; you might not want a microphone streaming audio to a company; and a command like "stop" needs to act <em>now</em>, not after a round trip to a data centre. So we do the recognition <strong>on the Pi itself</strong> &mdash; called <strong>offline</strong> (or <strong>on-device</strong>) speech-to-text.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Speech-to-text</strong> (STT), also called <em>speech recognition</em>, is software that listens to sound and writes down the words it hears. <strong>Offline</strong> means it does the whole job on your own device, with nothing sent over the internet &mdash; so it works with the Wi-Fi switched off, and your voice never leaves the Pi.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 660 320" xmlns="http://www.w3.org/2000/svg">
+  <rect width="660" height="320" fill="#f3f0ff" rx="12"/>
+  <text x="330" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">Cloud speech-to-text vs offline (on the Pi)</text>
+
+  <!-- Cloud row -->
+  <text x="40" y="78" font-family="sans-serif" font-size="13" font-weight="bold" fill="#dc2626">Cloud</text>
+  <rect x="40" y="90" width="90" height="56" fill="#6d28d9" rx="8"/>
+  <text x="85" y="115" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle">You speak</text>
+  <text x="85" y="131" font-family="sans-serif" font-size="10" fill="#ddd6fe" text-anchor="middle">microphone</text>
+
+  <line x1="130" y1="118" x2="250" y2="118" stroke="#dc2626" stroke-width="3" stroke-dasharray="6,4"/>
+  <polygon points="250,118 239,112 239,124" fill="#dc2626"/>
+  <text x="190" y="108" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">internet</text>
+
+  <rect x="250" y="90" width="120" height="56" fill="#374151" rx="8"/>
+  <text x="310" y="113" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle">Company server</text>
+  <text x="310" y="129" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">does the STT</text>
+
+  <line x1="370" y1="130" x2="490" y2="130" stroke="#dc2626" stroke-width="3" stroke-dasharray="6,4"/>
+  <polygon points="490,130 479,124 479,136" fill="#dc2626"/>
+  <text x="430" y="120" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">internet back</text>
+
+  <rect x="490" y="90" width="120" height="56" fill="#0ea5a4" rx="8"/>
+  <text x="550" y="113" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle">Text arrives</text>
+  <text x="550" y="129" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">after a delay</text>
+
+  <text x="330" y="166" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Needs internet &middot; adds delay &middot; your voice leaves your home</text>
+
+  <!-- Offline row -->
+  <text x="40" y="218" font-family="sans-serif" font-size="13" font-weight="bold" fill="#059669">Offline (Vosk on the Pi)</text>
+  <rect x="40" y="230" width="90" height="56" fill="#6d28d9" rx="8"/>
+  <text x="85" y="255" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle">You speak</text>
+  <text x="85" y="271" font-family="sans-serif" font-size="10" fill="#ddd6fe" text-anchor="middle">USB mic</text>
+
+  <line x1="130" y1="258" x2="250" y2="258" stroke="#059669" stroke-width="3"/>
+  <polygon points="250,258 239,252 239,264" fill="#059669"/>
+
+  <rect x="250" y="230" width="160" height="56" fill="#1f2933" rx="8"/>
+  <text x="330" y="253" font-family="sans-serif" font-size="11" fill="#f3f0ff" text-anchor="middle">Raspberry Pi 5</text>
+  <text x="330" y="269" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">Vosk does the STT here</text>
+
+  <line x1="410" y1="258" x2="530" y2="258" stroke="#059669" stroke-width="3"/>
+  <polygon points="530,258 519,252 519,264" fill="#059669"/>
+
+  <rect x="530" y="230" width="90" height="56" fill="#0ea5a4" rx="8"/>
+  <text x="575" y="253" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle">Text now</text>
+  <text x="575" y="269" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">no internet</text>
+
+  <text x="330" y="308" font-family="sans-serif" font-size="10" fill="#059669" text-anchor="middle">No internet &middot; near-instant &middot; your voice never leaves the Pi</text>
+</svg>
+<figcaption>The cloud route sends your voice across the internet and back, adding delay and a privacy cost. The offline route keeps the whole job on the Pi: faster, private, and working even with the Wi-Fi switched off.</figcaption>
+</figure>
+
+<h3>Vosk vs Whisper: which tool for live commands?</h3>
+
+<p>You already met one offline speech-to-text tool in Lesson 19: <strong>Whisper</strong> (via the fast <code>whisper.cpp</code> build). Whisper is wonderfully accurate, but it is built to transcribe a <em>recording</em> &mdash; you hand it a whole audio file, it thinks for a while, and gives back the text. That batch style is perfect for voice memos, but it is the wrong shape for a robot: you do not want to record yourself, wait, then have the rover move.</p>
+
+<p>For <em>live</em> commands we want a <strong>streaming</strong> recogniser &mdash; one that listens continuously and reports words the instant you say them. That is <strong>Vosk</strong> (from the alphacephei project). Vosk is designed for real-time recognition, ships ready-built for the Pi's 64-bit processor, and offers a tiny <strong>small English model of about 40&ndash;50&nbsp;MB</strong> that runs comfortably on a Pi 5. (Vosk also has a large model of around 1.8&nbsp;GB; that one is far too heavy for live use on a Pi, so we never use it here.)</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>&nbsp;</th><th>Vosk (this lesson)</th><th>Whisper / whisper.cpp (Lesson 19)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Style</td><td>Streaming &mdash; words appear as you speak</td><td>Batch &mdash; transcribes a whole recording</td></tr>
+    <tr><td>Latency</td><td>Low &mdash; near-instant, suits live commands</td><td>Higher &mdash; you wait while it processes</td></tr>
+    <tr><td>Model size on the Pi</td><td>Small model &asymp; 40&ndash;50&nbsp;MB</td><td><code>base.en</code> &asymp; 140&nbsp;MB and up</td></tr>
+    <tr><td>CPU load</td><td>Light enough to run continuously</td><td>Heavier; happiest in short bursts</td></tr>
+    <tr><td>Accuracy on open speech</td><td>Good</td><td>Excellent</td></tr>
+    <tr><td>Best job</td><td>Live robot commands</td><td>Transcribing recordings</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> "Vosk is better than Whisper" is the wrong way to read this table. They are built for different jobs. Whisper wins on raw accuracy over free-flowing speech; Vosk wins on running live, lightly, forever, on a small computer. A robot that must react to a spoken "stop" needs the second of those, which is why we reach for Vosk here.</div>
+
+<div class="tip"><strong>Tip:</strong> We make Vosk's job even easier by telling it to listen for <em>only our handful of command words</em>, never the whole dictionary. A recogniser with five words to choose between is faster and far more reliable than one weighing thousands. You will see exactly how to do this in the build &mdash; it is a single extra line.</div>
+
+
+<h2 id="the-pi-5-has-no-microphone">The Pi 5 Has No Microphone</h2>
+
+<p>Here is a piece of hardware honesty that trips up many beginners. The Raspberry Pi 5 has <strong>no analogue audio input</strong> and <strong>no built-in microphone</strong>. There is no 3.5&nbsp;mm microphone jack (the Pi 5 dropped even the old combined audio jack), and nothing on the board can hear you. Software alone cannot conjure a microphone the Pi does not have.</p>
+
+<p>The fix is simple and cheap: a <strong>USB microphone</strong>. On Raspberry Pi OS Bookworm a USB mic is plug-and-play &mdash; push it into any USB port and the operating system recognises it as a sound input device. A small USB "mini-mic", a USB headset, or a USB webcam with a built-in microphone all work, and USB is hot-pluggable so you can connect it at any time.</p>
+
+<div class="warn"><strong>Careful &mdash; you cannot skip the USB microphone:</strong> The Pi 5 has no microphone of its own and no analogue audio input, so the voice code in this lesson will not work until you plug a <strong>USB microphone</strong> into the Pi. There is no 3.5&nbsp;mm mic socket to use instead. If you try to run the recogniser with no USB mic attached, <code>sounddevice</code> will report that there is no input device. This is a hardware fact, not a bug in your code.</div>
+
+<h3>Check the Pi can hear the microphone</h3>
+
+<p>Before writing any Python, confirm at the terminal that the operating system sees your microphone. The command <code>arecord -l</code> lists every <em>capture</em> (recording) device. Open a terminal (Raspberry Pi menu &rarr; Accessories &rarr; Terminal) and run:</p>
+
+<pre class="code"><code>arecord -l</code></pre>
+<div class="explain">
+  <p><strong><code>arecord -l</code>:</strong> <code>arecord</code> is the built-in audio recorder on Raspberry Pi OS; the <code>-l</code> flag means "list the capture devices". If your USB mic is connected you will see a line like <code>card 3: Device [USB PnP Sound Device], device 0: ...</code>. If instead it prints <code>no soundcards found</code>, the Pi cannot see any microphone &mdash; re-seat the USB plug or try another port, then run the command again.</p>
+</div>
+
+<p>Once a card appears, do a five-second test recording to be completely sure the microphone is working. Speak while it records:</p>
+
+<pre class="code"><code>arecord --format=S16_LE --duration=5 --rate=16000 --file-type=wav mic_test.wav
+aplay mic_test.wav</code></pre>
+<div class="explain">
+  <p><strong>Line 1 &mdash; <code>arecord --format=S16_LE --duration=5 --rate=16000 --file-type=wav mic_test.wav</code>:</strong> Records five seconds of sound to a file called <code>mic_test.wav</code>. <code>--format=S16_LE</code> means 16-bit samples (the format Vosk expects), <code>--rate=16000</code> means 16,000 samples per second &mdash; the <strong>16&nbsp;kHz</strong> rate speech recognisers are built for &mdash; and <code>--file-type=wav</code> saves a standard WAV file. Speak normally while it records.</p>
+  <p><strong>Line 2 &mdash; <code>aplay mic_test.wav</code>:</strong> Plays the recording back through the Pi's audio output so you can hear yourself. If you hear your voice clearly, the microphone is working and at the exact sample rate Vosk wants. If it is silent or very faint, move the mic closer or pick a different USB port, and check the input level in the Raspberry Pi audio settings.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>16&nbsp;kHz mono</strong> describes the audio we feed the recogniser. <em>16&nbsp;kHz</em> (16,000 samples per second) is the sampling rate speech models are trained on &mdash; enough to capture human speech, no more. <em>Mono</em> means a single channel (one microphone), as opposed to stereo's two. Matching these exactly is important: feed Vosk the wrong rate and the words come out as gibberish.</div>
+
+
+<h2 id="installing-vosk-in-a-venv">Installing Vosk in a Virtual Environment</h2>
+
+<p>We need two Python libraries that are not on the Pi by default: <strong>vosk</strong> (the speech engine) and <strong>sounddevice</strong> (which reads the microphone). As you saw in Lesson 44, Bookworm follows a rule called <strong>PEP&nbsp;668</strong> that blocks a plain <code>pip install</code> into the system Python, to stop you breaking the operating system's own packages. The answer is the same habit as before: install into a <strong>virtual environment</strong> (a venv).</p>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>virtual environment</strong> is a private, throwaway copy of Python in its own folder. Packages you <code>pip install</code> while it is active land inside that folder, not in the system Python &mdash; so you can add libraries freely without any risk to Raspberry Pi OS.</div>
+
+<p>There is one wrinkle that matters for a robot. Your rover's drive code uses <strong>gpiozero</strong>, which lives in the <em>system</em> Python, not inside a fresh venv. A plain venv cannot see it, so <code>from gpiozero import Motor</code> would fail. The fix &mdash; exactly as in Lesson 44 &mdash; is to create the venv with the <code>--system-site-packages</code> flag, which lets the venv <em>also</em> see the system's packages (including gpiozero) while still letting you pip-install your own on top.</p>
+
+<ol class="steps">
+  <li><strong>Create the venv with access to the system packages.</strong> In a terminal, run <code>python3 -m venv --system-site-packages ~/voice</code>. The <code>--system-site-packages</code> flag is the important part: without it, the venv is sealed off and your robot's gpiozero import will fail.</li>
+  <li><strong>Activate it.</strong> Run <code>source ~/voice/bin/activate</code>. Your prompt gains a <code>(voice)</code> prefix, showing that <code>pip</code> now installs into this environment.</li>
+  <li><strong>Install the two libraries.</strong> Run <code>pip install vosk sounddevice</code>. Vosk ships ready-built packages for the Pi's 64-bit processor, so this downloads in moments with nothing to compile.</li>
+  <li><strong>Check gpiozero is still visible.</strong> Run <code>python3 -c "import gpiozero, vosk, sounddevice; print('all ok')"</code>. If it prints <code>all ok</code>, the venv can see both your freshly installed libraries <em>and</em> the system's gpiozero &mdash; exactly what the robot needs.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> If you create the venv <em>without</em> <code>--system-site-packages</code>, everything in this lesson runs right up until the robot part, then <code>from gpiozero import Motor</code> dies with <code>ModuleNotFoundError: No module named 'gpiozero'</code>. If that happens, you do not need to start over &mdash; either recreate the venv with the flag, or run <code>pip install gpiozero lgpio</code> inside the existing venv to install gpiozero there too. Either fix works.</div>
+
+<h3>Download the small English model</h3>
+
+<p>Vosk's code is installed, but it needs a <strong>model</strong> &mdash; the trained data that knows English. We use the small model, around 40&ndash;50&nbsp;MB. Download it once and unzip it beside your project:</p>
+
+<pre class="code"><code>cd ~
+wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.22.zip
+unzip vosk-model-small-en-us-0.22.zip</code></pre>
+<div class="explain">
+  <p><strong>Line 1 &mdash; <code>cd ~</code>:</strong> Move to your home folder so the model lands somewhere easy to find.</p>
+  <p><strong>Line 2 &mdash; <code>wget https://.../vosk-model-small-en-us-0.22.zip</code>:</strong> Downloads the small English model as a zip file. <code>wget</code> is the standard command-line downloader on Raspberry Pi OS. The small model is the right one for a Pi 5 &mdash; do not download the 1.8&nbsp;GB large model.</p>
+  <p><strong>Line 3 &mdash; <code>unzip vosk-model-small-en-us-0.22.zip</code>:</strong> Unpacks it into a folder named <code>vosk-model-small-en-us-0.22</code>. That folder name is the path we will hand to Vosk in the Python code below. Keep it next to your program.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> A <strong>model</strong> is the recogniser's "knowledge of the language" &mdash; the patterns that let it tell one word from another. The Vosk <em>code</em> and the Vosk <em>model</em> are separate downloads on purpose, so you can pick a model to suit your device. On a Pi 5, the small English model is the sweet spot: light enough to run live, accurate enough for clear commands.</div>
+
+
+<h2 id="the-mic-to-motors-pipeline">The Mic-to-Motors Pipeline</h2>
+
+<p>Before any code, picture the whole journey of a spoken command. Four stages, left to right.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 680 230" xmlns="http://www.w3.org/2000/svg">
+  <rect width="680" height="230" fill="#f3f0ff" rx="12"/>
+  <text x="340" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">From your voice to the wheels: the four stages</text>
+
+  <!-- mic -->
+  <rect x="24" y="80" width="130" height="80" fill="#6d28d9" rx="10"/>
+  <text x="89" y="112" font-family="sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="bold">1. Microphone</text>
+  <text x="89" y="130" font-family="sans-serif" font-size="10" fill="#ddd6fe" text-anchor="middle">USB mic, 16 kHz</text>
+  <text x="89" y="144" font-family="sans-serif" font-size="10" fill="#ddd6fe" text-anchor="middle">sounddevice</text>
+
+  <line x1="154" y1="120" x2="194" y2="120" stroke="#1f2933" stroke-width="3"/>
+  <polygon points="194,120 183,114 183,126" fill="#1f2933"/>
+  <text x="174" y="110" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">raw audio</text>
+
+  <!-- vosk -->
+  <rect x="194" y="80" width="130" height="80" fill="#0ea5a4" rx="10"/>
+  <text x="259" y="112" font-family="sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="bold">2. Vosk</text>
+  <text x="259" y="130" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">KaldiRecognizer</text>
+  <text x="259" y="144" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">audio &rarr; text</text>
+
+  <line x1="324" y1="120" x2="364" y2="120" stroke="#1f2933" stroke-width="3"/>
+  <polygon points="364,120 353,114 353,126" fill="#1f2933"/>
+  <text x="344" y="110" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">"go forward"</text>
+
+  <!-- match -->
+  <rect x="364" y="80" width="130" height="80" fill="#f97316" rx="10"/>
+  <text x="429" y="112" font-family="sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="bold">3. Match</text>
+  <text x="429" y="130" font-family="sans-serif" font-size="10" fill="#ffedd5" text-anchor="middle">find a keyword</text>
+  <text x="429" y="144" font-family="sans-serif" font-size="10" fill="#ffedd5" text-anchor="middle">"forward"</text>
+
+  <line x1="494" y1="120" x2="534" y2="120" stroke="#1f2933" stroke-width="3"/>
+  <polygon points="534,120 523,114 523,126" fill="#1f2933"/>
+  <text x="514" y="110" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">command</text>
+
+  <!-- motors -->
+  <rect x="534" y="80" width="124" height="80" fill="#1f2933" rx="10"/>
+  <text x="596" y="112" font-family="sans-serif" font-size="13" fill="#f3f0ff" text-anchor="middle" font-weight="bold">4. Motors</text>
+  <text x="596" y="130" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">Robot.forward()</text>
+  <text x="596" y="144" font-family="sans-serif" font-size="10" fill="#6d28d9" text-anchor="middle">Lesson 44</text>
+
+  <text x="340" y="196" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">Each box is a few lines of Python. The hard parts &mdash; the recogniser and the motors &mdash; are libraries you import.</text>
+  <text x="340" y="214" font-family="sans-serif" font-size="10" fill="#059669" text-anchor="middle">All four stages run on the Pi. Nothing touches the internet.</text>
+</svg>
+<figcaption>The mic-to-motors pipeline. The USB microphone feeds 16&nbsp;kHz audio into Vosk, which produces text; we pick the command word out of that text; and the command calls a method on the imported <code>Robot</code>. Every stage runs offline on the Pi.</figcaption>
+</figure>
+
+<p>Stage 2 (Vosk) and stage 4 (the motors) are libraries someone else wrote &mdash; you simply call them. Your job is the small, readable glue: stage 1's capture loop and stage 3's keyword match. We will build each piece on its own, then join them.</p>
+
+
+<h2 id="capturing-the-microphone">Capturing the Microphone with sounddevice</h2>
+
+<p>The first piece is the <strong>microphone capture loop</strong>: open the USB mic as a live stream of audio and feed it, a block at a time, into Vosk. The <code>sounddevice</code> library does the capturing; Vosk does the recognising.</p>
+
+<p>Audio arrives in <em>blocks</em> &mdash; small chunks of samples. <code>sounddevice</code> hands each block to a little function (a <strong>callback</strong>) the instant it is ready, and the cleanest way to pass those blocks to the main loop is a <strong>queue</strong>: the callback drops each block on, the loop takes them off one by one. This is the standard, official Vosk pattern.</p>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>callback</strong> is a function you hand to a library and say "call this for me whenever something happens" &mdash; here, whenever a new block of audio is ready. A <strong>queue</strong> is a tidy waiting line: the callback adds blocks at one end, the main loop takes them from the other, so the two never trip over each other.</div>
+
+<p>Let us first prove the recogniser works on its own. Save this as <code>listen.py</code> in your project folder (the same folder that holds the <code>vosk-model-small-en-us-0.22</code> folder). It listens to the mic and prints every word it hears &mdash; no robot yet.</p>
+
+<pre class="code"><code># listen.py  --  print whatever the microphone hears, fully offline
+import queue
+import json
+import sounddevice as sd
+from vosk import Model, KaldiRecognizer
+
+SAMPLE_RATE = 16000
+MODEL_PATH = "vosk-model-small-en-us-0.22"
+
+# A thread-safe queue the audio callback fills and the main loop drains.
+audio_q = queue.Queue()
+
+
+def callback(indata, frames, time, status):
+    """Called by sounddevice for every block of audio from the mic."""
+    if status:
+        print(status)                 # report dropped audio, but keep going
+    audio_q.put(bytes(indata))        # hand the raw block to the main loop
+
+
+model = Model(MODEL_PATH)
+recogniser = KaldiRecognizer(model, SAMPLE_RATE)
+
+print("Listening - say something. Press Ctrl+C to stop.")
+with sd.RawInputStream(samplerate=SAMPLE_RATE, blocksize=8000,
+                       dtype="int16", channels=1, callback=callback):
+    while True:
+        data = audio_q.get()
+        if recogniser.AcceptWaveform(data):
+            result = json.loads(recogniser.Result())
+            text = result.get("text", "")
+            if text:
+                print("Heard:", text)
+        else:
+            partial = json.loads(recogniser.PartialResult())
+            if partial.get("partial"):
+                print("  ...", partial["partial"], end="\r")</code></pre>
+<div class="explain">
+  <p><strong>Lines 2&ndash;5 &mdash; imports:</strong> <code>queue</code> for the waiting line between the callback and the loop; <code>json</code> because Vosk returns its results as JSON text; <code>sounddevice</code> (shortened to <code>sd</code>) to read the mic; and from Vosk the <code>Model</code> (the language data) and <code>KaldiRecognizer</code> (the engine that turns audio into text).</p>
+  <p><strong>Line 7 &mdash; <code>SAMPLE_RATE = 16000</code>:</strong> The 16&nbsp;kHz rate the small model expects. The microphone, the recogniser and this number must all agree; a mismatch produces nonsense.</p>
+  <p><strong>Line 8 &mdash; <code>MODEL_PATH = "..."</code>:</strong> The folder you unzipped earlier. Because it is a plain folder name, Vosk looks for it beside this program.</p>
+  <p><strong>Line 11 &mdash; <code>audio_q = queue.Queue()</code>:</strong> Creates the queue. It is <em>thread-safe</em>, meaning the callback and the main loop can use it at the same time without clashing.</p>
+  <p><strong>Lines 14&ndash;18 &mdash; <code>def callback(...)</code>:</strong> The function <code>sounddevice</code> runs for every block of audio. <code>indata</code> is the raw block; if <code>status</code> is set, some audio was dropped, so we print a warning but carry on. <code>audio_q.put(bytes(indata))</code> drops the block onto the queue for the main loop to collect.</p>
+  <p><strong>Line 21 &mdash; <code>model = Model(MODEL_PATH)</code>:</strong> Loads the small English model from that folder into memory. This takes a second or two; do it once, before the loop.</p>
+  <p><strong>Line 22 &mdash; <code>recogniser = KaldiRecognizer(model, SAMPLE_RATE)</code>:</strong> Builds the recogniser, telling it both which model to use and the sample rate to expect. This object does the actual audio-to-text work.</p>
+  <p><strong>Lines 25&ndash;26 &mdash; <code>with sd.RawInputStream(...)</code>:</strong> Opens the live microphone stream. <code>samplerate=16000</code> matches the model; <code>blocksize=8000</code> is half a second per block; <code>dtype="int16"</code> is the 16-bit format Vosk wants; <code>channels=1</code> is mono; <code>callback=callback</code> wires in our function. The <code>with</code> block keeps the stream open while we loop and closes it cleanly when we stop.</p>
+  <p><strong>Line 28 &mdash; <code>data = audio_q.get()</code>:</strong> Take the next block of audio off the queue. If none is ready yet, <code>get()</code> waits, so the loop never spins uselessly.</p>
+  <p><strong>Lines 29&ndash;34 &mdash; <code>if recogniser.AcceptWaveform(data)</code>:</strong> Feed the block to Vosk. <code>AcceptWaveform</code> returns <code>True</code> when the recogniser decides a phrase is <em>finished</em> (you paused). Then <code>Result()</code> gives the final text as JSON; we parse it with <code>json.loads</code> and read the <code>"text"</code> field. If there is text, we print it.</p>
+  <p><strong>Lines 35&ndash;38 &mdash; the partial:</strong> While you are still speaking, <code>AcceptWaveform</code> returns <code>False</code>; <code>PartialResult()</code> gives the best guess <em>so far</em>. Printing it with <code>end="\r"</code> overwrites the same line, so you watch the words form as you talk. The partial is a nice live preview; the final result is what we act on.</p>
+</div>
+
+<p>Activate your venv if it is not already (<code>source ~/voice/bin/activate</code>), then run <code>python3 listen.py</code> and speak. You should see your words appear. This little program is the whole front-end &mdash; everything else is deciding what to <em>do</em> with the text.</p>
+
+<div class="tip"><strong>Tip:</strong> If <code>sounddevice</code> grabs the wrong input (you have a webcam mic and a USB mic, say), list the devices with <code>python3 -c "import sounddevice as sd; print(sd.query_devices())"</code>. Each line has a number; pass the one you want as <code>device=N</code> to <code>RawInputStream(...)</code>. By default it uses the system's chosen input, which is usually right.</div>
+
+
+<h2 id="matching-words-to-commands">Matching Words to Commands</h2>
+
+<p>Vosk hands us a <em>sentence</em>, but a robot wants a single <em>command</em>. If you say "robot go forward please", the recognised text is the whole phrase &mdash; we need to fish the word "forward" out of it. That is <strong>keyword matching</strong>, and it is ordinary Python string handling, no AI involved.</p>
+
+<p>The plan: split the recognised text into individual words, then check each word against the set of commands we understand. The first command word we find wins.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 660 300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="660" height="300" fill="#f3f0ff" rx="12"/>
+  <text x="330" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">The command-word map: spoken word &rarr; robot action</text>
+
+  <!-- forward -->
+  <rect x="40" y="60" width="150" height="46" fill="#6d28d9" rx="8"/>
+  <text x="115" y="88" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">"forward"</text>
+  <line x1="190" y1="83" x2="300" y2="83" stroke="#6d28d9" stroke-width="3"/>
+  <polygon points="300,83 289,77 289,89" fill="#6d28d9"/>
+  <rect x="300" y="60" width="320" height="46" fill="#ffffff" rx="8" stroke="#6d28d9" stroke-width="2"/>
+  <text x="316" y="88" font-family="sans-serif" font-size="13" fill="#1f2933" text-anchor="start">robot.forward()  &mdash; roll straight ahead</text>
+
+  <!-- back -->
+  <rect x="40" y="116" width="150" height="46" fill="#0ea5a4" rx="8"/>
+  <text x="115" y="144" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">"back"</text>
+  <line x1="190" y1="139" x2="300" y2="139" stroke="#0ea5a4" stroke-width="3"/>
+  <polygon points="300,139 289,133 289,145" fill="#0ea5a4"/>
+  <rect x="300" y="116" width="320" height="46" fill="#ffffff" rx="8" stroke="#0ea5a4" stroke-width="2"/>
+  <text x="316" y="144" font-family="sans-serif" font-size="13" fill="#1f2933" text-anchor="start">robot.backward()  &mdash; reverse</text>
+
+  <!-- left -->
+  <rect x="40" y="172" width="150" height="46" fill="#f97316" rx="8"/>
+  <text x="115" y="200" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">"left"</text>
+  <line x1="190" y1="195" x2="300" y2="195" stroke="#f97316" stroke-width="3"/>
+  <polygon points="300,195 289,189 289,201" fill="#f97316"/>
+  <rect x="300" y="172" width="320" height="46" fill="#ffffff" rx="8" stroke="#f97316" stroke-width="2"/>
+  <text x="316" y="200" font-family="sans-serif" font-size="13" fill="#1f2933" text-anchor="start">robot.turn_left()  &mdash; spin left</text>
+
+  <!-- right + stop -->
+  <rect x="40" y="228" width="150" height="46" fill="#dc2626" rx="8"/>
+  <text x="115" y="256" font-family="sans-serif" font-size="13" fill="white" text-anchor="middle" font-weight="bold">"right" / "stop"</text>
+  <line x1="190" y1="251" x2="300" y2="251" stroke="#dc2626" stroke-width="3"/>
+  <polygon points="300,251 289,245 289,257" fill="#dc2626"/>
+  <rect x="300" y="228" width="320" height="46" fill="#ffffff" rx="8" stroke="#dc2626" stroke-width="2"/>
+  <text x="316" y="250" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="start">robot.turn_right() / robot.stop()</text>
+  <text x="316" y="266" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="start">spin right &middot; halt at once</text>
+</svg>
+<figcaption>The command-word map. Each recognised keyword on the left maps to one method on the <code>Robot</code> class on the right. In code this map is a single dictionary &mdash; the dispatch table.</figcaption>
+</figure>
+
+<p>We can teach the keyword-matching idea with no robot at all. Here is a tiny function and a quick test of it:</p>
+
+<pre class="code"><code># a small isolated example of keyword matching
+COMMANDS = {"forward", "back", "left", "right", "stop"}
+
+
+def find_command(text):
+    """Return the first known command word in text, or None."""
+    for word in text.split():
+        if word in COMMANDS:
+            return word
+    return None
+
+
+# try it on some sentences Vosk might produce
+for phrase in ["go forward please", "now turn left", "lovely weather", "stop"]:
+    print(repr(phrase), "-&gt;", find_command(phrase))</code></pre>
+<div class="explain">
+  <p><strong>Line 2 &mdash; <code>COMMANDS = {...}</code>:</strong> A <em>set</em> of the words we understand. A set is the right tool because checking "is this word in the set?" is instant, however many words it holds, and it cannot hold accidental duplicates.</p>
+  <p><strong>Line 5 &mdash; <code>def find_command(text):</code>:</strong> A function that takes a recognised sentence and returns the command hidden in it.</p>
+  <p><strong>Line 7 &mdash; <code>for word in text.split():</code>:</strong> <code>split()</code> chops the sentence into a list of words on the spaces. We walk through them one at a time.</p>
+  <p><strong>Lines 8&ndash;9 &mdash; <code>if word in COMMANDS: return word</code>:</strong> The moment we hit a word that is one of our commands, we return it &mdash; so "go forward please" yields <code>"forward"</code>. The leading "go" and trailing "please" are simply ignored.</p>
+  <p><strong>Line 10 &mdash; <code>return None</code>:</strong> If the loop finishes having found no command, return <code>None</code> to mean "nothing I recognise". The caller checks for this before moving the robot.</p>
+  <p><strong>Lines 14&ndash;15 &mdash; the test:</strong> Run a few sample phrases through the function and print each result. "lovely weather" returns <code>None</code>; the others return their command. Testing a function in isolation like this, before wiring it to motors, is how you build confidence one piece at a time.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Vosk gives back lower-case text with no punctuation, which is exactly what makes this simple <code>in</code> test reliable. If you later add commands that are two words ("turn around"), match on the whole phrase with <code>text.find("turn around")</code> instead of word-by-word, or add the phrase to a richer dictionary.</div>
+
+
+<h2 id="constraining-vosk-to-our-words">Constraining Vosk to Our Words</h2>
+
+<p>One elegant trick makes the whole system faster and far more accurate. Instead of letting Vosk try to recognise <em>any</em> English word, we tell it: "you will only ever hear these few words." A recogniser choosing between five words almost never mishears; one choosing between thousands sometimes does.</p>
+
+<p>Vosk supports this through a <strong>grammar</strong> &mdash; a list of the phrases it is allowed to return, passed as a JSON string when you build the recogniser. We give it our command words plus a special <code>"[unk]"</code> token, Vosk's way of saying "anything I do not recognise" &mdash; so words outside the list come back as unknown rather than being forced into a wrong command.</p>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>grammar</strong> here is just a fixed word-list you hand the recogniser so it only listens for those words. The <code>"[unk]"</code> entry is a catch-all for "something else" &mdash; including it stops a stray noise being misheard as a real command.</div>
+
+<p>It is a single change to how we build the recogniser. Compare the open version from <code>listen.py</code> with the constrained version we will use for the robot:</p>
+
+<pre class="code"><code># open: recognises any English word (what listen.py used)
+recogniser = KaldiRecognizer(model, SAMPLE_RATE)
+
+# constrained: recognises ONLY our command words (plus "[unk]")
+grammar = '["forward back left right stop", "[unk]"]'
+recogniser = KaldiRecognizer(model, SAMPLE_RATE, grammar)</code></pre>
+<div class="explain">
+  <p><strong>Line 2 &mdash; the open form:</strong> With just the model and sample rate, Vosk tries to recognise the whole language. Fine for dictation; needless work for five commands.</p>
+  <p><strong>Line 5 &mdash; <code>grammar = '["forward back left right stop", "[unk]"]'</code>:</strong> A JSON string holding a list. The first entry lists the words Vosk may hear (space-separated inside one string); the second, <code>"[unk]"</code>, is the unknown-word catch-all. The single quotes outside make it a Python string; the double quotes inside are the JSON.</p>
+  <p><strong>Line 6 &mdash; <code>KaldiRecognizer(model, SAMPLE_RATE, grammar)</code>:</strong> Passing the grammar as the third argument switches the recogniser into "only these words" mode. From now on it returns one of our commands, or <code>"[unk]"</code> for anything else &mdash; quicker and more reliable than the open recogniser.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> This word-list trick works because we are using the <em>small</em> model, which supports a custom vocabulary at start-up. It is the single biggest reason Vosk feels so snappy for command work: you have turned a general-purpose dictation engine into a purpose-built five-word listener.</div>
+
+
+<h2 id="putting-it-together-the-voice-rover">Putting It Together: The Voice Rover</h2>
+
+<p>Now we join the three pieces &mdash; the capture loop, the constrained recogniser, and keyword matching &mdash; and point the result at the <code>Robot</code> class from Lesson 44. The link between a command word and a robot action is a <strong>dispatch dictionary</strong>: the word is the key, and the function to run is the value.</p>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>dispatch dictionary</strong> maps choices to actions. Instead of a long <code>if word == "forward": ... elif word == "left": ...</code> ladder, you keep a dictionary <code>{"forward": go_forward, "left": go_left, ...}</code> and just look the word up to find the function to call. Adding a new command becomes one new line, not another <code>elif</code>.</div>
+
+<p>Make sure <code>robot.py</code> from Lesson 44 is in the same folder &mdash; we import its <code>Robot</code> class unchanged. Its methods are <code>forward()</code>, <code>backward()</code>, <code>turn_left()</code>, <code>turn_right()</code> and <code>stop()</code>, exactly the actions our commands need. Save the program below as <code>voice_rover.py</code>.</p>
+
+<div class="warn"><strong>Careful &mdash; wheels off the ground for the first test.</strong> As in Lesson 44, prop the chassis on a mug or box so the wheels spin freely in the air before you give any spoken command. A mis-heard word should never be able to drive the rover off a table. Only put it on the floor once the voice commands behave as you expect.</div>
+
+<pre class="code"><code># voice_rover.py  --  drive the Lesson 44 rover by voice, fully offline
+import queue
+import json
+import sounddevice as sd
+from vosk import Model, KaldiRecognizer
+from robot import Robot          # the drive base from Lesson 44
+
+SAMPLE_RATE = 16000
+MODEL_PATH = "vosk-model-small-en-us-0.22"
+
+# Build the rover on the same pins as Lesson 44 (wheels off the ground!).
+robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
+
+# The dispatch dictionary: each command word maps to a robot action.
+ACTIONS = {
+    "forward": robot.forward,
+    "back": robot.backward,
+    "left": robot.turn_left,
+    "right": robot.turn_right,
+    "stop": robot.stop,
+}
+
+audio_q = queue.Queue()
+
+
+def callback(indata, frames, time, status):
+    if status:
+        print(status)
+    audio_q.put(bytes(indata))
+
+
+def find_command(text):
+    """Return the first word in text that is one of our commands."""
+    for word in text.split():
+        if word in ACTIONS:
+            return word
+    return None
+
+
+# Constrain Vosk to only our command words, plus the unknown catch-all.
+grammar = '["forward back left right stop", "[unk]"]'
+model = Model(MODEL_PATH)
+recogniser = KaldiRecognizer(model, SAMPLE_RATE, grammar)
+
+print("Voice rover ready. Say: forward / back / left / right / stop.")
+print("Press Ctrl+C to quit.")
+try:
+    with sd.RawInputStream(samplerate=SAMPLE_RATE, blocksize=8000,
+                           dtype="int16", channels=1, callback=callback):
+        while True:
+            data = audio_q.get()
+            if recogniser.AcceptWaveform(data):
+                text = json.loads(recogniser.Result()).get("text", "")
+                command = find_command(text)
+                if command:
+                    print("Command:", command)
+                    ACTIONS[command]()      # look up and run the action
+except KeyboardInterrupt:
+    robot.stop()
+    print("\nStopped.")</code></pre>
+<div class="explain">
+  <p><strong>Lines 2&ndash;6 &mdash; imports:</strong> the same audio and Vosk imports as before, plus <code>from robot import Robot</code> &mdash; the Lesson 44 module, imported unchanged. The whole rover front-end is assembled from imports.</p>
+  <p><strong>Line 12 &mdash; <code>robot = Robot(left_pins=(20, 21), right_pins=(19, 26))</code>:</strong> Builds the drive base on the exact pins from Lesson 44's recap table. Naming the arguments keeps the two sides from getting muddled.</p>
+  <p><strong>Lines 15&ndash;21 &mdash; <code>ACTIONS = {...}</code>:</strong> The dispatch dictionary. Each key is a command word; each value is the <em>method itself</em> &mdash; note <code>robot.forward</code> with no brackets, so we store the function to call later rather than calling it now.</p>
+  <p><strong>Lines 26&ndash;29 &mdash; <code>callback</code>:</strong> Identical to <code>listen.py</code> &mdash; every audio block is dropped onto the queue for the main loop.</p>
+  <p><strong>Lines 32&ndash;37 &mdash; <code>find_command</code>:</strong> The keyword matcher from earlier, now checking against the <code>ACTIONS</code> keys directly &mdash; so the set of commands and the set of actions can never drift apart.</p>
+  <p><strong>Line 41 &mdash; <code>grammar = '...'</code>:</strong> The fixed word-list. Vosk will only return our five commands or <code>"[unk]"</code>, which is what makes recognition quick and reliable.</p>
+  <p><strong>Lines 42&ndash;43 &mdash; build the recogniser:</strong> Load the model and create the <code>KaldiRecognizer</code> with the grammar as its third argument &mdash; the constrained mode.</p>
+  <p><strong>Lines 48&ndash;49 &mdash; open the stream:</strong> the same 16&nbsp;kHz mono <code>RawInputStream</code> as before, wrapped in <code>try</code> so Ctrl+C can stop us cleanly.</p>
+  <p><strong>Line 51 &mdash; <code>data = audio_q.get()</code>:</strong> Take the next audio block off the queue, waiting if none is ready.</p>
+  <p><strong>Lines 52&ndash;57 &mdash; recognise and act:</strong> When <code>AcceptWaveform</code> says a phrase is finished, read its <code>"text"</code>, pull out the command with <code>find_command</code>, and if there is one, <strong><code>ACTIONS[command]()</code></strong> &mdash; look the word up in the dictionary and call the function it points to. That one line replaces a whole ladder of <code>if</code>/<code>elif</code>.</p>
+  <p><strong>Lines 58&ndash;60 &mdash; clean stop:</strong> Ctrl+C stops the motors so the rover never keeps rolling after the program ends. Always end a robot program with a stop.</p>
+</div>
+
+<p>With the wheels propped up, activate the venv and run <code>python3 voice_rover.py</code>. Say "forward" &mdash; the wheels spin forward; say "stop" &mdash; they halt. You are talking to your robot, and not one byte of your voice has left the Pi.</p>
+
+<div class="note"><strong>Note &mdash; commands latch, they do not time out.</strong> As written, "forward" keeps the wheels rolling until you say another command (such as "stop"). That is deliberate and simple. If you would rather each command run for a fixed burst &mdash; "forward" meaning "go forward for one second" &mdash; add a <code>sleep</code> and a <code>robot.stop()</code> after the action. We leave that as one of the "make it your own" ideas below.</div>
+
+
+<h2 id="commands-and-actions-reference">Commands and Actions Reference</h2>
+
+<p>Here is the full command set in one place. Every action is a method on the <code>Robot</code> class you built in Lesson 44, so nothing new had to be written to make the rover move.</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Say this word</th><th>Robot method called</th><th>What the rover does</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>"forward"</td><td><code>robot.forward()</code></td><td>Both wheels roll forward &mdash; drives straight ahead</td></tr>
+    <tr><td>"back"</td><td><code>robot.backward()</code></td><td>Both wheels reverse &mdash; drives straight back</td></tr>
+    <tr><td>"left"</td><td><code>robot.turn_left()</code></td><td>Left wheel back, right wheel forward &mdash; spins left on the spot</td></tr>
+    <tr><td>"right"</td><td><code>robot.turn_right()</code></td><td>Left wheel forward, right wheel back &mdash; spins right on the spot</td></tr>
+    <tr><td>"stop"</td><td><code>robot.stop()</code></td><td>Both motors stop &mdash; the rover halts at once</td></tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> Spoken commands are most reliable when the word is short, distinct and said clearly. "Back" is sometimes misheard; if so, switch it to "reverse" &mdash; just change the word in both the grammar string and the <code>ACTIONS</code> dictionary so the two stay in step. The command word and the recogniser's word-list must always match.</div>
+
+
+<h2 id="optional-a-wake-word-gate">Optional: A Wake Word Gate</h2>
+
+<p>One snag with an always-listening robot is that ordinary conversation can trip it: say "let's go forward to the shop" and the rover rolls. Smart speakers solve this with a <strong>wake word</strong> &mdash; they ignore everything until they hear a trigger like "hey robot", and only <em>then</em> listen for a command. You can add the same gate, still fully offline, using Picovoice's <strong>Porcupine</strong> engine.</p>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>wake word</strong> is a special phrase that "wakes" the robot up &mdash; only after it hears the wake word does it pay attention to the next command. It stops the rover reacting to everyday chatter.</div>
+
+<p>Porcupine is an on-device wake-word detector that runs on the Raspberry Pi. You install it with <code>pip install pvporcupine</code> inside the same venv, sign up for a free <strong>AccessKey</strong> from the Picovoice Console, and can even design a custom phrase such as "hey robot" there. The shape of the program becomes: Porcupine listens for the wake word; once it fires, you run the Vosk command loop above for a few seconds to catch the command, then go back to waiting. We leave the full code as an optional extra &mdash; a fine next project once the voice rover works.</p>
+
+<div class="note"><strong>Note:</strong> Porcupine needs that free AccessKey to run, so unlike Vosk it touches Picovoice's servers once to validate your key. The wake-word detection itself runs on the Pi. If keeping everything strictly offline matters to you, the always-listening Vosk loop with the constrained grammar is already a perfectly good robot &mdash; the wake word is a convenience, not a requirement.</div>
+
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<h3>No microphone detected</h3>
+<ul>
+  <li><strong>Run <code>arecord -l</code> first.</strong> If it says <code>no soundcards found</code>, the Pi cannot see any mic. Re-seat the USB plug, try a different USB port, and run the command again. Remember the Pi 5 has no built-in mic &mdash; without a USB one, there is simply nothing to detect.</li>
+  <li><strong>Python error "no input device".</strong> If <code>sounddevice</code> says there is no default input, no microphone is selected. Plug in the USB mic, check it appears in the taskbar audio menu, or list devices with <code>python3 -c "import sounddevice as sd; print(sd.query_devices())"</code> and pass the right one as <code>device=N</code>.</li>
+  <li><strong>It records but plays back silent.</strong> The input level may be at zero. Open the audio settings (right-click the taskbar volume icon) and raise the capture level, then redo the <code>arecord</code> test.</li>
+</ul>
+
+<h3>Poor accuracy &mdash; commands missed or mistaken</h3>
+<ul>
+  <li><strong>Use the constrained grammar.</strong> If you are still on the open recogniser from <code>listen.py</code>, switch to the grammar version &mdash; restricting Vosk to the five words is the single biggest accuracy win.</li>
+  <li><strong>Keep the mic close and the room quiet.</strong> A small USB mic across the room with a fan running will struggle. Speak from 20&ndash;30&nbsp;cm away, clearly, and reduce background noise.</li>
+  <li><strong>Check the sample rate matches.</strong> The mic, the <code>RawInputStream</code> and the <code>KaldiRecognizer</code> must all be 16,000&nbsp;Hz. A mismatch makes recognition fall apart &mdash; you will see odd or empty text.</li>
+  <li><strong>Pick clearer command words.</strong> Words that sound alike get confused. "Stop" and "forward" are distinct; if "back" is unreliable, use "reverse". Update both the grammar and the <code>ACTIONS</code> dictionary together.</li>
+  <li><strong>Confirm you downloaded the small model.</strong> The path in <code>MODEL_PATH</code> must point at the unzipped <code>vosk-model-small-en-us-0.22</code> folder. A wrong path raises an error when <code>Model(...)</code> loads.</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> If a mis-heard command ever makes the rover lurch unexpectedly, say "stop" &mdash; and if in doubt, pull the motor battery. Keep the wheels off the ground until you trust the recognition in your room, with your microphone, with your voice. Voice control is forgiving when the wheels are in the air and unforgiving when they are on a table edge.</div>
+
+
+<h2 id="make-it-your-own">Make It Your Own</h2>
+
+<p>The voice rover is a foundation. Here are four ways to build on it, from easy to ambitious.</p>
+
+<ul>
+  <li><strong>Timed bursts instead of latching.</strong> Make "forward" mean "drive forward for one second, then stop". After <code>ACTIONS[command]()</code>, add <code>from time import sleep</code> at the top and, for the movement commands, <code>sleep(1)</code> then <code>robot.stop()</code>. The rover now nudges rather than runs, which is safer indoors.</li>
+  <li><strong>More commands.</strong> Add words like "spin" (a full turn), "slow" and "fast" (change <code>robot.speed</code>), or "left a bit" (a short turn). For each new word: add it to the grammar string, add it to the <code>ACTIONS</code> dictionary with a small function, and you are done &mdash; the dispatch design means no <code>if</code>-ladder to edit.</li>
+  <li><strong>A wake word.</strong> Add the Porcupine gate from the optional section so the rover only listens after "hey robot". This stops everyday conversation triggering it &mdash; the polish that turns a demo into something you would actually live with.</li>
+  <li><strong>Voice on top of the state machine.</strong> Recall Lesson 44's three modes (manual, follow, avoid). Add the words "follow" and "wander" to flip <code>STATE["mode"]</code> from your voice, then "stop" to grab back control. Voice becomes just another input to the same brain.</li>
+</ul>
+
+<div class="note"><strong>Where this fits.</strong> You have given the Junkbox rover a fourth way to be controlled &mdash; alongside the web remote, the colour follower and the obstacle-dodger of Lesson 44. The deeper lesson is the pattern: a hard capability (speech recognition) hidden behind a small, readable front-end. That four-stage shape &mdash; sense, interpret, decide, act &mdash; is the skeleton of almost every interactive machine you will build.</div>

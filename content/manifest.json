@@ -98,7 +98,10 @@
     "ch41",
     "ch42",
     "ch43",
-    "ch44"
+    "ch44",
+    "ch45",
+    "ch46",
+    "ch47"
    ]
   },
   {
@@ -1334,7 +1337,7 @@
   },
   "apxA": {
    "id": "apxA",
-   "n": 45,
+   "n": 48,
    "title": "Command Quick-Reference",
    "kind": "appendix",
    "part": "reference",
@@ -1398,12 +1401,12 @@
   },
   "glos": {
    "id": "glos",
-   "n": 46,
+   "n": 49,
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
-   "words": 7591,
-   "read_min": 38,
+   "words": 7770,
+   "read_min": 39,
    "sections": [
     {
      "id": "how-to-use-this-glossary",
@@ -2709,6 +2712,194 @@
     }
    ],
    "widgets": []
+  },
+  "ch45": {
+   "id": "ch45",
+   "n": 45,
+   "title": "EV3 Edition: Bigger LEGO Motors on the Pi",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 7972,
+   "read_min": 40,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "nxt-vs-ev3-same-and-different",
+     "title": "NXT vs EV3: Same and Different"
+    },
+    {
+     "id": "the-ev3-connector-decoded",
+     "title": "The EV3 Connector, Decoded"
+    },
+    {
+     "id": "inside-the-ev3-motor",
+     "title": "Inside the EV3 Motor"
+    },
+    {
+     "id": "driving-ev3-motors-the-h-bridge",
+     "title": "Driving EV3 Motors Safely — the H-bridge"
+    },
+    {
+     "id": "a-robot-class-you-can-drive",
+     "title": "A Robot Class You Can Drive"
+    },
+    {
+     "id": "reading-the-ev3-encoder",
+     "title": "Reading the EV3 Encoder"
+    },
+    {
+     "id": "calibrate-and-drive-a-set-distance",
+     "title": "Calibrate and Drive a Set Distance"
+    },
+    {
+     "id": "the-ev3-touch-sensor",
+     "title": "The EV3 Touch Sensor — the One Easy Sensor"
+    },
+    {
+     "id": "the-smart-sensors-be-honest",
+     "title": "The Smart Sensors — Be Honest"
+    },
+    {
+     "id": "from-the-e-waste-pile",
+     "title": "From the E-Waste Pile"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "safety-checklist",
+     "title": "Safety Checklist"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own / Where to Go Next"
+    }
+   ],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch46": {
+   "id": "ch46",
+   "n": 46,
+   "title": "Build a Line-Following Robot",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 6133,
+   "read_min": 31,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "how-a-reflectance-sensor-sees-a-line",
+     "title": "How a Reflectance Sensor Sees a Line"
+    },
+    {
+     "id": "powering-the-sensor-safely",
+     "title": "Powering the Sensor Safely"
+    },
+    {
+     "id": "meet-the-linesensor-object",
+     "title": "Meet the LineSensor Object"
+    },
+    {
+     "id": "the-sensor-array-under-the-chassis",
+     "title": "The Sensor Array Under the Chassis"
+    },
+    {
+     "id": "a-first-line-follower",
+     "title": "A First Line Follower"
+    },
+    {
+     "id": "introducing-pid-control",
+     "title": "Introducing PID Control"
+    },
+    {
+     "id": "the-camera-alternative",
+     "title": "The Camera Alternative"
+    },
+    {
+     "id": "calibration-and-troubleshooting",
+     "title": "Calibration and Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch47": {
+   "id": "ch47",
+   "n": 47,
+   "title": "Talk to Your Robot: Offline Voice Control",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 6322,
+   "read_min": 32,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "why-offline-speech-recognition",
+     "title": "Why Offline Speech Recognition?"
+    },
+    {
+     "id": "the-pi-5-has-no-microphone",
+     "title": "The Pi 5 Has No Microphone"
+    },
+    {
+     "id": "installing-vosk-in-a-venv",
+     "title": "Installing Vosk in a Virtual Environment"
+    },
+    {
+     "id": "the-mic-to-motors-pipeline",
+     "title": "The Mic-to-Motors Pipeline"
+    },
+    {
+     "id": "capturing-the-microphone",
+     "title": "Capturing the Microphone with sounddevice"
+    },
+    {
+     "id": "matching-words-to-commands",
+     "title": "Matching Words to Commands"
+    },
+    {
+     "id": "constraining-vosk-to-our-words",
+     "title": "Constraining Vosk to Our Words"
+    },
+    {
+     "id": "putting-it-together-the-voice-rover",
+     "title": "Putting It Together: The Voice Rover"
+    },
+    {
+     "id": "commands-and-actions-reference",
+     "title": "Commands and Actions Reference"
+    },
+    {
+     "id": "optional-a-wake-word-gate",
+     "title": "Optional: A Wake Word Gate"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": []
   }
  },
  "order": [
@@ -2756,6 +2947,9 @@
   "ch42",
   "ch43",
   "ch44",
+  "ch45",
+  "ch46",
+  "ch47",
   "apxA",
   "glos"
  ]

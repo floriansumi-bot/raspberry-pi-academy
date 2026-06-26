@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch46",
+  "title": "Build a Line-Following Robot",
+  "questions": [
+    {
+      "q": "Your line follower reads a TCRT5000 with gpiozero's LineSensor. When the sensor sits over the black line, what does sensor.value read, and what does sensor.line_detected return?",
+      "choices": [
+        "value near 1 over the line and near 0 over pale floor; line_detected is False over the line",
+        "value near 0 over the line (dark) and near 1 over pale floor (light); line_detected is True over the line",
+        "value is always exactly 0 or 1, and line_detected only works after calling calibrate()",
+        "value is the raw voltage in volts, and line_detected returns the GPIO pin number"
+      ],
+      "answer": 1,
+      "explain": "A reflectance sensor reads the dark line as ~0 (little IR bounces back) and pale floor as ~1 (lots reflects). sensor.value is a smoothed 0-to-1 number, and sensor.line_detected is True when the sensor is over the line."
+    },
+    {
+      "q": "Why must you power a TCRT5000 module from the Pi's 3.3 V pin rather than its 5 V pin?",
+      "choices": [
+        "The module simply will not switch on at 5 V",
+        "5 V would make the IR LED too bright to read the floor",
+        "The LM393's digital DO output swings up to the supply voltage, so 3.3 V keeps DO GPIO-safe; 5 V on DO could destroy a GPIO input",
+        "3.3 V draws less current, which is the only reason it matters"
+      ],
+      "answer": 2,
+      "explain": "The DO line tops out near whatever VCC you feed the module. Power it at 3.3 V and DO maxes at a GPIO-safe 3.3 V. At 5 V, DO can reach ~5 V, and feeding 5 V into a Pi 5 GPIO input permanently damages the pin (there is no protection fuse)."
+    },
+    {
+      "q": "The module's analogue AO pin gives a smoothly varying voltage. Why can't you wire AO straight to a Pi GPIO pin like you do with DO?",
+      "choices": [
+        "The Raspberry Pi has no built-in analogue-to-digital converter (ADC), so its GPIO pins can only read HIGH or LOW, not a voltage in between",
+        "AO outputs 12 V, which is far too high for any input",
+        "AO is an output-only pin that the Pi cannot connect to at all",
+        "gpiozero's LineSensor refuses to read any analogue signal for safety reasons"
+      ],
+      "answer": 0,
+      "explain": "Pi GPIO pins are digital: they only distinguish HIGH from LOW. AO is an analogue signal, so reading it needs an external ADC chip such as an MCP3008 over SPI. The digital DO pin, already thresholded by the LM393, plugs straight into GPIO."
+    },
+    {
+      "q": "In the PID line follower, the steering correction is computed as KP * error + KD * derivative. What is the proportional (P) part doing?",
+      "choices": [
+        "It steers by a fixed hard-left or hard-right amount whenever any sensor sees the line",
+        "It makes the steering correction proportional to the error: a small offset from the line gives a small turn, a large offset gives a large turn",
+        "It adds up the error over time to cancel a constant drift",
+        "It measures how fast the error is changing to damp the wobble"
+      ],
+      "answer": 1,
+      "explain": "The P (proportional) term multiplies the line-position error by a gain KP, so the correction grows with how far off the line you are. That replaces the lurching all-or-nothing turns of a switch follower with smooth, proportional steering. The D term separately damps the wobble."
+    },
+    {
+      "q": "How does the line follower drive its motors, compared with the Junkbox rover from Lesson 44?",
+      "choices": [
+        "It connects the motors directly to GPIO pins now that sensors handle the steering",
+        "It reuses the same H-bridge driver: motors run from their own ~9 V battery through the driver, with a common ground, and GPIO supplies only 3.3 V logic",
+        "It powers the motors from the Pi's 5 V pin to save a battery",
+        "It replaces the H-bridge with the LineSensor modules"
+      ],
+      "answer": 1,
+      "explain": "Nothing about the motor wiring changes. The two motors still run from a separate ~9 V supply through the H-bridge, the driver's logic inputs take 3.3 V from GPIO, and everything shares a common ground. A GPIO pin can never source a motor's current, which is exactly why the H-bridge is reused."
+    }
+  ]
+}

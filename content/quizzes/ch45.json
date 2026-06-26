@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch45",
+  "title": "EV3 Edition: Bigger LEGO Motors on the Pi",
+  "questions": [
+    {
+      "q": "What is the key practical advantage of EV3 motor encoders over NXT ones when reading them on a Raspberry Pi 5?",
+      "choices": [
+        "EV3 encoders give far more counts per revolution, so they are more precise",
+        "EV3 encoder outputs are 3.3 V-compatible, so they read directly on a Pi GPIO without a voltage divider",
+        "EV3 encoders need no power supply at all, simplifying the wiring",
+        "EV3 encoders output their position as a digital I2C value the Pi can read straight off"
+      ],
+      "answer": 1,
+      "explain": "The NXT motor encoder lines can swing near 5 V and so need a voltage divider on each channel. The EV3 motors were designed with 3.3 V-compatible tacho outputs, so you can wire pins 5 and 6 almost straight to a Pi 5 GPIO (a small series resistor as protection is still wise). That is the EV3's biggest practical win over the NXT on a Pi."
+    },
+    {
+      "q": "How should an EV3 motor be driven from a Raspberry Pi 5?",
+      "choices": [
+        "Straight from a GPIO pin, since EV3 motors are low-power",
+        "From the Pi's 5 V pin, which can supply enough current for the motor",
+        "Through an H-bridge (e.g. DRV8833 or TB6612) powered by a separate ~9 V battery, with a common ground",
+        "Through a single current-limiting resistor between the GPIO pin and the motor"
+      ],
+      "answer": 2,
+      "explain": "An EV3 motor is a power-hungry DC motor that also produces inductive kickback. It must be driven through an H-bridge such as a DRV8833 or TB6612, fed by its own separate ~9 V battery, with the Pi GND, driver GND and battery negative all joined at one common ground. Never drive a motor straight from a GPIO pin."
+    },
+    {
+      "q": "How does the EV3 Touch sensor's wiring differ from the NXT Touch sensor's?",
+      "choices": [
+        "The EV3 switch is across pin 6 and pin 4 (+5 V), with a 910 ohm ID resistor on pin 1; the NXT switch is across pin 1 and pin 2",
+        "They are wired identically, so an EV3 touch sensor is a drop-in replacement for an NXT one",
+        "The EV3 touch sensor talks over I2C, while the NXT one is a plain switch",
+        "The EV3 switch is across pin 1 and pin 2, while the NXT uses pin 5 and pin 6"
+      ],
+      "answer": 0,
+      "explain": "The NXT touch sensor simply closes pin 1 to pin 2. The EV3 touch sensor instead puts its switch across pin 6 and pin 4 (the +5 V line) through a 2.2 kohm resistor, with a 910 ohm identification resistor on pin 1 to ground, and is read as an analogue voltage on pin 6. They are not pin-compatible, so you cannot assume the NXT wiring."
+    },
+    {
+      "q": "Why are the EV3 Colour, Ultrasonic, Gyro and Infrared sensors NOT a good bare-GPIO project for a beginner?",
+      "choices": [
+        "They require a constant 12 V supply that the Pi cannot provide",
+        "They are purely mechanical and produce no electrical signal at all",
+        "They use the EV3 UART auto-ID protocol (2400-baud auto-bauding, checksums, tight timing) that really needs a kernel driver, so you should use a board like BrickPi3 or ev3dev",
+        "They only work with the original EV3 brick's firmware and can never be reused on any other computer"
+      ],
+      "answer": 2,
+      "explain": "These are EV3 UART auto-ID sensors. They run a fast serial handshake starting at 2400 baud, auto-negotiate up, send TYPE/MODES/INFO messages, ACK, and check an XOR checksum every frame with tight timing. The reference implementation is a kernel line-discipline driver in ev3dev. Bit-banging that from raw GPIO is not a beginner job, so route them through a BrickPi3, ev3dev or PiStorms instead."
+    },
+    {
+      "q": "Which gpiozero object and pins do you use to read an EV3 motor's tacho (encoder) channels?",
+      "choices": [
+        "Button, connected to pins 1 and 2",
+        "Motor, connected to pins 3 and 4",
+        "DistanceSensor, connected to pins 4 and 6",
+        "RotaryEncoder, with its a and b pins on the two tacho channels (pins 5 and 6)"
+      ],
+      "answer": 3,
+      "explain": "The two tacho channels (pins 5 and 6) carry the quadrature A and B signals. You read them with gpiozero's RotaryEncoder(a, b), whose .steps attribute gives a live count and whose when_rotated event lets a callback fire each time the wheel moves. On the EV3 these lines go almost straight to the GPIO pins (through a small series resistor) because they are 3.3 V-compatible."
+    }
+  ]
+}
