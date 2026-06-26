@@ -1,61 +1,36 @@
 {
   "chapterId": "ch32",
-  "title": "Reanimate a LEGO Mindstorms NXT Robot with AI",
+  "title": "Build It, Ship It",
   "questions": [
     {
-      "q": "Why must an NXT motor be driven through an H-bridge rather than directly from a GPIO pin?",
-      "choices": [
-        "Because GPIO pins only output 5 V, which is too much for the motor",
-        "Because the motor can draw up to about 1 A and produces an inductive kickback spike, both of which would destroy a 3.3 V GPIO pin",
-        "Because the H-bridge converts the Pi's digital signal into the analog pulses a hobby servo needs",
-        "Because gpiozero refuses to talk to a motor unless an H-bridge is present"
-      ],
+      "q": "While writing your own tiny shell, you try to implement cd as an external command (fork a child, have it run the directory change, then exit). The shell never seems to change directory. Why?",
+      "choices": ["The kernel blocks child processes from calling chdir() for security reasons.", "The child changes its own working directory and then exits; the parent shell's directory never moved, which is why cd must be a builtin that runs in the shell process itself.", "fork() failed silently because the shell ran out of process slots.", "cd needs the setuid bit to change directories, and forked children drop it."],
       "answer": 1,
-      "explain": "A GPIO pin can safely supply only about 16 mA, but an NXT motor draws tens of milliamps free-running and up to roughly 1 A when stalled. On top of that, switching the motor off makes its coil produce a sharp reverse-voltage spike (inductive kickback). The H-bridge handles the heavy current and its protection diodes absorb the spike, keeping the delicate GPIO pin safe."
+      "explain": "A forked child gets its own copy of the working directory. It chdir()s and exits, taking that change to the grave; the parent shell is untouched. The only fix is to handle cd in the shell process directly — which is exactly why cd, and a few others, must be builtins rather than forked external commands."
     },
     {
-      "q": "When wiring the DRV8833 motor driver, what is the correct power and ground arrangement?",
-      "choices": [
-        "Power the motors from the Pi's 5 V pin and keep every ground separate",
-        "Use a separate ~9 V battery for the motors AND keep its negative completely isolated from the Pi",
-        "Use a separate ~9 V battery for the motors, but join its negative to the driver GND and the Pi GND as one common ground",
-        "Power both the Pi and the motors from the same 9 V battery"
-      ],
+      "q": "You run your application as PID 1 inside a container with no init in front of it. Over time the process table fills with defunct (zombie) entries. What went wrong?",
+      "choices": ["PID 1 ran out of memory and started leaking processes.", "The container's filesystem is read-only, so exited processes can't be cleaned up.", "Nothing is calling wait() to reap children, and the kernel gives PID 1 no automatic reaping — so finished children stay as zombies, which is why containers use a tiny init like tini.", "Zombies are normal and harmless; they clear themselves after a timeout."],
       "answer": 2,
-      "explain": "Motors get their own ~9 V battery (e.g. 6×AA) wired to the driver's VM input, because the Pi cannot supply that much current and motor noise can crash it. But the battery's negative, the driver GND and the Pi GND must all meet at one common ground, so the Pi's 3.3 V logic signals share a 0 V reference with the driver. Without a common ground, nothing works."
+      "explain": "When a process exits it stays a zombie until its parent collects its status with wait(). Normally init reaps orphans automatically — but the kernel does not give that behaviour to PID 1 for free. If your app is PID 1 and never reaps, zombies pile up. A minimal init like tini or dumb-init sits at PID 1 precisely to reap them (and forward signals)."
     },
     {
-      "q": "The NXT motor contains a 'quadrature encoder'. What does that mean?",
-      "choices": [
-        "A sensor with two channels offset by a quarter-step, so you can tell both how far AND which way the shaft turned",
-        "An encoder that only works when the motor spins at a quarter of full speed",
-        "A device that encrypts the motor's position data into four channels",
-        "A four-wire connector that carries the motor's power"
-      ],
-      "answer": 0,
-      "explain": "A quadrature encoder watches a striped disc spin past two light sensors that are offset by a quarter of a step. By comparing which channel changes first, gpiozero's RotaryEncoder can work out both the distance turned and the direction. The NXT encoder gives roughly one count per degree (about 360 counts per revolution)."
-    },
-    {
-      "q": "The NXT encoder's tacho channels (and many NXT sensor lines) can sit near 5 V. What must you do before connecting them to a Pi GPIO input?",
-      "choices": [
-        "Nothing — the Pi 5's GPIO pins are 5 V-tolerant",
-        "Put a single 330 Ω resistor in series to limit the current",
-        "Drop the voltage to a safe ~3.3 V or below using a voltage divider (level-shifting) before the GPIO pin",
-        "Connect them to a 5 V power pin instead of a GPIO pin"
-      ],
-      "answer": 2,
-      "explain": "Pi 5 GPIO pins are 3.3 V logic and are NOT 5 V-tolerant; feeding them more than 3.3 V can permanently damage them. The encoder and sensor lines that exceed 3.3 V must pass through a voltage divider (for example 330 Ω then 470 Ω, giving about 2.94 V) so the GPIO only ever sees a safe level. A plain series resistor does not set the voltage; a divider does."
-    },
-    {
-      "q": "In the camera-vision rover, the program follows a 'see → think → act' loop. Which sequence correctly describes it?",
-      "choices": [
-        "Spin the motors, then read the encoder, then capture a frame",
-        "Capture a camera frame, run an object-detection model to find the target's position, then steer the motors to centre and approach it",
-        "Ask the user where the target is, then drive blindly towards it",
-        "Detect a bump, reverse, then take a photograph"
-      ],
+      "q": "In capstone 2 you put nginx in front of your app and bind the app to localhost. What is nginx doing as a reverse proxy?",
+      "choices": ["It compiles your app into a faster binary before serving it.", "It receives public requests and forwards them to your app on localhost, giving you a single front door for TLS, logging, and routing.", "It replaces your app entirely and serves static files only.", "It opens your app directly to the internet so clients connect to it without an intermediary."],
       "answer": 1,
-      "explain": "The loop is: SEE — grab a frame with Picamera2; THINK — run an on-device object-detection model that returns boxes around recognised objects; ACT — use the target box's horizontal position to decide whether to turn left, turn right, or drive forward, then repeat. On a Pi 5 with TensorFlow Lite this runs at a few frames per second; the IMX500 AI Camera, which detects on-sensor, is much faster."
+      "explain": "A reverse proxy sits in front of your application: clients talk to nginx, and nginx forwards the requests to the app listening on localhost. That gives you one place to terminate TLS, write access logs, and route traffic — and it keeps the app itself off the public interface."
+    },
+    {
+      "q": "When adding monitoring in capstone 3, why bind node_exporter and Prometheus to localhost (and reach Grafana through nginx or an SSH tunnel)?",
+      "choices": ["Localhost binding makes the metrics scrape faster by skipping the network stack.", "Prometheus and the raw metrics endpoints have no built-in authentication, so exposing them publicly hands anyone a detailed map of your machine.", "Grafana refuses to start unless Prometheus is on localhost.", "Binding to localhost encrypts the metrics traffic automatically."],
+      "answer": 1,
+      "explain": "Prometheus has no built-in authentication, and node_exporter's metrics endpoint is wide open by design. Exposed to the internet, they reveal your host's internals to anyone who finds the port. Binding them to localhost and reaching Grafana behind nginx (with a login) or via SSH keeps that surface private."
+    },
+    {
+      "q": "Why does ripgrep (rg) often return far fewer — and more relevant — results than grep -r in a code repository, with no extra flags?",
+      "choices": ["rg only searches files that have been modified recently.", "rg skips files listed in .gitignore (and binary files) by default, so build output and vendored junk don't clutter the results.", "rg searches only the first match in each file and stops.", "rg requires a regex and silently ignores plain-text searches."],
+      "answer": 1,
+      "explain": "By default ripgrep respects .gitignore and skips binary files, so it won't waste time or output on node_modules, build artifacts, or compiled blobs the way grep -r does. That sensible default — plus multithreading — is a big part of why rg is both faster and cleaner in a real repo."
     }
   ]
 }

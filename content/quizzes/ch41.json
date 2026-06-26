@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch31",
+  "title": "Capstone: Your Sensor Dashboard on the Web",
+  "questions": [
+    {
+      "q": "On Raspberry Pi OS Bookworm, why does 'pip install flask' fail with 'externally-managed-environment'?",
+      "choices": [
+        "Flask is not compatible with the Raspberry Pi 5",
+        "PEP 668 deliberately blocks pip from installing into the system Python; use a virtual environment instead",
+        "You must always reboot before installing any package",
+        "Flask can only be installed with the Thonny package manager"
+      ],
+      "answer": 1,
+      "explain": "PEP 668 protects the OS's system Python by refusing plain pip installs. The correct fix is a virtual environment (python3 -m venv venv, then activate it and pip install flask), or sudo apt install python3-flask."
+    },
+    {
+      "q": "In this project, which code runs on the server (the Pi) and which runs on the client (the phone)?",
+      "choices": [
+        "All the code runs on the phone; the Pi only stores files",
+        "The Python/Flask code runs on the Pi (server); the HTML, CSS and JavaScript run in the phone's browser (client)",
+        "Everything runs on the Pi; the phone just shows a screenshot",
+        "The JavaScript runs on the Pi and the Python runs on the phone"
+      ],
+      "answer": 1,
+      "explain": "Flask (Python) is the server, running on the Pi and reading the sensors. The HTML, CSS and JavaScript are sent to the phone and run in its browser — the client — which requests data and updates the page."
+    },
+    {
+      "q": "What does the JavaScript line fetch(\"/api/data\") do?",
+      "choices": [
+        "It reads a file from the phone's storage",
+        "It sends a request to the server's /api/data route and gets back the sensor readings (as JSON)",
+        "It installs a new sensor driver",
+        "It restarts the Flask server"
+      ],
+      "answer": 1,
+      "explain": "fetch() is the browser asking the server a question. It requests the /api/data URL, which the Flask data() function answers with jsonify(state), so the client receives the latest readings as JSON to display."
+    },
+    {
+      "q": "Why is the Flask server started with app.run(host=\"0.0.0.0\", port=5000)?",
+      "choices": [
+        "0.0.0.0 makes the server accept connections from other devices on the network, so your phone can reach it",
+        "0.0.0.0 is the Pi's permanent IP address",
+        "It encrypts all the traffic automatically",
+        "Without it, Flask runs faster"
+      ],
+      "answer": 0,
+      "explain": "host=\"0.0.0.0\" tells Flask to accept connections from any device on the local network. The default (127.0.0.1) would only allow the Pi itself, so your phone could not connect. You reach it at http://<pi-ip>:5000."
+    },
+    {
+      "q": "When reusing the earlier sensors in this dashboard, which wiring rule still applies?",
+      "choices": [
+        "Both the HC-SR04 and the PIR now need voltage dividers",
+        "Neither sensor needs any special wiring once Flask is involved",
+        "The HC-SR04 ECHO pin still needs its 330 Ω/470 Ω divider, while the PIR's OUT still connects directly",
+        "Both sensors can be connected to 3.3 V to be safe"
+      ],
+      "answer": 2,
+      "explain": "Software like Flask never changes electrical safety. The HC-SR04's ECHO outputs 5 V and still needs its voltage divider, whereas the PIR's OUT is already 3.3 V and connects straight to a GPIO."
+    }
+  ]
+}

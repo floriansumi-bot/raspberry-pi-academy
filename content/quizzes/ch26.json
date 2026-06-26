@@ -1,61 +1,61 @@
 {
   "chapterId": "ch26",
-  "title": "The Salvaged Sound Machine",
+  "title": "Seeing Through the Kernel Boundary",
   "questions": [
     {
-      "q": "Why can a passive buzzer play a tune, but an active buzzer cannot?",
+      "q": "Your program calls strlen() and printf() many times, then you trace it with strace. You see almost no calls related to strlen but only a few write() calls even though printf ran a thousand times. Why?",
       "choices": [
-        "A passive buzzer is louder, so its notes are easier to hear",
-        "An active buzzer has its own oscillator and only makes one fixed beep, while a passive buzzer plays whatever frequency you drive it at",
-        "An active buzzer needs 5 V, which carries more musical information",
-        "A passive buzzer contains a tiny pre-recorded song chip"
+        "strace cannot see strlen or printf because they are too fast to capture",
+        "strlen is pure userland math that makes no syscall, and printf buffers its output in userland and flushes to the kernel in chunks via write()",
+        "printf and strlen are both system calls, but strace only logs the first few of each",
+        "The program was compiled without debugging symbols, so the library calls are hidden"
       ],
       "answer": 1,
-      "explain": "An active buzzer generates its own single fixed pitch and can only be switched on and off. A passive buzzer has no oscillator, so the Pi controls the frequency directly with PWM — which is what lets it play any note."
+      "explain": "strace watches the kernel boundary (system calls), not library calls. strlen runs entirely in userland and never bothers the kernel. printf formats and buffers in userland, then makes occasional write() syscalls to flush the buffer — so a thousand printf calls collapse into a handful of write() calls. To watch the library layer itself you would use ltrace instead."
     },
     {
-      "q": "In the dictionary NOTES = {\"C4\": 262, \"A4\": 440}, what does NOTES[\"A4\"] return?",
+      "q": "A program on your Pi reports a vague error and you suspect it can't find its configuration file. Which command shows you exactly which paths it tried and which one failed?",
       "choices": [
-        "The position 1, because A4 is the second item",
-        "Both 262 and 440 as a list",
-        "440, the frequency mapped to the key \"A4\"",
-        "An error, because dictionaries cannot be looked up by name"
+        "strace -e trace=openat app 2>&1 | grep -i config",
+        "lsof -i :443",
+        "dmesg -T | grep -i oom",
+        "cat /proc/<pid>/maps"
+      ],
+      "answer": 0,
+      "explain": "strace filtered to the openat syscall shows every path the program tries to open, in order. A line ending in ENOENT ('no such file') tells you exactly which config path it looked for and didn't find — no guessing required. The other commands answer different questions: open ports, OOM kills, and memory layout respectively."
+    },
+    {
+      "q": "You deleted a large log file on your Pi to free space, but 'df -h' still shows the disk as full while 'du' finds nothing taking up room. What is going on, and which tool finds the culprit?",
+      "choices": [
+        "The microSD card is failing; run dmesg to confirm hardware errors",
+        "A process still has the deleted file open, so its data isn't freed until that handle closes; lsof +L1 finds it",
+        "df is simply wrong after a delete and a reboot is required to refresh it",
+        "The space was reclaimed but the filesystem cache hasn't updated; clear it with strace"
+      ],
+      "answer": 1,
+      "explain": "On Linux, deleting a file's name does not free its data while a process still holds the file open — the data lives until the last file descriptor closes. That's why df sees the space as used but du can't find the file. 'lsof +L1' lists deleted-but-still-open files; restarting the offending process closes the handle and reclaims the space."
+    },
+    {
+      "q": "A memory-hungry job on your 8 GB Pi 5 'just vanished' with no error message, and 'echo $?' shows 137. What almost certainly happened?",
+      "choices": [
+        "The program finished successfully — 137 is a normal completion code",
+        "It hit a permissions error (EACCES) and was blocked by the kernel",
+        "The kernel's OOM killer terminated it with SIGKILL when the system ran out of memory (137 = 128 + 9)",
+        "The CPU throttled due to heat and paused the process indefinitely"
       ],
       "answer": 2,
-      "explain": "A dictionary maps each key to a value, and you look up a value by its key. NOTES[\"A4\"] hands back 440 — the frequency paired with the note name \"A4\" — no position counting needed."
+      "explain": "Exit code 137 is 128 + 9, meaning the process was terminated by signal 9 (SIGKILL). When a Pi runs out of RAM plus swap, the kernel's Out-Of-Memory killer scores every process and kills the highest scorer with SIGKILL to save the system — so the process didn't crash on its own, the kernel executed it. Confirm instantly with 'dmesg -T | grep -i oom'."
     },
     {
-      "q": "What does PWM (Pulse-Width Modulation) do to make a passive buzzer play a note?",
+      "q": "A process on your Pi shows VmSize of about 2 GB but VmRSS of about 80 MB in /proc/<pid>/status. Should you worry that it's about to run the Pi out of memory?",
       "choices": [
-        "It raises the GPIO voltage above 3.3 V to push the buzzer harder",
-        "It switches the pin on and off very fast; the number of cycles per second sets the pitch",
-        "It sends an audio file down the wire as data",
-        "It slowly fades the pin from 0 V up to 3.3 V"
+        "Yes — VmSize is the real memory in use, and 2 GB is dangerous on a Pi",
+        "No — VmSize is the virtual reservation (mostly untouched promises); VmRSS is the real physical RAM in use, and 80 MB is tiny",
+        "Yes — any process over 1 GB virtual will trigger the OOM killer immediately",
+        "It's impossible to tell without running strace on the process first"
       ],
       "answer": 1,
-      "explain": "A GPIO pin is only ever HIGH or LOW. PWM switches it on and off rapidly; the frequency (cycles per second) of that switching is exactly the pitch the buzzer vibrates at — 440 cycles per second gives the note A4."
-    },
-    {
-      "q": "Why must a salvaged loudspeaker NOT be wired straight to a GPIO pin?",
-      "choices": [
-        "Speakers only work with 3.3 V, which a GPIO pin cannot supply",
-        "A speaker can draw far more current than a pin's ~16 mA limit and its inductive kickback can damage the pin, so it needs a transistor driver",
-        "GPIO pins cannot switch fast enough to make a speaker move",
-        "The speaker would play the tune backwards"
-      ],
-      "answer": 1,
-      "explain": "A GPIO pin can supply only about 16 mA, but a small speaker can demand hundreds of milliamps, and switching its current off produces a damaging voltage spike. An NPN transistor lets the small pin signal control the larger 5 V current safely."
-    },
-    {
-      "q": "When driving a speaker through a 2N2222 transistor, what is the job of the ~1 kΩ resistor on the base?",
-      "choices": [
-        "It makes the speaker louder by boosting the current",
-        "It limits the small base current and protects the GPIO pin",
-        "It converts the 5 V supply down to 3.3 V",
-        "It stores charge so the note keeps playing after the program stops"
-      ],
-      "answer": 1,
-      "explain": "The base resistor limits the tiny control current flowing from the GPIO pin into the transistor's base, keeping it within the pin's safe range. The transistor then switches the much larger speaker current coming from the 5 V supply."
+      "explain": "Thanks to demand paging and overcommit, a process can reserve a large virtual address space (VmSize) while only a fraction is backed by real RAM. VmRSS (resident set size) is the actual physical memory in use — here just 80 MB. RSS, not virtual size, is the number that matters for 'am I about to run out of memory?' Beginners often panic at the big VmSize for no reason."
     }
   ]
 }

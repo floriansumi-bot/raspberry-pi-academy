@@ -1,61 +1,36 @@
 {
   "chapterId": "ch23",
-  "title": "Maker Lab: Toolkit & Salvaging E-Waste",
+  "title": "The Shell Is a Programming Language",
   "questions": [
     {
-      "q": "Why must you never open a microwave oven to salvage parts, even after unplugging it?",
-      "choices": [
-        "The magnetron is too heavy to remove safely",
-        "Its high-voltage capacitor can hold a lethal 4,000+ V even when unplugged",
-        "Microwaves contain no useful low-voltage parts",
-        "Opening it voids the manufacturer's warranty"
-      ],
+      "q": "When you run 'ls *.txt' on your Pi and it matches several files, what does the 'ls' program actually receive as its arguments?",
+      "choices": ["The literal string '*.txt', which ls expands itself", "The final list of matching filenames, already expanded by the shell", "Nothing — ls reads the current directory on its own and ignores the pattern", "A special wildcard token that ls knows how to interpret"],
       "answer": 1,
-      "explain": "A microwave's high-voltage capacitor can store a lethal charge of 4,000 V or more long after the oven is unplugged. The same stored-charge danger applies to CRT TVs (20,000–30,000 V anode) and mains power supplies — recycle all of these whole, never open them."
+      "explain": "Globbing is done by the shell before the program runs, so ls is handed the finished filename list and never sees the '*'. ls has no idea a wildcard was ever typed. The literal '*.txt' is only passed when nothing matches (the default no-match behavior)."
     },
     {
-      "q": "On Raspberry Pi OS Bookworm, a plain system-wide 'pip install something' fails with 'externally-managed-environment'. What does PEP 668 want you to do instead?",
-      "choices": [
-        "Always add --break-system-packages to force the install",
-        "Run the command twice with sudo",
-        "Use 'sudo apt install python3-<name>', or create and activate a venv then pip install inside it",
-        "Switch from python3 back to python2"
-      ],
-      "answer": 2,
-      "explain": "PEP 668 marks the system Python as externally managed to stop pip breaking the OS. The correct fixes are 'sudo apt install python3-<name>' or a virtual environment (python3 -m venv myenv; source myenv/bin/activate; pip install ...). The --break-system-packages flag is discouraged — its name is the warning."
+      "q": "A variable holds 'my report.txt'. Why does 'rm $file' fail but 'rm \"$file\"' work?",
+      "choices": ["Unquoted, the value is word-split on the space into two arguments; quoting suppresses the splitting so rm gets one filename", "The dollar sign must always be escaped, and only double quotes do that", "rm cannot handle file extensions unless the variable is quoted", "Single quotes would be required instead; double quotes make no difference here"],
+      "answer": 0,
+      "explain": "Unquoted expansions are split on IFS, so 'my report.txt' becomes two words ('my' and 'report.txt'). Double quotes suppress word splitting so rm receives the single real filename. The dollar sign expands fine either way — the problem is splitting, not escaping."
     },
     {
-      "q": "On an LED, how do you identify the cathode (the negative leg)?",
-      "choices": [
-        "It is the longer leg, on the rounded side of the plastic rim",
-        "It is the shorter leg, on the flat side of the plastic rim",
-        "Both legs are identical; LEDs have no polarity",
-        "It is whichever leg is connected through the resistor"
-      ],
+      "q": "Which statement about 'cd' is correct?",
+      "choices": ["cd is an external program found via PATH, like ls", "cd must be a shell builtin, because a child process cannot change its parent's working directory", "cd works only in login shells, not in scripts", "cd is an alias that bash rewrites into 'pushd'"],
       "answer": 1,
-      "explain": "The cathode (−) is the shorter leg and sits on the flat edge of the plastic rim; the anode (+) is the longer leg. Current must enter the long leg and leave the short leg or the LED stays dark — though wiring it backwards does no harm at these low voltages."
+      "explain": "An external program runs in a child process, and a child cannot alter its parent's directory — so cd must run inside the shell itself as a builtin. The same necessity applies to export, read, pwd, and '['."
     },
     {
-      "q": "A resistor has the colour bands brown–black–red–gold. What is its value?",
-      "choices": [
-        "330 Ω, ±5%",
-        "120 Ω, ±5%",
-        "1 kΩ (1,000 Ω), ±5%",
-        "10 kΩ, ±5%"
-      ],
-      "answer": 2,
-      "explain": "Reading digit–digit–multiplier–tolerance: brown (1), black (0), red (×100) gives 10 × 100 = 1,000 Ω = 1 kΩ, and gold means ±5%. (For comparison, a 330 Ω resistor is orange–orange–brown–gold.)"
+      "q": "The guide calls 'which' a myth for finding commands. Why, and what should you use instead?",
+      "choices": ["which is slow; use 'locate' instead for speed", "which is an external program blind to builtins, functions, and aliases, so it lies about things like cd and ll — use 'type -a'", "which only works as root; use 'sudo which' instead", "which is correct, but 'type -a' is just a shorter alias for it"],
+      "answer": 1,
+      "explain": "which is an external program with no knowledge of the shell's builtins, functions, or aliases, so it misreports things like cd. 'type -a' is shell-aware and reports what would truly run, including its kind and location."
     },
     {
-      "q": "You salvage an LED from an old device but its legs were trimmed to the same length. Which multimeter setting confirms which leg is the anode and that the LED still works?",
-      "choices": [
-        "The DC volts setting, probes on each leg",
-        "The continuity (beep) setting",
-        "The resistance (Ω) setting",
-        "The diode-test setting — red probe on the anode makes it glow faintly"
-      ],
-      "answer": 3,
-      "explain": "The diode-test setting checks direction and health: with the red probe on the anode and black on the cathode, a good LED glows faintly and shows a forward voltage (~1.5–3.5 V). Swapping the probes leaves it dark, which tells you the polarity even when the legs are the same length."
+      "q": "An alias and a custom PATH entry work fine in your terminal but a cron job can't find them. What's the usual cause?",
+      "choices": ["Cron has a bug that strips environment variables at random", "Cron runs non-interactive and non-login, so it reads neither ~/.bashrc nor ~/.bash_profile and your customizations don't exist there", "The alias was defined with single quotes, which cron cannot parse", "Cron always runs as root, which has a separate PATH you forgot to edit"],
+      "answer": 1,
+      "explain": "Cron jobs run non-interactive and non-login with a minimal environment, reading neither ~/.bashrc (interactive) nor the login startup files — so aliases and PATH tweaks defined there simply aren't present. The fix is to source what you need explicitly rather than assume your interactive environment exists."
     }
   ]
 }

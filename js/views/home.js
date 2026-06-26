@@ -7,7 +7,7 @@ import { onCleanup } from '../router.js';
 let _io = null;        // path connector observer, disconnected on re-render
 let _justDone = null;  // chapter just completed, for the one-shot reward
 
-const PART_NUM = ['I', 'II', 'III', 'IV', 'V', 'VI', '—'];
+const PART_NUM = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', '—'];
 
 function firstIncomplete() {
   const o = order();

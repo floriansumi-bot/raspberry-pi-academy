@@ -1,61 +1,61 @@
 {
-  "chapterId": "ch34",
-  "title": "Capstone: The Junkbox AI Rover",
+  "chapterId": "ch24",
+  "title": "Traffic-Light Controller",
   "questions": [
     {
-      "q": "You saved Lesson 32's Robot class as its own file, robot.py, in your project folder. How does brain.py get to use it?",
+      "q": "In the code 'all_lights = [red, amber, green]', what kind of Python value is being created?",
       "choices": [
-        "It copies the whole class into brain.py again so both files have their own copy",
-        "With 'from robot import Robot' — Python finds robot.py beside it and hands over the class",
-        "By running 'pip install robot' inside the virtual environment first",
-        "It cannot; a class can only ever be used in the file where it was written"
+        "A function that returns the three LEDs",
+        "A list, which holds the three LED objects in order",
+        "A loop that flashes the LEDs one after another",
+        "A single LED with three colours"
       ],
       "answer": 1,
-      "explain": "A module is just a Python file you import into another. 'from robot import Robot' makes Python load robot.py from the same folder and give you the Robot class, so every program reuses the drive base without repeating the motor code. Keeping the files in one folder is what lets the import find robot.py."
+      "explain": "Square brackets create a list: one name (all_lights) that holds several values in order. all_lights[0] is the red LED, [1] is amber, [2] is green. Lists are indexed from 0."
     },
     {
-      "q": "The rover holds its current behaviour in STATE = {\"mode\": \"manual\"} and the main loop checks STATE[\"mode\"] each pass. What is this design called, and why use it?",
+      "q": "Why does a 'for light in all_lights:' loop save you from repeating code?",
       "choices": [
-        "A pull-up resistor — it keeps the GPIO pin from floating between modes",
-        "A voltage divider — it shares the work between the three behaviours",
-        "A state machine — the rover is always in exactly one mode and behaves differently in each, switched by events",
-        "A decorator — it labels each function with the mode it belongs to"
-      ],
-      "answer": 2,
-      "explain": "A state machine is a program that is always in exactly one state (here manual, follow or avoid) and behaves differently in each, moving between states on events like a button press. Holding the mode in one dictionary keeps 'what should I be doing?' in a single, easy-to-read place that the web routes can flip."
-    },
-    {
-      "q": "In follow mode the rover reads the phone camera and steers from a coloured target. How does the code decide which way to turn?",
-      "choices": [
-        "It opens the stream with cv2.VideoCapture(url), finds the blob's centre x, and turns toward whichever side of the frame's middle it sits on",
-        "It measures the target's temperature with the ultrasonic sensor",
-        "It reads the encoder steps and turns until they reach a fixed target",
-        "It asks the Flask server which direction the user last pressed"
+        "It runs the indented block once for every item in the list automatically",
+        "It makes the program run faster on the Pi 5",
+        "It turns all the LEDs on at exactly the same instant",
+        "It only works if the list contains exactly three items"
       ],
       "answer": 0,
-      "explain": "OpenCV reads the phone's MJPEG stream with cv2.VideoCapture(url). After thresholding the colour to a mask and finding the largest contour, cv2.moments gives the centroid's x (cx). The offset cx - CENTRE_X is the steering error: negative means the target is left (turn left), positive means right (turn right), near zero means drive forward."
+      "explain": "A for loop repeats its indented block once per item in the list, with the loop variable (light) standing for the current item. So one short block of code can act on every LED in turn."
     },
     {
-      "q": "The rover's NXT motors run from a 6xAA (~9 V) pack, not from the Pi. What single connection must still join the motor battery, the DRV8833 driver and the Pi?",
+      "q": "How many current-limiting resistors do you need for a three-LED traffic light, and what value?",
       "choices": [
-        "Their 5 V power lines, so they share the same supply voltage",
-        "A common ground — the battery −, driver GND and Pi GND all meet at one shared 0 V rail",
-        "Their GPIO 20 pins, so the motors and Pi stay in step",
-        "Nothing; keeping all three completely separate is what makes it safe"
-      ],
-      "answer": 1,
-      "explain": "The motors get their own ~9 V battery because the Pi cannot spare the current and motor noise can crash it — but the battery −, the driver GND and the Pi GND must all join at one common ground. That shared 0 V reference is what lets the Pi's 3.3 V logic signals mean anything to the driver. Without it, nothing works reliably."
-    },
-    {
-      "q": "Why is the ultrasonic check written to run first in the loop, stopping the wheels before any follow or avoid logic, rather than relying on the camera alone?",
-      "choices": [
-        "Because the camera cannot see colours that are too close to the lens",
-        "Because the ultrasonic is faster than the GPIO pins driving the motors",
-        "It gives the rover a reflex that overrides the brain: a wall within STOP_CM stops it even if the vision says 'keep going', preventing a collision",
-        "Because Flask requires every loop to begin with a sensor reading"
+        "One shared 330 Ω resistor for all three LEDs",
+        "No resistors, because 3.3 V is already safe for LEDs",
+        "Three resistors of about 330 Ω each — one per LED",
+        "One 50 Ω resistor on the shared ground wire"
       ],
       "answer": 2,
-      "explain": "Vision is slow and can be fooled — it reacts only a few times a second and might still see a target beyond an obstacle. Checking the ultrasonic first, in every automatic mode, gives the rover a physical reflex that beats its brain: if anything is closer than STOP_CM it stops the wheels immediately. A good autonomous robot always has a safety reflex that can override its higher-level logic."
+      "explain": "Every LED needs its own series resistor (about 330 Ω at 3.3 V). Sharing one resistor lets the LEDs rob current from each other and can exceed the safe current; omitting them can destroy the LED and the GPIO pin."
+    },
+    {
+      "q": "What are the GPIO current limits you must respect on the Pi 5?",
+      "choices": [
+        "About 100 mA per pin and unlimited total",
+        "About 16 mA per pin and about 50 mA total across the whole header",
+        "About 5 A per pin, the same as the USB ports",
+        "There are no limits as long as you use resistors"
+      ],
+      "answer": 1,
+      "explain": "Keep each GPIO pin under roughly 16 mA, and the total drawn from the header under roughly 50 mA. Three resistor-limited LEDs draw only about 12 mA together, so they fit comfortably."
+    },
+    {
+      "q": "Which phase makes the UK traffic-light sequence different from many other countries?",
+      "choices": [
+        "A flashing green phase before red",
+        "A red-and-amber phase together, warning drivers to get ready before green",
+        "A phase with all three lights off",
+        "A blue phase for emergency vehicles"
+      ],
+      "answer": 1,
+      "explain": "The UK cycle is Red, then Red+Amber together (get ready), then Green, then Amber. The combined Red+Amber 'get ready' phase is the one that does not appear in many other countries' lights."
     }
   ]
 }

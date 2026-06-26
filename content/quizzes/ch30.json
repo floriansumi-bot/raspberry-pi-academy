@@ -1,61 +1,36 @@
 {
   "chapterId": "ch30",
-  "title": "Motion-Activated Alarm from E-Waste",
+  "title": "Networking, the Deep End",
   "questions": [
     {
-      "q": "How should the HC-SR501 PIR's OUT pin be connected to the Raspberry Pi 5?",
-      "choices": [
-        "Through a resistor voltage divider, because OUT outputs 5 V",
-        "Directly to a GPIO pin, because OUT is already 3.3 V-safe",
-        "To a 5 V power pin, the same as VCC",
-        "Only via a HAT, never to a bare GPIO pin"
-      ],
+      "q": "You want to know what is listening on your Pi and which process owns each port. Which command is the right modern tool, and why not the alternative?",
+      "choices": ["netstat -tlnp, because ss has been deprecated in favour of it.", "ss -tlnp, because netstat is deprecated and slower while ss is the maintained, more complete tool.", "ifconfig -a, because it lists both interfaces and their listening ports.", "iptables -L, because the firewall table is where listening ports are recorded."],
       "answer": 1,
-      "explain": "Although the HC-SR501 is powered from 5 V, its OUT pin already outputs 3.3 V logic, so it connects straight to a GPIO with no divider. This is the opposite of the HC-SR04 ultrasonic sensor, whose 5 V ECHO pin does need a voltage divider."
+      "explain": "ss is the iproute2 replacement for the deprecated netstat - it is faster and shows more complete socket information. ss -tlnp lists listening (-l) TCP (-t) sockets with numeric (-n) addresses and the owning process (-p). ifconfig and iptables are the deprecated tools and don't answer this question anyway."
     },
     {
-      "q": "Why is 'pir.when_motion = sound_alarm' written without parentheses after sound_alarm?",
-      "choices": [
-        "Parentheses are optional and make no difference here",
-        "It saves typing and runs slightly faster",
-        "Without parentheses you point at the function so gpiozero can call it later; with them you would run it immediately and hand over its return value",
-        "Parentheses would turn it into a different function entirely"
-      ],
-      "answer": 2,
-      "explain": "A callback is registered by name. 'sound_alarm' refers to the function so gpiozero can call it back when motion happens, whereas 'sound_alarm()' would call it once right now and store its (usually None) result, so nothing fires on real motion."
-    },
-    {
-      "q": "Why does the HC-SR501 sometimes trigger falsely for the first half-minute or so after power-on?",
-      "choices": [
-        "It is in its 30–60 second warm-up period while it calibrates to the room",
-        "The GPIO pin is faulty and must be replaced",
-        "The Pi has not finished booting",
-        "It needs a voltage divider that has not been fitted yet"
-      ],
-      "answer": 0,
-      "explain": "A PIR needs roughly 30–60 seconds after power-up to settle and calibrate to the background infrared, and may fire falsely during that time. Keeping the alarm disarmed for the first minute avoids these false alerts."
-    },
-    {
-      "q": "Inside a function, what must you do before reassigning a module-level variable such as the event counter?",
-      "choices": [
-        "Nothing special — assignment always updates the outer variable",
-        "Declare 'global alarm_count' first, or Python treats it as a new local variable",
-        "Pass it in as a function argument every time",
-        "Wrap the function in a 'with' block"
-      ],
+      "q": "Why is ifconfig considered not just old-fashioned but actually misleading?",
+      "choices": ["It only works as root, so ordinary users see nothing.", "It is deprecated and can fail to show all of an interface's addresses, giving an incomplete picture; ip addr is the accurate replacement.", "It shows too much detail, including kernel internals users shouldn't see.", "It has been removed from Linux entirely, so it never runs."],
       "answer": 1,
-      "explain": "To change (not just read) a variable defined at the top level of the file from inside a function, you must declare 'global name'. Otherwise Python assumes you are creating a new local variable and the assignment fails with a NameError."
+      "explain": "ifconfig (and route, netstat, arp) are deprecated, and ifconfig in particular doesn't reliably show all of an interface's addresses - so you can be debugging a half-truth. The iproute2 suite (ip addr, ip route, ip neigh) is the maintained, accurate replacement."
     },
     {
-      "q": "When you move the log() helper into a separate file called alarm_tools.py, how do you use it from your main program?",
-      "choices": [
-        "Copy and paste the function back into the main file",
-        "Run alarm_tools.py separately in another window first",
-        "Write 'from alarm_tools import log', with alarm_tools.py in the same folder",
-        "Install it with 'sudo pip install alarm_tools'"
-      ],
-      "answer": 2,
-      "explain": "A module is just a Python file. As long as alarm_tools.py sits in the same folder, 'from alarm_tools import log' brings the log function into your main program, exactly the way you import from gpiozero or datetime."
+      "q": "You set the correct nameserver in /etc/resolv.conf, but a name on your Pi still resolves to the wrong address. What is the most likely real cause?",
+      "choices": ["resolv.conf has a syntax error that silently disables it.", "The resolution order comes from /etc/nsswitch.conf - usually an /etc/hosts entry (checked first) or the systemd-resolved stub is winning before classic DNS ever runs.", "The Pi's DNS cache is corrupt and must be rebuilt from resolv.conf.", "ifconfig is overriding the nameserver setting."],
+      "answer": 1,
+      "explain": "getaddrinfo() consults the hosts: line in /etc/nsswitch.conf for the order of sources. files (/etc/hosts) is checked first and can override DNS; the resolve backend (systemd-resolved's stub at 127.0.0.53) sits before the dns backend, which is the only one that even reads resolv.conf. Chase the order, not the file."
+    },
+    {
+      "q": "In SSH public-key authentication, how do you prove who you are, and where does your private key go?",
+      "choices": ["Your private key is sent to the server and compared against authorized_keys.", "The server holds your public key in authorized_keys and challenges you to prove you hold the matching private key, which never leaves your machine.", "Both sides exchange private keys during key exchange to build trust.", "Your password is hashed with the host key and that hash is your identity."],
+      "answer": 1,
+      "explain": "Public-key auth keeps the private key on your machine; it is never transmitted. The server stores only your public key and issues a cryptographic challenge you can answer only with the matching private key. This is one of SSH's two independent proofs - the other being the host key, by which the server proves itself to you."
+    },
+    {
+      "q": "On a headless Pi you load a default-drop nftables ruleset over SSH. What is the one rule you must include, and why?",
+      "choices": ["iif \"lo\" accept, because without loopback the kernel cannot run nftables at all.", "tcp dport 22 accept, because a default-drop policy without an SSH-allow rule cuts your session and you cannot reconnect.", "ip protocol icmp accept, because SSH rides on top of ping.", "policy accept, because default-drop is never safe on a Pi."],
+      "answer": 1,
+      "explain": "A default-drop input policy discards anything not explicitly accepted. Over SSH that includes your own session's traffic on port 22, so without tcp dport 22 accept you lock yourself out of a headless Pi with no remote undo. Always keep the SSH rule (and ct state established,related accept so replies to your own outbound connections come back), and test with a keyboard and screen attached."
     }
   ]
 }

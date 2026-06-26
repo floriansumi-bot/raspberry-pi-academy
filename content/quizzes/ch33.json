@@ -1,61 +1,61 @@
 {
-  "chapterId": "ch33",
-  "title": "Recycle an Old Smartphone into Pi Parts",
+  "chapterId": "ch23",
+  "title": "Maker Lab: Toolkit & Salvaging E-Waste",
   "questions": [
     {
-      "q": "Why can't you simply plug a phone's camera module (or its AMOLED screen) into the Raspberry Pi and have it work?",
+      "q": "Why must you never open a microwave oven to salvage parts, even after unplugging it?",
       "choices": [
-        "The phone parts run at 5 V and the Pi runs at 3.3 V",
-        "They use proprietary MIPI connectors and need unpublished drivers, ISP tuning and matched power rails that the Pi doesn't have",
-        "The Pi's camera and display ports are output-only",
-        "Phone cameras and screens are always physically too large to fit"
+        "The magnetron is too heavy to remove safely",
+        "Its high-voltage capacitor can hold a lethal 4,000+ V even when unplugged",
+        "Microwaves contain no useful low-voltage parts",
+        "Opening it voids the manufacturer's warranty"
       ],
       "answer": 1,
-      "explain": "A phone camera links over MIPI CSI-2 and the screen over MIPI DSI, but those are only link standards. Each needs its own kernel driver, ISP tuning or per-panel driver plus custom connectors and power rails, none of which phone makers publish. With no driver and no matching plug, they are a dead end on a Pi."
+      "explain": "A microwave's high-voltage capacitor can store a lethal charge of 4,000 V or more long after the oven is unplugged. The same stored-charge danger applies to CRT TVs (20,000–30,000 V anode) and mains power supplies — recycle all of these whole, never open them."
     },
     {
-      "q": "A guide says 'harvest the phone's GPU and add it to your Pi'. What's wrong with this?",
+      "q": "On Raspberry Pi OS Bookworm, a plain system-wide 'pip install something' fails with 'externally-managed-environment'. What does PEP 668 want you to do instead?",
       "choices": [
-        "It works, but only on the Pi 5, not earlier models",
-        "You need to install a special driver first",
-        "A phone has no removable GPU — it is a core fused permanently inside the SoC silicon with the CPU, so there is nothing to remove",
-        "The phone GPU is too powerful and would overheat the Pi"
+        "Always add --break-system-packages to force the install",
+        "Run the command twice with sudo",
+        "Use 'sudo apt install python3-<name>', or create and activate a venv then pip install inside it",
+        "Switch from python3 back to python2"
       ],
       "answer": 2,
-      "explain": "Phones have no discrete or removable graphics card. The GPU (an ARM Mali or Qualcomm Adreno core) is fused permanently into the same piece of silicon as the CPU, inside the SoC. It cannot be unplugged, transplanted or added to anything — there is literally nothing to harvest."
+      "explain": "PEP 668 marks the system Python as externally managed to stop pip breaking the OS. The correct fixes are 'sudo apt install python3-<name>' or a virtual environment (python3 -m venv myenv; source myenv/bin/activate; pip install ...). The --break-system-packages flag is discouraged — its name is the warning."
     },
     {
-      "q": "Which is a correct lithium-ion safety rule when reusing a salvaged phone cell?",
+      "q": "On an LED, how do you identify the cathode (the negative leg)?",
       "choices": [
-        "Never use a swollen, hot or deformed cell, and never puncture or bend a cell",
-        "Gently press a swollen cell to release the gas before charging it",
-        "Remove the cell's protection PCB so it charges faster",
-        "Charge it overnight on a soft surface so it stays warm"
-      ],
-      "answer": 0,
-      "explain": "A damaged or swollen cell can go into thermal runaway and catch fire. Never use a swollen, hot, hissing or deformed cell; never puncture, bend, crush or short one; never remove its protection PCB; and only charge attended on a non-flammable surface. A purpose-built UPS is the safer choice when in doubt."
-    },
-    {
-      "q": "How should you drive a salvaged vibration motor from the Pi?",
-      "choices": [
-        "Connect it straight between a GPIO pin and GND",
-        "Through an NPN transistor with a base resistor, with a flyback diode across the motor — never straight from a pin",
-        "Through a single resistor in series with the GPIO pin",
-        "Directly to the 5 V and GND header pins with no switch"
+        "It is the longer leg, on the rounded side of the plastic rim",
+        "It is the shorter leg, on the flat side of the plastic rim",
+        "Both legs are identical; LEDs have no polarity",
+        "It is whichever leg is connected through the resistor"
       ],
       "answer": 1,
-      "explain": "A motor pulls far more current than a GPIO pin can supply and kicks back a voltage spike when it switches off. Drive it via an NPN transistor (the pin controls the base through a ~470 Ohm resistor), power the motor from 5 V, and fit a flyback diode across it to absorb the spike. Never connect a motor straight to a pin."
+      "explain": "The cathode (−) is the shorter leg and sits on the flat edge of the plastic rim; the anode (+) is the longer leg. Current must enter the long leg and leave the short leg or the LED stays dark — though wiring it backwards does no harm at these low voltages."
     },
     {
-      "q": "What is the most practical way to use a phone's camera with a Pi project?",
+      "q": "A resistor has the colour bands brown–black–red–gold. What is its value?",
       "choices": [
-        "Desolder the camera module and wire it to the Pi's CSI port",
-        "Run an IP-webcam app on the phone and read its Wi-Fi stream with OpenCV, e.g. cv2.VideoCapture('http://PHONE-IP:8080/video')",
-        "Photograph the scene and email the pictures to the Pi",
-        "Connect the phone to the Pi with a USB-C cable and read the camera directly"
+        "330 Ω, ±5%",
+        "120 Ω, ±5%",
+        "1 kΩ (1,000 Ω), ±5%",
+        "10 kΩ, ±5%"
       ],
-      "answer": 1,
-      "explain": "Leave the camera inside the working phone. An IP-webcam app streams the camera over Wi-Fi, and the Pi reads it with OpenCV in a couple of lines: cap = cv2.VideoCapture('http://PHONE-IP:8080/video'). This bypasses every proprietary-connector and missing-driver problem, and the frames can even feed the AI vision code from earlier chapters."
+      "answer": 2,
+      "explain": "Reading digit–digit–multiplier–tolerance: brown (1), black (0), red (×100) gives 10 × 100 = 1,000 Ω = 1 kΩ, and gold means ±5%. (For comparison, a 330 Ω resistor is orange–orange–brown–gold.)"
+    },
+    {
+      "q": "You salvage an LED from an old device but its legs were trimmed to the same length. Which multimeter setting confirms which leg is the anode and that the LED still works?",
+      "choices": [
+        "The DC volts setting, probes on each leg",
+        "The continuity (beep) setting",
+        "The resistance (Ω) setting",
+        "The diode-test setting — red probe on the anode makes it glow faintly"
+      ],
+      "answer": 3,
+      "explain": "The diode-test setting checks direction and health: with the red probe on the anode and black on the cathode, a good LED glows faintly and shows a forward voltage (~1.5–3.5 V). Swapping the probes leaves it dark, which tells you the polarity even when the legs are the same length."
     }
   ]
 }

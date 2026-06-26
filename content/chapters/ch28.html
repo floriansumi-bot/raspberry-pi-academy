@@ -1,683 +1,203 @@
-<p class="lead">Bats and dolphins find their way in the dark by sending out a squeak and timing the echo that bounces back. In this chapter you will give your Pi the very same superpower using a cheap ultrasonic sensor, then turn it into a car parking assistant — a row of green, amber and red lights plus a buzzer that beeps faster the closer you get. Along the way you will learn one of Python's biggest ideas: <strong>classes and objects</strong>, write your own little helper class, build <strong>functions that return values</strong>, and meet the single most important safety circuit in this whole course — the <strong>voltage divider</strong> that stops a 5&nbsp;volt sensor from frying your 3.3&nbsp;volt Pi.</p>
-<div class="widget-mount" data-widget="gpio"></div>
+<p class="lead">In the last lesson you met a strange truth in passing: you can delete a file you can't write, and you can be locked out of deleting a file you fully own. The reason is the single idea this whole chapter is built on — <strong>a filename is not the file</strong>. The file is a numbered object called an <em>inode</em>; the name is just a pointer to it, kept in a directory. Once that clicks, a dozen Linux mysteries fall into place at once: why <code>mv</code> is instant, why deleting an open file doesn't free any space, why a backup of ten copies can cost the size of one. We're going deeper now — past the commands, into how storage really works underneath. And it's all real on your Pi, because your Pi boots off a microSD card or SSD running full Debian, and inodes, links, and journaling apply to every byte of it.</p>
 
+<h2 id="the-inode-the-file-behind-the-name">The inode: the file behind the name</h2>
 
-<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+<p>When you create a file, the kernel quietly does two separate things. First it allocates an <strong>inode</strong> — a small numbered record holding everything about the file <em>except its name</em>: the owner, the permissions, the timestamps, the size, a count of how many names point at it, and the pointers to the actual data blocks on the disk. Then, second, it adds a <strong>directory entry</strong> — a single line in the parent directory that says "the name <code>notes.txt</code> means inode number 8472".</p>
 
-<p>By the end of this chapter you will have a working <strong>parking assistant</strong>: point the sensor at a wall (or have a friend hold a book in front of it), and as the object moves closer the lights change from green to amber to red while a buzzer beeps faster and faster — exactly like the reversing aid in a modern car.</p>
+<p>So the name and the file are genuinely two different things, living in two different places. You can look at both:</p>
 
-<p>To get there you will learn these <strong>named fundamentals</strong>:</p>
+<pre class="code"><code>ls -i notes.txt        # show just the inode number behind this name
+stat notes.txt         # the whole inode: size, blocks, link count, uid/gid, the three timestamps
+df -i                  # inode usage per filesystem -- yes, you can run OUT of inodes</code></pre>
 
-<h3>Python fundamentals</h3>
-<ul>
-  <li><strong>Classes &amp; objects</strong> — the idea that a "thing" in your program can bundle together its own data and its own actions. The sensor itself is an <em>object</em>; you will also write your own small <strong>class</strong>, called <code>ParkingZone</code>, to keep your code tidy.</li>
-  <li><strong>Functions that return values</strong> — functions that hand a result back to the line that called them, using the <code>return</code> keyword, so you can use that result elsewhere.</li>
-  <li><strong>A little maths</strong> — converting metres to centimetres, <code>round()</code>ing numbers neatly, and using number <em>ranges</em> (is the distance between 20 and 40&nbsp;cm?) to decide what should happen.</li>
-  <li><strong>Mapping a measurement to a behaviour</strong> — turning a continuous reading (distance) into a small set of clear states (safe / caution / stop).</li>
-</ul>
+<div class="jargon"><strong>In plain words:</strong> A directory is just a phone book — a list mapping names to inode numbers. The inode is the actual person. The name in the book is only a way to look them up. Change the book and you change who answers to a name; you haven't touched the person.</div>
 
-<h3>Electronics fundamentals</h3>
-<ul>
-  <li><strong>The HC-SR04 ultrasonic distance sensor</strong> — how it fires a pulse of sound and times the echo, and how gpiozero's <code>DistanceSensor</code> object turns that into a distance in metres.</li>
-  <li><strong>The voltage divider</strong> — the <em>critical</em> two-resistor circuit that drops the sensor's 5&nbsp;V ECHO signal down to a Pi-safe 3.3&nbsp;V. Skipping this can permanently damage your Pi, so we give it a whole section of its own.</li>
-  <li><strong>Driving several outputs at once</strong> — three LEDs and a buzzer working together, each LED with its own resistor.</li>
-</ul>
+<p>That <code>df -i</code> line hides a real-world gotcha worth knowing on a Pi. Each inode is a fixed slot, and a filesystem is created with a finite number of them. If you fill a card with millions of tiny files — think a runaway cache or a huge mail spool — you can run <strong>out of inodes</strong> while <code>df</code> still shows gigabytes free, and new files will fail with "No space left on device" even though there clearly is space. When that happens, <code>df -i</code> is the command that tells you the truth.</p>
 
-<div class="jargon"><strong>In plain words:</strong> <strong>Ultrasonic</strong> means sound that is too high-pitched for humans to hear (above about 20,000&nbsp;Hz). The HC-SR04 chirps at around 40,000&nbsp;Hz — silent to you, but a perfect ruler for measuring distance.</div>
+<p><strong>The key insight:</strong> the name is a pointer, and the inode is the real object. Almost everything else in this lesson is just that one fact playing out in different situations.</p>
 
+<h2 id="hard-links-vs-symlinks">Hard links vs symlinks</h2>
 
-<h2 id="meet-classes-and-objects">Meet Classes &amp; Objects</h2>
+<p>If a name is just a pointer to an inode, then nothing stops <em>two</em> names from pointing at the <em>same</em> inode. That's a <strong>hard link</strong>: a second directory entry for the exact same file. There's no "original" and no "copy" — both names are equal peers pointing at one inode, and the inode's <em>link count</em> simply goes up by one.</p>
 
-<p>You have actually been using objects since Chapter 12 without us making a fuss about it. Every time you wrote <code>led = LED(17)</code>, you created an <em>object</em>. Let's now name the idea properly, because it is one of the most powerful in all of programming.</p>
+<p>A <strong>symbolic link</strong> (symlink, or soft link) is a completely different animal. It's a tiny file of its own, with its own inode, whose entire content is a <em>path string</em> — literally the text of where to look. Following it means reading that string and going to that path, wherever it leads.</p>
 
-<div class="jargon"><strong>In plain words:</strong> A <strong>class</strong> is a blueprint. An <strong>object</strong> is one real thing built from that blueprint. <code>LED</code> is the class (the blueprint for "any LED"); <code>led = LED(17)</code> builds one specific object — the LED on pin 17. From a single class you can make as many objects as you like.</div>
-
-<p>Think of a class as a cookie cutter and objects as the cookies. The cutter (class) defines the <em>shape</em>; each cookie (object) is a separate, real cookie you can decorate differently.</p>
-
-<p>An object bundles together two things:</p>
-<ul>
-  <li><strong>Data</strong> it remembers about itself — called <em>attributes</em>. For an LED, whether it is currently lit (<code>led.is_lit</code>).</li>
-  <li><strong>Actions</strong> it can perform — called <em>methods</em>. For an LED, <code>led.on()</code>, <code>led.off()</code>, <code>led.blink()</code>.</li>
-</ul>
-
-<p>You reach an object's attributes and methods with a full stop (a "dot"): <code>led.on()</code> means "the <code>on</code> action belonging to <code>led</code>". The sensor we build today is an object too — we will ask it <code>sensor.distance</code> (an attribute) to find out how far away something is.</p>
-
-<h3>Writing your own class — a tiny first example</h3>
-
-<p>Before we touch any wiring, let's write a class from scratch so the idea sinks in. Open <strong>Thonny</strong> and type this small program. It models a simple <code>Counter</code> — something that remembers a number and can count up.</p>
-
-<pre class="code"><code>class Counter:
-    def __init__(self, start=0):
-        self.count = start
-
-    def increase(self):
-        self.count = self.count + 1
-        return self.count
-
-# Make two separate counter objects from the one blueprint
-goals = Counter()
-score = Counter(start=10)
-
-print(goals.increase())   # 1
-print(goals.increase())   # 2
-print(score.increase())   # 11
-print(goals.count)        # 2 (the goals object remembers its own number)</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>class Counter:</code>:</strong> Starts the blueprint. By convention class names begin with a capital letter (<code>Counter</code>, <code>LED</code>, <code>DistanceSensor</code>). Everything indented underneath belongs to the class.</p>
-  <p><strong>Line 2 — <code>def __init__(self, start=0):</code>:</strong> A special method called the <em>initialiser</em>. Python runs it automatically the moment you build an object, to set it up. The odd-looking name is two underscores, the word <code>init</code>, two more underscores. <code>self</code> is the object being built; <code>start=0</code> is an optional value the maker can pass in.</p>
-  <p><strong>Line 3 — <code>self.count = start</code>:</strong> Stores a piece of data <em>on this particular object</em>. <code>self.count</code> is an attribute — each object gets its very own <code>count</code>, kept separate from every other object.</p>
-  <p><strong>Line 5 — <code>def increase(self):</code>:</strong> Defines a method (an action the object can do). Every method's first parameter is <code>self</code>, which is how the method knows <em>which</em> object's data to work on.</p>
-  <p><strong>Line 6 — <code>self.count = self.count + 1</code>:</strong> Adds one to this object's own count.</p>
-  <p><strong>Line 7 — <code>return self.count</code>:</strong> Hands the new value back to whoever called the method — our first taste of a <em>function that returns a value</em>, covered properly in the next section.</p>
-  <p><strong>Lines 10–11 — <code>goals = Counter()</code> and <code>score = Counter(start=10)</code>:</strong> Build two completely separate objects from the same class. <code>goals</code> starts at 0; <code>score</code> starts at 10. They do not interfere with each other.</p>
-  <p><strong>Lines 13–16:</strong> Calling <code>goals.increase()</code> only changes <code>goals</code>; <code>score</code> keeps its own tally. That independence is the whole point of objects.</p>
-</div>
-
-<div class="tip"><strong>Tip:</strong> The word <code>self</code> trips up every beginner. Just remember: inside a class, <code>self</code> always means "this particular object". You never type <code>self</code> when you <em>call</em> a method (<code>goals.increase()</code>), only when you <em>define</em> one. Python fills it in for you.</div>
-
-<p>That is the whole idea. A class gathers related data and actions under one roof so your programs stay tidy as they grow. We will write a real, useful class — <code>ParkingZone</code> — for the project later on.</p>
-
-
-<h2 id="functions-that-return-values">Functions That Return Values</h2>
-
-<p>Some functions just <em>do</em> something (like <code>print()</code>, which puts text on the screen). Others <em>work something out and hand the answer back</em> so you can use it. The keyword for handing an answer back is <code>return</code>.</p>
-
-<div class="jargon"><strong>In plain words:</strong> <code>return</code> is how a function gives you an answer. <code>print()</code> shows a value on screen and then it is gone; <code>return</code> passes a value back into your program so you can store it, test it, or pass it on.</div>
-
-<p>Here is a tiny example that turns metres into centimetres and rounds the result. Type it in and run it.</p>
-
-<pre class="code"><code>def metres_to_cm(metres):
-    cm = metres * 100
-    return round(cm, 1)
-
-reading = metres_to_cm(0.4267)
-print(reading)            # 42.7
-print(reading + 5)        # 47.7  (we can do maths with the returned value)</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>def metres_to_cm(metres):</code>:</strong> Defines a function that takes one input, <code>metres</code>.</p>
-  <p><strong>Line 2 — <code>cm = metres * 100</code>:</strong> There are 100&nbsp;centimetres in a metre, so we multiply.</p>
-  <p><strong>Line 3 — <code>return round(cm, 1)</code>:</strong> <code>round(cm, 1)</code> rounds the number to one decimal place (42.67&nbsp;→&nbsp;42.7), and <code>return</code> sends that tidy value back. The moment Python hits <code>return</code>, the function ends.</p>
-  <p><strong>Line 5 — <code>reading = metres_to_cm(0.4267)</code>:</strong> Calls the function and <em>captures</em> the returned value into a variable called <code>reading</code>. Now <code>reading</code> holds 42.7.</p>
-  <p><strong>Line 7 — <code>print(reading + 5)</code>:</strong> Because the value was returned (not just printed inside the function), we can keep using it — here we add 5. A function that only <code>print()</code>ed could not do this.</p>
-</div>
-
-<div class="note"><strong>Note:</strong> A function with no <code>return</code> hands back a special value called <code>None</code>, meaning "nothing". If you ever see <code>None</code> where you expected a number, you probably forgot a <code>return</code>.</div>
-
-
-<h2 id="how-the-ultrasonic-sensor-works">How the Ultrasonic Sensor Works</h2>
-
-<p>The <strong>HC-SR04</strong> is a small blue board with two silver cylinders that look like little eyes (one is a speaker, one is a microphone) and four pins: <strong>VCC</strong>, <strong>TRIG</strong>, <strong>ECHO</strong> and <strong>GND</strong>.</p>
-
-<p>It measures distance just like a bat:</p>
-<ol>
-  <li>Your Pi sends a brief electrical pulse to the <strong>TRIG</strong> (trigger) pin.</li>
-  <li>The sensor chirps out a burst of ultrasound (silent to us) and starts a stopwatch.</li>
-  <li>The sound travels out, bounces off whatever is in front, and comes back.</li>
-  <li>When the echo returns, the sensor raises its <strong>ECHO</strong> pin HIGH for exactly as long as the round trip took.</li>
-  <li>The Pi times how long ECHO stays HIGH and, knowing the speed of sound (about 343&nbsp;metres per second in air), works out the distance.</li>
-</ol>
-
-<p>Because the sound travels <em>there and back</em>, the Pi divides the time in half before converting it to a distance. Happily, gpiozero's <code>DistanceSensor</code> object does every bit of this timing maths for you — you just read <code>sensor.distance</code>.</p>
-
-<figure class="fig">
-<svg viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg">
-  <rect width="600" height="260" fill="#f3f0ff" rx="12"/>
-  <text x="300" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">How the HC-SR04 measures distance (echo timing)</text>
-
-  <!-- Sensor on the left -->
-  <rect x="30" y="95" width="70" height="70" fill="#1e3a8a" rx="6"/>
-  <circle cx="50" cy="115" r="13" fill="#cbd5e1" stroke="#1f2933" stroke-width="1.5"/>
-  <circle cx="80" cy="115" r="13" fill="#cbd5e1" stroke="#1f2933" stroke-width="1.5"/>
-  <text x="65" y="158" font-family="sans-serif" font-size="10" fill="#f3f0ff" text-anchor="middle">HC-SR04</text>
-  <text x="50" y="185" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">speaker</text>
-  <text x="80" y="198" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">mic</text>
-
-  <!-- Wall / object on the right -->
-  <rect x="500" y="60" width="24" height="140" fill="#9ca3af" stroke="#1f2933" stroke-width="1.5" rx="3"/>
-  <text x="512" y="220" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">object</text>
-
-  <!-- Outgoing chirp (purple, top) -->
-  <line x1="100" y1="110" x2="500" y2="95" stroke="#6d28d9" stroke-width="3"/>
-  <polygon points="500,95 488,90 489,99" fill="#6d28d9"/>
-  <text x="290" y="80" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">chirp out (TRIG fires) →</text>
-
-  <!-- Returning echo (teal, bottom) -->
-  <line x1="500" y1="150" x2="100" y2="150" stroke="#0ea5a4" stroke-width="3"/>
-  <polygon points="100,150 112,145 112,155" fill="#0ea5a4"/>
-  <text x="300" y="172" font-family="sans-serif" font-size="11" fill="#0ea5a4" text-anchor="middle">← echo back (ECHO goes HIGH)</text>
-
-  <!-- Distance bracket -->
-  <line x1="100" y1="230" x2="500" y2="230" stroke="#1f2933" stroke-width="1.5" stroke-dasharray="4,3"/>
-  <text x="300" y="248" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">distance = (speed of sound × echo time) ÷ 2</text>
-</svg>
-<figcaption>The sensor chirps when TRIG fires, then holds ECHO HIGH for as long as the round trip takes. Because the sound travels there and back, the Pi halves the time to find the one-way distance. gpiozero does this maths and gives you the answer in metres.</figcaption>
-</figure>
-
-<p>Here is the simplest possible distance program — but <strong>do not wire it up or run it yet</strong>. First you must build the safety circuit in the next section, or you risk damaging your Pi.</p>
-
-<pre class="code"><code>from gpiozero import DistanceSensor
-from time import sleep
-
-sensor = DistanceSensor(echo=24, trigger=23)   # ECHO via a voltage divider!
-
-while True:
-    distance_m = sensor.distance      # an attribute of the sensor object, in metres
-    print(round(distance_m * 100, 1), "cm")
-    sleep(0.5)</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from gpiozero import DistanceSensor</code>:</strong> Imports the ready-made object that handles all the trigger/echo timing.</p>
-  <p><strong>Line 4 — <code>sensor = DistanceSensor(echo=24, trigger=23)</code>:</strong> Builds the sensor object. We connect ECHO to GPIO 24 (physical pin 18) and TRIG to GPIO 23 (physical pin 16). Notice we name the arguments (<code>echo=</code>, <code>trigger=</code>) so we cannot mix them up.</p>
-  <p><strong>Line 7 — <code>distance_m = sensor.distance</code>:</strong> Reads the <code>distance</code> attribute of the sensor object. It returns a number in <strong>metres</strong>, from 0 up to 1&nbsp;metre by default.</p>
-  <p><strong>Line 8 — <code>print(round(distance_m * 100, 1), "cm")</code>:</strong> Multiplies by 100 to get centimetres and rounds to one decimal place before printing.</p>
-  <p><strong>Line 9 — <code>sleep(0.5)</code>:</strong> Waits half a second so we get a steady couple of readings per second rather than a blur.</p>
-</div>
-
-
-<h2 id="the-critical-voltage-divider">The Critical Voltage Divider (Read This!)</h2>
-
-<div class="warn"><strong>Careful — this is the most important safety point in the chapter.</strong> The HC-SR04 runs on <strong>5&nbsp;volts</strong>, and its <strong>ECHO pin sends out a 5&nbsp;V signal</strong>. But the Pi 5's GPIO pins are <strong>3.3&nbsp;V only and are NOT 5&nbsp;V-tolerant</strong>. Connecting ECHO straight to a GPIO pin pushes 5&nbsp;V into a pin that can take 3.3&nbsp;V, and there is no fuse to save it — you can <strong>permanently destroy your Pi</strong>. You MUST drop the ECHO voltage with a two-resistor <em>voltage divider</em> first. (The TRIG pin is the other way round — the Pi sends 3.3&nbsp;V <em>out</em> to it, which the sensor reads happily, so TRIG needs <strong>no</strong> divider.)</div>
-
-<div class="jargon"><strong>In plain words:</strong> A <strong>voltage divider</strong> is just two resistors in a line between the signal and ground. The voltage you want appears at the join between them. By choosing the two resistor values, you choose what fraction of the input voltage comes out — here we turn 5&nbsp;V into a Pi-safe 2.94&nbsp;V.</div>
-
-<h3>The maths — turning 5 V into 3.3 V (or less)</h3>
-
-<p>The voltage at the middle tap of a divider follows one simple formula:</p>
-
-<p style="text-align:center; font-size:1.1em;"><strong>V<sub>out</sub> = V<sub>in</sub> × R2 ÷ (R1 + R2)</strong></p>
-
-<p>Here <strong>R1</strong> is the resistor between the ECHO pin and the middle tap, and <strong>R2</strong> is the resistor between the middle tap and ground (GND). The GPIO pin connects to the middle tap. The classic gpiozero recipe uses <strong>R1 = 330&nbsp;Ω</strong> and <strong>R2 = 470&nbsp;Ω</strong>. Let's plug those in with V<sub>in</sub> = 5&nbsp;V:</p>
-
-<p style="text-align:center; font-size:1.1em;">V<sub>out</sub> = 5 × 470 ÷ (330 + 470) = 5 × 470 ÷ 800 = <strong>2.94&nbsp;V</strong></p>
-
-<p>2.94&nbsp;V is comfortably below the 3.3&nbsp;V limit, yet still high enough for the Pi to read clearly as a HIGH signal. Perfect.</p>
-
-<figure class="fig">
-<svg viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg">
-  <rect width="560" height="320" fill="#f3f0ff" rx="12"/>
-  <text x="280" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">The ECHO voltage divider: 5 V → 2.94 V</text>
-
-  <!-- ECHO source top -->
-  <rect x="60" y="55" width="120" height="26" fill="#dc2626" rx="5"/>
-  <text x="120" y="73" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">ECHO = 5 V</text>
-
-  <!-- Wire down to R1 -->
-  <line x1="120" y1="81" x2="120" y2="105" stroke="#dc2626" stroke-width="3"/>
-
-  <!-- R1: 330 ohm -->
-  <rect x="92" y="105" width="56" height="24" fill="#d4a372" stroke="#1f2933" stroke-width="1.5" rx="4"/>
-  <rect x="100" y="105" width="5" height="24" fill="#f97316"/>
-  <rect x="109" y="105" width="5" height="24" fill="#f97316"/>
-  <rect x="118" y="105" width="5" height="24" fill="#92400e"/>
-  <rect x="132" y="105" width="5" height="24" fill="#ca8a04"/>
-  <text x="200" y="121" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="start">R1 = 330 Ω (orange-orange-brown-gold)</text>
-
-  <!-- Wire to middle tap -->
-  <line x1="120" y1="129" x2="120" y2="165" stroke="#1f2933" stroke-width="3"/>
-
-  <!-- Middle tap node -->
-  <circle cx="120" cy="165" r="6" fill="#6d28d9"/>
-  <!-- Wire to GPIO -->
-  <line x1="120" y1="165" x2="320" y2="165" stroke="#6d28d9" stroke-width="3"/>
-  <rect x="320" y="152" width="180" height="26" fill="#6d28d9" rx="5"/>
-  <text x="410" y="170" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">→ GPIO 24 = 2.94 V (safe)</text>
-
-  <!-- Wire down to R2 -->
-  <line x1="120" y1="165" x2="120" y2="205" stroke="#1f2933" stroke-width="3"/>
-
-  <!-- R2: 470 ohm -->
-  <rect x="92" y="205" width="56" height="24" fill="#d4a372" stroke="#1f2933" stroke-width="1.5" rx="4"/>
-  <rect x="100" y="205" width="5" height="24" fill="#ca8a04"/>
-  <rect x="109" y="205" width="5" height="24" fill="#92400e"/>
-  <rect x="118" y="205" width="5" height="24" fill="#92400e"/>
-  <rect x="132" y="205" width="5" height="24" fill="#ca8a04"/>
-  <text x="200" y="221" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="start">R2 = 470 Ω (yellow-violet-brown-gold)</text>
-
-  <!-- Wire to GND -->
-  <line x1="120" y1="229" x2="120" y2="265" stroke="#374151" stroke-width="3"/>
-  <rect x="60" y="265" width="120" height="26" fill="#374151" rx="5"/>
-  <text x="120" y="283" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">GND (0 V)</text>
-
-  <!-- formula box -->
-  <rect x="300" y="205" width="240" height="86" fill="white" stroke="#6d28d9" stroke-width="1" rx="6" opacity="0.9"/>
-  <text x="420" y="226" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">Vout = Vin × R2 / (R1+R2)</text>
-  <text x="420" y="248" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle">= 5 × 470 / (330+470)</text>
-  <text x="420" y="270" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle">= 5 × 470 / 800</text>
-  <text x="420" y="288" font-family="sans-serif" font-size="13" fill="#059669" text-anchor="middle" font-weight="bold">= 2.94 V ✓ safe for GPIO</text>
-</svg>
-<figcaption>The ECHO voltage divider. R1 (330 Ω) sits between ECHO and the middle tap; R2 (470 Ω) sits between the tap and GND. The GPIO pin reads the tap, where the voltage has dropped from 5 V to a safe 2.94 V. TRIG needs no divider.</figcaption>
-</figure>
-
-<div class="tip"><strong>Tip:</strong> If you do not have 330&nbsp;Ω and 470&nbsp;Ω to hand, any pair with roughly a 2:3 ratio works. For example <strong>1&nbsp;kΩ (R1) + 2&nbsp;kΩ (R2)</strong> gives 5 × 2000 ÷ 3000 = 3.33&nbsp;V — right at the limit but commonly used. The 330&nbsp;Ω/470&nbsp;Ω pair is gentler, so we prefer it here.</div>
-
-<div class="note"><strong>Note:</strong> Some makers use a ready-made "logic level shifter" board instead of two resistors. That works too, but the resistor divider is cheaper, uses parts from your starter kit, and teaches you exactly what is happening — so that is what we build.</div>
-
-
-<h2 id="parts-and-wiring">Parts &amp; Wiring</h2>
-
-<h3>What you need</h3>
-<ul>
-  <li>A Raspberry Pi 5 running Raspberry Pi OS Bookworm</li>
-  <li>1 × HC-SR04 ultrasonic distance sensor (4 pins: VCC, TRIG, ECHO, GND)</li>
-  <li>1 × 330&nbsp;Ω resistor (orange-orange-brown-gold) — this is R1 of the divider</li>
-  <li>1 × 470&nbsp;Ω resistor (yellow-violet-brown-gold) — this is R2 of the divider</li>
-  <li>1 × green LED, 1 × amber/yellow LED, 1 × red LED</li>
-  <li>3 × 330&nbsp;Ω resistors — one in series with each LED</li>
-  <li>1 × active buzzer (a small buzzer that beeps when switched on)</li>
-  <li>1 × breadboard and a handful of jumper wires (male-to-male and female-to-male)</li>
-</ul>
-
-<div class="warn"><strong>Careful — power off first.</strong> Shut your Pi down fully (Raspberry Pi menu → Shutdown), wait for the green light to go out, and unplug the power lead <em>before touching any wires</em>. Remember: GPIO is 3.3&nbsp;V logic — <strong>never feed 5&nbsp;V into a GPIO input</strong>, which is exactly why the ECHO line must go through the divider. Give every LED its own 330&nbsp;Ω resistor, and only re-connect power once you have checked everything.</div>
-
-<h3>Wiring diagram</h3>
-
-<figure class="fig">
-<svg viewBox="0 0 640 470" xmlns="http://www.w3.org/2000/svg">
-  <rect width="640" height="470" fill="#f3f0ff" rx="12"/>
-  <text x="320" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Parking Assistant — Full Wiring Diagram</text>
-
-  <!-- Pi header -->
-  <rect x="20" y="60" width="96" height="360" fill="#1f2933" rx="6"/>
-  <text x="68" y="52" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
-  <rect x="24" y="80" width="14" height="11" fill="#dc2626" rx="2"/>
-  <text x="42" y="89" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 2 (5 V)</text>
-  <rect x="24" y="108" width="14" height="11" fill="#6d28d9" rx="2"/>
-  <text x="42" y="117" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 16 (GPIO 23 TRIG)</text>
-  <rect x="24" y="136" width="14" height="11" fill="#6d28d9" rx="2"/>
-  <text x="42" y="145" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 18 (GPIO 24 ECHO)</text>
-  <rect x="24" y="180" width="14" height="11" fill="#6d28d9" rx="2"/>
-  <text x="42" y="189" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 11 (GPIO 17 grn)</text>
-  <rect x="24" y="208" width="14" height="11" fill="#6d28d9" rx="2"/>
-  <text x="42" y="217" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 13 (GPIO 27 amb)</text>
-  <rect x="24" y="236" width="14" height="11" fill="#6d28d9" rx="2"/>
-  <text x="42" y="245" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 15 (GPIO 22 red)</text>
-  <rect x="24" y="264" width="14" height="11" fill="#6d28d9" rx="2"/>
-  <text x="42" y="273" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 31 (GPIO 6 buzz)</text>
-  <rect x="24" y="392" width="14" height="11" fill="#374151" rx="2"/>
-  <text x="42" y="401" font-family="sans-serif" font-size="9" fill="#9ca3af">Pin 6 (GND)</text>
-
-  <!-- Sensor -->
-  <rect x="440" y="60" width="120" height="60" fill="#1e3a8a" rx="6"/>
-  <text x="500" y="84" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle">HC-SR04</text>
-  <text x="500" y="100" font-family="sans-serif" font-size="9" fill="#cbd5e1" text-anchor="middle">VCC TRIG ECHO GND</text>
-
-  <!-- 5V to VCC (red) -->
-  <line x1="38" y1="85" x2="455" y2="85" stroke="#dc2626" stroke-width="3"/>
-  <line x1="455" y1="85" x2="455" y2="120" stroke="#dc2626" stroke-width="3"/>
-  <text x="250" y="78" font-family="sans-serif" font-size="9" fill="#dc2626">5 V → VCC</text>
-
-  <!-- TRIG (purple, direct, no divider) -->
-  <line x1="38" y1="113" x2="485" y2="113" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="485" y1="113" x2="485" y2="120" stroke="#6d28d9" stroke-width="3"/>
-  <text x="250" y="108" font-family="sans-serif" font-size="9" fill="#6d28d9">GPIO 23 → TRIG (3.3 V out, no divider)</text>
-
-  <!-- ECHO divider region -->
-  <!-- Echo from sensor down -->
-  <line x1="515" y1="120" x2="515" y2="150" stroke="#dc2626" stroke-width="3"/>
-  <text x="540" y="138" font-family="sans-serif" font-size="9" fill="#dc2626">ECHO 5 V</text>
-  <!-- R1 -->
-  <rect x="500" y="150" width="30" height="14" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <text x="560" y="161" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">R1 330Ω</text>
-  <line x1="515" y1="164" x2="515" y2="185" stroke="#1f2933" stroke-width="3"/>
-  <!-- middle tap -->
-  <circle cx="515" cy="185" r="5" fill="#6d28d9"/>
-  <!-- tap to GPIO24 (purple) -->
-  <line x1="515" y1="185" x2="38" y2="185" stroke="#6d28d9" stroke-width="3" stroke-dasharray="0"/>
-  <text x="250" y="180" font-family="sans-serif" font-size="9" fill="#6d28d9">middle tap 2.94 V → GPIO 24 (ECHO in)</text>
-  <!-- R2 -->
-  <line x1="515" y1="185" x2="515" y2="210" stroke="#1f2933" stroke-width="3"/>
-  <rect x="500" y="210" width="30" height="14" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <text x="560" y="221" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">R2 470Ω</text>
-  <line x1="515" y1="224" x2="515" y2="410" stroke="#374151" stroke-width="3"/>
-
-  <!-- LEDs -->
-  <!-- green -->
-  <circle cx="320" cy="300" r="11" fill="#059669" stroke="#1f2933" stroke-width="1.5"/>
-  <text x="320" y="304" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">G</text>
-  <rect x="240" y="293" width="26" height="12" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <text x="253" y="287" font-family="sans-serif" font-size="8" fill="#1f2933" text-anchor="middle">330Ω</text>
-  <line x1="38" y1="185.5" x2="120" y2="300" stroke="#6d28d9" stroke-width="2"/>
-  <line x1="120" y1="300" x2="240" y2="299" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="266" y1="299" x2="309" y2="300" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="331" y1="300" x2="331" y2="410" stroke="#374151" stroke-width="2"/>
-
-  <!-- amber -->
-  <circle cx="380" cy="330" r="11" fill="#f59e0b" stroke="#1f2933" stroke-width="1.5"/>
-  <text x="380" y="334" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">A</text>
-  <rect x="240" y="323" width="26" height="12" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <line x1="38" y1="213" x2="240" y2="329" stroke="#6d28d9" stroke-width="2"/>
-  <line x1="266" y1="329" x2="369" y2="330" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="391" y1="330" x2="391" y2="410" stroke="#374151" stroke-width="2"/>
-
-  <!-- red -->
-  <circle cx="320" cy="360" r="11" fill="#dc2626" stroke="#1f2933" stroke-width="1.5"/>
-  <text x="320" y="364" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">R</text>
-  <rect x="240" y="353" width="26" height="12" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <line x1="38" y1="241" x2="240" y2="359" stroke="#6d28d9" stroke-width="2"/>
-  <line x1="266" y1="359" x2="309" y2="360" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="331" y1="360" x2="331" y2="410" stroke="#374151" stroke-width="2"/>
-
-  <!-- buzzer -->
-  <circle cx="430" cy="385" r="14" fill="#374151" stroke="#1f2933" stroke-width="1.5"/>
-  <text x="430" y="389" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">BZ</text>
-  <line x1="38" y1="269" x2="416" y2="385" stroke="#6d28d9" stroke-width="2"/>
-  <line x1="430" y1="399" x2="430" y2="410" stroke="#374151" stroke-width="2"/>
-
-  <!-- common ground rail -->
-  <line x1="120" y1="410" x2="515" y2="410" stroke="#374151" stroke-width="3"/>
-  <line x1="38" y1="397.5" x2="120" y2="410" stroke="#374151" stroke-width="3"/>
-  <text x="300" y="428" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">common GND rail — all − legs and the sensor GND return here to Pin 6</text>
-
-  <!-- legend -->
-  <text x="320" y="450" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Red = 5 V · Purple = GPIO signal · Grey = GND. ECHO passes through the divider before reaching GPIO 24.</text>
-</svg>
-<figcaption>The complete parking assistant. The sensor's VCC takes 5 V; TRIG connects directly to GPIO 23; ECHO goes through the 330 Ω/470 Ω divider so GPIO 24 only ever sees 2.94 V. Each LED has its own 330 Ω resistor, and the buzzer and every cathode share the common GND rail back to pin 6.</figcaption>
-</figure>
-
-<h3>Connection table</h3>
-
-<table class="tbl">
+<table>
   <thead>
     <tr>
-      <th>From (component)</th>
-      <th>To (Pi pin / node)</th>
-      <th>Via</th>
-      <th>Notes</th>
+      <th></th>
+      <th>Hard link</th>
+      <th>Symbolic (soft) link</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>HC-SR04 VCC</td>
-      <td>Pin 2 (5 V)</td>
-      <td>direct</td>
-      <td>The sensor needs a full 5 V to work reliably</td>
+      <td><strong>What it is</strong></td>
+      <td>another directory entry pointing at the <em>same inode</em></td>
+      <td>a tiny file whose content is a <em>path string</em></td>
     </tr>
     <tr>
-      <td>HC-SR04 TRIG</td>
-      <td>Pin 16 (GPIO 23)</td>
-      <td>direct</td>
-      <td>Pi sends 3.3 V out — <strong>no divider needed</strong></td>
+      <td><strong>Is there an "original"?</strong></td>
+      <td>no — all names are equal peers</td>
+      <td>yes — it points at a <em>name</em></td>
     </tr>
     <tr>
-      <td>HC-SR04 ECHO</td>
-      <td>Pin 18 (GPIO 24)</td>
-      <td><strong>330 Ω (R1) then tap to GPIO; 470 Ω (R2) tap to GND</strong></td>
-      <td><strong>Divider is mandatory</strong> — drops 5 V → 2.94 V</td>
+      <td><strong>Can it cross filesystems?</strong></td>
+      <td>no (inode numbers are per-filesystem)</td>
+      <td>yes</td>
     </tr>
     <tr>
-      <td>HC-SR04 GND</td>
-      <td>Pin 6 (GND)</td>
-      <td>common GND rail</td>
-      <td>Same ground as the divider's R2 and the LEDs</td>
+      <td><strong>Can it point to a directory?</strong></td>
+      <td>no (generally)</td>
+      <td>yes</td>
     </tr>
     <tr>
-      <td>Green LED anode (long leg)</td>
-      <td>Pin 11 (GPIO 17)</td>
-      <td>330 Ω resistor</td>
-      <td>"Safe" light</td>
+      <td><strong>If the target moves or is deleted?</strong></td>
+      <td>unaffected — data lives until link count hits 0</td>
+      <td><strong>breaks</strong> — becomes a dangling link</td>
     </tr>
     <tr>
-      <td>Amber LED anode (long leg)</td>
-      <td>Pin 13 (GPIO 27)</td>
-      <td>330 Ω resistor</td>
-      <td>"Caution" light</td>
-    </tr>
-    <tr>
-      <td>Red LED anode (long leg)</td>
-      <td>Pin 15 (GPIO 22)</td>
-      <td>330 Ω resistor</td>
-      <td>"Stop" light</td>
-    </tr>
-    <tr>
-      <td>Buzzer + (positive)</td>
-      <td>Pin 31 (GPIO 6)</td>
-      <td>direct</td>
-      <td>A small active buzzer is fine on a GPIO pin</td>
-    </tr>
-    <tr>
-      <td>All LED cathodes (short legs) &amp; buzzer −</td>
-      <td>Pin 6 (GND)</td>
-      <td>common GND rail</td>
-      <td>Shared return path</td>
+      <td><strong>How you make one</strong></td>
+      <td><code>ln a b</code></td>
+      <td><code>ln -s target name</code></td>
     </tr>
   </tbody>
 </table>
 
-<div class="tip"><strong>Tip:</strong> Build the divider first and double-check it before anything else. The easiest way to wire it on a breadboard: push ECHO into one row, put R1 between that row and an empty middle row, run a jumper from the middle row to GPIO 24, then put R2 between the middle row and the GND rail. If in any doubt, trace it against the diagram above before powering on.</div>
+<pre class="code"><code>echo hi &gt; a
+ln a b               # hard link: 'ls -i' now shows a and b with the SAME inode number
+rm a                 # b still works perfectly -- the data is freed only when link count -> 0
+ln -s /etc/hosts h   # soft link: h's content is literally the string "/etc/hosts"</code></pre>
 
+<p>That difference in the last two rows is where people get burned, so it's worth saying plainly. A hard link doesn't care what happens to the other names — delete every other entry and the data stays alive as long as <em>one</em> name (one link) remains. A symlink, by contrast, only remembers a <em>path</em>. Move or rename the thing it points at and the symlink doesn't follow; it just keeps pointing at a path where nothing lives any more — a <strong>dangling</strong> link. <code>ls</code> often shows these in an alarming red.</p>
 
-<h2 id="building-the-parking-assistant">Building the Parking Assistant</h2>
+<p><strong>The key insight:</strong> a hard link points at the <em>file</em> (the inode); a symlink points at a <em>name</em>. That's why moving the target breaks one and not the other.</p>
 
-<p>Now we bring everything together. The plan: read the distance many times a second, decide which "zone" the object is in, light the matching LED, and beep the buzzer at a speed that depends on how close the object is. To keep the code tidy we will write our own class, <code>ParkingZone</code>, that bundles a zone's name, its distance range, and which light belongs to it.</p>
+<h2 id="why-mv-is-instant">Why mv is instant — and why moving across disks isn't</h2>
 
-<h3>Step 1 — a class to describe each zone</h3>
+<p>Here's a satisfying payoff. When you <code>mv</code> a 100 GB file to a new location <em>on the same filesystem</em>, it happens instantly. No progress bar, no waiting. Why? Because a move within one filesystem doesn't touch the data at all — it just <strong>rewrites a directory entry</strong>. The inode never changes; only the name pointing at it does. Renaming is editing the phone book, not moving the person.</p>
 
-<p>First, here is the helper class on its own so you can see it clearly. It uses everything from the earlier lessons: a class, an <code>__init__</code>, attributes, and a method that <em>returns a value</em>.</p>
+<p>But <code>mv</code> that same file to a <em>different</em> filesystem — say from the microSD card to a USB drive — and suddenly it takes real time. That's because the destination is a separate filesystem with its own, separate set of inode numbers. There's no way to just re-point a name; the data has to be genuinely <em>copied</em> across and then the original deleted. Same command, completely different amount of work, and now you know why.</p>
 
-<pre class="code"><code>class ParkingZone:
-    def __init__(self, name, max_cm, led, beep_gap):
-        self.name = name
-        self.max_cm = max_cm
-        self.led = led
-        self.beep_gap = beep_gap
+<p>This is also exactly why hard links can't cross filesystems: a hard link is two names sharing one inode number, and an inode number only means anything <em>within its own filesystem</em>. A symlink can cross freely because it stores a path string, which works anywhere.</p>
 
-    def contains(self, distance_cm):
-        return distance_cm &lt;= self.max_cm</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>class ParkingZone:</code>:</strong> Our own blueprint describing one band of distance, such as "caution".</p>
-  <p><strong>Line 2 — <code>def __init__(self, name, max_cm, led, beep_gap):</code>:</strong> The initialiser takes four pieces of information for each zone: a <code>name</code>, the furthest distance that counts as this zone (<code>max_cm</code>), the <code>led</code> object that lights for it, and <code>beep_gap</code> — how long (in seconds) to pause between beeps in this zone.</p>
-  <p><strong>Lines 3–6 — <code>self.name = name</code> … :</strong> Store each value on the object so it remembers them. Now every <code>ParkingZone</code> object carries its own name, range, LED and beep speed.</p>
-  <p><strong>Line 8 — <code>def contains(self, distance_cm):</code>:</strong> A method that answers a yes/no question: is a given distance inside this zone?</p>
-  <p><strong>Line 9 — <code>return distance_cm &lt;= self.max_cm</code>:</strong> Returns <code>True</code> if the distance is less than or equal to this zone's upper limit, otherwise <code>False</code>. A function returning a True/False value like this is exactly how we map a measurement to a behaviour.</p>
-</div>
+<h2 id="deleting-an-open-file">The myth of "rm frees space"</h2>
 
-<h3>Step 2 — the full program</h3>
+<p>This one surprises almost everyone, and it's the source of a classic Pi headache: a disk that's mysteriously full with nothing to show for it.</p>
 
-<p>Open a new file in Thonny, type the whole program below, and save it as <code>parking.py</code>.</p>
+<div class="warn"><strong>Myth vs reality:</strong> <strong>Myth —</strong> "When I <code>rm</code> a file, its disk space is freed immediately." <strong>Reality —</strong> <code>rm</code> performs an <em>unlink</em>: it removes the <strong>name</strong> and decrements the inode's link count. The inode and its data blocks are freed only when the link count reaches 0 <strong>and no process still has the file open</strong>. So if a running program is holding the file, deleting its name frees nothing — the program keeps reading and writing it happily, and the disk space stays consumed until that program closes the file or exits.</div>
 
-<pre class="code"><code>from gpiozero import DistanceSensor, LED, Buzzer
-from time import sleep, time
+<p>This is the "phantom disk space" bug in the flesh. A log file grows huge, someone <code>rm</code>s it to reclaim space, but the service that writes the log still has it open — so the space never comes back. The tell-tale sign is that <code>df</code> (which asks the filesystem how full it is) reports the disk nearly full, while <code>du</code> (which adds up the files it can actually <em>see</em> by name) reports far less. The gap between them is space held hostage by deleted-but-still-open files.</p>
 
-# --- the sensor object (ECHO wired through the 330/470 divider!) ---
-sensor = DistanceSensor(echo=24, trigger=23, max_distance=1.0)
+<pre class="code"><code>df -h /                       # filesystem says: nearly full
+du -sh / 2&gt;/dev/null          # adding up visible files says: much less -- where's the rest?
+sudo lsof +L1                 # the smoking gun: open files whose link count has dropped to 0
+sudo lsof | grep deleted     # same idea, shown as '(deleted)' next to the path</code></pre>
 
-# --- output objects ---
-green = LED(17)
-amber = LED(27)
-red = LED(22)
-buzzer = Buzzer(6)
+<p>The fix is simply to make the process let go: restart the service (or, more surgically, truncate the file through its open file descriptor). And far from being a bug, this behaviour is a <em>feature</em> that log rotation depends on — a logger can keep writing to a file that's already been unlinked and replaced, with no gap and no crash, exactly because the open descriptor keeps the old inode alive until the process is told to reopen.</p>
 
+<h2 id="the-fhs">The FHS: where things live and why</h2>
 
-class ParkingZone:
-    def __init__(self, name, max_cm, led, beep_gap):
-        self.name = name
-        self.max_cm = max_cm
-        self.led = led
-        self.beep_gap = beep_gap
+<p>Now that you trust the plumbing, a quick map of the house. The <strong>Filesystem Hierarchy Standard</strong> gives every top-level directory a defined job, so software written anywhere knows where to put things. On your Pi these are the ones worth committing to memory:</p>
 
-    def contains(self, distance_cm):
-        return distance_cm &lt;= self.max_cm
+<table>
+  <thead>
+    <tr>
+      <th>Path</th>
+      <th>What it holds</th>
+      <th>Mnemonic</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>/etc</code></td><td>system <strong>config</strong>, as plain text files</td><td>"editable text config"</td></tr>
+    <tr><td><code>/var</code></td><td><strong>variable</strong> data: logs (<code>/var/log</code>), spools, caches, databases</td><td>grows over time</td></tr>
+    <tr><td><code>/usr</code></td><td>read-only installed programs &amp; data (<code>/usr/bin</code>, <code>/usr/lib</code>)</td><td>the "installed software" tree</td></tr>
+    <tr><td><code>/bin /sbin /lib</code></td><td>core binaries — now usually <strong>symlinks into <code>/usr</code></strong> ("usr-merge")</td><td>legacy → unified</td></tr>
+    <tr><td><code>/opt</code></td><td>self-contained third-party packages</td><td>"optional" add-ons</td></tr>
+    <tr><td><code>/srv</code></td><td>data this host serves out (web, ftp)</td><td>"served"</td></tr>
+    <tr><td><code>/run</code></td><td>volatile runtime state (PIDs, sockets) — a tmpfs, gone on reboot</td><td>RAM-backed</td></tr>
+    <tr><td><code>/tmp</code></td><td>scratch space (often tmpfs; cleaned on boot)</td><td>throwaway</td></tr>
+    <tr><td><code>/home</code></td><td>user home directories (your <code>/home/pi</code>)</td><td>you</td></tr>
+    <tr><td><code>/proc /sys /dev</code></td><td><strong>virtual</strong> — kernel-generated, not on disk</td><td>windows into the kernel</td></tr>
+  </tbody>
+</table>
 
+<div class="note"><strong>Note:</strong> Those last three — <code>/proc</code>, <code>/sys</code>, <code>/dev</code> — and <code>/run</code> aren't really "on the card" at all. They're <strong>virtual filesystems</strong>: <code>/proc</code> and <code>/sys</code> are live windows the kernel paints for you, and <code>/run</code> and often <code>/tmp</code> are <strong>tmpfs</strong>, which lives in RAM and vanishes at reboot. Fast, but never put anything there you want to keep.</div>
 
-# Zones are checked closest-first. beep_gap of None means "no beeping".
-zones = [
-    ParkingZone("STOP",    10,  red,   0.1),
-    ParkingZone("Close",   20,  red,   0.25),
-    ParkingZone("Caution", 40,  amber, 0.6),
-    ParkingZone("Safe",   100,  green, None),
-]
+<h2 id="journaling">Journaling: surviving a power cut</h2>
 
+<p>Pis get unplugged. No clean shutdown, just the cord — and yet the card almost always comes back fine. That's <strong>journaling</strong> doing its job. A journal is a small write-ahead log: before the filesystem makes a change, it writes down its <em>intention</em> to make that change. Then it does the work. If the power dies mid-write, the filesystem on the next boot simply <strong>replays the journal</strong> to finish or undo the half-done operation — a few seconds — instead of laboriously scanning every inode on the whole card with <code>fsck</code>.</p>
 
-def read_distance_cm():
-    """Return the current distance in centimetres, rounded to 1 dp."""
-    metres = sensor.distance
-    return round(metres * 100, 1)
+<p>Your Pi's ext4 filesystem journals by default in a mode called <code>data=ordered</code>: it journals the metadata, but guarantees the actual <em>data</em> is safely on the disk <em>before</em> the metadata that points to it is committed. That ordering is the pragmatic sweet spot — it protects you from the worst corruption without the speed cost of journaling every byte twice.</p>
 
+<div class="tip"><strong>Tip:</strong> Journaling protects the filesystem's <em>structure</em>, not necessarily the last few seconds of your <em>data</em>. For a Pi that gets yanked off power a lot, still shut down cleanly when you can — and keep backups (see the last project).</div>
 
-def pick_zone(distance_cm):
-    """Return the first ParkingZone whose range contains this distance."""
-    for zone in zones:
-        if zone.contains(distance_cm):
-            return zone
-    return zones[-1]   # fall back to the 'Safe' zone
+<h2 id="ext4-vs-the-big-servers">What your Pi uses (ext4) vs what big servers use</h2>
 
+<p>Raspberry Pi OS formats your card as <strong>ext4</strong>, and that's the right default: boring, reliable, and bulletproof. But it's worth knowing what the bigger filesystems add, because the comparison teaches one genuinely beautiful idea — copy-on-write.</p>
 
-def all_lights_off():
-    green.off()
-    amber.off()
-    red.off()
+<table>
+  <thead>
+    <tr>
+      <th>Filesystem</th>
+      <th>Character</th>
+      <th>Reach for it when</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>ext4</strong></td><td>the reliable default (what your Pi uses); journaling, extents; no snapshots or checksums</td><td>you want boring and bulletproof</td></tr>
+    <tr><td><strong>XFS</strong></td><td>high-throughput, great with huge files and many parallel writers; can grow but <em>not shrink</em></td><td>big data, many parallel writers</td></tr>
+    <tr><td><strong>btrfs</strong></td><td><strong>copy-on-write</strong>: snapshots, subvolumes, checksums (catches bit-rot), built-in RAID, compression</td><td>snapshots &amp; integrity on Linux-native storage</td></tr>
+    <tr><td><strong>ZFS</strong></td><td>the integrity gold standard: CoW, end-to-end checksums, snapshots, volume management + RAID-Z; RAM-hungry</td><td>data you must not lose — NAS and storage servers</td></tr>
+  </tbody>
+</table>
 
+<p>The magic word in the bottom two rows is <strong>copy-on-write</strong> (CoW). On btrfs and ZFS, taking a snapshot is nearly instant and nearly free, because <em>nothing is actually copied</em>. A snapshot just says "remember all the blocks exactly as they are right now" and shares them. Only when a block later <em>changes</em> does the filesystem write a fresh copy of that one block, leaving the old one in place for the snapshot to keep pointing at. Hence the name: copy <em>on write</em>, not before.</p>
 
-print("Parking assistant running. Press Ctrl+C to stop.")
-last_beep = 0
+<p><strong>The key insight:</strong> a CoW snapshot of a 50 GB volume costs essentially zero space and zero time at first, then grows only by the size of what you change afterwards. That's what makes effortless point-in-time rollbacks possible on the big servers — and, interestingly, the same dedup idea is exactly what we'll use to fake snapshots on your plain ext4 Pi in the last project, using hard links.</p>
 
-try:
-    while True:
-        distance = read_distance_cm()
-        zone = pick_zone(distance)
+<h2 id="lvm">LVM: a flexible layer beneath the filesystem</h2>
 
-        all_lights_off()
-        zone.led.on()
+<p>One more layer to name, because you'll meet it on bigger Linux boxes even if your Pi doesn't use it by default. <strong>LVM</strong> (the Logical Volume Manager) sits <em>between</em> raw disks and the filesystem, turning rigid partitions into a flexible, resizable pool:</p>
 
-        print(f"{distance:5.1f} cm  -&gt;  {zone.name}")
+<pre class="code"><code>physical disks  ->  PV (physical volume)  ->  VG (volume group = a pool)  ->  LV (logical volume)  ->  filesystem</code></pre>
 
-        if zone.beep_gap is not None:
-            if time() - last_beep &gt;= zone.beep_gap:
-                buzzer.on()
-                sleep(0.05)
-                buzzer.off()
-                last_beep = time()
-        else:
-            buzzer.off()
+<p>With LVM you can grow a "partition" across several disks, snapshot it, or migrate it to new hardware — all without repartitioning. It's a software-defined, stretchy abstraction over the physical disks. (btrfs and ZFS fold this same capability <em>into</em> the filesystem; with ext4 or XFS you add LVM underneath to get it.) To see the whole stack of disks, partitions, and mounts on any Linux box:</p>
 
-        sleep(0.05)
+<pre class="code"><code>lsblk                  # the block-device tree: disks -> partitions -> mountpoints
+findmnt                # what's mounted where, as a readable tree
+mount | column -t      # the same information, one mount per line</code></pre>
 
-except KeyboardInterrupt:
-    all_lights_off()
-    buzzer.off()
-    print("\nStopped. Lights off.")</code></pre>
-<div class="explain">
-  <p><strong>Lines 1–2 — imports:</strong> We bring in <code>DistanceSensor</code>, <code>LED</code> and <code>Buzzer</code> from gpiozero, and <code>sleep</code> plus <code>time</code> from Python's <code>time</code> module. <code>time()</code> returns the current time in seconds, which we use to pace the beeps.</p>
-  <p><strong>Line 5 — <code>sensor = DistanceSensor(echo=24, trigger=23, max_distance=1.0)</code>:</strong> Builds the sensor object. <code>max_distance=1.0</code> tells gpiozero we care about distances up to 1&nbsp;metre, which keeps readings responsive.</p>
-  <p><strong>Lines 8–11 — output objects:</strong> One <code>LED</code> object per light, plus a <code>Buzzer</code> object on GPIO 6. Each is an object created from a class — the same idea as the sensor.</p>
-  <p><strong>Lines 14–22 — the <code>ParkingZone</code> class:</strong> Exactly the helper class from Step 1, pasted in. Defining it here means we can stamp out several zone objects below.</p>
-  <p><strong>Lines 25–30 — <code>zones = [ ... ]</code>:</strong> A <em>list</em> of four <code>ParkingZone</code> objects, ordered closest-first. STOP (≤10&nbsp;cm) beeps almost continuously; Close (≤20&nbsp;cm) beeps fast; Caution (≤40&nbsp;cm) beeps slowly in amber; Safe (everything else) shows green with no beep (<code>None</code>).</p>
-  <p><strong>Lines 33–36 — <code>read_distance_cm()</code>:</strong> A function that <em>returns a value</em>: it reads the sensor's <code>distance</code> attribute (metres), converts to centimetres, rounds it, and hands it back. The triple-quoted line is a <em>docstring</em> describing what the function does.</p>
-  <p><strong>Lines 39–44 — <code>pick_zone(distance_cm)</code>:</strong> Walks through the zones from closest to furthest and <code>return</code>s the first one whose <code>contains()</code> method says yes. Because the list is ordered closest-first, the tightest matching zone always wins. If somehow none match, line 44 returns the last (Safe) zone.</p>
-  <p><strong>Lines 47–50 — <code>all_lights_off()</code>:</strong> A small helper that switches all three LEDs off, so we start each loop with a clean slate before lighting just one.</p>
-  <p><strong>Line 55 — <code>last_beep = 0</code>:</strong> Remembers the time of the most recent beep so we can space beeps out by each zone's <code>beep_gap</code>.</p>
-  <p><strong>Line 57 — <code>try:</code>:</strong> Wraps the main loop so that pressing Ctrl+C runs the tidy-up code at the bottom instead of crashing.</p>
-  <p><strong>Lines 59–60 — read &amp; classify:</strong> Each loop we get the distance, then ask <code>pick_zone()</code> which zone we are in. This is the heart of <em>mapping a measurement to a behaviour</em>.</p>
-  <p><strong>Lines 62–63 — <code>all_lights_off()</code> then <code>zone.led.on()</code>:</strong> Clear all lights, then light only the one belonging to the chosen zone. Notice <code>zone.led</code> is the LED object we stored on that zone earlier.</p>
-  <p><strong>Line 65 — <code>print(f"{distance:5.1f} cm  -&gt;  {zone.name}")</code>:</strong> An f-string showing the live reading. <code>:5.1f</code> formats the number in a tidy 5-character-wide field with one decimal place, so the column does not jump about.</p>
-  <p><strong>Lines 67–74 — the beeping:</strong> If the zone has a <code>beep_gap</code> (not <code>None</code>), and enough time has passed since the last beep, switch the buzzer on for a brief 0.05&nbsp;s click, then off, and record the time. Closer zones have a smaller <code>beep_gap</code>, so the beeps come faster — exactly the parking-sensor effect.</p>
-  <p><strong>Lines 75–76 — <code>else: buzzer.off()</code>:</strong> In the Safe zone there is no beeping, so we make sure the buzzer is silent.</p>
-  <p><strong>Line 78 — <code>sleep(0.05)</code>:</strong> A short pause so the loop runs about 20 times a second — smooth and responsive without hammering the sensor.</p>
-  <p><strong>Lines 80–83 — <code>except KeyboardInterrupt:</code>:</strong> When you press Ctrl+C, this runs: all lights off, buzzer off, and a friendly message. Always leaving hardware in a safe, quiet state is good manners.</p>
-</div>
-
-
-<h2 id="running-it">Running It</h2>
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
 
 <ol class="steps">
-  <li><strong>Double-check the divider.</strong> Before powering on, trace the ECHO line one more time: ECHO → R1 (330 Ω) → middle tap → GPIO 24, and middle tap → R2 (470 Ω) → GND. This is the step that protects your Pi.</li>
-  <li><strong>Reconnect power</strong> and let the Pi boot to the desktop.</li>
-  <li><strong>Open <code>parking.py</code> in Thonny</strong> and click the green Run button (or press F5).</li>
-  <li><strong>Watch the console.</strong> You should see distance readings scrolling, each labelled with its zone.</li>
-  <li><strong>Move your hand (or a book) towards the sensor.</strong> The lights should step from green to amber to red, and the buzzer should beep faster as you get closer. Pull away and it relaxes back to green.</li>
-  <li><strong>Press Ctrl+C in the console</strong> (or the red Stop button) to end the program cleanly — all lights and the buzzer switch off.</li>
+  <li><strong>Watch an inode and a link count with your own eyes.</strong> Run <code>echo hi &gt; a</code>, then <code>ls -li a</code> and note the inode number and the link count (the small number after the permissions). Now hard-link it twice with <code>ln a b</code> and <code>ln a c</code>, and add a symlink with <code>ln -s a s</code>. Run <code>ls -li a b c s</code>: <code>a</code>, <code>b</code>, and <code>c</code> all share one inode number and the link count now reads 3, while <code>s</code> has its own inode and an arrow pointing at <code>a</code>. Finally delete the "original" with <code>rm a</code>: confirm <code>b</code> and <code>c</code> still print "hi" perfectly (the data lives on, link count now 2) but <code>s</code> is now <strong>dangling</strong> and broken. Explain every number out loud — that's the lesson.</li>
+  <li><strong>Prove that deleting an open file frees nothing.</strong> In one terminal, start a process that holds a file open and keeps writing: <code>yes &gt; /tmp/big.log &amp;</code> (let it grow for a few seconds, then note the size). In a second terminal, watch <code>df -h /tmp</code> shrink. Now <code>rm /tmp/big.log</code> — and watch <code>df</code> <em>not</em> recover the space, while <code>du -sh /tmp</code> can't even see the file any more. Run <code>sudo lsof +L1</code> or <code>sudo lsof | grep deleted</code> to find the still-open deleted file. Then <code>kill</code> the <code>yes</code> process and watch <code>df</code> finally jump back. You just reproduced the phantom-disk bug — and the mechanism log rotation relies on.</li>
+  <li><strong>Build a Time-Machine-style backup with <code>rsync --link-dest</code>.</strong> Plug in a USB drive. Make a snapshots folder on it, then back up your home directory so that <em>unchanged</em> files are hard-linked to the previous snapshot instead of copied: <code>rsync -a --link-dest=/mnt/usb/backups/latest /home/pi/ /mnt/usb/backups/$(date +%F-%H%M)/</code>, then repoint a <code>latest</code> symlink at the new snapshot. Run it twice with a small change in between, and check the disk usage: ten snapshots of a 1 GB home folder cost roughly 1 GB plus only what changed, because every unchanged file is one inode shared across all snapshots. You've just rebuilt copy-on-write snapshots out of plain ext4 and hard links.</li>
 </ol>
 
-<div class="tip"><strong>Tip:</strong> Ultrasonic sensors like a flat, solid target. A hand works, but a flat book or a wall gives steadier readings. Very soft or angled surfaces can scatter the sound and produce jumpy numbers — that is normal physics, not a bug.</div>
-
-
-<h2 id="troubleshooting">Troubleshooting</h2>
-
-<table class="tbl">
-  <thead>
-    <tr>
-      <th>Symptom</th>
-      <th>Likely cause</th>
-      <th>Fix</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Readings are always 1.0 m (the maximum) or jump wildly</td>
-      <td>ECHO not reaching GPIO 24, or the divider tap is in the wrong place</td>
-      <td>Check the middle tap goes to GPIO 24, R1 is between ECHO and the tap, R2 between tap and GND. A loose jumper is the usual culprit.</td>
-    </tr>
-    <tr>
-      <td>No readings at all / sensor seems dead</td>
-      <td>VCC not on 5 V, or GND not shared</td>
-      <td>VCC must be on a 5 V pin (pin 2 or 4), and the sensor GND, divider R2 and Pi GND must all share the same ground rail.</td>
-    </tr>
-    <tr>
-      <td>Wrong LED lights for the distance</td>
-      <td>LED wired to the wrong GPIO, or zones out of order</td>
-      <td>Confirm green=17, amber=27, red=22, and that the <code>zones</code> list is ordered closest-first.</td>
-    </tr>
-    <tr>
-      <td>Buzzer is silent</td>
-      <td>It's a passive buzzer, or wired backwards</td>
-      <td>This project needs an <em>active</em> buzzer (beeps when simply switched on). Check the + leg goes to GPIO 6.</td>
-    </tr>
-    <tr>
-      <td>Buzzer beeps non-stop and won't pace</td>
-      <td>The <code>last_beep</code> timing got skipped</td>
-      <td>Make sure you copied the <code>if time() - last_beep &gt;= zone.beep_gap:</code> line exactly.</td>
-    </tr>
-    <tr>
-      <td><code>No module named 'lgpio'</code></td>
-      <td>The lgpio backend is missing</td>
-      <td>In a terminal run <code>sudo apt install python3-lgpio</code>, then restart Thonny.</td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="warn"><strong>Careful:</strong> If your Pi behaves oddly only when the sensor is connected — random reboots, USB devices dropping out — power off immediately and re-check that ECHO is going through the divider and not straight to the GPIO pin. A 5&nbsp;V signal sneaking onto a 3.3&nbsp;V pin is the number-one cause of mystery faults here.</div>
-
-
-<h2 id="make-it-your-own">Make It Your Own</h2>
-
-<p>You now have a complete sensing-and-reacting machine. Here are four ways to take it further:</p>
+<h2 id="go-deeper">Go deeper</h2>
 
 <ul>
-  <li><strong>Add a fourth "danger close" tone.</strong> Give the STOP zone a different sound by switching to a <code>TonalBuzzer</code> (from Chapter 26) and playing a low note when very close and a high one further away.</li>
-  <li><strong>Smooth the readings with a method.</strong> Add a <code>read_average()</code> function that takes five readings and returns their average, so a single odd bounce does not flicker the lights. (Hint: collect readings in a list and return <code>sum(readings) / len(readings)</code>.)</li>
-  <li><strong>Make the zones configurable.</strong> Because each zone is an object in a list, you can change the ranges, colours or beep speeds just by editing the <code>zones = [ ... ]</code> block — no other code needs to change. Try tuning it for a model car on a desk.</li>
-  <li><strong>Build a "doorway counter".</strong> Point the sensor across a doorway and use the distance dropping below a threshold to count people walking past — a neat lead-in to the data logging you will do in the next chapter.</li>
+  <li><a href="https://nostarch.com/howlinuxworks3">How Linux Works, 3rd ed. — ch. 4 (disks &amp; filesystems)</a> — the clearest book treatment of inodes, mounts, and LVM. (Paid)</li>
+  <li><a href="https://wiki.archlinux.org/title/File_systems">ArchWiki — File systems / LVM / Btrfs</a> — accurate, practical, and distro-agnostic. (Free)</li>
+  <li><a href="https://man7.org/tlpi/">The Linux Programming Interface, ch. 14–18 (files, directories, links)</a> — the syscall-level truth about inodes and links. (Paid)</li>
+  <li><a href="https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html">Filesystem Hierarchy Standard 3.0</a> — the actual spec for what goes where. (Free)</li>
 </ul>
-
-<div class="note"><strong>Note:</strong> The official gpiozero documentation at <a href="https://gpiozero.readthedocs.io/">gpiozero.readthedocs.io</a> has more on <code>DistanceSensor</code>, including <code>when_in_range</code> and <code>when_out_of_range</code> callbacks — a tidy way to react to crossings without a busy loop, building on the event style you'll meet later.</div>
-
 
 <div class="keyterms">
-<h4>Key terms</h4>
-<ul>
-  <li><strong>Class</strong> - a blueprint that bundles related data and actions together (e.g. <code>LED</code>, <code>DistanceSensor</code>, your own <code>ParkingZone</code>).</li>
-  <li><strong>Object</strong> - one real thing built from a class, with its own data; <code>led = LED(17)</code> creates an object.</li>
-  <li><strong>Attribute</strong> - a piece of data stored on an object, reached with a dot (e.g. <code>sensor.distance</code>).</li>
-  <li><strong>Method</strong> - an action an object can perform, also reached with a dot (e.g. <code>led.on()</code>).</li>
-  <li><strong>__init__</strong> - the initialiser method that runs automatically to set up a new object.</li>
-  <li><strong>self</strong> - inside a class, refers to "this particular object".</li>
-  <li><strong>return</strong> - the keyword that hands a value back from a function so it can be used elsewhere.</li>
-  <li><strong>HC-SR04</strong> - an ultrasonic distance sensor that times the echo of a 40 kHz chirp.</li>
-  <li><strong>DistanceSensor</strong> - the gpiozero object for the HC-SR04; <code>.distance</code> gives metres (0–max_distance).</li>
-  <li><strong>TRIG / ECHO</strong> - the sensor's trigger (Pi → sensor, 3.3 V, no divider) and echo (sensor → Pi, 5 V, needs a divider) pins.</li>
-  <li><strong>Voltage divider</strong> - two resistors that drop a voltage; V<sub>out</sub> = V<sub>in</sub> × R2 ÷ (R1+R2). 330 Ω + 470 Ω turns 5 V into 2.94 V.</li>
-  <li><strong>Active buzzer</strong> - a buzzer that beeps when simply switched on; safe to drive from a GPIO pin via gpiozero's <code>Buzzer</code>.</li>
-</ul>
-</div>
-
-<div class="summary">
-<h4>Chapter summary</h4>
-<ul>
-  <li>A <strong>class</strong> is a blueprint; an <strong>object</strong> is a real thing made from it, bundling its own <strong>attributes</strong> (data) and <strong>methods</strong> (actions), reached with a dot.</li>
-  <li>You wrote your own class, <code>ParkingZone</code>, with an <code>__init__</code> initialiser and a method that returns a True/False answer.</li>
-  <li><strong>Functions that return values</strong> use <code>return</code> to hand a result back so you can store, test or reuse it — unlike <code>print()</code>, which only displays.</li>
-  <li>The <strong>HC-SR04</strong> measures distance by timing the echo of an ultrasonic chirp; gpiozero's <code>DistanceSensor</code> reports it as <code>.distance</code> in <strong>metres</strong>.</li>
-  <li><strong>Critical safety:</strong> the ECHO pin outputs 5 V, which would damage the Pi's 3.3 V GPIO — you MUST use a 330 Ω + 470 Ω <strong>voltage divider</strong> (V<sub>out</sub> = 5 × 470 ÷ 800 = 2.94 V). TRIG, driven at 3.3 V by the Pi, needs no divider.</li>
-  <li>The parking assistant <strong>maps</strong> the continuous distance to a small set of zones, lighting the matching LED and beeping the buzzer faster as objects get closer.</li>
-  <li>Each LED still needs its own 330 Ω resistor, and all grounds (sensor, divider, LEDs, buzzer) share one common GND rail back to the Pi.</li>
-</ul>
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>inode</strong> - The real file object: a numbered record holding metadata (owner, permissions, timestamps, size, link count) and pointers to the data blocks — everything <em>except</em> the name.</li>
+    <li><strong>directory entry</strong> - A single line in a directory mapping a name to an inode number; this is where a filename actually lives.</li>
+    <li><strong>hard link</strong> - A second directory entry pointing at the same inode; an equal peer, not a copy. The data survives until the inode's link count drops to 0.</li>
+    <li><strong>symlink (soft link)</strong> - A tiny file whose content is a path string; it points at a <em>name</em>, so it breaks (dangles) if the target is moved or deleted.</li>
+    <li><strong>link count</strong> - The number of hard links (names) pointing at an inode; the data is freed only when this reaches 0 and no process holds the file open.</li>
+    <li><strong>unlink</strong> - What <code>rm</code> really does: remove a name and decrement the link count, rather than directly erase data.</li>
+    <li><strong>FHS (Filesystem Hierarchy Standard)</strong> - The standard giving each top-level directory (<code>/etc</code>, <code>/var</code>, <code>/usr</code>…) a defined job.</li>
+    <li><strong>journaling</strong> - A write-ahead log of intended changes that lets a filesystem replay (not full-scan) after a crash; ext4 on the Pi uses <code>data=ordered</code>.</li>
+    <li><strong>copy-on-write (CoW)</strong> - The btrfs/ZFS technique where a snapshot shares blocks and a fresh copy of a block is written only when it changes — making snapshots near-instant and near-free.</li>
+    <li><strong>tmpfs</strong> - A RAM-backed filesystem (<code>/run</code>, often <code>/tmp</code>) that is fast and volatile — gone at reboot.</li>
+    <li><strong>LVM (Logical Volume Manager)</strong> - A resizable abstraction (PV → VG → LV) between raw disks and the filesystem, allowing growth, migration, and snapshots without repartitioning.</li>
+  </ul>
 </div>

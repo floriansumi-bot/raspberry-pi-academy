@@ -1,922 +1,178 @@
-<p class="lead">Somewhere in a cupboard sits a dusty LEGO MINDSTORMS NXT 2.0 set — the orange-and-grey brick that could only ever be as clever as its own little firmware allowed. In this chapter you will tear that ceiling off. You will salvage the NXT's motors and sensors, wire them to a Raspberry Pi 5 through a proper motor driver, and give the whole thing a brain that runs real Python and a pair of AI eyes from a Pi Camera. By the end you will have built an autonomous rover that <em>sees</em> an object, <em>thinks</em> about where it is, and <em>acts</em> by steering itself towards it. Along the way you will learn to write a <strong>class</strong> of your own, decode an unusual connector, drive a DC motor safely through an <strong>H-bridge</strong>, read a <strong>quadrature encoder</strong>, and bend a 5&nbsp;V signal down to a Pi-safe 3.3&nbsp;V.</p>
-<div class="widget-mount" data-widget="gpio"></div>
+<p class="lead">This is the last lesson of the Linux track, and it's a different kind of lesson. Up to now you've been <em>learning how Linux works</em> — the shell, processes, files, permissions, networking, systemd, containers. Now we close the loop: you're going to <strong>rebuild the tools you've been using</strong> so the models finally click into your bones, and then <strong>ship a real, always-on service on your Pi</strong> — hardened, behind nginx, with TLS and monitoring. Your Raspberry Pi 5 is the perfect target for all of this. It's a full Debian machine with systemd, it's yours to break, and unlike a throwaway cloud droplet it sits on your desk drawing two watts, ready to be a tiny always-on server. By the end you'll have built something you'd be happy to point a friend's browser at — and you'll understand every layer underneath it.</p>
 
+<p>There's an idea worth saying out loud before we start: <strong>you don't truly understand a system until you've rebuilt a piece of it.</strong> Reading about <code>fork</code> and <code>exec</code> is fine. Writing a 200-line shell that actually forks and execs a command, and discovering <em>for yourself</em> why <code>cd</code> can't be a child process, is a different category of understanding. This lesson has two halves — build-your-own classics, then integration capstones — and you should pick the projects that excite you. Depth beats coverage. Go deep on two and you'll learn more than skimming all of them.</p>
 
-<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+<h2 id="rebuild-to-understand">Rebuild to understand</h2>
 
-<p>This is the Maker Lab finale, and the most ambitious build in the course. We are going to <strong>reanimate</strong> a LEGO NXT robot: keep its Technic frame, motors and sensors, but replace its old brain with your Pi 5 — which can run an on-device AI model that recognises objects in a camera image.</p>
+<p>Reimplementing a tool forces you to confront the model behind it. You can't hand-wave past the part you didn't really get, because the computer won't run hand-waving. Each project below maps directly back to lessons earlier in this track — so as you build, you're not learning something new so much as <em>finishing</em> something you already started.</p>
 
-<p>The finished rover rolls forward, and when its camera spots a target (a ball, a person) it turns to keep that target centred and drives towards it. That one sentence hides three whole disciplines, and you will learn the named fundamentals behind each.</p>
+<div class="jargon"><strong>In plain words:</strong> "Build your own X" isn't about producing a better <code>cat</code> — the real <code>cat</code> is fine. It's that the act of writing it drags the hidden assumptions into the open, where you have to make them concrete. The throwaway program is the byproduct; the understanding is the product.</div>
 
-<h3>Python fundamentals</h3>
-<ul>
-  <li><strong>Classes &amp; objects</strong> — you met these in Chapter 28; here you will write a <code>Robot</code> class of your own that wraps the two drive motors and gives them friendly methods: <code>forward()</code>, <code>backward()</code>, <code>turn_left()</code>, <code>turn_right()</code> and <code>stop()</code>. Bundling the messy motor wiring inside one tidy object is exactly what classes are for.</li>
-  <li><strong>gpiozero <code>Motor</code> and <code>RotaryEncoder</code></strong> — two ready-made objects: one drives a motor through an H-bridge with speed control, the other counts the clicks of the wheel's built-in encoder.</li>
-  <li><strong>Functions and a control loop</strong> — a <code>while</code> loop that reads the world, decides, and acts, over and over: the heartbeat of every robot.</li>
-  <li><strong>Integrating a callback</strong> — feeding the camera's "I see something" result into the <code>Robot</code> so vision and motion become one program. This reuses the AI ideas from Chapter 19 ("Run AI on your Pi").</li>
-</ul>
+<h2 id="build-your-own-classics">Build-your-own classics</h2>
 
-<h3>Electronics fundamentals</h3>
-<ul>
-  <li><strong>The RJ12 6P6C connector and the NXT pinouts</strong> — the odd little plug LEGO used, why ordinary phone leads do not fit, and exactly which of the six coloured wires does what.</li>
-  <li><strong>The DC motor plus quadrature encoder</strong> — an NXT motor is a plain 9&nbsp;V DC motor with a clever optical sensor built in that counts how far the shaft has turned.</li>
-  <li><strong>The H-bridge motor driver</strong> — the circuit that lets a tiny 3.3&nbsp;V GPIO pin command a hungry 9&nbsp;V motor in either direction, without the motor ever touching the Pi directly.</li>
-  <li><strong>A separate motor battery and a common ground</strong> — why the motors get their own battery pack, and why that pack's negative terminal must still join the Pi's ground.</li>
-  <li><strong>Level-shifting / a voltage divider</strong> — the NXT's sensor and encoder lines can sit near 5&nbsp;V, so we drop them to 3.3&nbsp;V before they reach a GPIO pin (the same trick as Chapter 28).</li>
-  <li><strong>A touch of I²C</strong> — the NXT ultrasonic sensor talks over the two-wire I²C bus, which we meet briefly.</li>
-</ul>
+<p>Here are five classic projects, smallest first, each anchored to the earlier lessons it draws on. Start with the easy confidence-builders and work up to the keystone projects — the tiny shell and the PID-1 init — that reorganise how you think about the whole system.</p>
 
-<h3>AI fundamentals</h3>
-<ul>
-  <li><strong>On-device object detection driving real motors</strong> — a camera image goes into a small neural-network model that returns boxes around objects it recognises; your code turns the box's position into a steering decision. This is the <strong>see → think → act</strong> loop at the heart of all robotics.</li>
-</ul>
+<h3>1. Clone the simple ones: <code>cat</code>, <code>wc</code>, <code>head</code></h3>
 
-<div class="note"><strong>Note:</strong> You do not need a complete NXT set to follow along. If you only have one motor, build the single-motor parts; if you have none, the wiring and code still teach you everything, and any cheap 6&nbsp;V–9&nbsp;V DC gear-motor works in their place. We will always say "your motor" rather than assume a particular kit.</div>
+<p>Write <code>cat</code>, <code>wc</code>, and <code>head</code> in C or Python. They look trivial and they almost are — but you'll wrestle with the genuinely fiddly bits every real Unix tool handles: parsing arguments, reading from <em>either</em> standard input <em>or</em> file arguments (the classic "read from a pipe when given no filename" behaviour), buffered I/O, and counting lines versus words versus bytes correctly. Small, fast, satisfying wins to warm up on.</p>
 
+<p><strong>Draws on:</strong> the shell and standard streams (stdin/stdout/stderr), redirection and pipes.</p>
 
-<h2 id="meet-the-nxt-parts-you-can-reuse">Meet the NXT 2.0 Parts You Can Reuse</h2>
+<h3>2. A tiny shell — the keystone project</h3>
 
-<p>Before we cut a single wire, let's be honest about what is easy to reuse on a Pi and what is genuinely hard. The NXT was a sealed system, so some parts give up their secrets readily and others fight back.</p>
+<p>This is the one that changes how you see everything. Write a REPL — read a line, tokenise it, then <code>fork()</code> a child, have the child <code>execvp()</code> the command, and have the parent <code>waitpid()</code> for it to finish. That loop <em>is</em> a shell. Then add a couple of builtins, <code>cd</code> and <code>exit</code>, and you'll hit the lesson that no amount of reading teaches as well as one bug does:</p>
+
+<p><strong>The key insight:</strong> <code>cd</code> <em>must</em> be a builtin — it has to run in the shell process itself, not in a forked child. If you try to make <code>cd</code> an external command, it forks a child, the child changes <em>its own</em> directory, and the child exits. The parent shell never moved. Watching your own shell "fail" to change directory until you make <code>cd</code> a builtin teaches the fork/exec/wait model permanently.</p>
+
+<p>Once the basic shell works, add pipes with <code>pipe()</code> and <code>dup2()</code> — wiring one command's stdout to the next command's stdin is exactly the redirection model you learned, now seen from the <em>producing</em> side.</p>
+
+<p><strong>Draws on:</strong> the shell, processes (fork/exec/wait), redirection and pipes. A wonderful guide is <a href="https://brennan.io/2015/01/16/write-a-shell-in-c/">Stephen Brennan's ~200-line C shell</a> — read it, type it, then extend it.</p>
+
+<h3>3. An HTTP server from raw sockets</h3>
+
+<p>Frameworks hide what HTTP actually is. Strip the magic away. Start with this one-liner to watch the raw wire format with your own eyes:</p>
+
+<pre class="code"><code>while true; do printf 'HTTP/1.1 200 OK\r\n\r\nhello' | nc -l 8080; done</code></pre>
+
+<p>Point a browser at <code>http://your-pi:8080</code> and you'll see <code>hello</code> — you just served HTTP with a shell loop and <code>nc</code>. Now write the real thing: <code>socket()</code> &rarr; <code>bind()</code> &rarr; <code>listen()</code> &rarr; <code>accept()</code> &rarr; <code>recv()</code>/<code>send()</code>, and parse the request line (<code>GET /path HTTP/1.1</code>) yourself. After this, "a web server" stops being a black box and becomes a program you could have written — because you did.</p>
+
+<p><strong>Draws on:</strong> networking and sockets, the shell.</p>
+
+<h3>4. A simple <code>init</code> / PID 1 — the capstone of the process model</h3>
+
+<p>Inside a container, run a process as <strong>PID 1</strong>: launch a child, <strong>forward signals to it</strong> (so <code>docker stop</code> actually reaches your app), and <strong>reap zombie processes</strong> by calling <code>wait()</code> in a loop. When this works, you'll understand in your bones why containers need a tiny init like <code>tini</code>, and why PID 1 is special.</p>
+
+<div class="jargon"><strong>In plain words:</strong> when a process exits, it leaves behind a little "zombie" entry in the process table until its <em>parent</em> collects the exit status with <code>wait()</code>. Normally <code>init</code> adopts and reaps orphans automatically. But the kernel gives PID 1 no special help here — if <em>your</em> program is PID 1 and never calls <code>wait()</code>, zombies pile up forever. That's why a bare app run as PID 1 in a container needs a real init in front of it.</div>
+
+<p><strong>Draws on:</strong> processes and signals, containers. Compare your result to <a href="https://github.com/Yelp/dumb-init">dumb-init</a> and <a href="https://github.com/krallin/tini">tini</a> — the real-world ~200-line versions of exactly what you wrote.</p>
+
+<h3>5. <code>grep</code> and <code>ls</code> clones</h3>
+
+<p><code>grep</code> is line filtering: read lines, test each against a substring or a regex, print the matches. <code>ls</code> is more revealing than it looks — <code>readdir()</code> to walk the directory, <code>stat()</code> each entry, then <em>format the mode field</em> yourself, turning the permission bits back into the <code>rwxr-xr-x</code> string you've read a thousand times. Building <code>ls</code> means producing the permissions display from the <em>other</em> side of everything you learned about permissions.</p>
+
+<p><strong>Draws on:</strong> the shell, the filesystem, permissions.</p>
+
+<div class="tip"><strong>Tip:</strong> Want graded specs instead of going freestyle? <a href="https://codingchallenges.fyi/">codingchallenges.fyi</a> has staged, language-agnostic specs for <code>cat</code>/<code>wc</code>/<code>grep</code>/<code>cut</code>/shell, and <a href="https://app.codecrafters.io/catalog">CodeCrafters</a> gives you a real test suite for build-your-own shell/git/http-server/redis. Both turn "build a thing" into "pass these checks", which makes progress concrete and keeps you honest.</div>
+
+<h2 id="modern-cli-toolbox">A modern CLI toolbox</h2>
+
+<p>Before the capstones, a gift for daily life. There's a whole generation of command-line tools — mostly rewritten in Rust or Go — that are faster, have saner defaults, are <code>.gitignore</code>-aware, and are genuinely nicer to live in. None are <em>required</em>; the standard tools this track taught are what's on every server you'll ever SSH into, and you should keep them in muscle memory. But adopting a handful of these will compound across everything you do.</p>
 
 <table class="tbl">
   <thead>
     <tr>
-      <th>NXT 2.0 part</th>
-      <th>What it really is</th>
-      <th>How reusable on a Pi?</th>
+      <th>Tool</th>
+      <th>Replaces</th>
+      <th>Why it's nicer</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>Servo motors</strong> (the big interactive ones)</td>
-      <td>A 9&nbsp;V DC motor + gearbox + built-in optical encoder</td>
-      <td><strong>Easy.</strong> Drive through an H-bridge; read the encoder through a divider. This is our main build.</td>
+      <td><a href="https://github.com/BurntSushi/ripgrep"><code>ripgrep</code> (<code>rg</code>)</a></td>
+      <td><code>grep -r</code></td>
+      <td>Skips <code>.gitignore</code>d files and binaries by default, multithreaded, much faster: <code>rg -i TODO --type py</code>.</td>
     </tr>
     <tr>
-      <td><strong>Touch sensor</strong></td>
-      <td>A simple push switch (two wires close when pressed)</td>
-      <td><strong>Easy.</strong> Wire as a gpiozero <code>Button</code> to a GPIO pin and GND.</td>
+      <td><a href="https://github.com/sharkdp/fd"><code>fd</code></a></td>
+      <td><code>find</code></td>
+      <td>Sane syntax (<code>fd '\.py$'</code> vs <code>find . -name '*.py'</code>), parallel, <code>.gitignore</code>-aware, coloured.</td>
     </tr>
     <tr>
-      <td><strong>Ultrasonic sensor</strong></td>
-      <td>A distance sensor that talks over <strong>I²C</strong></td>
-      <td><strong>Medium.</strong> Works over the Pi's I²C bus, but has timing quirks and needs level-shifting. Advanced / optional.</td>
+      <td><a href="https://github.com/junegunn/fzf"><code>fzf</code></a></td>
+      <td>— (new power)</td>
+      <td>Interactive fuzzy finder. Bind it to <kbd>Ctrl-R</kbd> for fuzzy shell history; pipe anything into it: <code>vim $(fzf)</code>. The single highest-ROI install.</td>
     </tr>
     <tr>
-      <td><strong>Colour / light sensor</strong> (NXT 2.0)</td>
-      <td>A digitally-clocked sensor with a tri-colour LED, driven by a fiddly custom protocol</td>
-      <td><strong>Hard.</strong> Be honest: not worth the pain. Swap for a Pi-friendly colour sensor (e.g. a TCS34725 over I²C) instead.</td>
+      <td><a href="https://github.com/jqlang/jq"><code>jq</code></a></td>
+      <td>— (new power)</td>
+      <td>A query/transform <em>language</em> for JSON. Indispensable for APIs: <code>curl … | jq '.items[] | {name,id}'</code>. JSON is everywhere; learn it.</td>
     </tr>
     <tr>
-      <td><strong>Sound sensor</strong> (from the first NXT set)</td>
-      <td>A microphone producing an <strong>analog</strong> voltage</td>
-      <td><strong>Medium.</strong> The Pi has no analog input, so you need an ADC chip (e.g. MCP3008) to read it.</td>
+      <td><a href="https://github.com/sharkdp/bat"><code>bat</code></a></td>
+      <td><code>cat</code></td>
+      <td>Syntax highlighting, line numbers, a git change gutter, and automatic paging.</td>
     </tr>
     <tr>
-      <td><strong>Technic frame, gears, wheels, axles</strong></td>
-      <td>Plastic — no electronics at all</td>
-      <td><strong>Trivial.</strong> Reuse freely. This is the easiest and most valuable part to keep.</td>
+      <td><a href="https://github.com/eza-community/eza"><code>eza</code></a></td>
+      <td><code>ls</code></td>
+      <td>Colours, icons, git status, and a built-in <code>--tree</code> view.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/tmux/tmux/wiki"><code>tmux</code></a></td>
+      <td>— (new power)</td>
+      <td>Persistent terminal sessions that <strong>survive disconnection</strong> — reattach after your SSH drops mid-task — plus split panes and multiple windows.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/ajeetdsouza/zoxide"><code>zoxide</code></a></td>
+      <td><code>cd</code></td>
+      <td>Jump to frequent directories by "frecency": <code>z proj</code> instead of <code>cd ~/code/work/project</code>.</td>
     </tr>
   </tbody>
 </table>
 
-<div class="tip"><strong>Tip:</strong> The single best thing you keep from an NXT set is the <em>mechanics</em>: the Technic beams, the wheels, and especially the geared motors. Building a sturdy rolling chassis from scratch is hard; LEGO already solved it for you. Mount the Pi on the frame and you are halfway there.</div>
+<p>Two of these earn special mention because you'll use them constantly on the Pi. <strong><code>tmux</code></strong> is the one "old" tool in the list and it's essential for remote work: start a named session, do your thing, and when your SSH connection drops mid-upgrade your shells keep running — reattach and they're exactly where you left them.</p>
 
-<p>We will build the two drive motors and the touch bumper fully, cover the ultrasonic honestly as an optional extra, and be upfront that the colour sensor is best replaced. Now, the connector.</p>
+<pre class="code"><code>tmux new -s work      # start a named session
+# Ctrl-b "  split horizontally   Ctrl-b %  split vertically   Ctrl-b d  detach
+tmux attach -t work   # reattach later — your shells kept running the whole time</code></pre>
 
+<p>And <strong><code>jq</code></strong> turns the wall of JSON every modern API returns into something you can actually slice:</p>
 
-<h2 id="the-nxt-connector-decoded">The NXT Connector, Decoded</h2>
+<pre class="code"><code>curl -s https://api.github.com/repos/torvalds/linux | jq '{name, stars: .stargazers_count}'
+rg --json TODO | jq -r 'select(.type=="match") | .data.path.text'</code></pre>
 
-<p>Every NXT motor and sensor ends in the same plug: a six-position, six-conductor modular connector, written <strong>6P6C</strong>. It looks almost exactly like the <strong>RJ12</strong> connector on an old telephone handset cable — and that "almost" is the whole problem.</p>
+<div class="tip"><strong>Tip:</strong> Don't alias <code>ls=eza</code> and <code>cat=bat</code> on day one — you'll get tangled up the moment you SSH into a plain server that doesn't have them. Learn the standard tools first (this track did that deliberately), then add the modern ones as personal quality-of-life. If you adopt only three, make them <code>fzf</code>, <code>ripgrep</code>, and <code>jq</code>.</div>
 
-<div class="jargon"><strong>In plain words:</strong> <strong>6P6C</strong> means "6 positions, 6 conductors" — a little clear plastic plug with six gold contacts in a row, held in by a springy plastic latch. <strong>RJ12</strong> is the common name for the wiring standard that uses this exact plug.</div>
+<h2 id="try-it-on-your-pi">Capstones — build something real on your Pi</h2>
 
-<p>LEGO played a sneaky trick: on an NXT plug the locking latch is <strong>offset to one side (the right)</strong> rather than centred. A standard phone or RJ12 lead has a centred latch, so it pushes into an NXT socket but will not seat or click home — the contacts do not line up reliably. This was deliberate, to stop people plugging the wrong things in.</p>
-
-<p>That leaves you two routes to the wires:</p>
+<p>Now the payoff. These four capstones combine multiple lessons into the real-world shape you'd actually deploy. The cloud world does this on a throwaway droplet with a public IP — but your <strong>Pi is the droplet</strong>. It's an always-on Linux box you control completely, which makes it the ideal place to make these mistakes safely and learn from them. Do them in order; each builds on the last. Use a spare microSD card so you can wipe and start over fearlessly.</p>
 
 <ol class="steps">
-  <li><strong>Buy NXT-compatible RJ12 sockets.</strong> A handful of breakout sockets with the correct right-offset latch are sold cheaply (search "NXT/EV3 RJ12 jack breakout"). You plug an unmodified LEGO cable in and screw-terminals or header pins come out. Tidy, reversible, and you keep your cables intact. This is the gentlest option.</li>
-  <li><strong>Cut a LEGO cable open — the salvage route.</strong> Take a spare NXT lead, snip it in the middle, and strip back the grey outer sheath to expose the <strong>six coloured inner wires</strong>. Now you have six tinned ends you can poke straight into a breadboard. You sacrifice one cable but need no special parts. This is the route we will assume, in the spirit of the e-waste pile.</li>
+  <li><strong>Harden your Pi into a proper little server.</strong> Starting from a fresh Raspberry Pi OS install, build a secure baseline: create a <strong>non-root <code>sudo</code> user</strong> and stop logging in as the default account; switch SSH to <strong>key-only authentication</strong> (set <code>PasswordAuthentication no</code> and <code>PermitRootLogin no</code> in <code>sshd_config</code>) so passwords can't be brute-forced; put up an <strong><code>nftables</code> default-drop firewall</strong> that allows <em>only</em> SSH and your app's ports and denies everything else by default; and enable <strong><code>unattended-upgrades</code></strong> so security patches install themselves. Test that you can still log in <em>from a second terminal</em> before you close your working session — locking yourself out is the classic first mistake, and a default-drop firewall is exactly how it happens. <em>Pulls together: users &amp; permissions, networking &amp; firewalls, SSH.</em></li>
+
+  <li><strong>Deploy an app behind nginx with a hardened systemd service and TLS.</strong> Run your app — any language, or the HTTP server you built in the first half — as a <strong>hardened systemd service</strong> bound to <code>localhost</code>, using the lockdown directives <code>DynamicUser=yes</code>, <code>ProtectSystem=strict</code>, and <code>NoNewPrivileges=true</code> (and <code>AmbientCapabilities=CAP_NET_BIND_SERVICE</code> only if it truly needs a low port). Put <strong>nginx in front as a reverse proxy</strong>, forwarding public requests to your app on localhost. If you have a domain pointed at your Pi, add <strong>Let's Encrypt TLS</strong> with <code>certbot</code> for real HTTPS. Confirm graceful restarts with <code>systemctl reload nginx</code> and that your app's logs land in <code>journalctl -u yourapp</code>. This is the standard production deployment shape — and now you've built it from primitives you understand. <em>Pulls together: systemd, permissions &amp; capabilities, networking.</em></li>
+
+  <li><strong>Add real monitoring.</strong> Install <code>node_exporter</code> (which exposes your Pi's CPU, memory, disk, and temperature as metrics), <strong>Prometheus</strong> (which scrapes and stores those metrics over time), and <strong>Grafana</strong> (which graphs them) — <em>each as its own systemd unit</em>. Import a host dashboard and wire one alert, such as "disk over 85% full". <em>Pulls together: the observability mindset, systemd, networking.</em></li>
+
+  <li><strong>Tie it all together in one reproducible bootstrap script.</strong> Fold capstones 1&ndash;3 into a <strong>single idempotent bootstrap script</strong> (a shell script, or an Ansible playbook if you want to go further): a freshly flashed Pi becomes a hardened host running a TLS-terminated, monitored app under systemd — from zero, repeatably. The real test: if you can reflash the card, run one command, and get the exact same working server back, you've <em>operationalised the entire track</em>. That's not a toy — that's the muscle real infrastructure engineering is built on. <em>Pulls together: everything.</em></li>
 </ol>
 
-<div class="warn"><strong>Careful:</strong> Only ever cut a cable that is <em>not</em> plugged into anything, and never the cable to a sensor you cannot replace. Strip the outer sheath gently with wire strippers (or careful fingernails) so you do not nick the thin inner wires. Once exposed, the six wires follow a fixed colour code, which we map next.</div>
+<div class="warn"><strong>Careful:</strong> Prometheus and Grafana have <em>no built-in authentication on their raw metrics endpoints</em>. Bind <code>node_exporter</code> and Prometheus to <code>localhost</code> only — never expose them to the open internet — and reach Grafana through nginx with a login, or over an SSH tunnel. An open Prometheus is a free map of your machine for anyone who finds it.</div>
 
-<figure class="fig">
-<svg viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg">
-  <rect width="600" height="320" fill="#f3f0ff" rx="12"/>
-  <text x="300" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">The NXT 6P6C plug and its six coloured wires</text>
+<div class="note"><strong>Note:</strong> Because your Pi sits on your home network, capstone 2's Let's Encrypt step needs a domain name and a way for the certificate challenge to reach your Pi (a port-forward on your router, or a DNS challenge). If that's more than you want to set up today, do everything else and use a self-signed certificate or plain HTTP on your LAN — the systemd-and-nginx shape is the lesson; public TLS is the optional flourish.</div>
 
-  <!-- Plug body -->
-  <rect x="60" y="70" width="150" height="110" fill="#cbd5e1" stroke="#1f2933" stroke-width="2" rx="8"/>
-  <!-- right-offset latch -->
-  <rect x="170" y="55" width="26" height="20" fill="#94a3b8" stroke="#1f2933" stroke-width="2" rx="3"/>
-  <text x="183" y="48" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle" font-weight="bold">latch (offset right!)</text>
+<p><strong>The key insight:</strong> none of these capstones introduces a genuinely new concept. Every piece — the non-root user, the firewall, the hardened service, the reverse proxy, the metrics — is something you already met. The capstone is learning to <em>compose</em> them into a system that stays up, stays patched, and stays observable. That composition <em>is</em> systems engineering, and you can now do it on hardware that fits in your palm.</p>
 
-  <!-- six gold contacts -->
-  <rect x="78" y="150" width="10" height="22" fill="#ca8a04"/>
-  <rect x="98" y="150" width="10" height="22" fill="#ca8a04"/>
-  <rect x="118" y="150" width="10" height="22" fill="#ca8a04"/>
-  <rect x="138" y="150" width="10" height="22" fill="#ca8a04"/>
-  <rect x="158" y="150" width="10" height="22" fill="#ca8a04"/>
-  <rect x="178" y="150" width="10" height="22" fill="#ca8a04"/>
-  <text x="83" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">1</text>
-  <text x="103" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">2</text>
-  <text x="123" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">3</text>
-  <text x="143" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">4</text>
-  <text x="163" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">5</text>
-  <text x="183" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">6</text>
-  <text x="135" y="210" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">pins 1–6, latch facing away from you</text>
+<h2 id="go-deeper">Where to go next</h2>
 
-  <!-- Cut cable showing 6 wires -->
-  <line x1="210" y1="125" x2="300" y2="125" stroke="#9ca3af" stroke-width="14"/>
-  <text x="255" y="112" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">grey sheath</text>
-
-  <!-- six wires fanning out -->
-  <line x1="300" y1="125" x2="380" y2="70"  stroke="#f8fafc" stroke-width="4"/>
-  <line x1="300" y1="125" x2="380" y2="95"  stroke="#1f2933" stroke-width="4"/>
-  <line x1="300" y1="125" x2="380" y2="120" stroke="#dc2626" stroke-width="4"/>
-  <line x1="300" y1="125" x2="380" y2="145" stroke="#059669" stroke-width="4"/>
-  <line x1="300" y1="125" x2="380" y2="170" stroke="#ca8a04" stroke-width="4"/>
-  <line x1="300" y1="125" x2="380" y2="195" stroke="#2563eb" stroke-width="4"/>
-
-  <text x="390" y="74"  font-family="sans-serif" font-size="12" fill="#1f2933">1 White</text>
-  <text x="390" y="99"  font-family="sans-serif" font-size="12" fill="#1f2933">2 Black</text>
-  <text x="390" y="124" font-family="sans-serif" font-size="12" fill="#1f2933">3 Red</text>
-  <text x="390" y="149" font-family="sans-serif" font-size="12" fill="#1f2933">4 Green</text>
-  <text x="390" y="174" font-family="sans-serif" font-size="12" fill="#1f2933">5 Yellow</text>
-  <text x="390" y="199" font-family="sans-serif" font-size="12" fill="#1f2933">6 Blue</text>
-
-  <text x="300" y="260" font-family="sans-serif" font-size="12" fill="#dc2626" text-anchor="middle" font-weight="bold">A centred phone-lead latch will NOT seat in an NXT socket — the latch is offset to the right.</text>
-  <text x="300" y="285" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Cut a spare lead and strip the sheath to expose the six colours, or use an NXT-compatible RJ12 breakout socket.</text>
-</svg>
-<figcaption>An NXT 6P6C plug: six gold contacts and a right-offset latch. Cutting a spare cable exposes the six inner wires in a fixed colour order (white, black, red, green, yellow, blue from pin 1 to pin 6).</figcaption>
-</figure>
-
-<div class="note"><strong>Note:</strong> The <em>colour</em> of each inner wire is consistent across LEGO cables, but the wire colour does <strong>not</strong> follow the resistor/power conventions you have used elsewhere — here "red" is a ground wire and "green" is a power wire, which feels back-to-front. Always go by the table below, not by what a colour "usually" means.</div>
-
-
-<h2 id="inside-the-nxt-motor">Inside the NXT Motor</h2>
-
-<p>An NXT servo motor sounds fancy, but electrically it is two simple things in one housing: a <strong>plain 9&nbsp;V DC motor</strong> with a built-in gearbox (strong but not fast), and a built-in <strong>optical quadrature encoder</strong> that reports how far the shaft has turned.</p>
-
-<div class="jargon"><strong>In plain words:</strong> A <strong>DC motor</strong> spins when you put a voltage across its two terminals; swap the two wires over and it spins the other way. There is no "position" built in — it just turns while powered. It is <strong>not</strong> a hobby servo (those expect a special pulse signal); it is much simpler than that.</div>
-
-<div class="jargon"><strong>In plain words:</strong> A <strong>quadrature encoder</strong> is a sensor that counts how far a shaft has rotated by watching a striped disc spin past two light sensors. "Quadrature" means the two sensors are offset by a quarter-step so that, by comparing which one changes first, you can tell <em>both</em> how far <em>and which direction</em> the shaft turned.</div>
-
-<p>The NXT encoder gives roughly <strong>one count per degree</strong> — about <strong>360 counts per full revolution</strong> of the output shaft. That is plenty to drive a precise distance or keep two wheels matched so the robot rolls straight.</p>
-
-<h3>The motor's six-wire pinout</h3>
-
-<p>Here is the exact mapping for a <strong>MOTOR</strong> cable. Pin 1 is on the left when you look into the plug with the latch facing away from you.</p>
-
-<table class="tbl">
-  <thead>
-    <tr>
-      <th>Pin</th>
-      <th>Wire colour</th>
-      <th>Function</th>
-      <th>Goes to…</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td>1</td><td>White</td><td>Motor power A</td><td>One output of the H-bridge</td></tr>
-    <tr><td>2</td><td>Black</td><td>Motor power B</td><td>The other output of the H-bridge</td></tr>
-    <tr><td>3</td><td>Red</td><td>Encoder ground (0&nbsp;V)</td><td>Common GND</td></tr>
-    <tr><td>4</td><td>Green</td><td>Encoder supply (+4.3&nbsp;V)</td><td>Pi 3.3&nbsp;V (powers the encoder)</td></tr>
-    <tr><td>5</td><td>Yellow</td><td>Tacho / encoder channel A</td><td>GPIO input <strong>via a divider</strong></td></tr>
-    <tr><td>6</td><td>Blue</td><td>Tacho / encoder channel B</td><td>GPIO input <strong>via a divider</strong></td></tr>
-  </tbody>
-</table>
-
-<p>The two <strong>power</strong> wires (white/black) carry the heavy current that spins the motor — these never go near the Pi, only the driver. The other four belong to the <strong>encoder</strong>: a power pair (green/red) and the two signal channels (yellow/blue) we read.</p>
-
-<h3>Electrical specs you must respect</h3>
+<p>You've covered the model from the shell all the way down to the kernel boundary and back up through containers and deployment. That's a real foundation — most people who use Linux every day never build it. Here's where the road keeps going, whenever you're ready:</p>
 
 <ul>
-  <li><strong>Motor voltage:</strong> about <strong>9&nbsp;V</strong> (a fresh 6×AA pack). It will also run more gently at 6&nbsp;V.</li>
-  <li><strong>No-load current:</strong> low — only a few tens of milliamps when spinning freely.</li>
-  <li><strong>Stall current:</strong> high — up to roughly <strong>1&nbsp;A</strong> when the motor is jammed and cannot turn. This is the figure that matters when choosing a driver.</li>
-  <li><strong>Encoder supply:</strong> the green wire wants about 4.3–5&nbsp;V; the Pi's 3.3&nbsp;V rail powers it well enough in practice for our purposes, and keeps the signal swing lower (a bonus for the divider).</li>
+  <li><a href="https://github.com/codecrafters-io/build-your-own-x">build-your-own-x</a> — a huge curated index of "build your own &lt;shell / docker / database / web server / …&gt;" tutorials. Your menu of next projects.</li>
+  <li><a href="https://codingchallenges.fyi/">codingchallenges.fyi</a> — John Crickett's staged, language-agnostic build-your-own-tool challenges. Perfect for going deeper on the classics above.</li>
+  <li><a href="https://codecrafters.io/">CodeCrafters</a> — test-graded "build your own shell / git / docker / http-server / redis", with a real suite checking each stage.</li>
+  <li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/">Operating Systems: Three Easy Pieces (OSTEP)</a> — the free, friendly textbook for the systems theory under all of this (processes, scheduling, memory, filesystems).</li>
+  <li><a href="https://beej.us/guide/bgnet/">Beej's Guide to Network Programming</a> — the legendary free guide to sockets, the foundation for your HTTP server.</li>
+  <li><a href="https://www.linuxfromscratch.org/">Linux From Scratch</a> — compile a complete Linux system from source. The ultimate "how does the whole userland fit together" project.</li>
+  <li><a href="glos.html">The in-app glossary &amp; command reference</a> — every term and command from this track in one searchable place, for whenever a name slips your mind.</li>
 </ul>
 
-<div class="warn"><strong>Careful:</strong> Never connect the motor's white/black power wires to a GPIO pin or to the 3.3&nbsp;V/5&nbsp;V pins. A motor drawing up to ~1&nbsp;A would instantly overload the Pi, and when a spinning motor is switched off it generates a sharp reverse voltage spike (we explain this next) that can destroy a GPIO pin. Power wires go to the H-bridge, full stop.</div>
-
-<figure class="fig">
-<svg viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="600" height="300" fill="#f3f0ff" rx="12"/>
-  <text x="300" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">NXT motor — six wires, two jobs</text>
-
-  <!-- motor body -->
-  <circle cx="120" cy="150" r="55" fill="#e2e8f0" stroke="#1f2933" stroke-width="2"/>
-  <text x="120" y="148" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">DC motor</text>
-  <text x="120" y="166" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">+ encoder</text>
-
-  <!-- power pair -->
-  <line x1="175" y1="120" x2="320" y2="80" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
-  <line x1="175" y1="135" x2="320" y2="110" stroke="#1f2933" stroke-width="5" stroke-linecap="round"/>
-  <rect x="320" y="65" width="240" height="60" fill="#fde68a" stroke="#ca8a04" stroke-width="1.5" rx="6" opacity="0.5"/>
-  <text x="440" y="86" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">Pin 1 White + Pin 2 Black = motor power</text>
-  <text x="440" y="106" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">→ H-bridge only (up to ~1 A, ~9 V)</text>
-  <text x="440" y="120" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">NEVER to a GPIO pin</text>
-
-  <!-- encoder group -->
-  <line x1="175" y1="165" x2="320" y2="180" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
-  <line x1="175" y1="178" x2="320" y2="205" stroke="#059669" stroke-width="4" stroke-linecap="round"/>
-  <line x1="175" y1="190" x2="320" y2="230" stroke="#ca8a04" stroke-width="4" stroke-linecap="round"/>
-  <line x1="175" y1="200" x2="320" y2="255" stroke="#2563eb" stroke-width="4" stroke-linecap="round"/>
-  <rect x="320" y="165" width="250" height="105" fill="#d1fae5" stroke="#059669" stroke-width="1.5" rx="6" opacity="0.45"/>
-  <text x="445" y="184" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">encoder (counts ~1° per step)</text>
-  <text x="445" y="202" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Pin 3 Red = GND · Pin 4 Green = +supply</text>
-  <text x="445" y="220" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Pin 5 Yellow = channel A</text>
-  <text x="445" y="236" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Pin 6 Blue = channel B</text>
-  <text x="445" y="256" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">A &amp; B → GPIO via a voltage divider</text>
-</svg>
-<figcaption>The NXT motor's six wires split into two groups: a high-current power pair (white/black) that goes only to the H-bridge, and a four-wire encoder (red, green, yellow, blue) whose two signal channels feed the Pi through a divider.</figcaption>
-</figure>
-
-
-<h2 id="driving-the-motors-the-h-bridge">Driving the Motors Safely — the H-bridge</h2>
-
-<p>You already know the golden rule from Chapters 26 and 28: <strong>never drive a motor straight from a GPIO pin.</strong> It is doubly true for an NXT motor.</p>
-
-<ul>
-  <li><strong>Current.</strong> A GPIO pin can safely source only about 16&nbsp;mA. An NXT motor wants tens of milliamps to spin freely and up to ~1&nbsp;A if it stalls — fifty times too much. The pin (and possibly the whole Pi) would burn out.</li>
-  <li><strong>Inductive kickback.</strong> A motor is a coil of wire. Cut the current to a coil suddenly and it fights back with a sharp voltage spike of the opposite polarity. Fed into a 3.3&nbsp;V GPIO pin, that spike is lethal.</li>
-</ul>
-
-<p>The answer is an <strong>H-bridge</strong>: a small chip between the Pi and the motor. The Pi sends gentle low-current 3.3&nbsp;V logic signals; the chip switches the motor's heavy current on its behalf and can reverse its direction.</p>
-
-<div class="jargon"><strong>In plain words:</strong> An <strong>H-bridge</strong> is four electronic switches arranged in an "H" shape around the motor. Close one diagonal pair and current flows one way (motor forwards); close the other pair and it flows the other way (motor backwards). The chip also contains protection diodes that safely swallow the inductive kickback so it never reaches the Pi.</div>
-
-<h3>Which driver to use</h3>
-
-<p>For a pair of NXT motors, a small <strong>dual H-bridge</strong> (two motors on one board) is ideal. Three good choices:</p>
-
-<table class="tbl">
-  <thead>
-    <tr>
-      <th>Driver</th>
-      <th>Motor voltage</th>
-      <th>Current per motor</th>
-      <th>Verdict for NXT motors</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>DRV8833</strong> (recommended)</td>
-      <td>2.7–10.8&nbsp;V</td>
-      <td>~1.5&nbsp;A continuous, 2&nbsp;A peak</td>
-      <td>Perfect. Handles a 9&nbsp;V pack and the NXT's ~1&nbsp;A stall with margin to spare. Small, cheap, efficient.</td>
-    </tr>
-    <tr>
-      <td><strong>TB6612FNG</strong></td>
-      <td>2.5–13.5&nbsp;V</td>
-      <td>~1.2&nbsp;A continuous, 3&nbsp;A peak</td>
-      <td>Also excellent and very efficient. A great alternative if you have one to hand.</td>
-    </tr>
-    <tr>
-      <td><strong>L298N</strong> (the cheap classic)</td>
-      <td>up to ~35&nbsp;V</td>
-      <td>~2&nbsp;A</td>
-      <td>Works, but it is bulky, wastes ~2&nbsp;V as heat, and needs a heatsink. Use only if it is what you already own.</td>
-    </tr>
-  </tbody>
-</table>
-
-<p>We will use the <strong>DRV8833</strong>. Each of its two channels has two inputs (<code>IN1</code>, <code>IN2</code>) and two outputs (<code>OUT1</code>, <code>OUT2</code>). The Pi drives the inputs; the outputs go to one motor's white/black power pair. gpiozero's <code>Motor(forward=IN1, backward=IN2)</code> drives those inputs for you, pulsing them rapidly (PWM) to control speed.</p>
-
-<div class="jargon"><strong>In plain words:</strong> <strong>PWM</strong> (pulse-width modulation) means switching a pin on and off very fast. If it is on 30% of the time the motor behaves as though it is getting 30% of full power, so the wheel turns slowly. gpiozero does this automatically when you call <code>motor.forward(0.3)</code>.</div>
-
-<h3>The separate-battery and common-ground rule</h3>
-
-<p>This is the most important wiring idea in the chapter, so read it twice.</p>
-
-<ul>
-  <li><strong>Give the motors their own battery.</strong> The Pi's 5&nbsp;V supply is for the Pi's brain; it cannot spare amps for motors, and motor noise can crash the Pi. Use a <strong>separate ~9&nbsp;V pack</strong> (six AA cells is ideal) wired to the driver's motor-power input (often labelled <code>VM</code> or <code>VMOT</code>).</li>
-  <li><strong>But join the grounds.</strong> The motor battery's negative terminal, the driver's GND and the Pi's GND must all connect to <em>one shared ground</em>. That shared "0&nbsp;V" reference is what lets the Pi's 3.3&nbsp;V logic signals mean anything to the driver. Without a common ground nothing works, and floating grounds behave unpredictably.</li>
-</ul>
-
-<div class="warn"><strong>Careful — the safety rules for this build:</strong>
-<ul>
-  <li><strong>Power off and unplug the Pi</strong> before wiring anything. Only re-power after a full check.</li>
-  <li><strong>Use a separate battery for the motors</strong> — never try to spin them from the Pi's 5&nbsp;V pin.</li>
-  <li><strong>Share a common ground</strong> between the motor battery, the driver, and the Pi.</li>
-  <li><strong>Never feed motor voltage back into the Pi.</strong> The motor's 9&nbsp;V power pair touches only the driver's outputs.</li>
-  <li><strong>Level-shift the sensor and encoder lines</strong> down to 3.3&nbsp;V (with a divider) before they reach any GPIO input — these lines can sit near 5&nbsp;V.</li>
-</ul></div>
-
-<figure class="fig">
-<svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg">
-  <rect width="640" height="400" fill="#f3f0ff" rx="12"/>
-  <text x="320" y="28" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">DRV8833 H-bridge wiring (one motor channel)</text>
-
-  <!-- Pi -->
-  <rect x="20" y="70" width="110" height="200" fill="#1f2933" rx="6"/>
-  <text x="75" y="62" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Raspberry Pi 5</text>
-  <rect x="24" y="95"  width="14" height="11" fill="#6d28d9" rx="2"/><text x="42" y="104" font-family="sans-serif" font-size="9" fill="#f3f0ff">GPIO 20 → AIN1</text>
-  <rect x="24" y="123" width="14" height="11" fill="#6d28d9" rx="2"/><text x="42" y="132" font-family="sans-serif" font-size="9" fill="#f3f0ff">GPIO 21 → AIN2</text>
-  <rect x="24" y="240" width="14" height="11" fill="#374151" rx="2"/><text x="42" y="249" font-family="sans-serif" font-size="9" fill="#9ca3af">GND</text>
-
-  <!-- driver -->
-  <rect x="260" y="80" width="130" height="180" fill="#0ea5a4" rx="8" opacity="0.85"/>
-  <text x="325" y="100" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">DRV8833</text>
-  <text x="262" y="124" font-family="sans-serif" font-size="9" fill="white">AIN1</text>
-  <text x="262" y="150" font-family="sans-serif" font-size="9" fill="white">AIN2</text>
-  <text x="350" y="124" font-family="sans-serif" font-size="9" fill="white" text-anchor="end">AOUT1</text>
-  <text x="350" y="150" font-family="sans-serif" font-size="9" fill="white" text-anchor="end">AOUT2</text>
-  <text x="262" y="200" font-family="sans-serif" font-size="9" fill="white">VM</text>
-  <text x="262" y="232" font-family="sans-serif" font-size="9" fill="white">GND</text>
-
-  <!-- Pi logic to driver inputs -->
-  <line x1="38" y1="100" x2="258" y2="120" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="38" y1="128" x2="258" y2="146" stroke="#6d28d9" stroke-width="3"/>
-
-  <!-- motor -->
-  <circle cx="520" cy="135" r="40" fill="#e2e8f0" stroke="#1f2933" stroke-width="2"/>
-  <text x="520" y="139" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">motor</text>
-  <line x1="392" y1="120" x2="490" y2="120" stroke="#f8fafc" stroke-width="4"/>
-  <line x1="392" y1="146" x2="490" y2="155" stroke="#1f2933" stroke-width="4"/>
-  <text x="445" y="112" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">White (A)</text>
-  <text x="445" y="172" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">Black (B)</text>
-
-  <!-- battery -->
-  <rect x="260" y="300" width="120" height="50" fill="#dc2626" rx="6"/>
-  <text x="320" y="322" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">6×AA ≈ 9 V</text>
-  <text x="320" y="338" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">separate motor battery</text>
-  <!-- battery + to VM -->
-  <line x1="320" y1="300" x2="320" y2="205" stroke="#dc2626" stroke-width="3"/>
-  <line x1="320" y1="205" x2="258" y2="196" stroke="#dc2626" stroke-width="3"/>
-  <text x="360" y="250" font-family="sans-serif" font-size="9" fill="#dc2626">+9 V → VM</text>
-
-  <!-- common ground rail -->
-  <line x1="38" y1="245" x2="100" y2="340" stroke="#374151" stroke-width="3"/>
-  <line x1="100" y1="340" x2="258" y2="340" stroke="#374151" stroke-width="3"/>
-  <line x1="258" y1="228" x2="220" y2="340" stroke="#374151" stroke-width="3"/>
-  <line x1="320" y1="350" x2="320" y2="365" stroke="#374151" stroke-width="3"/>
-  <line x1="100" y1="340" x2="320" y2="365" stroke="#374151" stroke-width="3"/>
-  <text x="200" y="385" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle" font-weight="bold">COMMON GROUND: Pi GND + driver GND + battery − all joined</text>
-</svg>
-<figcaption>One motor channel of the DRV8833. The Pi's 3.3 V logic drives AIN1/AIN2; a separate ~9 V battery feeds VM; the motor's white/black pair connects to AOUT1/AOUT2. Crucially, the Pi's ground, the driver's ground and the battery's negative all meet at one common ground.</figcaption>
-</figure>
-
-<h3>Connection table — both motors</h3>
-
-<table class="tbl">
-  <thead>
-    <tr><th>From</th><th>To</th><th>Notes</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Pi GPIO 20</td><td>DRV8833 AIN1</td><td>Left motor forward input (3.3 V logic)</td></tr>
-    <tr><td>Pi GPIO 21</td><td>DRV8833 AIN2</td><td>Left motor backward input</td></tr>
-    <tr><td>Pi GPIO 19</td><td>DRV8833 BIN1</td><td>Right motor forward input</td></tr>
-    <tr><td>Pi GPIO 26</td><td>DRV8833 BIN2</td><td>Right motor backward input</td></tr>
-    <tr><td>Left motor White / Black</td><td>AOUT1 / AOUT2</td><td>High-current pair — <strong>never to the Pi</strong></td></tr>
-    <tr><td>Right motor White / Black</td><td>BOUT1 / BOUT2</td><td>High-current pair</td></tr>
-    <tr><td>6×AA pack +</td><td>DRV8833 VM</td><td>Separate ~9 V motor supply</td></tr>
-    <tr><td>6×AA pack −</td><td>Common ground rail</td><td>Joins Pi GND and driver GND</td></tr>
-    <tr><td>DRV8833 GND</td><td>Common ground rail</td><td>Same 0 V as the Pi</td></tr>
-    <tr><td>Pi GND (e.g. pin 6)</td><td>Common ground rail</td><td>The shared reference</td></tr>
-  </tbody>
-</table>
-
-<div class="tip"><strong>Tip:</strong> If your DRV8833 board has a pin marked <code>EEP</code>, <code>SLP</code> or <code>STBY</code> ("sleep"/"standby"), tie it to 3.3&nbsp;V to keep the chip awake. Many breakout boards already pull it high for you — check your board's markings.</div>
-
-
-<h2 id="code-a-robot-class">Code: a Robot Class You Can Drive</h2>
-
-<p>Time for Python. We will start with one motor to prove the wiring, then wrap both motors in a <code>Robot</code> class so the rest of the program can say <code>robot.forward()</code> without caring about pins.</p>
-
-<h3>First, one motor</h3>
-
-<p>Open <strong>Thonny</strong> and type this short test. It assumes the left motor's inputs are on GPIO 20 and 21.</p>
-
-<pre class="code"><code>from gpiozero import Motor
-from time import sleep
-
-left = Motor(forward=20, backward=21)
-
-left.forward(0.5)     # half speed forwards
-sleep(2)
-left.backward(0.5)    # half speed backwards
-sleep(2)
-left.stop()</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from gpiozero import Motor</code>:</strong> Imports the ready-made <code>Motor</code> object, which knows how to drive a two-input H-bridge channel.</p>
-  <p><strong>Line 4 — <code>left = Motor(forward=20, backward=21)</code>:</strong> Creates a motor object. <code>forward=20</code> is the GPIO that drives AIN1; <code>backward=21</code> drives AIN2. Naming the arguments stops us mixing the two up.</p>
-  <p><strong>Line 6 — <code>left.forward(0.5)</code>:</strong> Spins the motor forwards at half speed. The 0.5 is a fraction from 0 (stopped) to 1 (full speed); gpiozero turns it into PWM on the input pin for you.</p>
-  <p><strong>Line 7 — <code>sleep(2)</code>:</strong> Keeps it running for two seconds so you can watch.</p>
-  <p><strong>Line 8 — <code>left.backward(0.5)</code>:</strong> Reverses direction at half speed by driving the other input.</p>
-  <p><strong>Line 10 — <code>left.stop()</code>:</strong> Switches both inputs off, letting the motor coast to a halt.</p>
-</div>
-
-<div class="note"><strong>Note:</strong> If "forward" actually spins the wheel backwards, you have two easy fixes: swap the motor's white and black wires at the driver output, or swap <code>forward=</code> and <code>backward=</code> in the code. Either is fine — pick one.</div>
-
-<h3>Now the Robot class</h3>
-
-<p>A wheeled robot's two motors must do coordinated things: both forward, both backward, or one each way to spin on the spot. Rather than repeat motor commands everywhere, we bundle the pair into a <code>Robot</code> class with friendly methods. Save this as <code>robot.py</code>.</p>
-
-<pre class="code"><code>from gpiozero import Motor
-
-
-class Robot:
-    """Two NXT motors wired to a DRV8833, wrapped as one robot."""
-
-    def __init__(self, left_pins, right_pins, speed=0.6):
-        self.left = Motor(forward=left_pins[0], backward=left_pins[1])
-        self.right = Motor(forward=right_pins[0], backward=right_pins[1])
-        self.speed = speed
-
-    def forward(self, speed=None):
-        s = speed if speed is not None else self.speed
-        self.left.forward(s)
-        self.right.forward(s)
-
-    def backward(self, speed=None):
-        s = speed if speed is not None else self.speed
-        self.left.backward(s)
-        self.right.backward(s)
-
-    def turn_left(self, speed=None):
-        s = speed if speed is not None else self.speed
-        self.left.backward(s)
-        self.right.forward(s)
-
-    def turn_right(self, speed=None):
-        s = speed if speed is not None else self.speed
-        self.left.forward(s)
-        self.right.backward(s)
-
-    def stop(self):
-        self.left.stop()
-        self.right.stop()
-
-
-# A quick demo when you run this file directly
-if __name__ == "__main__":
-    from time import sleep
-    robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
-    robot.forward(); sleep(1.5)
-    robot.turn_right(); sleep(0.7)
-    robot.forward(); sleep(1.5)
-    robot.stop()</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from gpiozero import Motor</code>:</strong> We will build two <code>Motor</code> objects inside our class.</p>
-  <p><strong>Line 4 — <code>class Robot:</code>:</strong> Starts our own blueprint. Anything indented underneath belongs to it. The triple-quoted line just below is a <em>docstring</em> describing the class.</p>
-  <p><strong>Line 7 — <code>def __init__(self, left_pins, right_pins, speed=0.6):</code>:</strong> The initialiser, run automatically when you build a <code>Robot</code>. It expects the two pins for each side (as a pair like <code>(20, 21)</code>) and a default driving speed.</p>
-  <p><strong>Lines 8–9 — <code>self.left = Motor(...)</code> / <code>self.right = Motor(...)</code>:</strong> Build one <code>Motor</code> object per side and store them <em>on this robot</em>. <code>left_pins[0]</code> is the forward pin, <code>left_pins[1]</code> the backward pin.</p>
-  <p><strong>Line 10 — <code>self.speed = speed</code>:</strong> Remembers the default speed so methods can fall back to it.</p>
-  <p><strong>Line 12 — <code>def forward(self, speed=None):</code>:</strong> A method. <code>speed=None</code> means "if you don't pass a speed, use my default".</p>
-  <p><strong>Line 13 — <code>s = speed if speed is not None else self.speed</code>:</strong> Picks the speed to use: the one passed in, or the stored default. A compact one-line <code>if</code>.</p>
-  <p><strong>Lines 14–15 — drive both motors forward:</strong> Calls <code>forward()</code> on each side at the chosen speed, so the robot rolls straight ahead.</p>
-  <p><strong>Lines 17–20 — <code>backward</code>:</strong> The mirror image — both motors reverse.</p>
-  <p><strong>Lines 22–25 — <code>turn_left</code>:</strong> Spins on the spot to the left by running the left wheel <em>backward</em> and the right wheel <em>forward</em>.</p>
-  <p><strong>Lines 27–30 — <code>turn_right</code>:</strong> The opposite — left forward, right backward.</p>
-  <p><strong>Lines 32–34 — <code>stop</code>:</strong> Stops both motors. We will call this whenever the program ends so the robot never runs off.</p>
-  <p><strong>Line 38 — <code>if __name__ == "__main__":</code>:</strong> Code under this line runs only when you launch <code>robot.py</code> directly, not when another file imports the class. It is a tidy way to ship a class with a built-in self-test.</p>
-  <p><strong>Lines 40–45 — the demo:</strong> Build a robot with our pin choices, drive forward, turn, drive forward again, then stop. A short, safe shake-down run.</p>
-</div>
-
-<h3>Run steps</h3>
-
-<ol class="steps">
-  <li><strong>Lift the wheels off the ground.</strong> Rest the chassis on a mug or box so the wheels spin freely in the air. Never test-drive a new robot on the floor.</li>
-  <li><strong>Fit fresh batteries</strong> in the motor pack and switch it on. Power up the Pi separately.</li>
-  <li><strong>Open <code>robot.py</code> in Thonny</strong> and press the green Run button (F5).</li>
-  <li><strong>Watch the wheels:</strong> both should spin forward, then the right side should reverse briefly for the turn, then both forward again, then stop. If a wheel goes the wrong way, swap that motor's white/black wires.</li>
-  <li><strong>Press the red Stop button</strong> in Thonny if anything misbehaves — it cuts the program and the motors.</li>
-</ol>
-
-
-<h2 id="reading-the-wheels-the-encoder">Reading the Wheels — the Encoder</h2>
-
-<p>Driving blind is fine for a demo, but a real robot wants to know how far it has gone. That is the job of the motor's built-in <strong>quadrature encoder</strong>, read via its two channels (the yellow and blue wires) with gpiozero's <code>RotaryEncoder</code> object.</p>
-
-<h3>Wiring the encoder — through a divider</h3>
-
-<p>The encoder's two signal wires can swing up towards 4–5&nbsp;V, which is too high for a 3.3&nbsp;V GPIO input. So each one goes through the same kind of <strong>voltage divider</strong> you built in Chapter 28 before reaching the Pi.</p>
-
-<ul>
-  <li><strong>Green (encoder +supply)</strong> → Pi <strong>3.3&nbsp;V</strong> pin. Powering the encoder from 3.3&nbsp;V keeps its output swing lower, which is kinder to the divider.</li>
-  <li><strong>Red (encoder GND)</strong> → common ground.</li>
-  <li><strong>Yellow (channel A)</strong> → through a 330&nbsp;Ω / 470&nbsp;Ω divider → GPIO input.</li>
-  <li><strong>Blue (channel B)</strong> → through a second 330&nbsp;Ω / 470&nbsp;Ω divider → GPIO input.</li>
-</ul>
-
-<div class="warn"><strong>Careful:</strong> Even powered at 3.3&nbsp;V the encoder output can briefly exceed the Pi's safe limit, so keep the dividers in place. Reusing the proven 330&nbsp;Ω (R1, signal-to-tap) and 470&nbsp;Ω (R2, tap-to-GND) pair drops 5&nbsp;V to about 2.94&nbsp;V — safely readable as a HIGH. The GPIO pin connects to the tap between the two resistors.</div>
-
-<p>Here is a short program that counts one wheel and prints how far it has turned. Save it as <code>encoder_test.py</code>.</p>
-
-<pre class="code"><code>from gpiozero import RotaryEncoder
-from time import sleep
-
-# Channel A on GPIO 16, channel B on GPIO 12 (both via dividers)
-enc = RotaryEncoder(a=16, b=12, max_steps=0)
-
-print("Turn the wheel by hand. Ctrl+C to stop.")
-try:
-    while True:
-        steps = enc.steps
-        degrees = steps          # ~1 count per degree on an NXT motor
-        print(f"steps={steps:6d}   ~{degrees}°")
-        sleep(0.3)
-except KeyboardInterrupt:
-    print("\nDone.")</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from gpiozero import RotaryEncoder</code>:</strong> Imports the object that watches two pins and keeps a running count of how far, and which way, the shaft has turned.</p>
-  <p><strong>Line 5 — <code>enc = RotaryEncoder(a=16, b=12, max_steps=0)</code>:</strong> Builds the encoder object. <code>a</code> and <code>b</code> are the two GPIO pins reading channels A and B (each via its divider). <code>max_steps=0</code> tells gpiozero not to wrap or clamp the count, so it can grow as large as we like.</p>
-  <p><strong>Line 10 — <code>steps = enc.steps</code>:</strong> Reads the <code>steps</code> attribute — the live count. It rises as the wheel turns one way and falls as it turns the other. That sign is the "quadrature" magic: the object compares which channel changed first to know the direction.</p>
-  <p><strong>Line 11 — <code>degrees = steps</code>:</strong> Because an NXT encoder gives roughly one count per degree, the step count is already an approximate angle. For precise distance you would calibrate this against your wheel size.</p>
-  <p><strong>Line 12 — <code>print(...)</code>:</strong> Shows the count and approximate angle. <code>°</code> is just the degree symbol (°).</p>
-  <p><strong>Lines 14–15 — <code>except KeyboardInterrupt</code>:</strong> Lets Ctrl+C end the loop cleanly.</p>
-</div>
-
-<h3>Driving a set distance with <code>when_rotated</code></h3>
-
-<p>Instead of polling in a loop, the encoder can call a function of yours each time it moves, using its <code>when_rotated</code> event. Here is the idea — drive forward until the left wheel has turned a target number of steps, then stop.</p>
-
-<pre class="code"><code>from gpiozero import RotaryEncoder
-from robot import Robot
-from signal import pause
-
-robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
-left_enc = RotaryEncoder(a=16, b=12, max_steps=0)
-
-TARGET = 720          # ~two full wheel turns (720 ° at ~1 °/count)
-
-def check_progress():
-    if abs(left_enc.steps) &gt;= TARGET:
-        robot.stop()
-        print("Reached target distance.")
-
-left_enc.when_rotated = check_progress
-
-robot.forward(0.5)
-print("Driving... will stop after the target.")
-pause()</code></pre>
-<div class="explain">
-  <p><strong>Line 2 — <code>from robot import Robot</code>:</strong> Reuses the <code>Robot</code> class you wrote earlier by importing it from <code>robot.py</code>. This is why classes pay off — one tidy object, used everywhere.</p>
-  <p><strong>Line 6 — <code>left_enc = RotaryEncoder(a=16, b=12, max_steps=0)</code>:</strong> The encoder for the left wheel, on the same two divider-protected pins as before.</p>
-  <p><strong>Line 8 — <code>TARGET = 720</code>:</strong> Our goal in encoder counts. At roughly one count per degree, 720 is about two full turns of the wheel — adjust to suit your wheel diameter.</p>
-  <p><strong>Lines 10–13 — <code>check_progress()</code>:</strong> A function that asks "have we gone far enough?". <code>abs(...)</code> ignores direction so it works whichever way the count runs. When the target is reached it stops the robot.</p>
-  <p><strong>Line 15 — <code>left_enc.when_rotated = check_progress</code>:</strong> Hands our function to the encoder as a <em>callback</em>. From now on, every time the wheel moves, gpiozero calls <code>check_progress</code> for us — no busy loop needed.</p>
-  <p><strong>Line 17 — <code>robot.forward(0.5)</code>:</strong> Starts both wheels rolling at half speed.</p>
-  <p><strong>Line 19 — <code>pause()</code>:</strong> Keeps the program alive so the callback can keep firing until the target is hit.</p>
-</div>
-
-<div class="tip"><strong>Tip:</strong> To drive <em>straight</em>, read both wheels' encoders and nudge the faster wheel's speed down a little until the two counts match. Real robots wobble because no two motors are identical; the encoder is how you correct for it.</div>
-
-
-<h2 id="reading-a-sensor-the-touch-bumper">Reading a Sensor — the Touch Bumper</h2>
-
-<p>The touch sensor is the easiest part to reuse: under the plastic it is just a <strong>push switch</strong> — press it and two wires connect, release and they part. That is exactly what gpiozero's <code>Button</code> expects.</p>
-
-<h3>Find the two wires that close — the robust method</h3>
-
-<p>Rather than trust a fixed pinout (touch-sensor wiring varies, and a salvaged cable can be wired either way round), find the switch contacts yourself with a multimeter. This always works.</p>
-
-<ol class="steps">
-  <li><strong>Set your multimeter to continuity</strong> (the mode with the little speaker/diode symbol that beeps when two probes are connected).</li>
-  <li><strong>Expose the six wires</strong> of the touch sensor's cable (cut-and-strip, as before).</li>
-  <li><strong>Touch the probes to pairs of wires</strong> and press the sensor button. The pair that <em>beeps only while pressed</em> is your switch. On most NXT touch sensors these are the two signal/ground wires, but verify — do not assume.</li>
-  <li><strong>Mark those two wires.</strong> One becomes "signal", the other "ground".</li>
-</ol>
-
-<p>Wire the "signal" wire to a GPIO pin and the "ground" wire to a Pi GND pin. gpiozero's <code>Button</code> switches on an internal pull-up or pull-down so you need no extra resistor. Save this as <code>bumper.py</code>.</p>
-
-<pre class="code"><code>from gpiozero import Button
-from robot import Robot
-from signal import pause
-
-robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
-bumper = Button(17)            # the touch sensor's switch wires: GPIO 17 + GND
-
-def on_bump():
-    robot.stop()
-    print("Bump! Stopped.")
-
-bumper.when_pressed = on_bump
-
-robot.forward(0.4)
-print("Rolling forward until the bumper is hit. Ctrl+C to quit.")
-pause()</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from gpiozero import Button</code>:</strong> Brings in the <code>Button</code> object, perfect for any simple on/off switch — including a salvaged NXT touch sensor.</p>
-  <p><strong>Line 6 — <code>bumper = Button(17)</code>:</strong> Creates the button on GPIO 17. The sensor's other switch wire goes to a GND pin. No external resistor is needed — gpiozero handles the pull internally.</p>
-  <p><strong>Lines 8–10 — <code>on_bump()</code>:</strong> What to do when the bumper is hit: stop the robot and say so.</p>
-  <p><strong>Line 12 — <code>bumper.when_pressed = on_bump</code>:</strong> Registers our function as the press callback, so a bump instantly halts the wheels.</p>
-  <p><strong>Line 14 — <code>robot.forward(0.4)</code>:</strong> Rolls gently forward; the robot will keep going until something presses the bumper.</p>
-  <p><strong>Line 16 — <code>pause()</code>:</strong> Keeps the program running so the callback stays armed.</p>
-</div>
-
-<div class="note"><strong>The ultrasonic sensor (advanced / optional):</strong> The NXT ultrasonic sensor is not a simple switch — it is an <strong>I²C device</strong>. I²C is a two-wire bus (a clock line and a data line, the yellow and blue wires here) that lets a chip and the Pi exchange numbers. You enable I²C in <code>raspi-config</code>, level-shift the two lines to 3.3&nbsp;V, and read the sensor's distance register over the bus. Be honest with yourself: the NXT ultrasonic has fussy timing and was designed for LEGO's own brick, so it is a fiddly afternoon project, not a five-minute one. If you just want reliable distance, the HC-SR04 from Chapter 28 is far easier — reuse that instead.</div>
-
-
-<h2 id="giving-the-robot-ai-eyes">Giving the Robot AI Eyes</h2>
-
-<p>Now the exciting part. In Chapter 19 you ran an AI model on your Pi; here we point it at a camera and let it steer the robot. The plan is the classic robotics loop, <strong>see → think → act</strong>:</p>
-
-<ol>
-  <li><strong>See</strong> — grab a frame from the Pi Camera with <strong>Picamera2</strong> (the modern camera library on Bookworm).</li>
-  <li><strong>Think</strong> — run the frame through an on-device <strong>object-detection model</strong> that returns boxes around things it recognises.</li>
-  <li><strong>Act</strong> — find the target box's horizontal position and turn the <code>Robot</code> so the target moves towards the centre, then drive forward.</li>
-</ol>
-
-<div class="jargon"><strong>In plain words:</strong> <strong>Object detection</strong> is an AI task where a model looks at an image and draws a box around each thing it finds, with a label ("person", "ball", "cup") and a confidence score. We only care about <em>where</em> our chosen target's box is, left-to-right.</div>
-
-<h3>Two ways to run the model</h3>
-
-<ul>
-  <li><strong>TensorFlow Lite on the Pi 5</strong> — a small model (MobileNet-SSD) runs on the Pi's own CPU. It needs no special hardware beyond a Camera Module 3, but on a Pi 5 you should honestly expect only a <strong>handful of frames per second</strong> for detection. That is plenty for a slow follower robot.</li>
-  <li><strong>The Raspberry Pi AI Camera (Sony IMX500)</strong> — this clever camera runs the neural network <em>inside the camera module itself</em> and hands the Pi the results directly, so the Pi's CPU stays free and the frame rate is much higher. If you have one, it is the smoother choice. Either way the Python pattern is the same.</li>
-</ul>
-
-<figure class="fig">
-<svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg">
-  <rect width="640" height="250" fill="#f3f0ff" rx="12"/>
-  <text x="320" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">See → Think → Act: the vision control loop</text>
-
-  <!-- camera -->
-  <rect x="30" y="90" width="120" height="80" fill="#0ea5a4" rx="10"/>
-  <circle cx="90" cy="130" r="20" fill="#1f2933"/>
-  <circle cx="90" cy="130" r="10" fill="#94a3b8"/>
-  <text x="90" y="185" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">SEE</text>
-  <text x="90" y="200" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Picamera2 frame</text>
-
-  <!-- arrow -->
-  <line x1="155" y1="130" x2="215" y2="130" stroke="#6d28d9" stroke-width="4"/>
-  <polygon points="215,130 203,124 203,136" fill="#6d28d9"/>
-
-  <!-- model -->
-  <rect x="220" y="90" width="140" height="80" fill="#6d28d9" rx="10"/>
-  <text x="290" y="120" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">THINK</text>
-  <text x="290" y="138" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">object-detection</text>
-  <text x="290" y="152" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">model → boxes</text>
-  <text x="290" y="200" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">TFLite / IMX500</text>
-
-  <!-- arrow -->
-  <line x1="365" y1="130" x2="425" y2="130" stroke="#6d28d9" stroke-width="4"/>
-  <polygon points="425,130 413,124 413,136" fill="#6d28d9"/>
-
-  <!-- decision -->
-  <rect x="430" y="90" width="80" height="80" fill="#f97316" rx="10"/>
-  <text x="470" y="125" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">decide</text>
-  <text x="470" y="142" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">left? right?</text>
-  <text x="470" y="154" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">centre?</text>
-
-  <!-- arrow -->
-  <line x1="515" y1="130" x2="555" y2="130" stroke="#6d28d9" stroke-width="4"/>
-  <polygon points="555,130 543,124 543,136" fill="#6d28d9"/>
-
-  <!-- motors -->
-  <circle cx="595" cy="115" r="16" fill="#e2e8f0" stroke="#1f2933" stroke-width="2"/>
-  <circle cx="595" cy="150" r="16" fill="#e2e8f0" stroke="#1f2933" stroke-width="2"/>
-  <text x="595" y="185" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">ACT</text>
-  <text x="595" y="200" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Robot motors</text>
-
-  <!-- loop arrow back -->
-  <path d="M 595 70 Q 320 40 90 70" fill="none" stroke="#059669" stroke-width="3" stroke-dasharray="6,4"/>
-  <polygon points="90,70 102,64 100,76" fill="#059669"/>
-  <text x="320" y="58" font-family="sans-serif" font-size="11" fill="#059669" text-anchor="middle">repeat, several times a second</text>
-</svg>
-<figcaption>The see → think → act loop. A camera frame goes to an object-detection model; the model's boxes feed a steering decision; the decision drives the motors; then it all repeats. On a Pi 5 with TFLite expect a few frames per second — enough for a gentle follower.</figcaption>
-</figure>
-
-<h3>The follower program</h3>
-
-<p>This program follows the first <strong>person</strong> it sees (change the label to follow anything in the model's vocabulary). It keeps the AI part simple so the steering logic is clear. Save it as <code>follower.py</code>.</p>
-
-<pre class="code"><code>from picamera2 import Picamera2
-from robot import Robot
-import numpy as np
-# 'detector' wraps your chosen model. See ch19 for loading a TFLite model.
-from detector import detect_objects   # returns a list of {label, score, cx}
-
-robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
-
-picam = Picamera2()
-picam.configure(picam.create_preview_configuration(
-    main={"size": (320, 240)}))
-picam.start()
-
-TARGET_LABEL = "person"
-DEAD_ZONE = 40          # pixels either side of centre we call "centred"
-CENTRE_X = 320 // 2     # the middle column of a 320-wide frame
-
-print("Following. Ctrl+C to stop.")
-try:
-    while True:
-        frame = picam.capture_array()
-        objects = detect_objects(frame)
-
-        targets = [o for o in objects
-                   if o["label"] == TARGET_LABEL and o["score"] &gt; 0.5]
-
-        if not targets:
-            robot.stop()                 # nothing to follow — wait
-            continue
-
-        target = max(targets, key=lambda o: o["score"])
-        offset = target["cx"] - CENTRE_X
-
-        if offset &lt; -DEAD_ZONE:
-            robot.turn_left(0.4)         # target is to the left
-        elif offset &gt; DEAD_ZONE:
-            robot.turn_right(0.4)        # target is to the right
-        else:
-            robot.forward(0.4)           # centred — approach it
-
-except KeyboardInterrupt:
-    robot.stop()
-    print("\nStopped.")</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from picamera2 import Picamera2</code>:</strong> The modern camera library on Raspberry Pi OS Bookworm. It gives us frames as plain image arrays.</p>
-  <p><strong>Line 5 — <code>from detector import detect_objects</code>:</strong> We hide the AI details behind one helper, <code>detect_objects(frame)</code>, which returns a list of detections — each a small dictionary with a <code>label</code>, a confidence <code>score</code>, and <code>cx</code>, the horizontal centre of the box in pixels. Building that helper from a TFLite model is exactly the Chapter 19 material, so we reuse it here rather than repeat it.</p>
-  <p><strong>Lines 9–12 — set up the camera:</strong> Create a <code>Picamera2</code>, configure a small 320×240 preview (small frames are faster to detect), and start it.</p>
-  <p><strong>Line 14 — <code>TARGET_LABEL = "person"</code>:</strong> The thing we want to follow. Swap for any label the model knows.</p>
-  <p><strong>Line 15 — <code>DEAD_ZONE = 40</code>:</strong> A tolerance band around the centre. If the target is within 40 pixels of the middle we treat it as "centred" and drive straight, rather than twitching left/right forever.</p>
-  <p><strong>Line 16 — <code>CENTRE_X = 320 // 2</code>:</strong> The middle column of the frame — the position we want the target to sit at.</p>
-  <p><strong>Line 21 — <code>frame = picam.capture_array()</code>:</strong> "SEE": grab the latest camera image as a numbers array.</p>
-  <p><strong>Line 22 — <code>objects = detect_objects(frame)</code>:</strong> "THINK": run the model and get back every object it found.</p>
-  <p><strong>Lines 24–25 — filter:</strong> Keep only detections matching our target label and confident enough (<code>score &gt; 0.5</code>), discarding the rest.</p>
-  <p><strong>Lines 27–29 — nothing found:</strong> If no target is visible, stop and loop again. A follower that charges off when it loses sight of its target is a runaway robot.</p>
-  <p><strong>Line 31 — <code>target = max(targets, key=lambda o: o["score"])</code>:</strong> If several match, pick the most confident one.</p>
-  <p><strong>Line 32 — <code>offset = target["cx"] - CENTRE_X</code>:</strong> How far left (negative) or right (positive) of centre the target is. This single number is the whole "decision".</p>
-  <p><strong>Lines 34–39 — "ACT":</strong> If the target is well to the left, turn left; well to the right, turn right; otherwise it is roughly centred, so drive forward to approach. Steering to reduce <code>offset</code> towards zero is what keeps the target in front of us.</p>
-  <p><strong>Lines 41–43 — clean stop:</strong> Ctrl+C stops the motors so the robot never keeps rolling after the program ends.</p>
-</div>
-
-<div class="note"><strong>Note:</strong> Be realistic about speed. A TFLite detection on a Pi 5 might take a couple of hundred milliseconds, so the robot reacts a few times a second, not instantly. Keep the drive speed low (0.3–0.4) so it does not overshoot between decisions. The IMX500 AI Camera, doing the maths on-sensor, reacts much faster.</div>
-
-
-<h2 id="putting-it-all-together">Putting It All Together</h2>
-
-<p>You now hold every piece of an autonomous object-following rover:</p>
-
-<ul>
-  <li>A <strong>chassis</strong> built from the NXT's Technic frame and two drive motors.</li>
-  <li>A <strong>DRV8833</strong> H-bridge with its own ~9&nbsp;V battery and a common ground to the Pi.</li>
-  <li>A <strong>Robot</strong> class giving clean <code>forward/turn/stop</code> control.</li>
-  <li>An <strong>encoder</strong> on each wheel for distance and going straight.</li>
-  <li>A <strong>touch bumper</strong> as a safety stop.</li>
-  <li>A <strong>camera + AI model</strong> closing the see → think → act loop.</li>
-</ul>
-
-<p>To combine them, run the follower loop as the main program, but keep the bumper's <code>when_pressed</code> callback armed so that a physical bump <em>always</em> wins and stops the robot, no matter what the camera thinks. A good robot has a reflex that overrides its brain.</p>
-
-<h3>A safe start (arm / disarm)</h3>
-
-<p>Never let a vision robot leap into motion the instant the program starts — the camera might already see its target and bolt. Add a simple "armed" guard: the robot only drives once you have pressed the bumper once to say "I'm ready", and the same bumper stops it again.</p>
-
-<pre class="code"><code>armed = False
-
-def toggle_arm():
-    global armed
-    armed = not armed
-    if not armed:
-        robot.stop()
-    print("ARMED" if armed else "DISARMED")
-
-bumper.when_pressed = toggle_arm
-
-# inside the main loop, only move when armed:
-#   if armed and targets:
-#       ... steer ...
-#   else:
-#       robot.stop()</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>armed = False</code>:</strong> A flag that starts <em>off</em>, so the robot is still until you say otherwise.</p>
-  <p><strong>Lines 3–8 — <code>toggle_arm()</code>:</strong> Flips the flag each press. <code>global armed</code> lets the function change the outer variable. When disarming, it stops the motors immediately.</p>
-  <p><strong>Line 10 — <code>bumper.when_pressed = toggle_arm</code>:</strong> One press arms, the next disarms — a simple, physical on/off you can reach without the keyboard.</p>
-  <p><strong>Lines 12–16 — the guard (shown as a comment):</strong> In your main loop, only steer when <code>armed</code> is true; otherwise hold still. This is the difference between a controllable robot and one that surprises you.</p>
-</div>
-
-
-<h2 id="the-easy-route-brickpi3">The Easy Route: BrickPi3</h2>
-
-<div class="note"><strong>Sidebar — don't fancy soldering or cutting cables?</strong> The <strong>BrickPi3</strong> (originally Dexter Industries, now Modular Robotics) is a HAT that sits on top of your Pi and provides four proper NXT/EV3 sockets — <em>for both motors and sensors</em> — with the correct right-offset latch. You plug your unmodified LEGO cables straight in and control everything from a Python library, with the H-bridges and level-shifting already done on the board.
-<ul>
-  <li><strong>Pi 5 support:</strong> the BrickPi3 does work with a Pi 5, but with caveats — the Pi 5 draws more power than the BrickPi3 can comfortably supply, so power the Pi separately, and the acrylic case/fan clearance is tight. Check the current BrickPi3 notes before you buy.</li>
-  <li><strong>When to choose it:</strong> if you want to reuse NXT/EV3 parts with the least fuss, or you are teaching a class and cannot have students cutting cables, the BrickPi3 is the gentle path. You lose the deep understanding of H-bridges and dividers that the DIY route teaches — which is precisely why this chapter builds the DIY version first.</li>
-</ul></div>
-
-<div class="warn"><strong>Careful:</strong> The official Raspberry Pi <strong>Build HAT</strong> is <em>not</em> a substitute here. It uses LEGO's newer LPF2/SPIKE connector, not the NXT's RJ12, so NXT motors and sensors will not plug into it. For NXT parts, it is DIY-with-an-H-bridge or a BrickPi3.</div>
-
-
-<h2 id="troubleshooting">Troubleshooting</h2>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Motors do nothing at all</td>
-      <td>No common ground, or driver in standby</td>
-      <td>Join the motor battery −, driver GND and Pi GND. Tie any SLP/STBY pin to 3.3 V. Check the battery is switched on.</td>
-    </tr>
-    <tr>
-      <td>One wheel spins backwards</td>
-      <td>That motor's power pair is reversed</td>
-      <td>Swap its white and black wires at the driver output, or swap <code>forward=</code>/<code>backward=</code> in code.</td>
-    </tr>
-    <tr>
-      <td>Pi reboots when motors start</td>
-      <td>Motors drawing from the Pi, or grounds bouncing</td>
-      <td>Confirm motor power comes from the <em>separate</em> battery's VM, not the Pi's 5 V. Use fresh cells. Keep motor wires short.</td>
-    </tr>
-    <tr>
-      <td>Encoder count never changes</td>
-      <td>Wrong wires, no encoder power, or divider error</td>
-      <td>Green→3.3 V, Red→GND, Yellow/Blue→GPIO via dividers. Confirm the GPIO taps to the join between R1 and R2.</td>
-    </tr>
-    <tr>
-      <td>Encoder count jumps erratically</td>
-      <td>Floating input or no divider</td>
-      <td>Make sure both channels go through their dividers and that the encoder shares the common ground.</td>
-    </tr>
-    <tr>
-      <td>Bumper never triggers</td>
-      <td>Wrong two wires chosen</td>
-      <td>Re-do the multimeter continuity test; use the pair that beeps only while pressed.</td>
-    </tr>
-    <tr>
-      <td>Camera follower never moves</td>
-      <td>Model not loaded, or label not in its vocabulary</td>
-      <td>Test <code>detect_objects</code> on its own first (print the labels it returns). Pick a label the model actually knows.</td>
-    </tr>
-    <tr>
-      <td>Robot overshoots / weaves</td>
-      <td>Drive speed too high for the frame rate</td>
-      <td>Lower the speed to 0.3, widen the <code>DEAD_ZONE</code>, or use the faster IMX500 AI Camera.</td>
-    </tr>
-    <tr>
-      <td><code>No module named 'lgpio'</code></td>
-      <td>The lgpio backend is missing</td>
-      <td>Run <code>sudo apt install python3-lgpio</code>, then restart Thonny.</td>
-    </tr>
-  </tbody>
-</table>
-
-
-<h2 id="safety-checklist">Safety Checklist</h2>
-
-<p>Before every powered test, run down this list. It takes ten seconds and saves Pis.</p>
-
-<ol class="steps">
-  <li><strong>Separate motor battery.</strong> Motors are powered by their own ~9&nbsp;V pack at the driver's VM — never from the Pi.</li>
-  <li><strong>Common ground.</strong> Battery −, driver GND and Pi GND all meet at one shared 0&nbsp;V rail.</li>
-  <li><strong>Level-shifted signals.</strong> Every NXT sensor/encoder line that can exceed 3.3&nbsp;V passes through a divider before reaching a GPIO pin.</li>
-  <li><strong>Motor isolation.</strong> The motors' white/black power wires touch only the driver outputs — never a GPIO or power pin.</li>
-  <li><strong>Current within limits.</strong> The driver is rated above the motor's ~1&nbsp;A stall current (the DRV8833 is, comfortably).</li>
-  <li><strong>Wheels off the ground first.</strong> Test new code with the chassis propped up so a bug cannot send it off a table.</li>
-  <li><strong>Power off to rewire.</strong> Shut down and unplug the Pi before changing any wiring; re-power only after a full check.</li>
-</ol>
-
-
-<h2 id="make-it-your-own">Make It Your Own / Where to Go Next</h2>
-
-<p>You have built a genuinely intelligent robot from a box of "obsolete" LEGO. Here is where to take it:</p>
-
-<ul>
-  <li><strong>Line following.</strong> Point a downward camera (or a swapped-in Pi-friendly light sensor) at the floor and steer to keep a dark line centred — the same offset-to-steering idea, no AI model needed.</li>
-  <li><strong>Obstacle avoidance.</strong> Add the NXT ultrasonic over I²C (or an HC-SR04 from Chapter 28) and have the robot back up and turn when something gets too close.</li>
-  <li><strong>Voice control.</strong> Combine with the speech work from Chapter 19 so you can say "follow me" or "stop" and have the robot obey.</li>
-  <li><strong>A web joystick.</strong> Wrap the <code>Robot</code> class in a small Flask app (Chapter 31) so you can drive it from your phone's browser — manual override for when the AI gets confused.</li>
-  <li><strong>Go EV3.</strong> The newer EV3 motors and sensors use the same RJ12 plug and similar ideas; a BrickPi3 or careful DIY wiring reuses those too.</li>
-</ul>
-
-<div class="tip"><strong>Tip:</strong> Keep your <code>Robot</code> class as the foundation for all of these. Because the messy hardware lives inside one tidy object, every new project — line follower, web-driven car, voice rover — just imports <code>Robot</code> and gives it new orders. That is the real lesson of classes: write the hard part once, reuse it forever.</div>
-
+<p>That's the end of the Linux track. You started not knowing what a shell really was; you can now read a process tree, reason about permissions and capabilities, wire up a firewall, write a systemd unit, and explain what a container actually is — and you can build the tools underneath all of it. The best way to keep it is to keep using it: pick a capstone, run it on your Pi, and break something. That's still the fastest way to learn. Well done getting here.</p>
 
 <div class="keyterms">
-<h4>Key terms</h4>
-<ul>
-  <li><strong>6P6C / RJ12</strong> - the six-contact modular plug LEGO used; the NXT version has a right-offset latch so ordinary phone leads don't seat.</li>
-  <li><strong>Quadrature encoder</strong> - a two-channel sensor that reports how far <em>and which way</em> a shaft turned; the NXT motor's gives ~1 count per degree.</li>
-  <li><strong>H-bridge</strong> - a driver chip that switches a motor's heavy current and reverses its direction from gentle 3.3 V logic, absorbing inductive kickback.</li>
-  <li><strong>DRV8833</strong> - a recommended dual H-bridge (2.7–10.8 V, ~1.5 A/channel) ideal for two NXT motors.</li>
-  <li><strong>PWM</strong> - rapid on/off switching that controls motor speed; gpiozero applies it when you pass a speed like 0.4.</li>
-  <li><strong>Separate battery + common ground</strong> - motors get their own ~9 V supply, but its negative must join the Pi's ground as a shared 0 V reference.</li>
-  <li><strong>Voltage divider / level-shift</strong> - two resistors dropping a &gt;3.3 V signal (sensor or encoder line) to a Pi-safe level before a GPIO input.</li>
-  <li><strong>Motor / RotaryEncoder</strong> - the gpiozero objects that drive an H-bridge channel and count an encoder (<code>.steps</code>, <code>when_rotated</code>).</li>
-  <li><strong>Robot class</strong> - your own class wrapping both motors with <code>forward/backward/turn_left/turn_right/stop</code>.</li>
-  <li><strong>Object detection</strong> - an AI task returning labelled boxes around things in an image; we use the box's horizontal centre to steer.</li>
-  <li><strong>See → think → act</strong> - the robotics loop: capture a frame, run the model, decide, drive the motors, repeat.</li>
-  <li><strong>BrickPi3</strong> - a HAT with proper NXT/EV3 sockets that does the H-bridge and level-shifting for you (works on a Pi 5 with power caveats).</li>
-</ul>
-</div>
-
-<div class="summary">
-<h4>Chapter summary</h4>
-<ul>
-  <li>An NXT motor is a plain <strong>9 V DC motor</strong> with a built-in <strong>quadrature encoder</strong> (~1 count/degree); its six RJ12 wires split into a power pair (white/black) and a four-wire encoder (red, green, yellow, blue).</li>
-  <li>The NXT's <strong>6P6C plug has a right-offset latch</strong>, so you either use an NXT-compatible breakout socket or cut a spare cable to reach the six colours.</li>
-  <li>Motors must be driven through an <strong>H-bridge</strong> (we used the DRV8833), never a GPIO pin, because of their current draw and inductive kickback.</li>
-  <li><strong>Separate ~9 V battery for the motors, but a common ground</strong> with the Pi — the single most important wiring rule here.</li>
-  <li>The encoder's and sensors' lines can exceed 3.3 V, so they reach the Pi through a <strong>voltage divider</strong> (level-shifting).</li>
-  <li>You wrote a <strong>Robot</strong> class wrapping two gpiozero <code>Motor</code> objects, read wheels with <code>RotaryEncoder</code>, and read a touch bumper as a <code>Button</code>.</li>
-  <li>The AI layer follows the <strong>see → think → act</strong> loop: Picamera2 frame → object-detection model → steer the Robot towards the target. Expect a few frames per second on a Pi 5 with TFLite, faster with the IMX500 AI Camera.</li>
-  <li>The <strong>BrickPi3</strong> is the easy off-the-shelf alternative; the Pi Build HAT is not, as it uses the newer LPF2 connector.</li>
-</ul>
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>fork / exec / wait</strong> - The trio at the heart of the shell: <code>fork()</code> makes a child process, the child <code>exec()</code>s the command, and the parent <code>wait()</code>s for it. Building a shell makes this concrete — and shows why <code>cd</code> must be a builtin.</li>
+    <li><strong>builtin</strong> - A command the shell runs in its own process rather than forking a child for, because it must change the shell's own state — the textbook case being <code>cd</code>.</li>
+    <li><strong>PID 1 / init</strong> - The first process in a system or container; it must forward signals to its children and <strong>reap zombies</strong> with <code>wait()</code>, which is why containers use a tiny init like <code>tini</code>.</li>
+    <li><strong>zombie / reaping</strong> - A finished process whose exit status no parent has collected yet; the parent "reaps" it by calling <code>wait()</code>. A PID-1 that never reaps lets zombies accumulate.</li>
+    <li><strong>reverse proxy</strong> - A server (here nginx) that sits in front of your app, receives public requests, and forwards them to the app on localhost — adding TLS, logging, and a single front door.</li>
+    <li><strong>Let's Encrypt</strong> - A free, automated certificate authority; with <code>certbot</code> it issues and renews real HTTPS certificates for a domain, so your Pi can serve genuine TLS.</li>
+    <li><strong>node_exporter</strong> - A small service that exposes a host's metrics (CPU, memory, disk, temperature) for Prometheus to scrape; the standard way to monitor a Linux machine.</li>
+    <li><strong>default-drop firewall</strong> - A firewall policy (e.g. with <code>nftables</code>) that blocks all traffic by default and allows only explicitly permitted ports — the safe baseline for an internet-facing host.</li>
+    <li><strong>ripgrep (<code>rg</code>)</strong> - A fast, modern <code>grep</code> replacement that skips <code>.gitignore</code>d files and binaries by default and searches in parallel.</li>
+    <li><strong>fzf</strong> - An interactive fuzzy finder you pipe lists into; bound to <kbd>Ctrl-R</kbd> it turns shell-history search into instant fuzzy matching.</li>
+    <li><strong>jq</strong> - A query and transform language for JSON, indispensable for slicing the output of modern APIs from the command line.</li>
+    <li><strong>tmux</strong> - A terminal multiplexer whose sessions survive disconnection, so remote work keeps running when your SSH connection drops; also splits panes and windows.</li>
+  </ul>
 </div>

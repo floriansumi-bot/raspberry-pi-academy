@@ -1,490 +1,155 @@
-<p class="lead">How fast are your reflexes, really? In this project you will build a reaction-timer game: an LED lights up after a random, unpredictable delay, and you must slam a button as quickly as you can. The Pi measures your reaction time in milliseconds and keeps track of your best score across rounds. Building it teaches you a whole cluster of core Python ideas &mdash; <strong>variables</strong>, the <strong>random</strong> module, the <strong>time</strong> module, <strong>conditionals</strong>, <strong>while loops</strong> and <strong>f-strings</strong> &mdash; plus the electronics of reading a <strong>button</strong> and taming <strong>switch bounce</strong>.</p>
+<p class="lead">Every time you type a command on your Pi, something quietly remarkable happens underneath: a process is born, runs your program, and dies — and the shell is right there to catch its last breath. In this chapter we go deeper than "type a command and watch it run." You'll see <em>how</em> processes are actually created, why "zombie" and "orphan" mean very different things, how a single keystroke like Ctrl-C turns into a signal, and the real difference between <code>&amp;</code>, <code>nohup</code>, and <code>disown</code>. Your Pi 5 runs full Debian with systemd and bash, so every word here applies to the little board on your desk.</p>
 
-<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+<h2 id="fork-and-exec">fork + exec: the two-step behind everything</h2>
 
-<p>The finished game runs in the Thonny console and on the breadboard. Each round: a random wait, then the "go" LED lights, you press as fast as you can, and the Pi prints your time and tells you if it is a new best. Here are the fundamentals you will pick up.</p>
-
-<h3>The Python fundamentals</h3>
-<ul>
-  <li><strong>Variables</strong> &mdash; named boxes that store values (your start time, your reaction time, your best score) and can change as the game runs.</li>
-  <li><strong>The <code>random</code> module</strong> &mdash; making the computer pick unpredictable values, here <code>random.uniform()</code> for a random delay so you cannot cheat by anticipating.</li>
-  <li><strong>The <code>time</code> module</strong> &mdash; <code>time.time()</code> gives the current moment as a number; subtracting two readings tells you how long something took.</li>
-  <li><strong>Conditionals</strong> &mdash; <code>if</code> / <code>elif</code> / <code>else</code> to make decisions, such as "is this a new best score?"</li>
-  <li><strong>The <code>while</code> loop</strong> &mdash; repeating the game round after round.</li>
-  <li><strong>f-strings</strong> &mdash; a clean way to drop values straight into printed text, like <code>f"{ms} ms"</code>.</li>
-</ul>
-
-<h3>The electronics fundamentals</h3>
-<ul>
-  <li><strong>Button input</strong> &mdash; reading a push button with gpiozero's <code>Button</code> object (default <code>pull_up=True</code>, wired GPIO &#8594; button &#8594; GND).</li>
-  <li><strong>Switch bounce and debounce</strong> &mdash; why a single press can register as several, and how <code>bounce_time</code> fixes it.</li>
-  <li><strong>An LED as a signal</strong> &mdash; using one LED as the "go!" light, with its own 330&nbsp;&Omega; resistor.</li>
-</ul>
-
-<div class="note"><strong>Note:</strong> this chapter follows on from the LED and button basics earlier in the course. We will still explain each part, but it helps if you have lit a single LED before.</div>
-
-<h2 id="parts-list">Parts List</h2>
+<p>Here's a fact that surprises most people: on Linux, a brand-new process is <strong>never</strong> created from nothing. There is no "make me a fresh program" button. Instead, Unix has exactly two moves, and your shell uses them millions of times a day.</p>
 
 <ul>
-  <li>A Raspberry Pi 5 running Raspberry Pi OS Bookworm.</li>
-  <li><strong>1 × LED</strong> &mdash; any colour; green suits a "go" light.</li>
-  <li><strong>1 × 330&nbsp;&Omega; resistor</strong> &mdash; orange-orange-brown-gold, for the LED.</li>
-  <li><strong>1 × push button</strong> &mdash; a small tactile switch with four legs.</li>
-  <li>A breadboard.</li>
-  <li><strong>3 × female-to-male jumper wires</strong> &mdash; one for the LED's GPIO, one for the button's GPIO, one shared ground.</li>
+  <li><strong><code>fork()</code></strong> — clone the current process. You now have two nearly identical processes: the parent and a child copy. The child even keeps the same open files.</li>
+  <li><strong><code>exec()</code></strong> — replace the program running inside a process with a different one, <em>keeping the same PID and the same open files</em>. The memory gets overwritten with the new program, but the wrapper stays.</li>
 </ul>
 
-<div class="warn"><strong>Careful:</strong> power off and unplug your Pi before wiring. Shut down from the menu, wait for the green light to go out, then remove the power lead. The Pi 5 GPIO is <strong>3.3&nbsp;V logic only</strong> &mdash; never put 5&nbsp;V on a GPIO pin. The LED needs its own 330&nbsp;&Omega; resistor; the button does not need an external resistor because gpiozero provides one internally.</div>
+<div class="jargon"><strong>In plain words:</strong> Think of <code>fork</code> as a photocopier that duplicates a worker, and <code>exec</code> as that copy taking off its uniform and putting on a completely different one — same employee badge number, brand-new job. The shell forks a copy of itself, and the copy then "becomes" <code>ls</code> by calling <code>exec</code>.</div>
 
-<h2 id="how-a-button-talks-to-the-pi">How a Button Talks to the Pi</h2>
+<p>When you run <code>ls</code> in your Pi's terminal, this is the dance:</p>
 
-<p>A push button is just a switch: press it and two contacts touch, completing a circuit; let go and they spring apart. gpiozero's <code>Button</code> object reads this for you.</p>
+<pre class="code"><code>shell process
+   | fork()              clone: child is a near-identical copy (same open files!)
+   v
+child (still the shell's code)
+   | set up redirections  rearrange files 0/1/2 here, because they survive exec
+   | exec("/bin/ls")      overwrite memory with ls; SAME pid, SAME open files
+   v
+child is now ls, already wired up to your terminal
+   | exit(0)
+   v
+shell wait()s, collects the exit code -&gt; $?</code></pre>
 
-<p>By default, <code>Button</code> uses an internal <strong>pull-up</strong> resistor. That means the GPIO pin is gently held HIGH (3.3&nbsp;V) when nothing is happening. You wire the button so that pressing it connects the pin to <strong>GND</strong>, pulling it LOW. gpiozero understands this and reports the press correctly &mdash; <code>is_pressed</code> becomes <code>True</code>. The beauty is you only need two wires and no extra resistor.</p>
+<p><strong>The key insight:</strong> shell redirection (the <code>&gt;</code>, <code>&lt;</code>, and <code>|</code> you've already met) works <em>because</em> <code>fork</code> preserves the file table and <code>exec</code> does not reset it. The shell forks, the child quietly points its output at your file, <em>then</em> execs your command — which inherits the redirected output and never even knows it was redirected. One model, two parts, endless consequences.</p>
 
-<div class="jargon"><strong>In plain words:</strong> a <strong>pull-up resistor</strong> keeps a GPIO input pin at a known HIGH value when nothing is pressing the button, so the pin never "floats" and reads random noise. The Pi 5 has these built in; gpiozero switches one on automatically for every <code>Button</code>.</div>
+<div class="tip"><strong>Tip:</strong> You can watch this happen for real on your Pi. Run <code>strace -f -e trace=clone,execve,wait4 bash -c 'ls &gt; /tmp/x'</code> and you'll see the <code>clone</code> (fork), the <code>execve</code>, and the <code>wait4</code> with your own eyes. Install it first with <code>sudo apt install strace</code>.</div>
 
-<div class="note"><strong>Note:</strong> the default is <code>pull_up=True</code>, so the button's other leg goes to <strong>GND</strong>. If you ever set <code>pull_up=False</code> instead, you would wire that leg to 3.3&nbsp;V &mdash; but for this project, stick with the default and wire to GND. Wiring the button leg straight to 3.3&nbsp;V while leaving the default pull-up on would be a wiring mistake, so always match the wiring to the setting.</div>
+<h2 id="the-process-tree">The process tree, PID 1, orphans &amp; zombies</h2>
 
-<p>There are two everyday ways to read a button. The first is to <em>ask</em> it directly whether it is pressed, using <code>is_pressed</code>:</p>
+<p>Every process on your Pi has a parent, recorded as its <strong>PPID</strong> (parent process ID). Follow those parents upward and you always arrive at the same place: <strong>PID 1</strong>, which on a modern Pi is <code>systemd</code>. The kernel starts PID 1 at boot, and the whole tree grows from there.</p>
 
-<pre class="code"><code>from gpiozero import Button
-from time import sleep
+<pre class="code"><code>pstree -p                          # the whole tree, with PIDs
+ps -eo pid,ppid,stat,cmd           # STAT column: Z=zombie  D=uninterruptible  S=sleep  R=running  +=foreground</code></pre>
 
-button = Button(27)
+<p>Two states confuse almost everyone, so let's pin them down precisely.</p>
 
-while True:
-    if button.is_pressed:
-        print("Down")
-    else:
-        print("Up")
-    sleep(0.2)</code></pre>
-<div class="explain">
-  <p><strong>Line 4 — <code>button = Button(27)</code>:</strong> a button on GPIO 27 with the default internal pull-up.</p>
-  <p><strong>Line 7 — <code>if button.is_pressed:</code>:</strong> <code>is_pressed</code> is a property that is <code>True</code> while the button is held and <code>False</code> otherwise. This "keep checking" style is called <em>polling</em>.</p>
-  <p><strong>Line 11 — <code>sleep(0.2)</code>:</strong> a tiny pause so we are not printing thousands of lines per second.</p>
-</div>
+<h3>Zombie (the misunderstood one)</h3>
 
-<p>The second way &mdash; the one our game uses &mdash; is to <em>wait</em> for a press with <code>button.wait_for_press()</code>, which stops the program at that line until the press happens. That is exactly what we want for timing: the moment <code>wait_for_press()</code> returns is the moment the player reacted.</p>
+<p>A <strong>zombie</strong> — shown as <code>Z</code> or "defunct" — is a process that has <em>already exited</em> but whose parent hasn't yet called <code>wait()</code> to collect its exit status. A zombie holds <em>no memory</em> and runs no code. It is just a PID and an exit code lingering in the process table, waiting to be read.</p>
 
-<h3>Switch bounce: the hidden gremlin</h3>
+<div class="warn"><strong>Careful:</strong> You <strong>cannot kill a zombie</strong> — it is already dead. <code>kill -9</code> does nothing to it, because there is nothing left to kill. A pile of zombies means the <em>parent</em> is buggy and isn't reaping its children. The fix is always to fix or kill the <strong>parent</strong>, which lets PID 1 clean up the leftovers.</div>
 
-<p>When metal contacts inside a button slap together, they do not connect cleanly. For a few thousandths of a second they bounce apart and back, several times, like a dropped ball. The Pi is fast enough to see every one of those bounces, so a single physical press can look like five presses in a row. This is called <strong>switch bounce</strong>.</p>
+<h3>Orphan (the harmless one)</h3>
 
-<figure class="fig">
-<svg viewBox="0 0 560 220" xmlns="http://www.w3.org/2000/svg">
-  <rect width="560" height="220" fill="#f3f0ff" rx="12"/>
-  <text x="280" y="26" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Switch bounce vs a clean signal</text>
+<p>An <strong>orphan</strong> is a process whose parent died first. The kernel notices and <strong>re-parents it to PID 1</strong>, which dutifully reaps it when it finishes. Orphans are completely normal and harmless.</p>
 
-  <!-- bouncy signal -->
-  <text x="120" y="56" font-family="sans-serif" font-size="12" font-weight="bold" fill="#dc2626" text-anchor="middle">Raw button (bounces)</text>
-  <polyline points="30,130 30,80 50,80 50,130 70,130 70,80 85,80 85,130 100,130 100,80 210,80" fill="none" stroke="#dc2626" stroke-width="3"/>
-  <text x="120" y="150" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">one press &#8594; many fake edges</text>
+<p><strong>The key insight:</strong> a zombie is a <em>pathology</em> (a parent that forgot its job); an orphan is <em>routine</em> (the system tidying up automatically). They sound similar but they are opposites in spirit.</p>
 
-  <!-- clean signal -->
-  <text x="420" y="56" font-family="sans-serif" font-size="12" font-weight="bold" fill="#059669" text-anchor="middle">With bounce_time</text>
-  <polyline points="320,130 360,130 360,80 520,80" fill="none" stroke="#059669" stroke-width="3"/>
-  <text x="420" y="150" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">one press &#8594; one clean edge</text>
+<div class="note"><strong>Note:</strong> This matters more than it looks, especially when you start running containers on your Pi later. Inside a container, <em>your app is often PID 1</em>. If it doesn't reap children and forward signals the way a real init does, you get zombie buildup and <code>docker stop</code> hangs (because nothing handles the shutdown signal). That's exactly why <code>docker run --init</code> and tools like <code>tini</code> exist. PID 1 is special — and now you know why.</div>
 
-  <!-- arrow -->
-  <text x="280" y="115" font-family="sans-serif" font-size="22" fill="#6d28d9" text-anchor="middle">&#8594;</text>
-  <text x="280" y="178" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">bounce_time=0.05 ignores</text>
-  <text x="280" y="194" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">extra edges for 50 ms</text>
-</svg>
-<figcaption>Without debouncing, one press produces several rapid on/off edges. Setting <code>bounce_time</code> tells gpiozero to ignore further changes for a short window, turning the mess into one clean press.</figcaption>
-</figure>
+<h2 id="signals">Signals — the precise, commonly-botched distinctions</h2>
 
-<p>The cure is <strong>debouncing</strong>: after the first change, ignore any further changes for a short window (say 50&nbsp;milliseconds) &mdash; long enough for the bouncing to settle. gpiozero does this for you with the <code>bounce_time</code> argument:</p>
-
-<pre class="code"><code>from gpiozero import Button
-
-button = Button(17, bounce_time=0.05)   # ignore bounces within 50 ms</code></pre>
-<div class="explain">
-  <p><strong>Line 3 — <code>Button(17, bounce_time=0.05)</code>:</strong> creates a button on GPIO 17 with debouncing. <code>bounce_time=0.05</code> means "after a change, ignore any more changes for 0.05 seconds (50&nbsp;ms)." That smooths out the bounce so each press counts once. With no <code>bounce_time</code> (the default <code>None</code>), debouncing is off.</p>
-</div>
-
-<div class="tip"><strong>Tip:</strong> 50&nbsp;ms is a good starting value. If a fast double-tap is being merged into one, lower it; if one press still registers twice, raise it a little.</div>
-
-<h2 id="the-circuit">The Circuit</h2>
-
-<p>We use two GPIO pins: one drives the LED, one reads the button. Both share the same ground.</p>
+<p>A <strong>signal</strong> is a short, asynchronous notification the kernel delivers to a process — a tap on the shoulder saying "something happened, deal with it." A handful matter day to day, and the differences between them trip people up constantly.</p>
 
 <table class="tbl">
   <thead>
-    <tr><th>Component</th><th>GPIO (BCM)</th><th>Physical pin</th></tr>
+    <tr><th>Signal</th><th>#</th><th>Catchable?</th><th>Meaning</th></tr>
   </thead>
   <tbody>
-    <tr><td>LED ("go" light)</td><td>GPIO 17</td><td>Pin 11</td></tr>
-    <tr><td>Button</td><td>GPIO 27</td><td>Pin 13</td></tr>
+    <tr><td><strong>SIGTERM</strong></td><td>15</td><td>yes</td><td>"Please shut down." The polite default of <code>kill</code>. The app gets to clean up first.</td></tr>
+    <tr><td><strong>SIGINT</strong></td><td>2</td><td>yes</td><td>Ctrl-C — interrupt the program running in the foreground.</td></tr>
+    <tr><td><strong>SIGHUP</strong></td><td>1</td><td>yes</td><td>Originally "the terminal hung up"; now widely repurposed as "reload your config" for daemons (e.g. <code>nginx -s reload</code>).</td></tr>
+    <tr><td><strong>SIGKILL</strong></td><td>9</td><td><strong>NO</strong></td><td>Uncatchable, unblockable, unignorable. The kernel destroys the process outright. No cleanup runs.</td></tr>
+    <tr><td><strong>SIGSTOP / SIGCONT</strong></td><td>19 / 18</td><td>STOP: no</td><td>Pause / resume. The basis of Ctrl-Z plus <code>fg</code> and <code>bg</code>.</td></tr>
   </tbody>
 </table>
 
-<h3>Wiring diagram</h3>
+<div class="warn"><strong>Myth vs reality:</strong> The myth is "<code>kill -9</code> is how you kill a process." The reality is that <code>kill -9</code> (SIGKILL) is the <strong>brutal last resort</strong>. Because it can't be caught, the process gets <em>no chance</em> to flush buffers, finish writes, release locks, or reap its own children — so you can corrupt data, strand locks, and leave zombies behind. Always send SIGTERM first (plain <code>kill PID</code>, no flag) and escalate to <code>-9</code> only if the process ignores you. And SIGKILL isn't even omnipotent: a process stuck in <strong>uninterruptible sleep</strong> (state <code>D</code>, blocked inside a syscall — usually waiting on disk or a slow USB drive on your Pi) won't die even to SIGKILL until that I/O completes.</div>
 
-<figure class="fig">
-<svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg">
-  <rect width="640" height="400" fill="#f3f0ff" rx="12"/>
-  <text x="320" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Reaction-Timer Wiring (LED + button)</text>
+<pre class="code"><code>kill -l                    # list every signal name and number
+kill 1234                  # polite: sends SIGTERM
+kill -TERM 1234            # exactly the same, but explicit
+kill -HUP $(pgrep nginx)   # tell nginx to reload its config
+kill -9 1234              # SIGKILL — only after TERM has been ignored</code></pre>
 
-  <!-- Pi header -->
-  <rect x="20" y="70" width="96" height="240" fill="#1f2933" rx="6"/>
-  <text x="68" y="62" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
-  <rect x="24" y="100" width="16" height="12" fill="#6d28d9" rx="2"/>
-  <text x="44" y="110" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 11 (GPIO 17)</text>
-  <rect x="24" y="170" width="16" height="12" fill="#6d28d9" rx="2"/>
-  <text x="44" y="180" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 13 (GPIO 27)</text>
-  <rect x="24" y="250" width="16" height="12" fill="#374151" rx="2"/>
-  <text x="44" y="260" font-family="sans-serif" font-size="9" fill="#9ca3af">Pin 6 (GND)</text>
+<h2 id="background-and-detach">&amp;, nohup, disown — three different things people conflate</h2>
 
-  <!-- Breadboard -->
-  <rect x="150" y="60" width="400" height="290" fill="#e8e4d9" stroke="#c9b89a" stroke-width="1.5" rx="8" opacity="0.5"/>
-  <rect x="165" y="320" width="370" height="14" fill="#bfdbfe" rx="3" opacity="0.8"/>
-  <text x="350" y="331" font-family="sans-serif" font-size="10" fill="#1d4ed8" text-anchor="middle">&#8722; ground rail</text>
-
-  <!-- LED branch -->
-  <line x1="40" y1="106" x2="230" y2="106" stroke="#6d28d9" stroke-width="3"/>
-  <rect x="230" y="98" width="46" height="16" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <rect x="237" y="98" width="4" height="16" fill="#f97316"/><rect x="244" y="98" width="4" height="16" fill="#f97316"/><rect x="251" y="98" width="4" height="16" fill="#92400e"/>
-  <text x="253" y="92" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">330&#8486;</text>
-  <line x1="276" y1="106" x2="320" y2="106" stroke="#6d28d9" stroke-width="3"/>
-  <ellipse cx="332" cy="106" rx="11" ry="13" fill="#22c55e" stroke="#1f2933" stroke-width="1.2"/>
-  <text x="332" y="110" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">GO</text>
-  <line x1="332" y1="119" x2="332" y2="320" stroke="#374151" stroke-width="3"/>
-  <ellipse cx="370" cy="106" rx="14" ry="10" fill="#fde047" opacity="0.7"/>
-
-  <!-- Button branch -->
-  <line x1="40" y1="176" x2="430" y2="176" stroke="#6d28d9" stroke-width="3"/>
-  <rect x="430" y="156" width="40" height="40" fill="#374151" rx="4" stroke="#1f2933" stroke-width="2"/>
-  <rect x="443" y="169" width="14" height="14" fill="#6d28d9" rx="7"/>
-  <text x="450" y="214" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Button</text>
-  <!-- button other leg to ground rail -->
-  <line x1="450" y1="196" x2="450" y2="320" stroke="#374151" stroke-width="3"/>
-
-  <!-- GND return -->
-  <line x1="40" y1="256" x2="165" y2="256" stroke="#374151" stroke-width="3"/>
-  <line x1="165" y1="256" x2="165" y2="327" stroke="#374151" stroke-width="3"/>
-
-  <text x="320" y="372" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle" font-weight="bold">LED: GPIO 17 &#8594; resistor &#8594; LED &#8594; GND.  Button: GPIO 27 &#8594; button &#8594; GND.</text>
-</svg>
-<figcaption>The green "go" LED runs from GPIO 17 through its 330&nbsp;&Omega; resistor to the ground rail. The button connects GPIO 27 to the same ground rail; gpiozero's internal pull-up means no button resistor is needed.</figcaption>
-</figure>
-
-<h3>Connection table</h3>
+<p>You'll often want a long job to keep running on your Pi while you do something else — or even after you close the terminal or log out over SSH. Three tools get mixed up here, and they work by genuinely different mechanisms.</p>
 
 <table class="tbl">
   <thead>
-    <tr><th>From</th><th>To</th><th>Via</th></tr>
+    <tr><th>You run</th><th>Mechanism</th><th>Survives terminal close?</th><th>Redirects output?</th></tr>
   </thead>
   <tbody>
-    <tr><td>GPIO 17 (pin 11)</td><td>LED long leg (anode)</td><td>330&nbsp;&Omega; resistor</td></tr>
-    <tr><td>LED short leg (cathode)</td><td>Ground rail</td><td>direct</td></tr>
-    <tr><td>GPIO 27 (pin 13)</td><td>Button leg 1</td><td>jumper wire</td></tr>
-    <tr><td>Button leg 2 (opposite side)</td><td>Ground rail</td><td>jumper wire</td></tr>
-    <tr><td>Ground rail</td><td>GND (pin 6)</td><td>jumper wire</td></tr>
+    <tr><td><code>cmd &amp;</code></td><td>Background job, still a child of the shell</td><td>Often <strong>no</strong> (gets SIGHUP)</td><td>No</td></tr>
+    <tr><td><code>nohup cmd &amp;</code></td><td>Sets the process to <strong>ignore SIGHUP</strong>; sends output to <code>nohup.out</code></td><td><strong>Yes</strong></td><td>Yes</td></tr>
+    <tr><td><code>cmd &amp;</code> then <code>disown</code></td><td>Removes the job from the <strong>shell's</strong> job table, so it won't be sent SIGHUP on exit</td><td><strong>Yes</strong></td><td>No</td></tr>
   </tbody>
 </table>
 
-<h3>Step-by-step wiring</h3>
+<p><strong>The key insight:</strong> they solve overlapping problems by <em>different mechanisms</em>. <code>nohup</code> changes the process's signal disposition <em>before</em> launch. <code>disown</code> changes the <em>shell's bookkeeping</em> <em>after</em> launch. Plain <code>&amp;</code> does neither robustly — it just runs the job in the background and crosses its fingers.</p>
+
+<div class="tip"><strong>Tip:</strong> For real detachment on a Pi you SSH into, the modern answers are nicer than any of these. Use a <strong>tmux</strong> or <strong>screen</strong> session for interactive work you want to reconnect to later, or a proper <strong>systemd service</strong> (or <code>systemd-run --user --scope</code>) for anything that should outlive your login and restart on boot. You'll meet systemd services properly a little later.</div>
+
+<h2 id="job-control">Job control &amp; sessions (where Ctrl-C and Ctrl-Z come from)</h2>
+
+<p>Here's where those familiar keystrokes finally make sense. A terminal <strong>session</strong> has exactly one <strong>foreground process group</strong> and any number of background groups. When you build a pipeline like <code>a | b | c</code>, all three commands join a <em>single</em> process group — which is why one Ctrl-C stops the whole pipeline at once, not just the last stage.</p>
+
+<p>The terminal translates your keystrokes into signals sent to the foreground group:</p>
+
+<ul>
+  <li><strong>Ctrl-C</strong> sends SIGINT — interrupt.</li>
+  <li><strong>Ctrl-\</strong> sends SIGQUIT — interrupt plus a core dump.</li>
+  <li><strong>Ctrl-Z</strong> sends SIGTSTP — suspend. Then <code>bg</code> resumes it in the background, <code>fg</code> pulls it back to the foreground, and <code>jobs</code> lists what you've got.</li>
+</ul>
+
+<pre class="code"><code>sleep 1000        # now press Ctrl-Z to suspend it
+jobs              # [1]+  Stopped    sleep 1000
+bg %1             # resume it in the background
+fg %1             # pull it back to the foreground</code></pre>
+
+<div class="jargon"><strong>In plain words:</strong> "Foreground" just means the program currently holding the keyboard — the one your typing and Ctrl-C go to. "Background" jobs are still running but no longer connected to your keystrokes. Job control is simply your shell letting you shuffle programs between those two states.</div>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
+
+<p>These hands-on labs drive every idea above. They're safe to run on your everyday Pi, but if you'd rather experiment freely, do them on a spare microSD card you can re-flash if anything goes sideways.</p>
 
 <ol class="steps">
-  <li><strong>Power off.</strong> Shut down and unplug the Pi before touching the breadboard.</li>
-  <li><strong>Fit the LED.</strong> Push the LED in with its long leg (anode) and short leg (cathode) in different rows across the centre gap.</li>
-  <li><strong>Add its resistor.</strong> One leg of the 330&nbsp;&Omega; resistor shares the LED's long-leg row; the other leg goes to a free row for the GPIO wire.</li>
-  <li><strong>Wire the LED.</strong> GPIO 17 (pin 11) to the resistor; the LED's short leg to the &minus; ground rail.</li>
-  <li><strong>Fit the button</strong> straddling the centre gap so its two sides are separate until pressed.</li>
-  <li><strong>Wire the button.</strong> GPIO 27 (pin 13) to one side; the other side to the &minus; ground rail.</li>
-  <li><strong>Common ground.</strong> Run one jumper from the &minus; rail to a GND pin (pin 6).</li>
-  <li><strong>Re-check and power up</strong> only once every wire is confirmed.</li>
+  <li><strong>Signals &amp; job-control survey.</strong> Start a <code>sleep 500</code>, suspend it with Ctrl-Z, then juggle it with <code>jobs</code>, <code>bg %1</code>, and <code>fg %1</code>. Open a second terminal, find its PID with <code>pgrep sleep</code>, and send it <code>kill -STOP</code> then <code>kill -CONT</code> then <code>kill -TERM</code>. Prove to yourself that SIGTERM ends it cleanly.</li>
+  <li><strong>SIGKILL can't be trapped.</strong> Write a tiny bash script with <code>trap 'echo caught' SIGTERM</code> and an infinite loop. Send it SIGTERM and watch it print "caught" — then send <code>kill -9</code> and watch it vanish without a word. You've just felt the difference between catchable and uncatchable.</li>
+  <li><strong>Zombie &amp; orphan lab.</strong> Make a zombie (a parent that forks a child, the child exits, but the parent never waits) and an orphan (a parent that exits before its child). Watch both with <code>ps -eo pid,ppid,stat,cmd</code> and <code>pstree -p</code>. Confirm you <em>cannot</em> <code>kill -9</code> the zombie, and that the orphan's PPID has become 1.</li>
+  <li><strong>Graceful shutdown handler.</strong> Write a worker script that <code>trap</code>s SIGTERM and SIGINT, finishes its in-flight task, deletes its temp files, and <em>then</em> exits — instead of dying instantly. In bash: <code>trap 'cleanup' SIGTERM SIGINT EXIT</code>. This is exactly the pattern a well-behaved systemd service or container app must follow to shut down cleanly.</li>
 </ol>
 
-<h2 id="variables-and-fstrings">Fundamental 1: Variables and f-strings</h2>
-
-<p>Let us meet the Python ideas one at a time before the full game. A <strong>variable</strong> is a labelled box that holds a value. You can put a value in, read it back, and change it later.</p>
-
-<pre class="code"><code>best_score = None
-attempts = 0
-
-attempts = attempts + 1
-print(f"You have had {attempts} go(s). Best so far: {best_score}")</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>best_score = None</code>:</strong> creates a variable <code>best_score</code> and stores <code>None</code> in it. <code>None</code> is Python's word for "nothing yet" &mdash; we have not recorded a best score, so the box starts empty.</p>
-  <p><strong>Line 2 — <code>attempts = 0</code>:</strong> a counter variable starting at zero.</p>
-  <p><strong>Line 4 — <code>attempts = attempts + 1</code>:</strong> reads the current value, adds one, and stores the result back. Variables can change &mdash; that is what makes them useful for scores and counters.</p>
-  <p><strong>Line 5 — <code>print(f"...{attempts}...{best_score}")</code>:</strong> an <strong>f-string</strong> (note the <code>f</code> before the quote). Anything inside <code>{ }</code> is replaced by the value of that variable. Here it prints the count and best score in a sentence without fiddly string-joining.</p>
-</div>
-
-<div class="jargon"><strong>In plain words:</strong> an <strong>f-string</strong> is a string with the letter <code>f</code> in front. Inside it, <code>{name}</code> gets swapped for whatever <code>name</code> holds. It is the tidiest way to mix words and values in one line.</div>
-
-<h2 id="random-delays">Fundamental 2: Random Delays</h2>
-
-<p>If the LED always lit after exactly two seconds, you could cheat by counting. The <strong><code>random</code></strong> module makes the wait unpredictable.</p>
-
-<pre class="code"><code>import random
-from time import sleep
-
-wait = random.uniform(2, 5)   # a random number of seconds between 2 and 5
-print(f"Waiting {wait:.2f} seconds...")
-sleep(wait)
-print("GO!")</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>import random</code>:</strong> brings in Python's built-in randomness module.</p>
-  <p><strong>Line 4 — <code>random.uniform(2, 5)</code>:</strong> returns a random <em>decimal</em> number anywhere between 2 and 5 (for example 3.71). <code>uniform</code> means every value in that range is equally likely. We store it in <code>wait</code>.</p>
-  <p><strong>Line 5 — <code>f"Waiting {wait:.2f} seconds..."</code>:</strong> the <code>:.2f</code> inside the braces is a <em>format</em> instruction meaning "show this number to 2 decimal places," so 3.71456 prints as 3.71.</p>
-  <p><strong>Line 6 — <code>sleep(wait)</code>:</strong> pauses for that random number of seconds, so the player never knows exactly when "GO!" will appear.</p>
-</div>
-
-<h2 id="timing-with-the-time-module">Fundamental 3: Timing with the time Module</h2>
-
-<p>To measure a reaction, we note the moment the LED lights and the moment the button is pressed, then subtract. The <strong><code>time</code></strong> module gives us those moments.</p>
-
-<pre class="code"><code>from time import time
-
-start = time()
-# ... player reacts ...
-end = time()
-
-reaction_seconds = end - start
-reaction_ms = reaction_seconds * 1000
-print(f"Reaction time: {reaction_ms:.0f} ms")</code></pre>
-<div class="explain">
-  <p><strong>Line 3 — <code>start = time()</code>:</strong> <code>time()</code> returns the current moment as a number of seconds (a big decimal). We save it as <code>start</code> the instant the LED lights.</p>
-  <p><strong>Line 5 — <code>end = time()</code>:</strong> another reading taken the instant the button is pressed.</p>
-  <p><strong>Line 7 — <code>reaction_seconds = end - start</code>:</strong> subtract the two readings to get how long it took, in seconds. This is a <em>delta</em> &mdash; a difference between two times.</p>
-  <p><strong>Line 8 — <code>reaction_ms = reaction_seconds * 1000</code>:</strong> multiply by 1000 to convert seconds to milliseconds, which feels more natural for reaction times.</p>
-  <p><strong>Line 9 — <code>{reaction_ms:.0f}</code>:</strong> <code>:.0f</code> rounds to a whole number, so we print e.g. <code>312 ms</code> rather than <code>312.4187 ms</code>.</p>
-</div>
-
-<h2 id="conditionals-and-while-loops">Fundamental 4: Conditionals and while Loops</h2>
-
-<p>To decide whether a score is a new best, and to run round after round, we need <strong>conditionals</strong> and a <strong>while loop</strong>.</p>
-
-<pre class="code"><code>best = None
-rounds = 0
-
-while rounds &lt; 3:
-    score = 250        # pretend reaction time in ms
-    if best is None:
-        best = score
-        print("First score recorded.")
-    elif score &lt; best:
-        best = score
-        print("New best!")
-    else:
-        print("Not your best this time.")
-    rounds = rounds + 1</code></pre>
-<div class="explain">
-  <p><strong>Line 4 — <code>while rounds &lt; 3:</code>:</strong> a <strong>while loop</strong> repeats its block as long as the condition <code>rounds &lt; 3</code> is true. The <code>&lt;</code> means "less than." When <code>rounds</code> reaches 3, the loop stops.</p>
-  <p><strong>Line 6 — <code>if best is None:</code>:</strong> the first branch of a <strong>conditional</strong>. If we have no best yet, this score becomes the best.</p>
-  <p><strong>Line 9 — <code>elif score &lt; best:</code>:</strong> <code>elif</code> means "else, if". It is only checked when the <code>if</code> above was false. If this new score is lower (faster) than the best, we have a new record.</p>
-  <p><strong>Line 12 — <code>else:</code>:</strong> runs when none of the above were true &mdash; the score was not a new best.</p>
-  <p><strong>Line 14 — <code>rounds = rounds + 1</code>:</strong> count this round so the while loop eventually ends. Forgetting this line would make the loop run forever!</p>
-</div>
-
-<div class="jargon"><strong>In plain words:</strong> <code>if</code>/<code>elif</code>/<code>else</code> is the program making a decision &mdash; "if this, do that; otherwise, if something else, do this other thing; otherwise, do the last thing." Only one branch runs.</div>
-
-<h2 id="the-full-game">The Full Game</h2>
-
-<p>Now we assemble everything into the reaction-timer game. Open a new file in Thonny, type it in, and save it as <code>reaction.py</code>.</p>
-
-<pre class="code"><code>from gpiozero import LED, Button
-from time import time, sleep
-import random
-
-led = LED(17)
-button = Button(27, bounce_time=0.05)   # debounced button to GND
-
-best = None      # best (lowest) reaction time in ms, None until first round
-round_number = 0
-
-print("Reaction Timer! Press the button the instant the LED lights.")
-print("Press Ctrl+C in the console to quit.\n")
-
-while True:
-    round_number = round_number + 1
-    print(f"--- Round {round_number} ---")
-    print("Get ready...")
-
-    led.off()
-    wait = random.uniform(2, 5)     # unpredictable delay
-    sleep(wait)
-
-    # Catch a cheat who presses before the light
-    if button.is_pressed:
-        print("Too soon! Wait for the light. No score.\n")
-        sleep(1)
-        continue
-
-    led.on()
-    start = time()                  # the moment the light came on
-    button.wait_for_press()         # block until the player presses
-    end = time()                    # the moment they pressed
-    led.off()
-
-    reaction_ms = (end - start) * 1000
-
-    if best is None or reaction_ms &lt; best:
-        best = reaction_ms
-        print(f"Your time: {reaction_ms:.0f} ms  -  NEW BEST!")
-    else:
-        print(f"Your time: {reaction_ms:.0f} ms  (best: {best:.0f} ms)")
-
-    print()
-    sleep(2)</code></pre>
-<div class="explain">
-  <p><strong>Lines 1&ndash;3:</strong> import the LED and Button from gpiozero, <code>time</code> and <code>sleep</code> from the <code>time</code> module, and the <code>random</code> module.</p>
-  <p><strong>Line 5 — <code>led = LED(17)</code>:</strong> the green "go" LED on GPIO 17.</p>
-  <p><strong>Line 6 — <code>button = Button(27, bounce_time=0.05)</code>:</strong> the button on GPIO 27, debounced so one press counts once. Its other leg is wired to GND; the default internal pull-up handles the rest.</p>
-  <p><strong>Lines 8&ndash;9:</strong> two <strong>variables</strong>: <code>best</code> starts as <code>None</code> (no score yet), <code>round_number</code> starts at 0.</p>
-  <p><strong>Line 14 — <code>while True:</code>:</strong> the <strong>while loop</strong> that plays round after round forever, until you stop the program.</p>
-  <p><strong>Lines 15&ndash;17:</strong> count the round and announce it with <strong>f-strings</strong>.</p>
-  <p><strong>Lines 19&ndash;21 — random delay:</strong> turn the LED off, pick a random wait with <code>random.uniform(2, 5)</code>, and <code>sleep</code> for it so the "go" moment is unpredictable.</p>
-  <p><strong>Lines 24&ndash;27 — the cheat check:</strong> an <code>if</code> <strong>conditional</strong>. If the player is already holding the button before the light, we print a warning and <code>continue</code> &mdash; which jumps straight to the next loop iteration, skipping the timing.</p>
-  <p><strong>Lines 29&ndash;32 — the measurement:</strong> light the LED, record <code>start = time()</code>, then <code>button.wait_for_press()</code> pauses until the player presses, at which point we record <code>end = time()</code> and switch the LED off.</p>
-  <p><strong>Line 34 — <code>reaction_ms = (end - start) * 1000</code>:</strong> the <code>time</code> delta in seconds, converted to milliseconds.</p>
-  <p><strong>Lines 36&ndash;40 — score check:</strong> an <code>if</code>/<code>else</code> <strong>conditional</strong>. If there is no best yet, <em>or</em> this time is faster than the best, record a new best and say so; otherwise just show the time alongside the current best. The <code>:.0f</code> rounds to whole milliseconds.</p>
-  <p><strong>Lines 43&ndash;44:</strong> a blank line and a short pause before the next round begins.</p>
-</div>
-
-<h3>Running the game</h3>
-
-<ol class="steps">
-  <li><strong>Save</strong> as <code>reaction.py</code> in your home folder.</li>
-  <li><strong>Run</strong> with the green ▶ button or F5. Read the instructions printed in the console.</li>
-  <li><strong>Wait for the LED.</strong> After a random pause it lights &mdash; press the button as fast as you can.</li>
-  <li><strong>Read your time</strong> in milliseconds. Anything around 200&ndash;300&nbsp;ms is typical for a human; under 200&nbsp;ms is very sharp.</li>
-  <li><strong>Keep playing</strong> &mdash; the game tracks your best score across rounds. Press the red ◼ Stop button (or Ctrl+C in the console) to quit.</li>
-</ol>
-
-<div class="tip"><strong>Tip:</strong> challenge a friend and keep score on paper, or extend the program to track each player's best (see "Make it your own"). Tiredness, caffeine and practice all visibly change your numbers &mdash; it makes a fun little science experiment.</div>
-
-<h2 id="understanding-your-numbers">Understanding Your Numbers</h2>
-
-<p>It is worth pausing on what those millisecond figures mean, because they show why we measured the way we did.</p>
-
-<p>A <strong>millisecond</strong> (ms) is one thousandth of a second. Human reaction to a sudden light is genuinely slow in computer terms: signals have to travel from your eye to your brain, get processed, then travel back down to your finger muscles. That round trip takes most people somewhere between <strong>200 and 300&nbsp;ms</strong>. A trained gamer or athlete might reach 150&nbsp;ms; almost nobody beats 100&nbsp;ms honestly &mdash; a "score" much lower than that is a sign of switch bounce or a guessed press, not superhuman reflexes.</p>
-
-<figure class="fig">
-<svg viewBox="0 0 560 170" xmlns="http://www.w3.org/2000/svg">
-  <rect width="560" height="170" fill="#f3f0ff" rx="12"/>
-  <text x="280" y="26" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Typical human reaction times</text>
-  <!-- scale bar -->
-  <rect x="40" y="60" width="480" height="24" fill="#e5e7eb" rx="6"/>
-  <!-- bands -->
-  <rect x="40" y="60" width="100" height="24" fill="#22c55e" rx="6"/>
-  <rect x="140" y="60" width="160" height="24" fill="#f59e0b"/>
-  <rect x="300" y="60" width="220" height="24" fill="#ef4444" rx="6"/>
-  <text x="90" y="77" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">very fast</text>
-  <text x="220" y="77" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">typical</text>
-  <text x="410" y="77" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">take your time</text>
-  <!-- ticks -->
-  <text x="40"  y="108" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">100 ms</text>
-  <text x="140" y="108" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">200 ms</text>
-  <text x="300" y="108" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">350 ms</text>
-  <text x="520" y="108" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">500 ms+</text>
-  <text x="280" y="140" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">A score under ~100 ms usually means bounce or a guessed press, not real reflexes.</text>
-</svg>
-<figcaption>Where typical reaction times fall. Most honest scores land in the 200&ndash;300&nbsp;ms band; impossibly small numbers point to switch bounce.</figcaption>
-</figure>
-
-<p>This is also why <code>time.time()</code> is good enough here. It measures wall-clock time to a tiny fraction of a millisecond &mdash; far finer than human reactions &mdash; so any wobble in the measurement is dwarfed by your own variation from press to press.</p>
-
-<h2 id="tracking-scores-across-rounds">Tracking Scores Across Rounds</h2>
-
-<p>Our game keeps a single <code>best</code> value. But score tracking can be richer, and it is a great excuse to practise variables and lists together. Suppose we want to remember <em>every</em> time, then report the best, the worst and the average at the end. Here is a self-contained example you can try on its own:</p>
-
-<pre class="code"><code>times = []                       # an empty list to collect every reaction time
-
-times.append(312)                # pretend three rounds happened
-times.append(287)
-times.append(341)
-
-best = min(times)                # smallest = fastest
-worst = max(times)               # largest = slowest
-average = sum(times) / len(times)
-
-print(f"Rounds played: {len(times)}")
-print(f"Best:    {best} ms")
-print(f"Worst:   {worst} ms")
-print(f"Average: {average:.0f} ms")</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>times = []</code>:</strong> creates an empty <strong>list</strong> &mdash; a container that will hold every score in the order they happen.</p>
-  <p><strong>Lines 3&ndash;5 — <code>times.append(312)</code>:</strong> <code>append</code> adds a value to the end of the list. After three appends, <code>times</code> is <code>[312, 287, 341]</code>.</p>
-  <p><strong>Line 7 — <code>min(times)</code>:</strong> a built-in function that returns the smallest number in the list &mdash; the fastest reaction.</p>
-  <p><strong>Line 8 — <code>max(times)</code>:</strong> returns the largest &mdash; the slowest reaction.</p>
-  <p><strong>Line 9 — <code>sum(times) / len(times)</code>:</strong> <code>sum</code> adds them all up, <code>len</code> counts how many there are, and dividing gives the average. These three built-ins turn raw scores into a useful summary.</p>
-  <p><strong>Lines 11&ndash;14 — the report:</strong> <strong>f-strings</strong> print a tidy round-up, with <code>{average:.0f}</code> rounding the average to a whole number.</p>
-</div>
-
-<div class="tip"><strong>Tip:</strong> to fold this into the full game, create <code>times = []</code> before the loop and add <code>times.append(reaction_ms)</code> just after you calculate each round's score. When the player quits, print the summary. This is the basis of the "Best-of-five" idea in the next section.</div>
-
-<div class="note"><strong>Note:</strong> notice how <code>min</code>, <code>max</code>, <code>sum</code> and <code>len</code> are all <em>functions that return a value</em> &mdash; you give them a list and they hand back a single answer. Combining a list with built-in functions like these is one of the most common patterns in all of Python.</div>
-
-<h2 id="troubleshooting">Troubleshooting</h2>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Symptom</th><th>Likely cause &amp; fix</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>The LED never lights</td><td>LED is in backwards (long leg must face the resistor/GPIO side), or a wire is loose. Turn the LED round and re-seat the wires.</td></tr>
-    <tr><td>One press scores twice / weird double rounds</td><td>Switch bounce. Raise <code>bounce_time</code>, e.g. <code>Button(27, bounce_time=0.1)</code>.</td></tr>
-    <tr><td>It always says "Too soon!"</td><td>The button may be wired so the pin reads as pressed at rest. Confirm one leg goes to GPIO 27 and the opposite-side leg to GND, and that you are using the default pull-up.</td></tr>
-    <tr><td>The game never reacts to a press</td><td>The button's GND wire or the shared ground to the Pi is missing. Check the &minus; rail connects back to a GND pin.</td></tr>
-    <tr><td>Times look impossibly small (a few ms)</td><td>Electrical noise or a bounce is triggering <code>wait_for_press</code> instantly. Make sure <code>bounce_time</code> is set and the button is wired firmly.</td></tr>
-    <tr><td><code>No module named 'lgpio'</code></td><td>Run <code>sudo apt install python3-lgpio</code> in a terminal, then restart Thonny.</td></tr>
-  </tbody>
-</table>
-
-<h2 id="from-the-e-waste-pile">From the E-Waste Pile</h2>
-
-<p>Both parts of this game are easy to salvage from broken electronics.</p>
+<h2 id="go-deeper">Go deeper</h2>
 
 <ul>
-  <li><strong>Push buttons / micro-switches</strong> hide inside dead computer mice (the click switches), old remote controls, broken game controllers and keyboards. Desolder one carefully; it behaves exactly like a shop-bought tactile button.</li>
-  <li><strong>LEDs</strong> come from old routers, toys and appliance front panels &mdash; the longer leg is still the anode.</li>
-  <li><strong>Test salvaged buttons</strong> with a multimeter in continuity mode: it should beep only while you hold the button down.</li>
-</ul>
-
-<div class="warn"><strong>Careful:</strong> only salvage from low-voltage, unplugged gadgets &mdash; battery toys, USB devices, dead routers. Never open mains adapters, microwave ovens, CRT screens, or anything with big capacitors or lithium batteries; they can store a dangerous or lethal charge even when unplugged.</div>
-
-<h2 id="make-it-your-own">Make It Your Own</h2>
-
-<ul>
-  <li><strong>Best-of-five.</strong> Replace <code>while True</code> with <code>while round_number &lt; 5</code> and, when it ends, print the best time and an average. Keep a running total in a variable and divide.</li>
-  <li><strong>Two-player duel.</strong> Add a second button and LED; whoever presses first after the light wins the round. Compare the two reaction times with an <code>if</code>.</li>
-  <li><strong>Difficulty levels.</strong> Use <code>random.uniform(1, 8)</code> for a wider, twitchier delay range, or shrink the LED's on-time to make a "blink and you miss it" mode.</li>
-  <li><strong>Grade the result.</strong> Use <code>if/elif/else</code> to print "Lightning!", "Quick!", or "Keep practising" depending on the millisecond bands.</li>
+  <li><a href="https://mywiki.wooledge.org/ProcessManagement">Greg's Wiki — ProcessManagement</a> — the correct, myth-free reference on jobs, signals, and <code>wait</code>.</li>
+  <li><a href="https://jvns.ca/">Julia Evans — signals and "How do signals work?"</a> — the friendliest mental model anywhere for signal delivery and handlers.</li>
+  <li><a href="https://nimfsoft.art/blog/2025/07/23/c-safe-signal-handling-self-pipe/">The Self-Pipe Trick</a> — why signal handlers are a minefield and how to handle them safely in C.</li>
+  <li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/">Operating Systems: Three Easy Pieces — Processes &amp; the API</a> — <code>fork</code>/<code>exec</code>/<code>wait</code> explained from first principles, free online textbook.</li>
+  <li><a href="https://man7.org/tlpi/">The Linux Programming Interface (chs. 24–27 and 20–22)</a> — the definitive deep dive into fork/exec/wait and signals.</li>
 </ul>
 
 <div class="keyterms">
-<h4>Key terms</h4>
-<ul>
-  <li><strong>Variable</strong> &mdash; a named box that stores a value and can be changed (e.g. <code>best</code>, <code>round_number</code>).</li>
-  <li><strong>random.uniform(a, b)</strong> &mdash; returns a random decimal between <code>a</code> and <code>b</code>, every value equally likely.</li>
-  <li><strong>time.time()</strong> &mdash; the current moment as a number of seconds; subtract two readings to measure elapsed time (a delta).</li>
-  <li><strong>Conditional</strong> &mdash; <code>if</code> / <code>elif</code> / <code>else</code>; the program chooses one branch to run based on tests.</li>
-  <li><strong>while loop</strong> &mdash; repeats a block while a condition stays true; <code>while True</code> repeats forever.</li>
-  <li><strong>f-string</strong> &mdash; a string prefixed with <code>f</code> where <code>{value}</code> is replaced by that value; <code>{x:.0f}</code> formats to whole numbers.</li>
-  <li><strong>Button</strong> &mdash; gpiozero's push-button object; default <code>pull_up=True</code>, so wire the other leg to GND.</li>
-  <li><strong>Pull-up resistor</strong> &mdash; holds an input pin HIGH at rest so it does not float; built into the Pi and enabled by gpiozero.</li>
-  <li><strong>Switch bounce</strong> &mdash; the rapid make/break of a switch's contacts that can register as several presses.</li>
-  <li><strong>bounce_time</strong> &mdash; the gpiozero argument (in seconds) that ignores further changes for a short window to debounce a switch.</li>
-  <li><strong>wait_for_press()</strong> &mdash; a Button method that pauses the program until the button is pressed.</li>
-</ul>
-</div>
-
-<div class="summary">
-<h4>Chapter summary</h4>
-<ul>
-  <li><strong>Variables</strong> store changing values like the start time, the reaction time and the best score.</li>
-  <li>The <strong><code>random</code></strong> module's <code>random.uniform(2, 5)</code> gives an unpredictable delay so the player cannot anticipate the light.</li>
-  <li>The <strong><code>time</code></strong> module's <code>time.time()</code> is read before and after the press; the difference (a delta), &times;1000, is the reaction time in milliseconds.</li>
-  <li><strong>Conditionals</strong> (<code>if</code>/<code>elif</code>/<code>else</code>) decide whether a score is a new best and catch a too-soon press.</li>
-  <li>A <strong><code>while</code> loop</strong> runs the game round after round; <code>continue</code> skips to the next round.</li>
-  <li><strong>f-strings</strong> like <code>f"{reaction_ms:.0f} ms"</code> mix values neatly into printed text.</li>
-  <li>gpiozero's <strong><code>Button</code></strong> uses a default internal pull-up, so wire one leg to a GPIO pin and the other to <strong>GND</strong> &mdash; no external resistor.</li>
-  <li><strong>Switch bounce</strong> can turn one press into many; <code>bounce_time=0.05</code> debounces it in software.</li>
-  <li>The "go" LED still needs its own <strong>330&nbsp;&Omega; resistor</strong>, and the GPIO stays <strong>3.3&nbsp;V</strong> only.</li>
-  <li>Always power off and unplug before wiring, and check every connection before powering up.</li>
-</ul>
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>fork()</strong> - The system call that clones the calling process into a near-identical child, which keeps the same open files. Every new process starts as a fork of an existing one.</li>
+    <li><strong>exec()</strong> - The system call that replaces the program running inside a process with a different one, keeping the same PID and open files. Forks then exec to launch a new command.</li>
+    <li><strong>PID / PPID</strong> - A process's own ID and its parent's ID. Following PPIDs upward always leads to PID 1.</li>
+    <li><strong>PID 1</strong> - The first process the kernel starts (systemd on a modern Pi); the root of the process tree and the adopter of all orphans.</li>
+    <li><strong>Zombie (defunct)</strong> - A process that has exited but whose parent hasn't collected its exit status yet. It holds no memory and cannot be killed — the parent must reap it.</li>
+    <li><strong>Orphan</strong> - A process whose parent died first; the kernel re-parents it to PID 1, which reaps it. Normal and harmless.</li>
+    <li><strong>Signal</strong> - An asynchronous notification the kernel delivers to a process, such as SIGTERM, SIGINT, or SIGKILL.</li>
+    <li><strong>SIGTERM (15)</strong> - The polite default of <code>kill</code>: asks a process to shut down so it can clean up first. Catchable.</li>
+    <li><strong>SIGKILL (9)</strong> - The uncatchable kill: the kernel destroys the process with no cleanup. A last resort, not a first move.</li>
+    <li><strong>nohup</strong> - Launches a command set to ignore SIGHUP and redirects its output to <code>nohup.out</code>, so it survives the terminal closing.</li>
+    <li><strong>disown</strong> - Removes a job from the shell's job table after launch, so the shell won't send it SIGHUP on exit.</li>
+    <li><strong>Job control</strong> - The shell's ability to suspend, background, and foreground jobs via Ctrl-Z, <code>bg</code>, <code>fg</code>, and <code>jobs</code>.</li>
+  </ul>
 </div>

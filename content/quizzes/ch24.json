@@ -1,61 +1,36 @@
 {
   "chapterId": "ch24",
-  "title": "Traffic-Light Controller",
+  "title": "Everything Is a File Descriptor",
   "questions": [
     {
-      "q": "In the code 'all_lights = [red, amber, green]', what kind of Python value is being created?",
-      "choices": [
-        "A function that returns the three LEDs",
-        "A list, which holds the three LED objects in order",
-        "A loop that flashes the LEDs one after another",
-        "A single LED with three colours"
-      ],
+      "q": "What is a file descriptor, really?",
+      "choices": ["A hidden file on your microSD card that records what a program has opened", "A small whole number a program holds while something is open, which the kernel maps to the real file, device, pipe or socket", "A special permission flag that lets a program write to protected system files", "The name of the program that is currently reading from the terminal"],
       "answer": 1,
-      "explain": "Square brackets create a list: one name (all_lights) that holds several values in order. all_lights[0] is the red LED, [1] is amber, [2] is green. Lists are indexed from 0."
+      "explain": "A file descriptor is just a small non-negative integer the program holds. The kernel keeps the real details and maps that number to a file, device, pipe or socket. That shared handle is what lets read/write work the same way across very different objects."
     },
     {
-      "q": "Why does a 'for light in all_lights:' loop save you from repeating code?",
-      "choices": [
-        "It runs the indented block once for every item in the list automatically",
-        "It makes the program run faster on the Pi 5",
-        "It turns all the LEDs on at exactly the same instant",
-        "It only works if the list contains exactly three items"
-      ],
-      "answer": 0,
-      "explain": "A for loop repeats its indented block once per item in the list, with the loop variable (light) standing for the current item. So one short block of code can act on every LED in turn."
-    },
-    {
-      "q": "How many current-limiting resistors do you need for a three-LED traffic light, and what value?",
-      "choices": [
-        "One shared 330 Ω resistor for all three LEDs",
-        "No resistors, because 3.3 V is already safe for LEDs",
-        "Three resistors of about 330 Ω each — one per LED",
-        "One 50 Ω resistor on the shared ground wire"
-      ],
+      "q": "On your Pi you run two commands. Why do 'cmd > out.txt 2>&1' and 'cmd 2>&1 > out.txt' produce different results?",
+      "choices": ["The first is valid bash; the second is a syntax error that bash silently ignores", "They are identical; bash sorts redirections before applying them", "Redirections apply left to right, and 2>&1 copies wherever FD 1 points at that moment, so the order changes where stderr ends up", "2>&1 always sends stderr to the file, so only the first command actually works"],
       "answer": 2,
-      "explain": "Every LED needs its own series resistor (about 330 Ω at 3.3 V). Sharing one resistor lets the LEDs rob current from each other and can exceed the safe current; omitting them can destroy the LED and the GPIO pin."
+      "explain": "Redirections are applied strictly left to right, and 2>&1 means 'make FD 2 a copy of wherever FD 1 points right now.' In the first line FD 1 is already the file, so both streams go to the file. In the second, FD 2 copies the terminal before FD 1 moves to the file, so errors stay on screen."
     },
     {
-      "q": "What are the GPIO current limits you must respect on the Pi 5?",
-      "choices": [
-        "About 100 mA per pin and unlimited total",
-        "About 16 mA per pin and about 50 mA total across the whole header",
-        "About 5 A per pin, the same as the USB ports",
-        "There are no limits as long as you use resistors"
-      ],
+      "q": "A script does: count=0; grep error log | while read -r line; do count=$((count+1)); done; echo \"$count\" — and it prints 0. Why?",
+      "choices": ["grep returns no matching lines, so the loop body never runs", "Each stage of the pipeline runs in its own subshell, so the count was incremented in a child process whose memory vanished when it exited", "Bash variables cannot be used inside a while loop", "The $(( )) arithmetic syntax does not work with the read command"],
       "answer": 1,
-      "explain": "Keep each GPIO pin under roughly 16 mA, and the total drawn from the header under roughly 50 mA. Three resistor-limited LEDs draw only about 12 mA together, so they fit comfortably."
+      "explain": "Each stage of a pipeline runs in its own forked subshell. The while loop incremented count inside that child; when the child exited, its memory (and the new count) was discarded. The parent's count was never touched. Fixes: use process substitution (done < <(grep ...)) or 'shopt -s lastpipe'."
     },
     {
-      "q": "Which phase makes the UK traffic-light sequence different from many other countries?",
-      "choices": [
-        "A flashing green phase before red",
-        "A red-and-amber phase together, warning drivers to get ready before green",
-        "A phase with all three lights off",
-        "A blue phase for emergency vehicles"
-      ],
+      "q": "What does the 'tee' command do, and why is 'echo \"config\" | sudo tee /etc/app.conf' the idiom for writing to a root-owned file?",
+      "choices": ["tee deletes a file's contents; sudo is needed because deletion requires root", "tee compresses a stream; it runs under sudo so the archive is owned by root", "tee copies its input to file(s) and also passes it through; under sudo it is tee (running as root) that opens the protected file, unlike a > redirect which your shell performs as you", "tee encrypts the stream so only root can read the resulting file"],
+      "answer": 2,
+      "explain": "tee writes its input to file(s) and also passes it on to stdout. With 'sudo cmd > file' the redirection is done by your shell as you, before sudo runs, so it fails on a protected file. Piping into 'sudo tee' means tee itself runs as root and opens the file, which works."
+    },
+    {
+      "q": "Why does process substitution, written as <(cmd), exist?",
+      "choices": ["It runs a command faster by skipping the shell entirely", "It hands a program a 'filename' that is really a live pipe to another command, bridging tools that want a file path with commands that produce output on stdout", "It encrypts a command's output before another program reads it", "It is the only way to redirect standard error into standard output"],
       "answer": 1,
-      "explain": "The UK cycle is Red, then Red+Amber together (get ready), then Green, then Amber. The combined Red+Amber 'get ready' phase is the one that does not appear in many other countries' lights."
+      "explain": "Half of Unix tools read from stdin; the other half insist on a filename argument. <(cmd) runs cmd and gives the next program a filename (really a /dev/fd pipe) that reads cmd's output, so you can do things like 'diff <(sort a) <(sort b)' with no temporary files."
     }
   ]
 }

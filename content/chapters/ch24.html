@@ -1,553 +1,225 @@
-<p class="lead">A real set of traffic lights is just three lamps switched on and off in a fixed order — and that is exactly the kind of thing a Raspberry Pi is brilliant at. In this project you will wire up a red, an amber and a green LED, then teach your Pi to run a proper UK traffic-light sequence in an endless loop. Along the way you will learn four Python fundamentals you will use forever — <strong>lists</strong>, <strong>for loops</strong>, <strong>functions</strong> and <code>time.sleep()</code> for timing — and the electronics idea of driving <strong>several outputs at once</strong> while staying inside the Pi's <strong>current budget</strong>.</p>
-<div class="widget-mount" data-widget="gpio"></div>
+<p class="lead">You have heard the famous Unix slogan: "everything is a file." It sounds mystical, but it hides one of the most beautiful ideas in computing — and your Raspberry Pi 5 uses it constantly. This is the "going deeper" track: the same warm explanations as before, but now we lift the lid and look at how it really works underneath.</p>
 
-<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+<h2 id="the-real-slogan">The Real Slogan: Everything Is a File Descriptor</h2>
 
-<p>By the end of this chapter you will have a working model traffic light that cycles forever, and then a smarter version that waits for a pedestrian to press a button before changing. More importantly, you will have met the building blocks that nearly every program is made from.</p>
+<p>"Everything is a file" does <em>not</em> mean every single thing is literally a file sitting on your microSD card. It means that wildly different things — a text file, your keyboard, the screen, a network connection, even live information from inside the Linux kernel — are all reached through the <strong>same small set of operations</strong>: open, read, write, close. One toolkit, over many different kinds of object. That uniformity is the deepest idea in Unix, and it is why one command can pipe into another no matter what they actually do.</p>
 
-<h3>The Python fundamentals</h3>
-<ul>
-  <li><strong>Lists</strong> — a single name that holds several things in order, like <code>[red, amber, green]</code>. Instead of three separate variables, you keep your three LEDs together in one tidy container.</li>
-  <li><strong>The <code>for</code> loop</strong> — a way to repeat an action once for every item in a list, without copying and pasting the same line three times.</li>
-  <li><strong>Functions</strong> — named, reusable blocks of code (with <em>parameters</em> you can pass in) so you can write a step once and call it as often as you like.</li>
-  <li><strong><code>time.sleep()</code> and sequencing</strong> — pausing the program for a set number of seconds so each light stays on long enough to see, in the right order.</li>
-</ul>
+<p>The handle that ties all of this together is called a <strong>file descriptor</strong>.</p>
 
-<h3>The electronics fundamentals</h3>
-<ul>
-  <li><strong>Driving multiple outputs</strong> — controlling three LEDs from three separate GPIO pins at the same time.</li>
-  <li><strong>One resistor per LED</strong> — every LED gets its own 330&nbsp;&Omega; current-limiting resistor; you never share one resistor between several LEDs.</li>
-  <li><strong>The current budget</strong> — each GPIO pin can safely supply only about <strong>16&nbsp;mA</strong>, and the whole header together should stay under roughly <strong>50&nbsp;mA</strong>. Three well-behaved LEDs fit comfortably; we will do the sums so you can see why.</li>
-</ul>
+<div class="jargon"><strong>In plain words:</strong> A <strong>file descriptor</strong> (FD) is just a small whole number — like a ticket number — that your program holds while it has something open. The kernel keeps the real details (which file, where you are up to, read or write); your program only ever waves the little number around and says "read from number 3" or "write to number 1."</div>
 
-<div class="note"><strong>Note:</strong> This chapter assumes you have met the GPIO header, breadboards and the single-LED blink circuit from earlier in the course. If the words "GPIO 17 means physical pin 11" are new to you, it is worth a quick look back before continuing. Everything else we will build up gently from there.</div>
-
-<h2 id="parts-list">Parts List</h2>
-
-<p>You can find every one of these in a basic Raspberry Pi starter kit, or salvage the LEDs and resistors from old electronics (see the "From the e-waste pile" box later).</p>
-
-<ul>
-  <li>A Raspberry Pi 5, set up and running Raspberry Pi OS Bookworm.</li>
-  <li><strong>3 × LEDs</strong> — ideally one red, one amber/yellow and one green, but any three colours work.</li>
-  <li><strong>3 × 330&nbsp;&Omega; resistors</strong> — colour bands orange-orange-brown-gold. One per LED, no exceptions.</li>
-  <li>A half-size or mini breadboard.</li>
-  <li><strong>4 × female-to-male jumper wires</strong> — three for the GPIO signals, one for the shared ground.</li>
-  <li>(For the pedestrian variant only) <strong>1 × push button</strong> and 1 more jumper wire.</li>
-</ul>
-
-<div class="jargon"><strong>In plain words:</strong> a <strong>female-to-male jumper wire</strong> has a little socket on one end (the "female" end, which slides over a GPIO pin) and a stiff pin on the other (the "male" end, which pushes into a breadboard hole).</div>
-
-<h2 id="the-current-budget">The Current Budget: Why Three LEDs Is Fine</h2>
-
-<p>Before we wire anything, let us understand the single most important safety idea in this chapter. The GPIO pins are wonderful, but they are <em>delicate</em>. They can only push a small amount of electrical current before they overheat and fail.</p>
-
-<div class="jargon"><strong>In plain words:</strong> <strong>current</strong> is how much electricity flows per second, measured in milliamps (mA). Think of voltage as water pressure and current as the actual amount of water moving through the pipe. Too much current through a thin wire — or a GPIO pin — makes it overheat.</div>
-
-<p>Two limits matter on the Pi 5:</p>
-
-<ul>
-  <li><strong>Per pin:</strong> keep each GPIO pin under about <strong>16&nbsp;mA</strong>.</li>
-  <li><strong>Whole header:</strong> keep the <em>total</em> drawn from all the 3.3&nbsp;V pins combined under about <strong>50&nbsp;mA</strong>.</li>
-</ul>
-
-<p>How much does one LED with a 330&nbsp;&Omega; resistor actually draw? We can work it out with Ohm's Law (<em>current = voltage &divide; resistance</em>). A standard LED "uses up" about 2&nbsp;V, leaving 3.3&nbsp;&minus;&nbsp;2&nbsp;=&nbsp;1.3&nbsp;V across the resistor. So:</p>
-
-<p style="text-align:center"><strong>1.3&nbsp;V &divide; 330&nbsp;&Omega; &asymp; 0.0039&nbsp;A &asymp; 4&nbsp;mA per LED</strong></p>
-
-<p>Four milliamps is well under the 16&nbsp;mA per-pin limit, so each pin is happy. Three LEDs together draw about 3&nbsp;&times;&nbsp;4&nbsp;=&nbsp;12&nbsp;mA — comfortably under the 50&nbsp;mA whole-header limit. This is exactly <em>why</em> we can light three LEDs straight from the Pi, and exactly why each LED still needs its own resistor: that resistor is what keeps the current down to those safe few milliamps.</p>
-
-<figure class="fig">
-<svg viewBox="0 0 560 240" xmlns="http://www.w3.org/2000/svg">
-  <rect width="560" height="240" fill="#f3f0ff" rx="12"/>
-  <text x="280" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">The GPIO current budget</text>
-
-  <!-- Per-pin gauges -->
-  <text x="140" y="60" font-family="sans-serif" font-size="12" font-weight="bold" fill="#1f2933" text-anchor="middle">Per pin: 16 mA max</text>
-  <rect x="40" y="70" width="200" height="24" fill="#e5e7eb" rx="6"/>
-  <rect x="40" y="70" width="50" height="24" fill="#059669" rx="6"/>
-  <text x="245" y="87" font-family="sans-serif" font-size="11" fill="#059669" text-anchor="start">~4 mA used</text>
-  <text x="140" y="112" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">one LED + 330 &#8486; &#8776; 4 mA</text>
-
-  <!-- Whole-header gauge -->
-  <text x="140" y="148" font-family="sans-serif" font-size="12" font-weight="bold" fill="#1f2933" text-anchor="middle">Whole header: 50 mA max</text>
-  <rect x="40" y="158" width="200" height="24" fill="#e5e7eb" rx="6"/>
-  <rect x="40" y="158" width="48" height="24" fill="#059669" rx="6"/>
-  <text x="245" y="175" font-family="sans-serif" font-size="11" fill="#059669" text-anchor="start">~12 mA used (3 LEDs)</text>
-  <text x="140" y="200" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">plenty of headroom</text>
-
-  <!-- Right note -->
-  <rect x="330" y="64" width="200" height="130" fill="white" rx="8" stroke="#6d28d9" stroke-width="1"/>
-  <text x="430" y="86" font-family="sans-serif" font-size="11" font-weight="bold" fill="#6d28d9" text-anchor="middle">Ohm's Law check</text>
-  <text x="430" y="108" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">3.3 V &#8722; 2 V (LED)</text>
-  <text x="430" y="126" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">= 1.3 V on resistor</text>
-  <text x="430" y="148" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">1.3 V &#247; 330 &#8486;</text>
-  <text x="430" y="170" font-family="sans-serif" font-size="12" font-weight="bold" fill="#059669" text-anchor="middle">&#8776; 4 mA per LED</text>
-</svg>
-<figcaption>Each LED with its own 330&nbsp;&Omega; resistor sips about 4&nbsp;mA. Three of them stay far inside both the per-pin (16&nbsp;mA) and whole-header (50&nbsp;mA) limits.</figcaption>
-</figure>
-
-<div class="warn"><strong>Careful:</strong> if you removed the resistors and connected the LEDs straight to 3.3&nbsp;V, each would try to pull far more than 16&nbsp;mA. The LED could burn out, and the GPIO pin behind it could be destroyed — permanently, with no fuse to save it. <strong>One 330&nbsp;&Omega; resistor per LED, always.</strong> Never share a single resistor between two LEDs either: each LED needs its own, or they will rob current from one another and behave unpredictably.</div>
-
-<h2 id="the-circuit-common-cathode">The Circuit: Common-Cathode Layout</h2>
-
-<p>All three LEDs share one thing: the ground (GND) connection. The long leg (anode, +) of each LED connects through its own resistor to its own GPIO pin. The short leg (cathode, &minus;) of every LED connects to a shared ground rail, which runs back to a single GND pin on the Pi. Because all the cathodes meet at a common point, this is called a <strong>common-cathode</strong> layout.</p>
-
-<div class="jargon"><strong>In plain words:</strong> <strong>common-cathode</strong> just means "all the negative legs join together." It saves wires — you only need one ground wire back to the Pi instead of three.</div>
-
-<p>We will use these three GPIO pins (the BCM/GPIO numbers your code uses, with the physical header position in brackets):</p>
+<p>Every program on your Pi starts life with three file descriptors already open by convention:</p>
 
 <table class="tbl">
   <thead>
-    <tr><th>LED</th><th>GPIO (BCM)</th><th>Physical pin</th></tr>
+    <tr>
+      <th>FD number</th>
+      <th>Name</th>
+      <th>Where it points by default</th>
+    </tr>
   </thead>
   <tbody>
-    <tr><td>Red</td><td>GPIO 25</td><td>Pin 22</td></tr>
-    <tr><td>Amber</td><td>GPIO 8</td><td>Pin 24</td></tr>
-    <tr><td>Green</td><td>GPIO 7</td><td>Pin 26</td></tr>
+    <tr>
+      <td><code>0</code></td>
+      <td><strong>stdin</strong> (standard input)</td>
+      <td>Your keyboard</td>
+    </tr>
+    <tr>
+      <td><code>1</code></td>
+      <td><strong>stdout</strong> (standard output)</td>
+      <td>Your terminal</td>
+    </tr>
+    <tr>
+      <td><code>2</code></td>
+      <td><strong>stderr</strong> (standard error)</td>
+      <td>Your terminal</td>
+    </tr>
   </tbody>
 </table>
 
-<div class="warn"><strong>Careful:</strong> power off and unplug your Pi before doing any wiring. Shut down from the menu (Raspberry Pi menu &gt; Shutdown), wait for the green activity light to go out, then pull the power lead. Remember the Pi 5 GPIO is <strong>3.3&nbsp;V logic only</strong> — never feed 5&nbsp;V into a GPIO pin. Fit one 330&nbsp;&Omega; resistor per LED, and double-check every wire before you plug the power back in.</div>
+<p>That split between FD 1 (normal results) and FD 2 (errors) is why you can save a program's output to a file while still seeing its error messages on screen. They travel down two separate pipes.</p>
 
-<h3>Wiring diagram</h3>
+<div class="warn"><strong>Myth vs reality:</strong> The myth says "everything is a file, so I can <code>open()</code> a network socket by its path." Reality: network sockets are the famous exception — you create them with a special <code>socket()</code> call, not by opening a path. So the precise slogan is <strong>"everything is a file <em>descriptor</em>."</strong> Once you <em>have</em> the descriptor, reading and writing work the same way for everything. How you first <em>get</em> the descriptor is what differs.</div>
 
-<figure class="fig">
-<svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg">
-  <rect width="640" height="420" fill="#f3f0ff" rx="12"/>
-  <text x="320" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Traffic-Light Wiring (3 LEDs, common cathode)</text>
+<h2 id="redirection-is-fd-surgery">Redirection Is File-Descriptor Surgery</h2>
 
-  <!-- Pi header -->
-  <rect x="20" y="70" width="96" height="240" fill="#1f2933" rx="6"/>
-  <text x="68" y="62" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
-  <rect x="24" y="100" width="16" height="12" fill="#6d28d9" rx="2"/>
-  <text x="44" y="110" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 22 (GPIO 25)</text>
-  <rect x="24" y="150" width="16" height="12" fill="#6d28d9" rx="2"/>
-  <text x="44" y="160" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 24 (GPIO 8)</text>
-  <rect x="24" y="200" width="16" height="12" fill="#6d28d9" rx="2"/>
-  <text x="44" y="210" font-family="sans-serif" font-size="9" fill="#f3f0ff">Pin 26 (GPIO 7)</text>
-  <rect x="24" y="270" width="16" height="12" fill="#374151" rx="2"/>
-  <text x="44" y="280" font-family="sans-serif" font-size="9" fill="#9ca3af">Pin 20 (GND)</text>
+<p>When you type <code>cmd &gt; out.txt</code>, the <code>&gt;</code> does not magically "send output to a file." What actually happens is that your shell quietly rewires file descriptor 1 to point at <code>out.txt</code> <em>before your program even starts running</em>. The program then writes to FD 1 as usual, blissfully unaware that "the terminal" is now a file.</p>
 
-  <!-- Breadboard -->
-  <rect x="150" y="60" width="380" height="300" fill="#e8e4d9" stroke="#c9b89a" stroke-width="1.5" rx="8" opacity="0.5"/>
-  <!-- Ground rail -->
-  <rect x="165" y="330" width="350" height="14" fill="#bfdbfe" rx="3" opacity="0.8"/>
-  <text x="340" y="341" font-family="sans-serif" font-size="10" fill="#1d4ed8" text-anchor="middle">&#8722; ground rail (all cathodes meet here)</text>
+<pre class="code"><code>cmd &gt; out.txt          # point FD 1 (stdout) at out.txt
+cmd 2&gt; err.txt         # point FD 2 (stderr) at err.txt
+cmd &gt; out.txt 2&gt;&amp;1     # FD 1 -&gt; the file, THEN FD 2 -&gt; "wherever 1 points now"
+cmd 2&gt;&amp;1 &gt; out.txt     # FD 2 -&gt; "wherever 1 points now", THEN FD 1 -&gt; file. DIFFERENT!</code></pre>
+<div class="explain">
+  <p><code>2&gt;&amp;1</code> reads as: "make file descriptor 2 a copy of whatever file descriptor 1 refers to <em>at this exact moment</em>." The key word is <em>moment</em> — it is a snapshot, not a permanent link.<br>
+  In the third line, FD 1 is sent to the file first, so when <code>2&gt;&amp;1</code> runs, FD 2 copies "the file." Both end up in <code>out.txt</code>. Good.<br>
+  In the fourth line, the order is flipped. <code>2&gt;&amp;1</code> runs while FD 1 still points at the terminal, so FD 2 becomes "the terminal." Only <em>then</em> does FD 1 move to the file. Result: errors still go to your screen, normal output goes to the file. Same characters, opposite effect.</p>
+</div>
 
-  <!-- RED branch -->
-  <line x1="40" y1="106" x2="220" y2="106" stroke="#6d28d9" stroke-width="3"/>
-  <rect x="220" y="98" width="44" height="16" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <rect x="226" y="98" width="4" height="16" fill="#f97316"/><rect x="233" y="98" width="4" height="16" fill="#f97316"/><rect x="240" y="98" width="4" height="16" fill="#92400e"/>
-  <text x="242" y="92" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">330&#8486;</text>
-  <line x1="264" y1="106" x2="300" y2="106" stroke="#6d28d9" stroke-width="3"/>
-  <ellipse cx="312" cy="106" rx="11" ry="13" fill="#ef4444" stroke="#1f2933" stroke-width="1.2"/>
-  <text x="312" y="110" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">R</text>
-  <line x1="312" y1="119" x2="312" y2="330" stroke="#374151" stroke-width="3"/>
+<p><strong>The key insight:</strong> redirections are applied strictly left to right, and <code>2&gt;&amp;1</code> copies wherever FD 1 points <em>right now</em>. Order matters. To capture both streams into one file, put the redirection of FD 1 <em>first</em>: <code>cmd &gt; out.txt 2&gt;&amp;1</code>. Bash also offers the shorthand <code>cmd &amp;&gt; out.txt</code>, which means "both streams to this file."</p>
 
-  <!-- AMBER branch -->
-  <line x1="40" y1="156" x2="220" y2="156" stroke="#6d28d9" stroke-width="3"/>
-  <rect x="220" y="148" width="44" height="16" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <rect x="226" y="148" width="4" height="16" fill="#f97316"/><rect x="233" y="148" width="4" height="16" fill="#f97316"/><rect x="240" y="148" width="4" height="16" fill="#92400e"/>
-  <text x="242" y="142" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">330&#8486;</text>
-  <line x1="264" y1="156" x2="360" y2="156" stroke="#6d28d9" stroke-width="3"/>
-  <ellipse cx="372" cy="156" rx="11" ry="13" fill="#f59e0b" stroke="#1f2933" stroke-width="1.2"/>
-  <text x="372" y="160" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">A</text>
-  <line x1="372" y1="169" x2="372" y2="330" stroke="#374151" stroke-width="3"/>
+<div class="note"><strong>Note:</strong> Why can the shell do this surgery before your program runs? Because of how Linux launches programs (the fork-then-exec model, covered in the next lesson). The shell makes a child, rearranges the child's descriptors 0, 1 and 2, and only then loads your program. Your program inherits the new wiring and never knows it was changed.</div>
 
-  <!-- GREEN branch -->
-  <line x1="40" y1="206" x2="220" y2="206" stroke="#6d28d9" stroke-width="3"/>
-  <rect x="220" y="198" width="44" height="16" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <rect x="226" y="198" width="4" height="16" fill="#f97316"/><rect x="233" y="198" width="4" height="16" fill="#f97316"/><rect x="240" y="198" width="4" height="16" fill="#92400e"/>
-  <text x="242" y="192" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">330&#8486;</text>
-  <line x1="264" y1="206" x2="420" y2="206" stroke="#6d28d9" stroke-width="3"/>
-  <ellipse cx="432" cy="206" rx="11" ry="13" fill="#22c55e" stroke="#1f2933" stroke-width="1.2"/>
-  <text x="432" y="210" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">G</text>
-  <line x1="432" y1="219" x2="432" y2="330" stroke="#374151" stroke-width="3"/>
+<h3>The <code>sudo ... &gt; file</code> Trap</h3>
 
-  <!-- GND return -->
-  <line x1="40" y1="276" x2="165" y2="276" stroke="#374151" stroke-width="3"/>
-  <line x1="165" y1="276" x2="165" y2="337" stroke="#374151" stroke-width="3"/>
+<p>This trips up almost everyone at least once on their Pi:</p>
 
-  <text x="320" y="392" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle" font-weight="bold">Current path: GPIO pin &#8594; resistor &#8594; LED anode &#8594; cathode &#8594; ground rail &#8594; GND</text>
-</svg>
-<figcaption>Each LED has its own GPIO pin and its own 330&nbsp;&Omega; resistor. All three short legs (cathodes) join the shared ground rail, which returns to a single GND pin — the common-cathode layout.</figcaption>
-</figure>
+<pre class="code"><code>sudo echo "dtparam=on" &gt; /boot/firmware/config.txt     # FAILS: Permission denied
+echo "dtparam=on" | sudo tee -a /boot/firmware/config.txt  # works</code></pre>
+<div class="explain">
+  <p>In the first line, <code>sudo</code> only elevates the <code>echo</code> command. But the redirection <code>&gt;</code> is performed by <em>your shell</em>, running as <em>you</em>, before <code>sudo</code> ever starts. Your ordinary user cannot open that protected file, so it fails.<br>
+  In the second line, <code>tee</code> itself runs under <code>sudo</code> (as root), so it is <code>tee</code> that opens the file — and root is allowed. The <code>-a</code> appends instead of overwriting. This is <em>the</em> idiom for writing to a root-owned file.</p>
+</div>
 
-<h3>Connection table</h3>
+<div class="warn"><strong>Careful:</strong> Files like <code>/boot/firmware/config.txt</code> control how your Pi boots. Practise this redirection idea on a throwaway file in your home folder first, and ideally experiment on a spare microSD card you can re-flash, so a mistake never touches your working system.</div>
 
-<table class="tbl">
-  <thead>
-    <tr><th>From</th><th>To</th><th>Via</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>GPIO 25 (pin 22)</td><td>Red LED long leg (anode)</td><td>330&nbsp;&Omega; resistor</td></tr>
-    <tr><td>GPIO 8 (pin 24)</td><td>Amber LED long leg (anode)</td><td>330&nbsp;&Omega; resistor</td></tr>
-    <tr><td>GPIO 7 (pin 26)</td><td>Green LED long leg (anode)</td><td>330&nbsp;&Omega; resistor</td></tr>
-    <tr><td>Red LED short leg (cathode)</td><td>Ground rail</td><td>direct</td></tr>
-    <tr><td>Amber LED short leg (cathode)</td><td>Ground rail</td><td>direct</td></tr>
-    <tr><td>Green LED short leg (cathode)</td><td>Ground rail</td><td>direct</td></tr>
-    <tr><td>Ground rail</td><td>GND (pin 20)</td><td>jumper wire</td></tr>
-  </tbody>
-</table>
+<h2 id="pipes-concurrency-and-backpressure">Pipes: Concurrency and Automatic Flow Control</h2>
 
-<h3>Step-by-step wiring</h3>
+<p>When you write <code>a | b</code>, the shell creates a small in-memory buffer in the kernel (around 64 KiB) and wires <code>a</code>'s stdout straight into <code>b</code>'s stdin. A pipe is never a file on your card — it exists only as a pair of file descriptors.</p>
+
+<p>Here is the lovely part: <code>a</code> and <code>b</code> run <strong>at the same time</strong>. If <code>b</code> is slow and the buffer fills up, <code>a</code> simply <em>pauses</em> until <code>b</code> catches up. You get automatic flow control — what engineers call <em>backpressure</em> — completely for free, with no effort from you.</p>
+
+<pre class="code"><code># The Unix philosophy in one line: small tools, composed.
+awk '{print $1}' access.log | sort | uniq -c | sort -rn | head
+#   extract column 1     | group | count | rank   | top 10</code></pre>
+<div class="explain">
+  <p>Five tiny tools, each doing one job, chained into something powerful. <code>awk</code> pulls out the first field of each line; <code>sort</code> groups identical lines together; <code>uniq -c</code> counts the duplicates; <code>sort -rn</code> ranks them highest-first; <code>head</code> shows the top few. None of them knows about the others. That is the whole magic of pipes.</p>
+</div>
+
+<h3>Why <code>cmd | while read</code> "Forgets" Your Variables</h3>
+
+<p>This is a classic Pi-scripting head-scratcher. You expect a count, and you get zero:</p>
+
+<pre class="code"><code>count=0
+grep error /var/log/syslog | while read -r line; do
+    count=$((count + 1))
+done
+echo "$count"     # prints 0  -- but why?!</code></pre>
+
+<div class="warn"><strong>Myth vs reality:</strong> The myth is "the loop ran, so <code>count</code> must have changed." Reality: <strong>each stage of a pipeline runs in its own separate child process</strong> (a subshell). The <code>while</code> loop incremented <code>count</code> inside that child. When the child finished, its memory — and your new count — vanished with it. The parent shell's <code>count</code> was never touched.</div>
+
+<p>Two clean fixes, both worth knowing:</p>
+
+<pre class="code"><code># Fix 1: process substitution, so the loop runs in YOUR shell, not a child
+count=0
+while read -r line; do
+    count=$((count + 1))
+done &lt; &lt;(grep error /var/log/syslog)
+echo "$count"     # correct count
+
+# Fix 2: tell bash to run the last pipeline stage in the parent
+shopt -s lastpipe
+count=0
+grep error /var/log/syslog | while read -r line; do count=$((count + 1)); done
+echo "$count"</code></pre>
+<div class="explain">
+  <p>Fix 1 replaces the pipe with <code>&lt; &lt;(...)</code> (process substitution, explained just below). The loop now runs directly in your shell, so the variable survives.<br>
+  Fix 2 uses <code>shopt -s lastpipe</code>, a bash option that runs the <em>final</em> stage of a pipeline in the parent shell instead of a child. It works in scripts where job control is off.</p>
+</div>
+
+<h2 id="tee-split-a-stream">tee: Splitting a Stream in Two</h2>
+
+<p><code>tee</code> is the plumber's T-joint. It reads its input, writes a copy to one or more files, <em>and</em> passes the same data straight through to the next command. You see it on screen and save it to disk at once.</p>
+
+<pre class="code"><code>sudo apt full-upgrade 2&gt;&amp;1 | tee upgrade.log | grep -i error
+echo "some config" | sudo tee /etc/myapp.conf
+sensors 2&gt;&amp;1 | tee -a temps.log</code></pre>
+<div class="explain">
+  <p>Line 1: run a big upgrade, fold its errors into the same stream with <code>2&gt;&amp;1</code>, save <em>everything</em> to <code>upgrade.log</code>, but only show lines containing "error" on screen. Nothing is lost.<br>
+  Line 2: the write-to-a-root-owned-file idiom from earlier — <code>tee</code> runs as root and opens the file.<br>
+  Line 3: <code>-a</code> appends to the log instead of overwriting it, so each run adds to the history.</p>
+</div>
+
+<h2 id="process-substitution">Process Substitution: Turning a Command Into a "Filename"</h2>
+
+<p>Half of the Unix tools on your Pi read from standard input. The other half insist on being handed a <em>filename</em> as an argument. Process substitution is the clever adapter that bridges the two worlds.</p>
+
+<p>When you write <code>&lt;(cmd)</code>, the shell runs <code>cmd</code> and hands the next program a special filename (really something like <code>/dev/fd/63</code>) that, when read, delivers <code>cmd</code>'s output. The other program thinks it is reading an ordinary file — but there is no file, just a pipe wearing a filename costume.</p>
+
+<pre class="code"><code>diff &lt;(sort a.txt) &lt;(sort b.txt)          # compare two sorted lists, no temp files
+comm -13 &lt;(sort old.txt) &lt;(sort new.txt)  # show only the lines new to new.txt
+while read -r x; do echo "$x"; done &lt; &lt;(produce)   # the pipeline-variable fix
+some_cmd &gt; &gt;(tee run.log)                  # OUTPUT substitution: tee a stream inline</code></pre>
+<div class="explain">
+  <p><code>diff</code> wants two filenames, but you want to compare two <em>sorted</em> lists. Process substitution gives <code>diff</code> two "files" that are actually live <code>sort</code> outputs — no temporary files to create or clean up.<br>
+  The last line flips it around: <code>&gt; &gt;(tee run.log)</code> is <em>output</em> process substitution. It sends a command's output into the <code>tee</code> process as if writing to a file.</p>
+</div>
+
+<p><strong>The key insight:</strong> <code>&lt;(...)</code> exists precisely because some tools speak "stdin" and others speak "file path." It is the universal translator between the two.</p>
+
+<h2 id="windows-into-the-kernel">Windows Into the Kernel: /dev, /proc and /sys</h2>
+
+<p>Here is where "everything is a file" becomes genuinely magical on your Pi. Three special folders — <code>/dev</code>, <code>/proc</code> and <code>/sys</code> — look like normal directories, but they are <strong>virtual filesystems</strong>. The files inside them do not exist on your microSD card. The kernel invents their contents on the spot, every time you read them. They are how you inspect and control the whole system with nothing more than <code>cat</code> and <code>echo</code>.</p>
+
+<pre class="code"><code>cat /dev/null                       # the "bit bucket" -- anything sent here disappears
+head -c 16 /dev/urandom | xxd       # 16 bytes of real kernel randomness, as a "file"
+
+ls -l /proc/self/fd/                # YOUR process's open file descriptors, as symlinks
+cat /proc/cpuinfo                   # live details of your Pi 5's four CPU cores
+cat /proc/meminfo                   # live memory usage, no special tool needed
+readlink /proc/$$/exe               # the path to the shell binary you are running now
+
+cat /sys/class/net/*/operstate      # are your network interfaces up or down?
+cat /sys/class/thermal/thermal_zone0/temp   # your Pi's CPU temperature, in milli-degrees</code></pre>
+<div class="explain">
+  <p><code>/dev/null</code> is the void — write to it to throw output away. <code>/dev/urandom</code> hands out randomness as if it were an endless file. <code>head -c 16</code> takes just the first 16 bytes.<br>
+  <code>/proc</code> is a live X-ray of your running system. <code>/proc/cpuinfo</code> and <code>/proc/meminfo</code> are exactly what tools like <code>top</code> read under the hood — they are mostly just <code>/proc</code> parsers. <code>$$</code> is the shell's own process ID.<br>
+  <code>/sys</code> exposes the device and driver model. Reading <code>thermal_zone0/temp</code> gives your Pi's temperature; divide by 1000 to get degrees Celsius.</p>
+</div>
+
+<ul>
+  <li><strong><code>/dev</code></strong> — device nodes. <code>/dev/sda</code> might be a USB disk, <code>/dev/null</code> is the void, <code>/dev/urandom</code> is randomness, <code>/dev/gpiochip0</code> is your Pi's GPIO pins.</li>
+  <li><strong><code>/proc</code></strong> — a live, per-process and system-wide view of the <em>kernel's</em> own state. Each running program has a folder <code>/proc/&lt;pid&gt;/</code> that is a complete X-ray: its open descriptors, memory layout, current directory, and environment.</li>
+  <li><strong><code>/sys</code></strong> — the structured view of devices, drivers and tunable settings. Some of these you can even <em>write</em> to, to change hardware behaviour like the CPU governor.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Next time you wonder how a "system tool" works, try to find the file it reads. On your Pi, <code>cat /proc/loadavg</code> shows the same load numbers as <code>uptime</code>, and <code>cat /proc/meminfo</code> is the source <code>free</code> reads from. Once you see this, the whole system stops feeling like a black box.</div>
+
+<h2 id="named-pipes-and-sockets">Named Pipes and Unix Sockets: Files With No Disk Content</h2>
+
+<p>An ordinary pipe (<code>a | b</code>) only connects two commands you launched together. But sometimes two <em>unrelated</em> programs need to talk. For that, Linux lets a pipe have a name on the filesystem.</p>
+
+<pre class="code"><code>mkfifo /tmp/mypipe
+# In terminal A:   cat /tmp/mypipe        (waits here, blocked, until someone writes)
+# In terminal B:   echo hello &gt; /tmp/mypipe   (now terminal A prints "hello")</code></pre>
+<div class="explain">
+  <p><code>mkfifo</code> creates a <strong>named pipe</strong> (a FIFO) — a pipe with a filename, so two completely separate programs can connect to it. Notice that the reader <em>blocks</em>, patiently waiting, until a writer shows up. That blocking is the built-in handshake.</p>
+</div>
+
+<p>A close cousin is the <strong>Unix domain socket</strong>. It also appears in the filesystem as a special file, but instead of opening it you <em>connect</em> to it. It is faster than networking over <code>localhost</code> because it skips the network stack entirely, and it can pass credentials and even file descriptors between processes. Your Pi uses these everywhere without you noticing: databases, the Docker daemon, and systemd all communicate through Unix sockets.</p>
+
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
 
 <ol class="steps">
-  <li><strong>Power off.</strong> Shut the Pi down fully and unplug it before touching any wires.</li>
-  <li><strong>Place the three LEDs.</strong> Push each LED into the breadboard so its two legs land in different numbered rows. Keep the long legs (anodes) all on one side and the short legs (cathodes) all on the other side of the centre gap.</li>
-  <li><strong>Fit one resistor per LED.</strong> For each LED, push a 330&nbsp;&Omega; resistor so one leg shares the row with that LED's long leg, and the other leg sits in a free row where a GPIO wire can reach it.</li>
-  <li><strong>Run the three GPIO wires.</strong> Connect GPIO 25 (pin 22) to the red LED's resistor, GPIO 8 (pin 24) to the amber resistor, and GPIO 7 (pin 26) to the green resistor.</li>
-  <li><strong>Build the ground rail.</strong> Connect all three LED short legs (cathodes) to the breadboard's blue &minus; rail. Then run one jumper wire from the &minus; rail back to a GND pin (pin 20) on the Pi.</li>
-  <li><strong>Check LED direction.</strong> Long leg toward the resistor/GPIO side; short leg toward ground. A backwards LED simply will not light — no harm done, just turn it around.</li>
-  <li><strong>Reconnect power</strong> only once every wire is checked, then boot to the desktop.</li>
+  <li><strong>The redirection-order experiment.</strong> Write a tiny script that prints "working..." to stderr and "result" to stdout (use <code>echo working... &gt;&amp;2</code> for the error line). Run it four ways: plain, <code>&gt; out.txt</code>, <code>&gt; out.txt 2&gt;&amp;1</code>, and <code>2&gt;&amp;1 &gt; out.txt</code>. Compare what lands on screen versus in the file. <em>Teaches: file-descriptor duplication and why redirection order changes the result.</em></li>
+  <li><strong>A log-analysis pipeline.</strong> Point <code>cat /var/log/syslog</code> (or any log) into a chain of <code>grep</code>, <code>awk</code>, <code>sort</code>, <code>uniq -c</code> and <code>head</code> to answer real questions: which program logs the most, the busiest hour, the top repeated messages. No scripts — just composed tools. <em>Teaches: the pipe philosophy and the <code>sort | uniq -c | sort -rn</code> counting idiom.</em></li>
+  <li><strong>A /proc-only system dashboard.</strong> Write a <code>sysinfo</code> script that reads <em>only</em> from <code>/proc</code> and <code>/sys</code> — no <code>free</code>, <code>top</code> or <code>uptime</code> allowed — to print uptime, load average, memory used, and your Pi's CPU temperature. <em>Teaches: that the system "tools" are mostly just <code>/proc</code> parsers, and "everything is a file" in action.</em></li>
+  <li><strong>Two programs over a FIFO.</strong> Build a tiny job queue: one script <code>echo</code>es commands into <code>/tmp/jobs</code>, another <code>read</code>s from it and runs them. Watch the writer block when no reader is listening. <em>Teaches: named pipes, blocking behaviour, and talking between processes without sockets.</em></li>
 </ol>
 
-<h2 id="meet-the-list">Fundamental 1: Meet the List</h2>
-
-<p>Before the full program, let us learn each fundamental on its own with a tiny example. Open Thonny and try these in the editor.</p>
-
-<p>A <strong>list</strong> is one name that holds several values in order, written inside square brackets and separated by commas. Here is a list of three LED objects:</p>
-
-<pre class="code"><code>from gpiozero import LED
-
-red = LED(25)
-amber = LED(8)
-green = LED(7)
-
-lights = [red, amber, green]</code></pre>
-<div class="explain">
-  <p><strong>Lines 3&ndash;5 — <code>red = LED(25)</code> etc.:</strong> create three separate <code>LED</code> objects, one per GPIO pin. Each variable controls one physical LED.</p>
-  <p><strong>Line 7 — <code>lights = [red, amber, green]</code>:</strong> bundles all three into a single list called <code>lights</code>. The square brackets make it a list; the order is remembered, so <code>lights[0]</code> is the red one, <code>lights[1]</code> is amber, and <code>lights[2]</code> is green. (Lists count from zero — that catches everyone out at first.)</p>
-</div>
-
-<div class="jargon"><strong>In plain words:</strong> a <strong>list</strong> is like an egg box. The box has one name, but holds several eggs in numbered slots. You can reach into slot 0, slot 1, slot 2, and so on.</div>
-
-<h2 id="loop-over-the-list">Fundamental 2: The for Loop</h2>
-
-<p>Now that the LEDs live in a list, a <strong>for loop</strong> lets us do the same thing to every one of them without repeating ourselves. Try this:</p>
-
-<pre class="code"><code>from gpiozero import LED
-from time import sleep
-
-lights = [LED(25), LED(8), LED(7)]
-
-for light in lights:
-    light.on()
-    sleep(0.5)
-    light.off()</code></pre>
-<div class="explain">
-  <p><strong>Line 4 — <code>lights = [LED(25), LED(8), LED(7)]</code>:</strong> creates the three LEDs straight inside the list — no need for separate variables if we do not want them.</p>
-  <p><strong>Line 6 — <code>for light in lights:</code>:</strong> this is the loop. It runs the indented block once for each item in <code>lights</code>. On the first pass, <code>light</code> means the red LED; on the second, amber; on the third, green. <code>light</code> is just a temporary name we chose for "the current item."</p>
-  <p><strong>Lines 7&ndash;9 — <code>light.on()</code> / <code>sleep(0.5)</code> / <code>light.off()</code>:</strong> switch the current LED on, wait half a second, then switch it off. Because the loop repeats, you see each LED flash in turn — a chase effect — from one short block of code.</p>
-</div>
-
-<div class="tip"><strong>Tip:</strong> the <strong>indentation</strong> (the spaces at the start of lines 7&ndash;9) is what tells Python which lines belong inside the loop. Thonny adds it automatically when you end a line with a colon. Keep it consistent — four spaces is the Python convention.</div>
-
-<h2 id="wrap-it-in-a-function">Fundamental 3: Functions with Parameters</h2>
-
-<p>A <strong>function</strong> is a named block of code you can run whenever you like, just by calling its name. A function can take <strong>parameters</strong> — values you hand in each time — so the same function can do slightly different jobs. Here is a function that turns exactly one light on and the others off:</p>
-
-<pre class="code"><code>from gpiozero import LED
-from time import sleep
-
-red = LED(25)
-amber = LED(8)
-green = LED(7)
-lights = [red, amber, green]
-
-def show(on_light, seconds):
-    for light in lights:
-        light.off()
-    on_light.on()
-    sleep(seconds)
-
-show(green, 3)
-show(amber, 1)
-show(red, 3)</code></pre>
-<div class="explain">
-  <p><strong>Line 9 — <code>def show(on_light, seconds):</code>:</strong> <code>def</code> starts a function definition. We name it <code>show</code> and give it two <em>parameters</em>: <code>on_light</code> (which LED to light) and <code>seconds</code> (how long to wait). These are placeholders filled in each time we call the function.</p>
-  <p><strong>Lines 10&ndash;11 — <code>for light in lights: light.off()</code>:</strong> a small for loop that switches <em>all</em> the LEDs off first, so we always start from a clean state.</p>
-  <p><strong>Line 12 — <code>on_light.on()</code>:</strong> switches on just the LED that was passed in.</p>
-  <p><strong>Line 13 — <code>sleep(seconds)</code>:</strong> pauses for the number of seconds passed in, holding that light on.</p>
-  <p><strong>Lines 15&ndash;17 — <code>show(green, 3)</code> etc.:</strong> call the function three times with different arguments. Green for 3 seconds, amber for 1, red for 3. Writing the logic once and calling it three times is the whole point of a function.</p>
-</div>
-
-<div class="jargon"><strong>In plain words:</strong> a <strong>function</strong> is a recipe with blanks to fill in. <code>show</code> is the recipe; <code>on_light</code> and <code>seconds</code> are the blanks (parameters); <code>show(green, 3)</code> fills them in (those are the arguments) and runs the recipe.</div>
-
-<h2 id="the-uk-traffic-light-sequence">The UK Traffic-Light Sequence</h2>
-
-<p>UK traffic lights follow a very specific four-phase cycle. The one phase people forget is the <strong>red-and-amber together</strong> step, which warns drivers that green is coming so they can get ready to move.</p>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Phase</th><th>Lights on</th><th>Meaning</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>1</td><td>Red</td><td>Stop</td></tr>
-    <tr><td>2</td><td>Red + Amber</td><td>Stop, but get ready &mdash; green is next</td></tr>
-    <tr><td>3</td><td>Green</td><td>Go (if the way is clear)</td></tr>
-    <tr><td>4</td><td>Amber</td><td>Prepare to stop</td></tr>
-  </tbody>
-</table>
-
-<figure class="fig">
-<svg viewBox="0 0 560 200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="560" height="200" fill="#f3f0ff" rx="12"/>
-  <text x="280" y="26" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">The UK four-phase cycle</text>
-
-  <!-- four light heads -->
-  <!-- Phase 1: Red -->
-  <g>
-    <rect x="40" y="50" width="60" height="120" fill="#1f2933" rx="10"/>
-    <circle cx="70" cy="78" r="14" fill="#ef4444"/>
-    <circle cx="70" cy="110" r="14" fill="#5b3a12"/>
-    <circle cx="70" cy="142" r="14" fill="#1f4d2a"/>
-    <text x="70" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">1. Stop</text>
-  </g>
-  <!-- Phase 2: Red+Amber -->
-  <g>
-    <rect x="170" y="50" width="60" height="120" fill="#1f2933" rx="10"/>
-    <circle cx="200" cy="78" r="14" fill="#ef4444"/>
-    <circle cx="200" cy="110" r="14" fill="#f59e0b"/>
-    <circle cx="200" cy="142" r="14" fill="#1f4d2a"/>
-    <text x="200" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">2. Get ready</text>
-  </g>
-  <!-- Phase 3: Green -->
-  <g>
-    <rect x="300" y="50" width="60" height="120" fill="#1f2933" rx="10"/>
-    <circle cx="330" cy="78" r="14" fill="#5a1f1f"/>
-    <circle cx="330" cy="110" r="14" fill="#5b3a12"/>
-    <circle cx="330" cy="142" r="14" fill="#22c55e"/>
-    <text x="330" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">3. Go</text>
-  </g>
-  <!-- Phase 4: Amber -->
-  <g>
-    <rect x="430" y="50" width="60" height="120" fill="#1f2933" rx="10"/>
-    <circle cx="460" cy="78" r="14" fill="#5a1f1f"/>
-    <circle cx="460" cy="110" r="14" fill="#f59e0b"/>
-    <circle cx="460" cy="142" r="14" fill="#1f4d2a"/>
-    <text x="460" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">4. Slow down</text>
-  </g>
-  <!-- arrows -->
-  <text x="135" y="115" font-family="sans-serif" font-size="20" fill="#6d28d9" text-anchor="middle">&#8594;</text>
-  <text x="265" y="115" font-family="sans-serif" font-size="20" fill="#6d28d9" text-anchor="middle">&#8594;</text>
-  <text x="395" y="115" font-family="sans-serif" font-size="20" fill="#6d28d9" text-anchor="middle">&#8594;</text>
-</svg>
-<figcaption>The UK sequence loops forever: Red &#8594; Red+Amber &#8594; Green &#8594; Amber &#8594; back to Red. The Red+Amber phase (2) is the one that does not exist in many other countries.</figcaption>
-</figure>
-
-<h2 id="the-full-program">The Full Program</h2>
-
-<p>Now we put the fundamentals together. Open a new file in Thonny, type this in, and save it as <code>traffic.py</code>.</p>
-
-<pre class="code"><code>from gpiozero import LED
-from time import sleep
-
-# One LED object per pin, kept together in a list
-red = LED(25)
-amber = LED(8)
-green = LED(7)
-all_lights = [red, amber, green]
-
-def all_off():
-    for light in all_lights:
-        light.off()
-
-def phase(reds, ambers, greens, seconds):
-    all_off()
-    if reds:
-        red.on()
-    if ambers:
-        amber.on()
-    if greens:
-        green.on()
-    sleep(seconds)
-
-print("Traffic lights running. Press Stop to quit.")
-while True:
-    phase(True,  False, False, 4)   # Red: stop
-    phase(True,  True,  False, 1)   # Red + Amber: get ready
-    phase(False, False, True,  4)   # Green: go
-    phase(False, True,  False, 1)   # Amber: slow down</code></pre>
-<div class="explain">
-  <p><strong>Lines 1&ndash;2:</strong> import <code>LED</code> from gpiozero and <code>sleep</code> from the built-in <code>time</code> module so we can pause between phases.</p>
-  <p><strong>Lines 5&ndash;8:</strong> create the three LEDs and store them in the list <code>all_lights</code> &mdash; our <strong>list</strong> fundamental in action.</p>
-  <p><strong>Lines 10&ndash;12 — <code>def all_off():</code>:</strong> a small <strong>function</strong> that loops over the list (a <strong>for loop</strong>) and switches every LED off. Calling <code>all_off()</code> is now a one-word way to reset everything.</p>
-  <p><strong>Line 14 — <code>def phase(reds, ambers, greens, seconds):</code>:</strong> the heart of the program. Four <strong>parameters</strong> say which lights should be on (each is <code>True</code> or <code>False</code>) and for how long.</p>
-  <p><strong>Line 15 — <code>all_off()</code>:</strong> start every phase from a clean, all-off state so old lights never linger.</p>
-  <p><strong>Lines 16&ndash;21 — the three <code>if</code> checks:</strong> switch on only the lights asked for. <code>if reds:</code> means "if <code>reds</code> is True, turn the red LED on." This lets the very same function produce all four phases, including Red+Amber together.</p>
-  <p><strong>Line 22 — <code>sleep(seconds)</code>:</strong> hold this phase for the requested time &mdash; <strong>sequencing</strong> with <code>time.sleep()</code>.</p>
-  <p><strong>Line 25 — <code>while True:</code>:</strong> repeat forever, so the lights cycle endlessly like the real thing.</p>
-  <p><strong>Lines 26&ndash;29 — four <code>phase(...)</code> calls:</strong> the UK sequence, in order, with the Red+Amber phase included. Because the timings are just arguments, you can tweak them without touching the function.</p>
-</div>
-
-<h3>Running it</h3>
-
-<ol class="steps">
-  <li><strong>Save</strong> the file as <code>traffic.py</code> in your home folder (File &gt; Save).</li>
-  <li><strong>Run</strong> it with the green ▶ button or F5.</li>
-  <li><strong>Watch the cycle:</strong> red, then red+amber together, then green, then amber, repeating. The console prints a start message.</li>
-  <li><strong>Stop</strong> with the red ◼ button when you have seen enough. All LEDs go off.</li>
-</ol>
-
-<h2 id="the-elegant-version-trafficlights">The Elegant Version: TrafficLights</h2>
-
-<p>The program above works perfectly and taught us lists, loops and functions. But gpiozero already knows about traffic lights! It has a ready-made object called <code>TrafficLights</code> that bundles a red, amber and green LED together for you. Here is the entire sequence again, far shorter:</p>
-
-<pre class="code"><code>from gpiozero import TrafficLights
-from time import sleep
-
-lights = TrafficLights(red=25, amber=8, green=7)
-
-while True:
-    lights.red.on()
-    sleep(4)
-    lights.amber.on()      # red still on -&gt; the Red+Amber phase
-    sleep(1)
-    lights.off()
-    lights.green.on()
-    sleep(4)
-    lights.green.off()
-    lights.amber.on()
-    sleep(1)
-    lights.amber.off()</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from gpiozero import TrafficLights</code>:</strong> imports the ready-made traffic-light object.</p>
-  <p><strong>Line 4 — <code>lights = TrafficLights(red=25, amber=8, green=7)</code>:</strong> creates one object that owns all three LEDs. The <code>red=</code>, <code>amber=</code>, <code>green=</code> parts are <em>keyword arguments</em> &mdash; they make it crystal clear which pin is which colour. Wiring is unchanged: each LED still has its own 330&nbsp;&Omega; resistor.</p>
-  <p><strong>Lines 7&ndash;8 — <code>lights.red.on()</code> then <code>sleep(4)</code>:</strong> you reach each colour through the object: <code>lights.red</code>, <code>lights.amber</code>, <code>lights.green</code> are ordinary LEDs you can turn on and off.</p>
-  <p><strong>Line 9 — <code>lights.amber.on()</code>:</strong> because red is still on, switching amber on as well gives the Red+Amber phase for free.</p>
-  <p><strong>Line 11 — <code>lights.off()</code>:</strong> a handy shortcut that switches <em>all three</em> off at once.</p>
-  <p><strong>Lines 12&ndash;17:</strong> green for 4&nbsp;s, then amber alone for 1&nbsp;s, before the loop returns to red.</p>
-</div>
-
-<div class="tip"><strong>Tip:</strong> <code>TrafficLights</code> even has a built-in demo. Try <code>lights.blink()</code> to flash all three together, or explore the gpiozero documentation at <a href="https://gpiozero.readthedocs.io/">gpiozero.readthedocs.io</a> for more ready-made objects like <code>LEDBoard</code>, which groups any number of LEDs.</div>
-
-<div class="note"><strong>Note:</strong> both versions drive the same wiring and obey the same current budget. The hand-written version teaches you the fundamentals; the <code>TrafficLights</code> version shows how a good library lets you say what you mean in fewer lines. Real programmers move between both styles all the time.</div>
-
-<h2 id="pedestrian-crossing-variant">The Pedestrian-Crossing Variant</h2>
-
-<p>Real crossings change for people, not just on a timer. Let us add a push button: while no one presses it, the lights stay green for traffic; press it, and the lights run through amber to red so pedestrians can cross, then back to green.</p>
-
-<p>Wire a push button alongside the LEDs. With gpiozero's <code>Button</code>, the default wiring is one leg to a GPIO pin and the other leg to <strong>GND</strong> (gpiozero switches on an internal pull-up resistor, so a press reads as "pressed" without any extra parts). We will use GPIO 2 (physical pin 3) for the button.</p>
-
-<table class="tbl">
-  <thead>
-    <tr><th>From</th><th>To</th><th>Via</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Button leg 1</td><td>GPIO 2 (pin 3)</td><td>jumper wire</td></tr>
-    <tr><td>Button leg 2 (opposite side)</td><td>GND (pin 20 / ground rail)</td><td>jumper wire</td></tr>
-  </tbody>
-</table>
-
-<div class="warn"><strong>Careful:</strong> power off again before adding the button. The button needs no resistor of its own, but the three LEDs still each need their 330&nbsp;&Omega; resistor &mdash; nothing about the LED rules changes.</div>
-
-<pre class="code"><code>from gpiozero import TrafficLights, Button
-from time import sleep
-
-lights = TrafficLights(red=25, amber=8, green=7)
-button = Button(2)   # other leg to GND; internal pull-up by default
-
-def let_pedestrians_cross():
-    print("Button pressed - stopping traffic")
-    lights.amber.on()
-    sleep(1)
-    lights.amber.off()
-    lights.red.on()
-    sleep(5)            # walk time
-    lights.red.off()
-    lights.green.on()   # traffic flows again
-
-# Start with green for the traffic
-lights.green.on()
-print("Lights green. Press the button to cross.")
-
-while True:
-    button.wait_for_press()
-    lights.green.off()
-    let_pedestrians_cross()</code></pre>
-<div class="explain">
-  <p><strong>Line 1:</strong> import both <code>TrafficLights</code> and <code>Button</code> from gpiozero.</p>
-  <p><strong>Line 5 — <code>button = Button(2)</code>:</strong> the button on GPIO 2. By default <code>pull_up=True</code>, so wire the other leg to GND; pressing pulls the pin low and gpiozero reports it as pressed.</p>
-  <p><strong>Lines 7&ndash;15 — <code>def let_pedestrians_cross():</code>:</strong> a function holding the whole "stop the traffic, let people walk, then resume" sequence: amber, red for a walk time, then back to green.</p>
-  <p><strong>Lines 18&ndash;19:</strong> before the loop, set green for traffic and print an instruction.</p>
-  <p><strong>Line 21 — <code>while True:</code>:</strong> loop forever, waiting for presses.</p>
-  <p><strong>Line 22 — <code>button.wait_for_press()</code>:</strong> pauses the program right here until the button is pressed. No busy-waiting, no wasted effort &mdash; the program simply sleeps until someone wants to cross.</p>
-  <p><strong>Lines 23&ndash;24:</strong> turn green off and call our crossing function. When it finishes, the loop returns to waiting for the next press.</p>
-</div>
-
-<div class="note"><strong>Note:</strong> we have used <code>Button</code> only lightly here. Buttons, debouncing and reaction-time games are the whole subject of the next chapter &mdash; so if the button misbehaves or seems to "press itself" twice, that is the bouncing problem you will learn to fix next.</div>
-
-<h2 id="troubleshooting">Troubleshooting</h2>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Symptom</th><th>Likely cause &amp; fix</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>One LED never lights</td><td>It is probably in backwards. Long leg (anode) must face the resistor/GPIO side; short leg (cathode) faces ground. Pull it out and turn it round.</td></tr>
-    <tr><td>No LEDs light at all</td><td>Check the single ground wire from the &minus; rail to the Pi's GND pin &mdash; if that is loose, none of the LEDs can complete their circuit.</td></tr>
-    <tr><td>Wrong colour lights for a phase</td><td>A GPIO wire is on the wrong resistor. Match GPIO 25&#8594;red, GPIO 8&#8594;amber, GPIO 7&#8594;green, and check your code uses the same numbers.</td></tr>
-    <tr><td>LED is very dim or flickers</td><td>A wire is barely making contact, or you used a much larger resistor than 330&nbsp;&Omega;. Re-seat the wires; confirm orange-orange-brown-gold bands.</td></tr>
-    <tr><td><code>No module named 'lgpio'</code></td><td>Run <code>sudo apt install python3-lgpio</code> in a terminal, then restart Thonny.</td></tr>
-    <tr><td>An LED stays dimly lit when it should be off</td><td>Usually a stray wire bridging two rows on the breadboard. Trace each row and remove the accidental bridge.</td></tr>
-  </tbody>
-</table>
-
-<h2 id="from-the-e-waste-pile">From the E-Waste Pile</h2>
-
-<p>You do not need to buy LEDs and resistors &mdash; old electronics are full of them. Almost any dead gadget with indicator lights is a free supply.</p>
+<h2 id="go-deeper">Go deeper</h2>
 
 <ul>
-  <li><strong>LEDs</strong> live in broken toys, old routers and modems (status lights), printer control panels, and cheap fairy lights. Desolder them gently with a soldering iron; the longer leg is still the anode.</li>
-  <li><strong>Resistors</strong> are scattered across almost every circuit board. Read the colour bands (orange-orange-brown-gold is your 330&nbsp;&Omega;) or measure them with a multimeter on the &Omega; setting.</li>
-  <li><strong>Test before you trust:</strong> a multimeter in diode mode lights a good LED dimly when the red probe touches the anode; swap the probes if it stays dark.</li>
+  <li><a href="https://jvns.ca/">Julia Evans — "Bite Size Linux" and blog</a> — illustrated, intuition-first explainers on file descriptors and pipes; some of the clearest writing on this anywhere. (Free blog.)</li>
+  <li><a href="https://beej.us/guide/bgipc/">Beej's Guide to Unix IPC</a> — pipes, FIFOs, sockets and shared memory, in friendly C. (Free.)</li>
+  <li><a href="https://man7.org/tlpi/">The Linux Programming Interface (Kerrisk), ch. 4–5 and 44–57</a> — the definitive treatment of descriptors, pipes and sockets. (Paid book; free sample chapters online.)</li>
+  <li><a href="https://mywiki.wooledge.org/BashFAQ/024">Greg's Wiki — BashFAQ 024</a> — the canonical write-up of the <code>while read</code> subshell trap. (Free.)</li>
+  <li><a href="https://www.shellcheck.net/wiki/SC2031">ShellCheck SC2031</a> — the linter rule that catches the lost-variable pipeline bug for you. (Free.)</li>
 </ul>
-
-<div class="warn"><strong>Careful:</strong> only ever harvest from <em>low-voltage, unplugged</em> equipment. Never open mains power supplies, microwave ovens, CRT televisions/monitors, or anything with large capacitors or lithium batteries &mdash; these can hold a dangerous or lethal charge even when unplugged. Stick to battery toys, USB gadgets and dead routers.</div>
-
-<h2 id="make-it-your-own">Make It Your Own</h2>
-
-<p>You have the fundamentals now &mdash; here are four ways to take the project further:</p>
-
-<ul>
-  <li><strong>Two-way junction.</strong> Add a second set of three LEDs for the cross-road and run the two sets in opposite phases (one red while the other is green). A list of two <code>TrafficLights</code> objects and a loop will keep it tidy.</li>
-  <li><strong>Adjustable timing.</strong> Move all the <code>sleep</code> durations into variables at the top (<code>go_time = 4</code>, <code>warn_time = 1</code>) so you can tune the whole cycle in one place.</li>
-  <li><strong>A green "walk" man.</strong> Add a fourth and fifth LED (red and green) for the pedestrian signal, and light the green walk LED while traffic is on red.</li>
-  <li><strong>Level crossing.</strong> Swap the sequence for two red LEDs that alternate (blinking left-right) like a railway level crossing &mdash; a great excuse to practise <code>blink()</code> and a list.</li>
-</ul>
-
-<div class="tip"><strong>Tip:</strong> every extension above still obeys the current budget. If you ever add many LEDs (say a whole row), add up the milliamps: stay under ~16&nbsp;mA per pin and ~50&nbsp;mA across the header, or switch to a driver chip designed to handle more.</div>
 
 <div class="keyterms">
-<h4>Key terms</h4>
-<ul>
-  <li><strong>List</strong> &mdash; a single name holding several values in order, written in square brackets; items are numbered from 0.</li>
-  <li><strong>for loop</strong> &mdash; repeats a block of code once for each item in a list (or other sequence).</li>
-  <li><strong>Function</strong> &mdash; a named, reusable block of code, defined with <code>def</code>, that you run by calling its name.</li>
-  <li><strong>Parameter / argument</strong> &mdash; a parameter is a named "blank" in a function definition; an argument is the actual value you pass in when you call it.</li>
-  <li><strong>time.sleep()</strong> &mdash; pauses the program for a given number of seconds; the basis of timed sequencing.</li>
-  <li><strong>while True</strong> &mdash; a loop that repeats forever, used here to cycle the lights endlessly.</li>
-  <li><strong>Common cathode</strong> &mdash; a wiring layout where all the LED negative legs (cathodes) join a shared ground.</li>
-  <li><strong>Current budget</strong> &mdash; the safe limits on current: ~16&nbsp;mA per GPIO pin and ~50&nbsp;mA across the whole header.</li>
-  <li><strong>TrafficLights</strong> &mdash; a ready-made gpiozero object grouping a red, amber and green LED, created with <code>TrafficLights(red=, amber=, green=)</code>.</li>
-  <li><strong>LEDBoard</strong> &mdash; a gpiozero object that groups any number of LEDs so you can control them together.</li>
-</ul>
-</div>
-
-<div class="summary">
-<h4>Chapter summary</h4>
-<ul>
-  <li>A <strong>list</strong> keeps related things (our three LEDs) together under one name, indexed from 0.</li>
-  <li>A <strong>for loop</strong> runs the same code for every item in a list &mdash; perfect for switching all the LEDs off at once.</li>
-  <li><strong>Functions</strong> with <strong>parameters</strong> let you write a step once (like <code>phase()</code>) and reuse it with different values.</li>
-  <li><code>time.sleep()</code> holds each phase long enough to see, giving you control over <strong>sequencing</strong>.</li>
-  <li>The UK cycle is Red &#8594; Red+Amber &#8594; Green &#8594; Amber, including the easily forgotten Red+Amber "get ready" phase.</li>
-  <li>Every LED needs its <strong>own 330&nbsp;&Omega; resistor</strong>; never share one or omit it.</li>
-  <li>Respect the <strong>current budget</strong>: ~16&nbsp;mA per pin, ~50&nbsp;mA total; three resistor-limited LEDs draw only ~12&nbsp;mA together.</li>
-  <li>A <strong>common-cathode</strong> layout shares one ground wire for all three LEDs.</li>
-  <li>gpiozero's <code>TrafficLights(red=, amber=, green=)</code> bundles the three LEDs into one elegant object that does the same job in fewer lines.</li>
-  <li>Adding a <code>Button</code> (one leg to a GPIO pin, the other to GND) turns the project into a pedestrian crossing &mdash; a gentle taste of the next chapter.</li>
-  <li>Always power off and unplug before wiring, and keep to 3.3&nbsp;V on every GPIO pin.</li>
-</ul>
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>File descriptor (FD)</strong> — a small whole number a program holds while something is open; the kernel maps it to the real file, device, pipe or socket. The unifying handle behind "everything is a file."</li>
+    <li><strong>stdin / stdout / stderr</strong> — file descriptors 0, 1 and 2, open by convention in every program: input, normal output, and error output respectively.</li>
+    <li><strong>Redirection</strong> — using <code>&gt;</code>, <code>&lt;</code> or <code>2&gt;</code> to point a file descriptor at a file (or another descriptor) before a program runs. Applied strictly left to right.</li>
+    <li><strong><code>2&gt;&amp;1</code></strong> — "make FD 2 a copy of wherever FD 1 points <em>at this moment</em>." A snapshot, not a live link, which is why redirection order changes the outcome.</li>
+    <li><strong>Pipe</strong> — a kernel buffer wiring one program's stdout into another's stdin; the two run concurrently with automatic backpressure. Exists only as descriptors, never as a file on disk.</li>
+    <li><strong>Subshell</strong> — a child process the shell forks to run a pipeline stage; its variable changes vanish when it exits, which is why <code>cmd | while read</code> can "forget" a counter.</li>
+    <li><strong>tee</strong> — a tool that copies its input to one or more files <em>and</em> passes it through, letting you save and see a stream at once. The idiom for writing to root-owned files via <code>sudo tee</code>.</li>
+    <li><strong>Process substitution</strong> — <code>&lt;(cmd)</code> or <code>&gt;(cmd)</code>, which hands a program a "filename" that is really a live pipe to another command. Bridges stdin-readers and file-path-takers.</li>
+    <li><strong>/proc</strong> — a virtual filesystem the kernel generates on read, exposing live per-process and system-wide state; the real source most "system tools" read from.</li>
+    <li><strong>/sys</strong> — a virtual filesystem exposing the device and driver model and tunable settings, some of which you can write to, to control hardware.</li>
+    <li><strong>Named pipe (FIFO)</strong> — a pipe given a filename with <code>mkfifo</code>, so unrelated processes can connect; the reader blocks until a writer appears.</li>
+    <li><strong>Unix domain socket</strong> — a socket that appears as a special file but is connected to, not opened; faster than localhost networking and able to pass credentials and descriptors between processes.</li>
+  </ul>
 </div>

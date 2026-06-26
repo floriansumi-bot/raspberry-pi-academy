@@ -1,0 +1,497 @@
+<p class="lead">Everything you have built so far has lived inside the Pi — flashing its own LEDs, printing to its own screen. In this final project you will set it free. You will build a small <strong>web server</strong> on the Pi that reads your sensors and serves a live <strong>dashboard</strong> you can open on your phone from the sofa, showing temperature, distance, motion, and the time of the last alarm — updating itself every second. To do it you will pull together everything you know in Python and meet, for the first time, three new languages that run the web: <strong>HTML</strong>, <strong>CSS</strong>, and <strong>JavaScript</strong>.</p>
+
+<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+
+<p>This is the capstone. Rather than one new gadget, you are wiring together the whole course into a single, genuinely useful, full-stack project — and getting a real taste of the languages of the web.</p>
+
+<h3>Python fundamentals (putting it all together)</h3>
+<ul>
+  <li><strong>Modules</strong> — organising sensor-reading code into its own file and importing it, exactly as you did in Chapter 40.</li>
+  <li><strong>A dictionary as a shared state object</strong> — one <code>dict</code> that holds every current reading, passed around and updated in one place.</li>
+  <li><strong>A small Flask web server</strong> — the <code>@app.route</code> decorator, returning JSON with <code>jsonify</code>, and serving an HTML page with <code>render_template</code>.</li>
+  <li><strong>The correct Bookworm install of Flask</strong> using a virtual environment (because of PEP 668).</li>
+</ul>
+
+<h3>Other languages (a real taste)</h3>
+<ul>
+  <li><strong>HTML</strong> — the structure of a web page (tags, elements, ids).</li>
+  <li><strong>CSS</strong> — a few rules to style the page and make it readable on a phone.</li>
+  <li><strong>JavaScript</strong> — <code>fetch()</code> to ask the server for fresh data, <code>setInterval()</code> to poll repeatedly, and updating the page (the DOM) live.</li>
+  <li><strong>The client/server split</strong> — what runs on the Pi, what runs in the phone's browser, and how they talk.</li>
+</ul>
+
+<p>There is far less wiring here than in other chapters — you are reusing sensors you have already built. The new ground is software, and the leap from "a program on the Pi" to "a service other devices can use".</p>
+
+<h2 id="client-and-server-the-big-idea">Client and Server: The Big Idea</h2>
+
+<p>Every website works the same way, whether it is a giant social network or the tiny dashboard you are about to build. There are always two halves: a <strong>server</strong> and a <strong>client</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> The <strong>server</strong> is a program that waits for requests and sends back answers — here, it is your Pi. The <strong>client</strong> is whatever asks the questions — here, the web browser on your phone. The client sends a <em>request</em> ("please give me the latest sensor data"); the server sends a <em>response</em> ("here it is, as JSON"). That back-and-forth, over your Wi-Fi, is the whole of the web in miniature.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="320" fill="#f3f0ff" rx="12"/>
+  <text x="320" y="30" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">How the Client Talks to the Server</text>
+
+  <!-- Client: phone -->
+  <rect x="40" y="80" width="120" height="180" rx="16" fill="#ffffff" stroke="#6d28d9" stroke-width="3"/>
+  <rect x="54" y="100" width="92" height="120" rx="4" fill="#ede9fe"/>
+  <circle cx="100" cy="240" r="9" fill="#ede9fe" stroke="#6d28d9" stroke-width="2"/>
+  <text x="100" y="74" font-family="sans-serif" font-size="13" font-weight="bold" fill="#6d28d9" text-anchor="middle">CLIENT</text>
+  <text x="100" y="150" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Phone browser</text>
+  <text x="100" y="168" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">HTML + CSS + JS</text>
+  <text x="100" y="284" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">runs in the browser</text>
+
+  <!-- Server: Pi -->
+  <rect x="480" y="80" width="120" height="180" rx="12" fill="#ffffff" stroke="#059669" stroke-width="3"/>
+  <rect x="496" y="100" width="88" height="60" rx="4" fill="#d1fae5"/>
+  <circle cx="510" cy="178" r="5" fill="#059669"/>
+  <circle cx="528" cy="178" r="5" fill="#dc2626"/>
+  <text x="540" y="74" font-family="sans-serif" font-size="13" font-weight="bold" fill="#059669" text-anchor="middle">SERVER</text>
+  <text x="540" y="135" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Raspberry Pi</text>
+  <text x="540" y="152" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">Flask (Python)</text>
+  <text x="540" y="210" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">reads the sensors</text>
+  <text x="540" y="226" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">on the GPIO pins</text>
+
+  <!-- Request arrow -->
+  <line x1="165" y1="135" x2="475" y2="135" stroke="#6d28d9" stroke-width="3" marker-end="url(#arrowP)"/>
+  <text x="320" y="125" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle" font-weight="bold">REQUEST: GET /api/data</text>
+  <!-- Response arrow -->
+  <line x1="475" y1="205" x2="165" y2="205" stroke="#059669" stroke-width="3" marker-end="url(#arrowG)"/>
+  <text x="320" y="225" font-family="sans-serif" font-size="11" fill="#059669" text-anchor="middle" font-weight="bold">RESPONSE: JSON data</text>
+  <text x="320" y="243" font-family="monospace" font-size="9.5" fill="#374151" text-anchor="middle">{ "temp_c": 21.4, "distance_cm": 35, ... }</text>
+
+  <text x="320" y="290" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">...repeated every second by JavaScript over your home Wi-Fi</text>
+
+  <defs>
+    <marker id="arrowP" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6d28d9"/></marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#059669"/></marker>
+  </defs>
+</svg>
+<figcaption>The client (your phone's browser) sends a request to the server (Flask on the Pi). The server reads the sensors and replies with JSON. JavaScript on the client repeats this every second to keep the dashboard live.</figcaption>
+</figure>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>JSON</strong> (JavaScript Object Notation) is a simple, universal text format for data. It looks almost exactly like a Python dictionary — <code>{"temp_c": 21.4, "motion": true}</code> — which is why it is the perfect bridge between your Python server and the JavaScript client. Both ends understand it instantly.</div>
+
+<h2 id="installing-flask-the-bookworm-way">Installing Flask the Bookworm Way</h2>
+
+<p>Flask is the small Python library we will use to be a web server. On Raspberry Pi OS Bookworm there is a right way and a wrong way to install it, and the wrong way fails on purpose.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Flask</strong> is a lightweight Python <em>web framework</em> — a toolkit for writing web servers. With a handful of lines it can serve pages and answer data requests. It is the most popular way to put a Raspberry Pi project on the web.</div>
+
+<h3>Why plain pip is blocked</h3>
+
+<p>If you simply type <code>pip install flask</code> on Bookworm, you will hit a wall:</p>
+
+<pre class="code"><code>error: externally-managed-environment</code></pre>
+
+<p>This is not a bug — it is a deliberate safety rule called <strong>PEP 668</strong>. Bookworm protects its system Python (which the OS itself relies on) by refusing to let <code>pip</code> install packages into it. If it let you, a bad package could break parts of the operating system.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>virtual environment</strong> (venv) is a private, self-contained copy of Python that lives in a folder of your project. Anything you <code>pip install</code> goes <em>only</em> in there, never touching the system Python. It is the correct, recommended fix for PEP 668 — clean, reversible, and exactly what professionals use.</div>
+
+<h3>Create the project and its venv</h3>
+
+<p>Open a terminal and run these commands one at a time:</p>
+
+<pre class="code"><code>mkdir dashboard
+cd dashboard
+python3 -m venv venv</code></pre>
+<div class="explain">
+  <p><strong><code>mkdir dashboard</code>:</strong> Makes a new folder to hold the whole project.</p>
+  <p><strong><code>cd dashboard</code>:</strong> Moves into that folder, so the next commands act inside it.</p>
+  <p><strong><code>python3 -m venv venv</code>:</strong> Creates a virtual environment in a sub-folder called <code>venv</code>. The first <code>venv</code> is the tool; the second is just the folder name we chose for it.</p>
+</div>
+
+<p>Now <strong>activate</strong> the environment and install Flask into it:</p>
+
+<pre class="code"><code>source venv/bin/activate
+pip install flask</code></pre>
+<div class="explain">
+  <p><strong><code>source venv/bin/activate</code>:</strong> Switches your terminal into the virtual environment. You will see <code>(venv)</code> appear at the start of your prompt — that is how you know it is active. From now on, <code>python</code> and <code>pip</code> mean the private copies inside <code>venv</code>.</p>
+  <p><strong><code>pip install flask</code>:</strong> Now this works perfectly, because it installs Flask <em>inside the venv</em>, not into the protected system Python. No PEP 668 error.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> You only create and install once. But every <em>new</em> terminal starts outside the venv, so each time you come back to work on the project you must re-run <code>source venv/bin/activate</code> first. To leave the venv, simply type <code>deactivate</code>. If you ever prefer not to use a venv at all, <code>sudo apt install python3-flask</code> installs a system-tested Flask instead — but the venv approach is the cleaner habit.</div>
+
+<h2 id="reading-the-sensors-as-a-module">Reading the Sensors as a Module</h2>
+
+<p>Following the modular habit from Chapter 40, we will keep all the sensor-reading code in its own file, <code>sensors.py</code>, and the web code in <code>app.py</code>. That way the web server does not need to know <em>how</em> a reading is taken — it just asks for one.</p>
+
+<p>Here is <code>sensors.py</code>. It uses the components from earlier chapters: an ultrasonic distance sensor and a PIR. (If you do not have the hardware to hand, the <code>note</code> below shows how to run the whole dashboard with fake readings so you can still build the web side.)</p>
+
+<pre class="code"><code># sensors.py — read the hardware, return tidy values
+from gpiozero import DistanceSensor, MotionSensor
+
+# ECHO via a 330 Ω/470 Ω divider (5 V -&gt; ~2.9 V); TRIG direct
+distance = DistanceSensor(echo=24, trigger=23)
+pir = MotionSensor(4)
+
+def read_distance_cm():
+    """Distance to the nearest object, in centimetres."""
+    return round(distance.distance * 100, 1)
+
+def read_motion():
+    """True if motion is being detected right now."""
+    return pir.motion_detected
+
+def read_temperature_c():
+    """Placeholder CPU-ish temperature. Swap for a real sensor."""
+    with open("/sys/class/thermal/thermal_zone0/temp") as f:
+        return round(int(f.read()) / 1000, 1)</code></pre>
+<div class="explain">
+  <p><strong>Line 2 — imports:</strong> Brings in the two gpiozero sensor classes you have already used.</p>
+  <p><strong>Line 5 — <code>DistanceSensor(echo=24, trigger=23)</code>:</strong> Recreates the HC-SR04 from Chapter 38. Remember its ECHO pin outputs 5 V, so it <em>must</em> go through a 330 Ω/470 Ω voltage divider before reaching GPIO 24 — unlike the PIR.</p>
+  <p><strong>Line 6 — <code>MotionSensor(4)</code>:</strong> The PIR from Chapter 40 on GPIO 4, OUT wired directly (no divider).</p>
+  <p><strong>Lines 8–10 — <code>read_distance_cm()</code>:</strong> <code>distance.distance</code> gives metres, so we multiply by 100 for centimetres and round to one decimal place. Wrapping it in a named function means the web server just calls <code>read_distance_cm()</code> and gets a clean number.</p>
+  <p><strong>Lines 12–14 — <code>read_motion()</code>:</strong> Returns <code>True</code> or <code>False</code> from the PIR's <code>motion_detected</code> property.</p>
+  <p><strong>Lines 16–19 — <code>read_temperature_c()</code>:</strong> A real, always-available reading: the Pi's own CPU temperature, read from a system file. Swap this for a real room sensor (e.g. an I2C BME280) when you have one — the rest of the dashboard will not need to change, because it only calls this function.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> No hardware to hand? Replace the bodies of these functions with fixed or random values, for example <code>return round(random.uniform(20, 24), 1)</code> (with <code>import random</code> at the top). The web side works identically — the whole point of the module is that the server does not care where the numbers come from.</div>
+
+<h2 id="the-shared-state-dictionary">The Shared State Dictionary</h2>
+
+<p>The dashboard needs to report several things at once: temperature, distance, motion, and the time of the last alarm. Rather than juggle four separate variables, we keep them together in a single <strong>dictionary</strong> — one object that <em>is</em> the current state of the system.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>dictionary</strong> stores data as <em>key: value</em> pairs, like a labelled box of drawers. <code>state["temp_c"]</code> looks in the drawer labelled <code>"temp_c"</code>. Using one dictionary as the single source of truth — a <strong>shared state object</strong> — keeps everything in one place and, conveniently, converts straight to JSON for the browser.</div>
+
+<pre class="code"><code>state = {
+    "temp_c": None,
+    "distance_cm": None,
+    "motion": False,
+    "last_alarm": "never",
+}
+
+def update_state():
+    """Refresh every reading in the shared state dictionary."""
+    state["temp_c"] = read_temperature_c()
+    state["distance_cm"] = read_distance_cm()
+    moving = read_motion()
+    state["motion"] = moving
+    if moving:
+        state["last_alarm"] = now_stamp()
+    return state</code></pre>
+<div class="explain">
+  <p><strong>Lines 1–6 — the dictionary:</strong> Four labelled values, all starting empty or default. <code>None</code> means "no reading yet"; <code>"never"</code> is a friendly starting value for the last-alarm time.</p>
+  <p><strong>Line 8 — <code>def update_state():</code>:</strong> One function that refreshes the whole dictionary by calling each sensor reader and storing the result under the right key.</p>
+  <p><strong>Lines 13–15 — updating last_alarm:</strong> If motion is happening right now, we record the current timestamp (using a <code>now_stamp()</code> helper like the one from Chapter 40) under <code>"last_alarm"</code>. So the dashboard always shows when motion was last seen.</p>
+  <p><strong>Line 16 — <code>return state</code>:</strong> Hands back the whole dictionary, ready to be turned into JSON.</p>
+</div>
+
+<h2 id="the-flask-server-appdotpy">The Flask Server (app.py)</h2>
+
+<p>Now the centrepiece. This is the <strong>Python</strong> file that ties everything together and serves the web. Read the labelled block carefully — every web project you ever build will have this same shape.</p>
+
+<pre class="code"><code># app.py  —  PYTHON (the server)
+from flask import Flask, jsonify, render_template
+from datetime import datetime
+from gpiozero import DistanceSensor, MotionSensor
+
+app = Flask(__name__)
+
+distance = DistanceSensor(echo=24, trigger=23)  # ECHO via 330Ω/470Ω divider
+pir = MotionSensor(4)                            # OUT direct, no divider
+
+state = {"temp_c": None, "distance_cm": None,
+         "motion": False, "last_alarm": "never"}
+
+def now_stamp():
+    return datetime.now().strftime("%H:%M:%S")
+
+def update_state():
+    with open("/sys/class/thermal/thermal_zone0/temp") as f:
+        state["temp_c"] = round(int(f.read()) / 1000, 1)
+    state["distance_cm"] = round(distance.distance * 100, 1)
+    state["motion"] = pir.motion_detected
+    if pir.motion_detected:
+        state["last_alarm"] = now_stamp()
+    return state
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/api/data")
+def data():
+    return jsonify(update_state())
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)</code></pre>
+<div class="explain">
+  <p><strong>Line 2 — <code>from flask import Flask, jsonify, render_template</code>:</strong> Imports the three Flask tools we need: <code>Flask</code> (the app itself), <code>jsonify</code> (turn a dict into a JSON response), and <code>render_template</code> (serve an HTML page).</p>
+  <p><strong>Line 6 — <code>app = Flask(__name__)</code>:</strong> Creates the web application. <code>__name__</code> is a built-in Python variable that tells Flask where the app lives, so it can find your templates folder.</p>
+  <p><strong>Lines 8–9 — the sensors:</strong> The same objects as in our module. (For clarity we have inlined them here; you could equally <code>from sensors import update_state</code> to keep <code>app.py</code> tiny.)</p>
+  <p><strong>Lines 16–23 — <code>update_state()</code>:</strong> Refreshes the shared dictionary from the live sensors each time it is called, so every request returns fresh numbers.</p>
+  <p><strong>Line 25 — <code>@app.route("/")</code>:</strong> A <strong>decorator</strong>. It tells Flask: "when a browser asks for the home page (the URL <code>/</code>), run the function just below." The <code>index()</code> function returns the HTML page.</p>
+  <p><strong>Line 27 — <code>return render_template("index.html")</code>:</strong> Sends the file <code>templates/index.html</code> to the browser. Flask automatically looks in a folder named <code>templates</code>.</p>
+  <p><strong>Line 30 — <code>@app.route("/api/data")</code>:</strong> A second route, for data rather than a page. When the browser asks for <code>/api/data</code>, Flask runs <code>data()</code>.</p>
+  <p><strong>Line 32 — <code>return jsonify(update_state())</code>:</strong> Reads the sensors and returns the state dictionary as JSON — the response the JavaScript will fetch.</p>
+  <p><strong>Line 35 — <code>app.run(host="0.0.0.0", port=5000)</code>:</strong> Starts the server on port 5000. The crucial part is <code>host="0.0.0.0"</code>: it means "accept connections from <em>any</em> device on the network", which is what lets your phone reach it. (The default of <code>127.0.0.1</code> would only allow the Pi itself.)</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>decorator</strong> (the <code>@app.route(...)</code> line) is a label you stick above a function to give it an extra job. Here it connects a URL to a function, so visiting that URL runs that function. You do not need to understand how decorators work internally to use them — just match a URL to the code that should answer it.</div>
+
+<div class="warn"><strong>Careful:</strong> <code>host="0.0.0.0"</code> exposes the server to everyone on your local network. That is exactly what we want for a home dashboard, but it means anyone on your Wi-Fi can open it. Flask's built-in server is for development and home projects, <strong>not</strong> for putting on the open internet. Keep it on your home network.</div>
+
+<h2 id="the-html-page">The HTML Page (templates/index.html)</h2>
+
+<p>Now we leave Python and meet the first web language. <strong>HTML</strong> (HyperText Markup Language) describes the <em>structure</em> of a page: what text and boxes appear, and in what order. It is made of <strong>tags</strong> in angle brackets, usually in pairs that wrap content.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An HTML <strong>tag</strong> like <code>&lt;p&gt;</code> opens an element and <code>&lt;/p&gt;</code> closes it; together they wrap a paragraph. An <strong>id</strong> (e.g. <code>id="temp"</code>) is a unique name for one element, so our JavaScript can find it and change its text. Think of HTML as the skeleton, CSS as the skin and clothes, and JavaScript as the muscles that make it move.</div>
+
+<p>Save this as <code>templates/index.html</code> (create the <code>templates</code> folder inside your project). It contains a little <strong>CSS</strong> (in the <code>&lt;style&gt;</code> block) and a little <strong>JavaScript</strong> (in the <code>&lt;script&gt;</code> block) — each clearly labelled below.</p>
+
+<pre class="code"><code>&lt;!-- templates/index.html  —  HTML (the page) --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;Pi Sensor Dashboard&lt;/title&gt;
+  &lt;style&gt;
+    /* CSS — a few styles to make it readable on a phone */
+    body { font-family: sans-serif; background: #f3f0ff;
+           color: #1f2933; margin: 0; padding: 20px; }
+    h1   { color: #6d28d9; text-align: center; }
+    .card { background: #fff; border-radius: 12px; padding: 16px 20px;
+            margin: 12px auto; max-width: 360px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .label { color: #374151; font-size: 14px; }
+    .value { font-size: 28px; font-weight: bold; color: #059669; }
+    .alert { color: #dc2626; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Raspberry Pi Sensor Dashboard&lt;/h1&gt;
+
+  &lt;div class="card"&gt;
+    &lt;div class="label"&gt;Temperature&lt;/div&gt;
+    &lt;div class="value"&gt;&lt;span id="temp"&gt;--&lt;/span&gt; &amp;deg;C&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class="card"&gt;
+    &lt;div class="label"&gt;Nearest object&lt;/div&gt;
+    &lt;div class="value"&gt;&lt;span id="distance"&gt;--&lt;/span&gt; cm&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class="card"&gt;
+    &lt;div class="label"&gt;Motion&lt;/div&gt;
+    &lt;div class="value" id="motion"&gt;--&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class="card"&gt;
+    &lt;div class="label"&gt;Last alarm&lt;/div&gt;
+    &lt;div class="value" id="last_alarm"&gt;--&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;script&gt;
+    // JavaScript — fetch fresh data and update the page
+    function refresh() {
+      fetch("/api/data")
+        .then(response =&gt; response.json())
+        .then(d =&gt; {
+          document.getElementById("temp").textContent = d.temp_c;
+          document.getElementById("distance").textContent = d.distance_cm;
+          const motionBox = document.getElementById("motion");
+          motionBox.textContent = d.motion ? "DETECTED" : "clear";
+          motionBox.className = d.motion ? "value alert" : "value";
+          document.getElementById("last_alarm").textContent = d.last_alarm;
+        });
+    }
+    setInterval(refresh, 1000);  // poll once per second
+    refresh();                   // and once immediately on load
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<div class="explain">
+  <p><strong><code>&lt;!DOCTYPE html&gt;</code> and <code>&lt;html&gt;</code>:</strong> The opening declarations of every web page. Everything lives inside <code>&lt;html&gt;...&lt;/html&gt;</code>.</p>
+  <p><strong><code>&lt;head&gt;</code>:</strong> Holds information <em>about</em> the page that is not shown directly: the character set, the page title, and the viewport line that makes it scale nicely on a phone.</p>
+  <p><strong>The <code>&lt;style&gt;</code> block (CSS):</strong> CSS rules style the page. Each rule names what to style (e.g. <code>.card</code>, meaning every element with <code>class="card"</code>) and a set of properties in braces. Here we give the body a soft background, centre the cards, and colour the values green — these are the same house colours used throughout the course.</p>
+  <p><strong>The <code>&lt;body&gt;</code>:</strong> The visible page. Each reading sits in its own <code>&lt;div class="card"&gt;</code>, with a small label and a big value. The values start as <code>--</code> placeholders.</p>
+  <p><strong><code>&lt;span id="temp"&gt;--&lt;/span&gt;</code>:</strong> An empty named slot. The <code>id="temp"</code> is the handle JavaScript uses to drop the real number in.</p>
+  <p><strong>The <code>&lt;script&gt;</code> block (JavaScript):</strong> the live part — explained line by line in its own walkthrough next.</p>
+</div>
+
+<h2 id="the-javascript-that-makes-it-live">The JavaScript That Makes It Live</h2>
+
+<p>The HTML on its own is a still picture. <strong>JavaScript</strong> is the language that runs <em>inside the browser</em> and brings it to life — here, by repeatedly asking the server for fresh data and rewriting the page. Let's walk through the script block on its own.</p>
+
+<pre class="code"><code>// JavaScript (runs in the browser, on the client)
+function refresh() {
+  fetch("/api/data")
+    .then(response =&gt; response.json())
+    .then(d =&gt; {
+      document.getElementById("temp").textContent = d.temp_c;
+      document.getElementById("distance").textContent = d.distance_cm;
+      const motionBox = document.getElementById("motion");
+      motionBox.textContent = d.motion ? "DETECTED" : "clear";
+      motionBox.className = d.motion ? "value alert" : "value";
+      document.getElementById("last_alarm").textContent = d.last_alarm;
+    });
+}
+setInterval(refresh, 1000);
+refresh();</code></pre>
+<div class="explain">
+  <p><strong>Line 2 — <code>function refresh() {</code>:</strong> Defines a JavaScript function. JavaScript and Python share the same idea of a function; only the punctuation differs — braces <code>{ }</code> instead of indentation, and a semicolon ending most lines.</p>
+  <p><strong>Line 3 — <code>fetch("/api/data")</code>:</strong> The key line. <code>fetch()</code> sends a request to the server's <code>/api/data</code> route — the very route your Flask <code>data()</code> function answers. This is the client asking the server its question.</p>
+  <p><strong>Line 4 — <code>.then(response =&gt; response.json())</code>:</strong> The request takes a moment, so <code>.then(...)</code> says "once the answer arrives, do this." Here we convert the response text into a JavaScript object with <code>.json()</code>. The <code>=&gt;</code> is JavaScript's compact way of writing a small function (an "arrow function"), much like Python's <code>lambda</code>.</p>
+  <p><strong>Line 5 — <code>.then(d =&gt; {</code>:</strong> A second step that runs once the JSON is ready, giving us the data object <code>d</code> — whose keys (<code>d.temp_c</code>, <code>d.motion</code>...) are exactly the dictionary keys from your Python <code>state</code>.</p>
+  <p><strong>Line 6 — <code>document.getElementById("temp").textContent = d.temp_c;</code>:</strong> Finds the page element with <code>id="temp"</code> and sets its text to the temperature. This is <strong>updating the DOM</strong> — changing the live page in the browser. The <strong>DOM</strong> (Document Object Model) is the browser's editable picture of the page.</p>
+  <p><strong>Lines 8–10 — the motion box:</strong> <code>d.motion ? "DETECTED" : "clear"</code> is a compact if/else: if motion is true, show "DETECTED", otherwise "clear". We also swap the CSS class to <code>alert</code> so the text turns red when motion is detected.</p>
+  <p><strong>Line 14 — <code>setInterval(refresh, 1000);</code>:</strong> Tells the browser to run <code>refresh</code> every 1000 milliseconds (one second), forever. This <em>polling</em> is what keeps the dashboard live.</p>
+  <p><strong>Line 15 — <code>refresh();</code>:</strong> Calls it once straight away so the page is not blank for the first second.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Polling</strong> means asking again and again on a timer ("any new data? any new data?"). It is the simplest way to keep a page fresh. Big apps sometimes use fancier "push" methods, but for a home dashboard, polling once a second with <code>setInterval</code> is perfect and easy to understand.</div>
+
+<h2 id="what-the-dashboard-looks-like">What the Dashboard Looks Like</h2>
+
+<figure class="fig">
+<svg viewBox="0 0 360 460" xmlns="http://www.w3.org/2000/svg">
+  <rect width="360" height="460" fill="#f3f0ff" rx="12"/>
+  <!-- phone frame -->
+  <rect x="60" y="20" width="240" height="420" rx="22" fill="#1f2933"/>
+  <rect x="72" y="44" width="216" height="372" rx="6" fill="#f3f0ff"/>
+  <circle cx="180" cy="430" r="6" fill="#4b5563"/>
+
+  <text x="180" y="72" font-family="sans-serif" font-size="13" font-weight="bold" fill="#6d28d9" text-anchor="middle">Raspberry Pi Sensor</text>
+  <text x="180" y="88" font-family="sans-serif" font-size="13" font-weight="bold" fill="#6d28d9" text-anchor="middle">Dashboard</text>
+
+  <!-- card: temperature -->
+  <rect x="86" y="100" width="188" height="60" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="98" y="120" font-family="sans-serif" font-size="10" fill="#374151">Temperature</text>
+  <text x="98" y="148" font-family="sans-serif" font-size="22" font-weight="bold" fill="#059669">21.4 °C</text>
+
+  <!-- card: distance -->
+  <rect x="86" y="170" width="188" height="60" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="98" y="190" font-family="sans-serif" font-size="10" fill="#374151">Nearest object</text>
+  <text x="98" y="218" font-family="sans-serif" font-size="22" font-weight="bold" fill="#059669">35.0 cm</text>
+
+  <!-- card: motion -->
+  <rect x="86" y="240" width="188" height="60" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="98" y="260" font-family="sans-serif" font-size="10" fill="#374151">Motion</text>
+  <text x="98" y="288" font-family="sans-serif" font-size="22" font-weight="bold" fill="#dc2626">DETECTED</text>
+
+  <!-- card: last alarm -->
+  <rect x="86" y="310" width="188" height="60" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="98" y="330" font-family="sans-serif" font-size="10" fill="#374151">Last alarm</text>
+  <text x="98" y="358" font-family="sans-serif" font-size="22" font-weight="bold" fill="#059669">14:09:02</text>
+
+  <text x="180" y="398" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">updates every second</text>
+</svg>
+<figcaption>A mock-up of the finished dashboard on a phone: four cards for temperature, distance, motion, and last-alarm time. The motion card turns red when movement is detected. Each value refreshes once a second.</figcaption>
+</figure>
+
+<h2 id="running-it-and-viewing-on-your-phone">Running It and Viewing on Your Phone</h2>
+
+<p>Your project folder should now look like this:</p>
+
+<pre class="code"><code>dashboard/
+├── venv/
+├── app.py
+└── templates/
+    └── index.html</code></pre>
+
+<ol class="steps">
+  <li><strong>Activate the venv</strong> (if you opened a fresh terminal): <code>cd dashboard</code> then <code>source venv/bin/activate</code>. You should see <code>(venv)</code> in the prompt.</li>
+  <li><strong>Start the server:</strong> run <code>python app.py</code>. Flask prints a couple of lines, including <code>Running on http://0.0.0.0:5000</code>. Leave this terminal open — closing it stops the server.</li>
+  <li><strong>Test on the Pi first.</strong> On the Pi's own browser, visit <code>http://localhost:5000</code>. The dashboard should appear and start updating.</li>
+  <li><strong>Find the Pi's address.</strong> In another terminal run <code>hostname -I</code> to see the Pi's IP address (something like <code>192.168.1.42</code>).</li>
+  <li><strong>Open it on your phone.</strong> With the phone on the <em>same</em> Wi-Fi, type <code>http://192.168.1.42:5000</code> (your address) into its browser — or try <code>http://raspberrypi.local:5000</code>. The live dashboard appears.</li>
+  <li><strong>Watch it move.</strong> Wave your hand at the PIR — the Motion card turns red and the Last alarm time updates, on your phone, within a second.</li>
+  <li><strong>Stop the server</strong> with Ctrl+C in the terminal when you are done.</li>
+</ol>
+
+<pre class="code"><code>hostname -I</code></pre>
+<div class="explain">
+  <p><strong><code>hostname -I</code>:</strong> Prints your Pi's IP address(es) on the network — the number your phone needs in the URL. The capital <code>-I</code> shows all addresses; usually the first one is the Wi-Fi address you want.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> <code>raspberrypi.local:5000</code> works thanks to a system called mDNS, which lets devices find each other by name on a home network. If your Pi has a custom hostname, use that name instead. If <code>.local</code> does not resolve on your phone, fall back to the numeric IP from <code>hostname -I</code>.</div>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Symptom</th><th>Likely cause &amp; fix</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>error: externally-managed-environment</code> on <code>pip install</code></td><td>You are not in the venv. Run <code>source venv/bin/activate</code> (look for <code>(venv)</code>), or use <code>sudo apt install python3-flask</code>.</td></tr>
+    <tr><td><code>ModuleNotFoundError: No module named 'flask'</code></td><td>The venv is not active, or Flask was installed into a different one. Activate the venv, then <code>pip install flask</code>.</td></tr>
+    <tr><td>Phone cannot reach the page (it spins or times out)</td><td>Check you used <code>host="0.0.0.0"</code>, the phone is on the same Wi-Fi, and you typed the right IP and <code>:5000</code>. A firewall on some networks may block it.</td></tr>
+    <tr><td>Page loads but values stay as <code>--</code></td><td>Open the browser's developer console for errors. Usually the JSON keys (<code>d.temp_c</code>) do not match the dictionary keys in Python. They must be spelled identically.</td></tr>
+    <tr><td><code>jinja2.exceptions.TemplateNotFound: index.html</code></td><td>The HTML file must live in a folder named exactly <code>templates</code> beside <code>app.py</code>. Check the spelling and location.</td></tr>
+    <tr><td>Distance always reads 0 or odd values</td><td>Re-check the HC-SR04 wiring — especially the 330 Ω/470 Ω divider on ECHO. Without it the reading is wrong and the 5 V can damage the GPIO.</td></tr>
+    <tr><td>Changes to <code>index.html</code> do not show</td><td>Refresh the browser (Flask serves the file fresh each request, but the browser may cache). A hard refresh clears it.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="where-to-go-next">Where to Go Next</h2>
+
+<p>You have built a full-stack project: a Python server, a styled web page, and live JavaScript, all on a computer the size of a playing card. That is a real and transferable skill. Here is where the road leads from here.</p>
+
+<h3>Motors and robotics</h3>
+
+<p>The natural next step in electronics is <strong>movement</strong>. A GPIO pin cannot drive a motor directly — motors pull far more current than a pin can give, and their coils kick back voltage spikes that would destroy it. The bridge is a chip called an <strong>H-bridge</strong> (such as the L298N or DRV8833).</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <strong>H-bridge</strong> is a small driver board that sits between your Pi and a motor. The Pi sends gentle 3.3 V control signals; the H-bridge switches the motor's larger current on your behalf, and can even reverse it so the motor spins both ways. gpiozero has a <code>Motor</code> class built for exactly this. Add wheels and you have a robot.</div>
+
+<h3>Learn more languages</h3>
+
+<p>You have now touched five languages in this course — Python, Bash, HTML, CSS, and JavaScript. Each opens a door:</p>
+<ul>
+  <li><strong>Go deeper into JavaScript</strong> to build richer interfaces, or learn a framework once the basics feel comfortable.</li>
+  <li><strong>Try C</strong> to see how the Pi talks to hardware at the lowest level — it is the language the Linux kernel itself is written in.</li>
+  <li><strong>Keep building with Python</strong>, the most versatile all-rounder, into data, automation, or machine learning.</li>
+</ul>
+
+<h3>Contribute and share</h3>
+
+<p>The Raspberry Pi world is built by its community. Share your dashboard build, post your code, answer a beginner's question on the forums, or contribute to an open-source project like <strong>gpiozero</strong> itself — its documentation lives at <code>gpiozero.readthedocs.io</code>, and even fixing a typo is a real contribution. The official projects site <code>projects.raspberrypi.org</code> and Flask's docs at <code>flask.palletsprojects.com</code> are excellent next stops.</p>
+
+<h3>Make this project your own</h3>
+<ul>
+  <li><strong>Add a real room sensor</strong> (an I2C BME280 for temperature, humidity, and pressure) and surface its readings as new cards — only <code>sensors.py</code> changes.</li>
+  <li><strong>Add a control</strong>: a button on the page that, via a new <code>@app.route</code>, arms or disarms the Chapter 40 alarm remotely.</li>
+  <li><strong>Log to a chart</strong>: store readings over time and draw a simple graph in the browser.</li>
+  <li><strong>Style it your way</strong>: change the CSS colours, fonts, and layout until the dashboard feels like yours.</li>
+</ul>
+
+<p>You began this course not knowing what a GPIO pin was. You can now read sensors, drive outputs, structure real programs across multiple files and languages, and serve your work to any device in your home. That is the foundation of everything makers build. Go and build something nobody has built before.</p>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Server</strong> - A program that waits for requests and sends back responses; here, Flask running on the Pi.</li>
+  <li><strong>Client</strong> - The program that makes requests; here, the web browser on your phone.</li>
+  <li><strong>Request / response</strong> - The client asks (request); the server answers (response). The basic exchange of the web.</li>
+  <li><strong>Flask</strong> - A lightweight Python web framework used to build the server with a few lines of code.</li>
+  <li><strong>PEP 668</strong> - The Bookworm rule that blocks plain <code>pip install</code> into the system Python; the fix is a virtual environment (or <code>sudo apt install</code>).</li>
+  <li><strong>Virtual environment (venv)</strong> - A private copy of Python in a project folder where <code>pip</code> packages install safely, isolated from the system.</li>
+  <li><strong>Route / decorator</strong> - <code>@app.route("/api/data")</code> connects a URL to the function that answers it.</li>
+  <li><strong>JSON</strong> - A universal text format for data that looks like a Python dictionary; the bridge between Python and JavaScript. Produced with <code>jsonify</code>.</li>
+  <li><strong>Shared state dictionary</strong> - A single Python <code>dict</code> holding all current readings, used as the system's single source of truth.</li>
+  <li><strong>HTML</strong> - The markup language describing a page's structure, made of tags and elements with optional ids.</li>
+  <li><strong>CSS</strong> - The language for styling a page: colours, fonts, layout, in rules like <code>.card { ... }</code>.</li>
+  <li><strong>JavaScript</strong> - The language that runs in the browser to make pages interactive.</li>
+  <li><strong>fetch()</strong> - The JavaScript call that requests data from a server URL.</li>
+  <li><strong>DOM</strong> - Document Object Model; the browser's live, editable model of the page that JavaScript updates.</li>
+  <li><strong>Polling</strong> - Asking the server for fresh data repeatedly on a timer (here, <code>setInterval</code> every second).</li>
+  <li><strong>H-bridge</strong> - A motor-driver board that lets the Pi control a motor's larger current and reverse its direction.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>The web is a conversation between a <strong>client</strong> (your phone's browser) and a <strong>server</strong> (Flask on the Pi): the client sends requests, the server sends responses.</li>
+  <li>On Bookworm, install Flask inside a <strong>virtual environment</strong> (<code>python3 -m venv venv</code> then <code>source venv/bin/activate</code> then <code>pip install flask</code>) because PEP 668 blocks plain <code>pip</code> into the system Python.</li>
+  <li>A single <strong>dictionary</strong> used as a shared state object holds every reading and converts directly to JSON with <code>jsonify</code>.</li>
+  <li><code>@app.route</code> decorators map URLs to functions: <code>/</code> serves the HTML page via <code>render_template</code>; <code>/api/data</code> returns the readings as JSON.</li>
+  <li><code>app.run(host="0.0.0.0", port=5000)</code> exposes the server to the local network so a phone on the same Wi-Fi can reach it at <code>http://&lt;pi-ip&gt;:5000</code> or <code>raspberrypi.local:5000</code>.</li>
+  <li><strong>HTML</strong> structures the page, <strong>CSS</strong> styles it, and <strong>JavaScript</strong> makes it live — three separate languages working together in the browser (the client).</li>
+  <li>JavaScript's <code>fetch("/api/data")</code> requests JSON, and <code>setInterval(refresh, 1000)</code> polls every second, updating the page (the DOM) with the latest readings.</li>
+  <li>Reused sensors keep their wiring rules: the HC-SR04 ECHO still needs its 330 Ω/470 Ω divider, while the PIR's OUT still connects directly.</li>
+  <li>From here, robotics (motors via an <strong>H-bridge</strong>), deeper languages, and contributing to the community are the natural next steps.</li>
+</ul>
+</div>

@@ -1,632 +1,159 @@
-<p class="lead">A sliver of plastic and a glittering dome of glass, pulled from a dead security light in the e-waste box, can still do one thing brilliantly: notice when a warm body moves nearby. In this project you will give that salvaged <strong>PIR motion sensor</strong> a second life as a motion-activated alarm — one that flashes an LED, sounds a buzzer, stamps the time in a logbook, and can be armed or disarmed from the keyboard. Along the way you will learn the Python idea that powers almost every interactive program in the world: <strong>event-driven programming</strong> — writing little functions called <em>callbacks</em> that the computer runs automatically the moment something happens.</p>
+<p class="lead">You already met the friendly side of networking in the beginner lesson — connecting to Wi-Fi, finding your Pi's IP, opening an SSH session. This chapter goes deeper into what is actually happening underneath: how a single packet travels from an app, through the kernel, out the wire, and back to the right place; the modern toolset that has quietly replaced the commands half the internet still tells you to use; why DNS resolution almost never works the way people think it does; what SSH is <em>really</em> proving when it lets you in; and how containers get their own private networks out of nothing but the kernel. Your Pi 5 runs full Debian with a real Linux network stack, which makes it a wonderful little networking lab — you can run a tiny server on it and watch the connection from three angles at once, or hand-build the plumbing Docker uses, all on a board that costs less than a textbook. Take your time; this is one of those topics that feels like magic right up until it clicks, and then it feels obvious.</p>
 
-<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+<div class="warn"><strong>Careful:</strong> The firewall and network-namespace work near the end of this lesson can lock you out of a headless Pi. A single wrong <code>nftables</code> default-drop rule will cut your SSH session and leave you unable to reconnect. Do that work on your Pi <strong>with a keyboard and screen attached</strong>, or on a spare Pi, or at the very least with a known way back in — never blind over SSH on a Pi you can't physically reach. The risky firewall project at the end is flagged with a ⚠️.</div>
 
-<p>By the end of this chapter you will have a working intruder alarm built almost entirely from salvaged parts, and you will understand a new and powerful way of structuring programs.</p>
+<h2 id="path-of-a-packet">The path of a packet</h2>
 
-<p>Here are the <strong>fundamentals</strong> this project teaches, named plainly so you know exactly what you are practising:</p>
+<p>Everything in this lesson makes more sense once you can picture where a packet actually goes. When your program sends data, it does not talk to the network card directly — it writes into a <strong>socket</strong>, and the kernel takes over from there. Outbound, simplified:</p>
 
-<h3>Python fundamentals</h3>
-<ul>
-  <li><strong>Event-driven programming.</strong> Instead of a program that marches top-to-bottom and then stops, you write code that <em>waits</em> and <em>reacts</em>. The sensor decides <em>when</em> things happen; your job is to say <em>what</em> happens.</li>
-  <li><strong>Callbacks</strong> — the functions <code>when_motion</code> and <code>when_no_motion</code>. A callback is a function you hand to another object so it can "call you back" later, at the right moment.</li>
-  <li><strong>Blocking waits</strong> with <code>wait_for_motion()</code> — pausing your program at one line until motion arrives.</li>
-  <li><strong>Organising code into functions and modules.</strong> You will split your program into small, well-named functions and then move the reusable pieces into a separate <em>module</em> (a second <code>.py</code> file) that you <code>import</code>.</li>
-  <li><strong>Counting events</strong> with a simple counter variable and the <code>global</code> keyword.</li>
-</ul>
+<pre class="code"><code>app write()s to a socket
+  &rarr; kernel copies the bytes into a socket buffer
+  &rarr; transport layer: TCP segments / UDP datagrams, with source + dest PORTS
+  &rarr; IP layer: routing decision (which interface? &mdash; via the ROUTING TABLE)
+  &rarr; netfilter hooks: firewall / NAT (this is where nftables runs)
+  &rarr; device driver &rarr; the NIC &rarr; the wire</code></pre>
 
-<h3>Electronics fundamentals</h3>
-<ul>
-  <li><strong>The PIR motion sensor</strong> (the common <strong>HC-SR501</strong>) and the gpiozero <code>MotionSensor</code> class.</li>
-  <li><strong>3.3 V-safe digital outputs.</strong> The PIR's OUT pin already speaks 3.3 V, so — unlike the HC-SR04 ultrasonic sensor from Chapter 28 — it connects <em>directly</em> to a GPIO pin with <strong>no voltage divider</strong>. Knowing which sensors need protection and which do not is a core safety skill.</li>
-  <li><strong>Combining outputs:</strong> driving an LED and a buzzer together as the alarm's "siren".</li>
-</ul>
+<p>Inbound runs the same path in reverse. The clever part is the last step: when a packet arrives, the kernel has to decide <em>which of the hundreds of open sockets</em> it belongs to. It does that by <strong>demultiplexing</strong> on the 4-tuple — <code>(source IP:port, destination IP:port)</code>. That tuple is unique per connection, which is the whole reason a single web server listening on port 443 can serve thousands of clients at once: every connection is a different tuple, so the kernel never gets confused about which packet is whose.</p>
 
-<div class="widget-mount" data-widget="gpio"></div>
+<div class="jargon"><strong>In plain words:</strong> A socket is the kernel's idea of "one end of a network conversation" — a thing your program reads from and writes to as if it were a file. A port is just a number that lets one machine host many conversations at once, and the 4-tuple is the full return address that keeps them all straight.</div>
 
-<h2 id="what-is-event-driven-programming">What Is Event-Driven Programming?</h2>
+<h2 id="the-modern-toolset">The modern toolset (and the one you should stop using)</h2>
 
-<p>Every program you have written so far has probably run like a recipe: do step 1, then step 2, then step 3, and finish. That style is called <strong>sequential</strong> programming, and it is perfect for tasks with a clear beginning and end.</p>
+<p>Here is a frustrating truth about Linux networking: most of the commands you will find in old blog posts and Stack Overflow answers are <strong>deprecated</strong>, and worse, they quietly show you an <em>incomplete</em> picture. Knowing the modern replacements is not pedantry — it is the difference between debugging the real state of your Pi and debugging a half-truth.</p>
 
-<p>But an alarm is different. An alarm spends almost all of its life doing <em>nothing</em> — quietly waiting. Then, at an unpredictable moment, something happens, and it must react instantly. You cannot write that as a fixed list of steps, because you do not know in advance <em>when</em> the steps should run.</p>
-
-<div class="jargon"><strong>In plain words:</strong> An <strong>event</strong> is "something that happened" — a button press, a key tap, a sensor noticing motion. <strong>Event-driven programming</strong> means you write small functions that say what to do <em>when</em> each event happens, then you let the program sit and wait. The events drive the program, instead of the program marching through a fixed list.</div>
-
-<p>The function you hand over to be run later is called a <strong>callback</strong>. The name is wonderfully literal: you give your function to gpiozero and effectively say, "don't run this now — <em>call me back</em> when motion happens." You met this idea briefly in Chapter 12 with a button's <code>when_pressed</code>. Here we lean into it properly.</p>
-
-<figure class="fig">
-<svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg">
-  <rect width="600" height="280" fill="#f3f0ff" rx="12"/>
-  <text x="300" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Two ways to wait for motion</text>
-
-  <!-- Left panel: polling -->
-  <rect x="20" y="46" width="270" height="210" fill="#ffffff" rx="8" stroke="#c9b89a" stroke-width="1.5"/>
-  <text x="155" y="68" font-family="sans-serif" font-size="13" font-weight="bold" fill="#dc2626" text-anchor="middle">Polling (busy loop)</text>
-  <text x="155" y="86" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">ask, ask, ask… never resting</text>
-  <!-- loop arrows -->
-  <circle cx="155" cy="160" r="52" fill="none" stroke="#dc2626" stroke-width="3" stroke-dasharray="6 5"/>
-  <text x="155" y="150" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">while True:</text>
-  <text x="155" y="168" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">moved yet?</text>
-  <text x="155" y="186" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">no… moved yet?</text>
-  <path d="M198 140 a52 52 0 0 1 0 40" fill="none" stroke="#dc2626" stroke-width="3"/>
-  <path d="M198 180 l6 -2 -1 8 z" fill="#dc2626"/>
-  <text x="155" y="238" font-family="sans-serif" font-size="10.5" fill="#dc2626" text-anchor="middle">CPU stays busy the whole time</text>
-
-  <!-- Right panel: event-driven -->
-  <rect x="310" y="46" width="270" height="210" fill="#ffffff" rx="8" stroke="#c9b89a" stroke-width="1.5"/>
-  <text x="445" y="68" font-family="sans-serif" font-size="13" font-weight="bold" fill="#059669" text-anchor="middle">Event-driven (callback)</text>
-  <text x="445" y="86" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">rest until something happens</text>
-  <!-- idle program box -->
-  <rect x="340" y="104" width="210" height="34" fill="#d1fae5" rx="6"/>
-  <text x="445" y="126" font-family="sans-serif" font-size="11" fill="#065f46" text-anchor="middle">program waits in pause()</text>
-  <!-- event -->
-  <rect x="340" y="158" width="92" height="30" fill="#6d28d9" rx="6"/>
-  <text x="386" y="178" font-family="sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">motion!</text>
-  <line x1="432" y1="173" x2="486" y2="173" stroke="#6d28d9" stroke-width="3"/>
-  <path d="M486 173 l-9 -4 0 8 z" fill="#6d28d9"/>
-  <!-- callback fires -->
-  <rect x="470" y="158" width="92" height="30" fill="#f97316" rx="6"/>
-  <text x="516" y="178" font-family="sans-serif" font-size="10.5" fill="#ffffff" text-anchor="middle">callback runs</text>
-  <text x="445" y="222" font-family="sans-serif" font-size="10.5" fill="#059669" text-anchor="middle">the event drives the program</text>
-  <text x="445" y="240" font-family="sans-serif" font-size="10.5" fill="#374151" text-anchor="middle">when_motion = someone_moved</text>
-</svg>
-<figcaption>Two ways to wait. A polling loop keeps the Pi busy asking "moved yet?" thousands of times a second. Event-driven code rests in <code>pause()</code> and lets the motion event call your function back — simpler and far kinder to the processor.</figcaption>
-</figure>
-
-<h3>A tiny isolated example first</h3>
-
-<p>Before wiring anything, let's see the shape of an event-driven program with the smallest possible example. You can read this even without the hardware connected yet — it shows the <em>pattern</em>, which is the important part.</p>
-
-<pre class="code"><code>from gpiozero import MotionSensor
-from signal import pause
-
-pir = MotionSensor(4)
-
-def someone_moved():
-    print("Motion detected!")
-
-def all_clear():
-    print("All quiet now.")
-
-pir.when_motion = someone_moved
-pir.when_no_motion = all_clear
-
-pause()</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from gpiozero import MotionSensor</code>:</strong> Pulls in the ready-made gpiozero object for PIR motion sensors. You do not need to install anything — gpiozero is preinstalled on Raspberry Pi OS Bookworm.</p>
-  <p><strong>Line 2 — <code>from signal import pause</code>:</strong> Brings in <code>pause()</code>, which keeps an event-driven program alive and waiting. Without it the program would reach the bottom and exit instantly, before any motion could ever be noticed.</p>
-  <p><strong>Line 4 — <code>pir = MotionSensor(4)</code>:</strong> Creates a sensor object listening on GPIO 4 (physical pin 7). The number 4 is the GPIO (BCM) number, not the physical position on the header.</p>
-  <p><strong>Lines 6–7 — <code>def someone_moved():</code>:</strong> Defines a function — a named block of instructions. Crucially, defining it does <em>not</em> run it. We are simply describing what <em>should</em> happen later.</p>
-  <p><strong>Lines 9–10 — <code>def all_clear():</code>:</strong> A second function, for when the motion stops.</p>
-  <p><strong>Line 12 — <code>pir.when_motion = someone_moved</code>:</strong> This is the heart of event-driven programming. We hand the function <code>someone_moved</code> to the sensor. Notice there are <strong>no parentheses</strong> after the name — <code>someone_moved</code>, not <code>someone_moved()</code>. With parentheses you would <em>call</em> the function right now; without them you are <em>pointing</em> at it, so gpiozero can call it back later.</p>
-  <p><strong>Line 13 — <code>pir.when_no_motion = all_clear</code>:</strong> Same idea, registering the "all clear" callback.</p>
-  <p><strong>Line 15 — <code>pause()</code>:</strong> Sits here forever, letting the sensor watch in the background and fire your callbacks whenever motion starts or stops. Press the red Stop button in Thonny (or Ctrl+C in a terminal) to end it.</p>
-</div>
-
-<div class="warn"><strong>Careful:</strong> A common beginner slip is writing <code>pir.when_motion = someone_moved()</code> with parentheses. That runs the function <em>immediately</em>, once, and then hands its return value (usually <code>None</code>) to the sensor — so nothing ever happens on real motion. Always register a callback by name, with no parentheses.</div>
-
-<h3>The other style: a blocking wait</h3>
-
-<p>Callbacks are not the only way. Sometimes you want your program to stop at one exact line and wait for motion before going on. gpiozero gives you <code>wait_for_motion()</code> for precisely that:</p>
-
-<pre class="code"><code>from gpiozero import MotionSensor
-
-pir = MotionSensor(4)
-
-print("Waiting for motion...")
-pir.wait_for_motion()
-print("Got it! Something moved.")</code></pre>
-<div class="explain">
-  <p><strong>Line 6 — <code>pir.wait_for_motion()</code>:</strong> This line <em>blocks</em> — the program freezes here, doing nothing else, until the sensor detects motion. Only then does it move on to line 7. This is called a <strong>blocking</strong> call because it blocks the rest of the program from running until its condition is met.</p>
-</div>
-
-<div class="jargon"><strong>In plain words:</strong> <strong>Blocking</strong> means "wait right here until I'm done". <code>wait_for_motion()</code> is simple and reads top-to-bottom, but your program can only wait for one thing at a time. <strong>Callbacks</strong> (<code>when_motion</code>) are more flexible: the sensor watches in the background while your program gets on with other jobs. Our alarm will use callbacks.</div>
-
-<h2 id="from-the-e-waste-pile-salvaging-a-pir">From the E-Waste Pile: Salvaging a PIR</h2>
-
-<p>PIR sensors are one of the most rewarding things to rescue from the e-waste box, because they are <em>everywhere</em>. The little white plastic boxes that switch on a porch light when you walk up the path, cheap battery alarms, motion-activated toys and ornaments — almost all of them hide a PIR module that is identical, or nearly identical, to the HC-SR501 you can buy new.</p>
-
-<div class="jargon"><strong>In plain words:</strong> <strong>PIR</strong> stands for <strong>Passive Infrared</strong>. Everything warm — including you — glows faintly in infrared light that your eyes cannot see. The sensor is "passive" because it does not send anything out; it simply watches for a <em>change</em> in that infrared glow as a warm body moves across its view. That is why a PIR detects movement but not a person standing perfectly still.</div>
-
-<h3>Where to find one</h3>
-
-<ul>
-  <li><strong>Dead motion-sensor security lights</strong> — the classic source. The white dome you see on the front is the PIR's lens. The light may have failed, but the sensor module behind it usually still works.</li>
-  <li><strong>Old burglar-alarm PIR units</strong> — the wall-corner boxes. Often still perfectly good; the panel they reported to is the dead part.</li>
-  <li><strong>Motion-activated novelty toys, soap dispensers, and night-lights.</strong></li>
-</ul>
-
-<h3>How to recognise the module</h3>
-
-<p>Once you open the plastic case (only ever low-voltage, battery or USB-powered items — see the warning below), look for a small circuit board carrying a white, faceted, half-dome lens about the size of a thumbnail. This lens is called a <strong>Fresnel lens</strong>; it divides the sensor's view into segments so movement registers more strongly. Underneath you will usually find a board labelled <strong>HC-SR501</strong> (or a near clone) with three pins. Those three pins are the whole story:</p>
+<div class="warn"><strong>Myth vs reality:</strong> <strong>Myth —</strong> "Use <code>ifconfig</code> to see your interfaces and <code>netstat</code> to see your ports." <strong>Reality —</strong> <code>ifconfig</code>, <code>netstat</code>, <code>route</code>, and <code>iptables</code> are all deprecated, and <code>ifconfig</code> in particular doesn't even show all of an interface's addresses. The maintained, accurate tools are the <code>iproute2</code> suite (<code>ip</code>, <code>ss</code>) and <code>nftables</code> (<code>nft</code>). They are already on your Pi. Use them.</div>
 
 <table class="tbl">
   <thead>
-    <tr><th>Pin marking</th><th>What it is</th><th>Where it goes</th></tr>
+    <tr><th>Old (avoid)</th><th>Modern</th><th>For</th></tr>
   </thead>
   <tbody>
-    <tr><td><strong>VCC</strong> (sometimes <code>+</code> or <code>5V</code>)</td><td>Power in</td><td>A 5 V pin on the Pi</td></tr>
-    <tr><td><strong>OUT</strong> (sometimes <code>S</code> or <code>SIG</code>)</td><td>The signal — goes HIGH when motion is seen</td><td>Directly to a GPIO pin</td></tr>
-    <tr><td><strong>GND</strong> (sometimes <code>−</code> or <code>G</code>)</td><td>Ground / return</td><td>A GND pin on the Pi</td></tr>
+    <tr><td><code>ifconfig</code></td><td><code>ip addr</code>, <code>ip link</code></td><td>interfaces &amp; addresses</td></tr>
+    <tr><td><code>route</code></td><td><code>ip route</code></td><td>the routing table</td></tr>
+    <tr><td><code>netstat</code></td><td><strong><code>ss</code></strong></td><td>sockets &amp; listening ports (faster, more complete)</td></tr>
+    <tr><td><code>arp</code></td><td><code>ip neigh</code></td><td>the ARP / neighbour table</td></tr>
+    <tr><td><code>iptables</code></td><td><strong><code>nftables</code> (<code>nft</code>)</strong></td><td>firewalling (one framework replacing iptables/ip6tables/arptables/ebtables)</td></tr>
   </tbody>
 </table>
 
-<div class="warn"><strong>Careful:</strong> Only ever open <strong>battery-powered or low-voltage USB</strong> gadgets. <strong>Never open anything that plugs into the mains</strong> — a security floodlight wired to your house mains, for example, must be left to a qualified electrician. Mains-powered devices can hold a dangerous charge in their capacitors even when unplugged. If you are unsure, leave it shut and pick a battery-powered item instead. When in doubt, throw it out.</div>
+<pre class="code"><code>ip -br addr                 # brief: each interface and its addresses
+ip route                    # the routing table; `ip route get 8.8.8.8` shows the chosen route + iface
+ss -tlnp                    # listening TCP sockets + the owning process (the netstat replacement)
+ss -tan state established   # every established TCP connection
+ip neigh                    # who's on my local segment (the ARP cache)</code></pre>
 
-<div class="tip"><strong>Tip:</strong> Even a brand-new HC-SR501 costs very little, so if your salvaged module misbehaves it is no disaster. But test the salvaged one first — most work perfectly. You will also reuse an <strong>LED</strong> and a <strong>buzzer</strong> from the earlier chapters' salvage hauls (a mouse LED and a toy buzzer are ideal).</div>
+<p><strong>The key insight:</strong> <code>ss -tlnp</code> is the command you will run a thousand times. It answers the single most common networking question — <em>"what is listening, on which port, owned by which process?"</em> — instantly and completely. On your Pi, start any little server and <code>ss -tlnp</code> will show you exactly where it landed.</p>
 
-<h2 id="meet-the-hc-sr501">Meet the HC-SR501</h2>
+<h2 id="dns-is-nsswitch">DNS resolution: it's nsswitch, not resolv.conf</h2>
 
-<p>The HC-SR501 has a couple of features worth knowing before you build, because they catch out almost everyone the first time.</p>
+<p>This is the single most widespread misconception in all of Linux networking, so it is worth slowing down for. When a program resolves a name like <code>example.com</code>, it does not "do DNS" directly. It calls <code>getaddrinfo()</code>, and the <em>first</em> thing that function consults is the <code>hosts:</code> line in <code>/etc/nsswitch.conf</code>, which lists the <strong>sources to try, in order</strong>:</p>
 
-<h3>The warm-up period</h3>
-
-<p>When you first power up a PIR, it needs roughly <strong>30 to 60 seconds to settle</strong>. During this warm-up it calibrates itself to the room's background infrared and may fire falsely. This is completely normal. The polite thing to do is keep your alarm "disarmed" for the first minute — and our program will do exactly that.</p>
-
-<h3>The two orange potentiometers</h3>
-
-<p>On the board, next to the pins, you will usually find two small orange dials you can turn with a tiny screwdriver. These are <strong>potentiometers</strong> ("pots" for short) — adjustable resistors.</p>
+<pre class="code"><code># /etc/nsswitch.conf
+hosts: files mdns4_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] dns
+#      &larr; /etc/hosts     &larr; mDNS (.local)               &larr; systemd-resolved   &larr; classic DNS</code></pre>
 
 <ul>
-  <li><strong>Sensitivity</strong> — how far away motion is detected (roughly 3 to 7 metres). Turn it down if the alarm triggers from across the whole room when you only want the doorway.</li>
-  <li><strong>Time delay</strong> — how long OUT stays HIGH after motion before it resets (from a couple of seconds up to several minutes). For testing, turn this fully <em>anticlockwise</em> to its shortest setting so the sensor resets quickly and you are not waiting around.</li>
+  <li><code>files</code> &rarr; <code>/etc/hosts</code>. This is checked <em>first</em>, which is precisely why a line in <code>/etc/hosts</code> can <strong>override</strong> whatever DNS would say.</li>
+  <li><code>mdns4_minimal</code> &rarr; multicast DNS, the magic that lets <code>raspberrypi.local</code> resolve on your LAN with no DNS server at all.</li>
+  <li>Only the final <code>dns</code> backend reads <code>/etc/resolv.conf</code> for its list of nameservers.</li>
+  <li>On systemd-resolved systems, the <code>resolve</code> backend queries a local stub listening at <strong><code>127.0.0.53</code></strong>, and <code>/etc/resolv.conf</code> is often just a symlink to a file that stub generates.</li>
 </ul>
 
-<div class="note"><strong>Note:</strong> Many HC-SR501 boards also have a tiny jumper that selects "repeat trigger" vs "single trigger" mode. For an alarm, leave it on <strong>repeat trigger</strong> (often marked <code>H</code>) so continued movement keeps OUT held HIGH. gpiozero copes with either, but repeat mode behaves more naturally for an alarm.</div>
+<div class="note"><strong>Note:</strong> The classic confusion — "I put the right nameserver in <code>/etc/resolv.conf</code> but resolution still does something weird" — is almost never <code>resolv.conf</code>'s fault. It is usually nsswitch ordering, a stale <code>/etc/hosts</code> entry winning before DNS ever runs, or the systemd-resolved stub at <code>127.0.0.53</code> in the middle. Chase the order, not the file.</div>
 
-<h2 id="parts-and-wiring">Parts &amp; Wiring</h2>
+<pre class="code"><code>dig example.com A           # query one specific record type
+dig +trace example.com      # walk the chain yourself: root &rarr; TLD &rarr; authoritative
+resolvectl status           # what systemd-resolved is actually doing (per-link servers, DNSSEC)
+getent hosts example.com    # resolve THE WAY APPS DO &mdash; through nsswitch, not just DNS</code></pre>
 
-<h3>What you need</h3>
-<ul>
-  <li>A Raspberry Pi 5 running Raspberry Pi OS Bookworm</li>
-  <li>1 × PIR motion sensor (HC-SR501 — salvaged or new)</li>
-  <li>1 × LED (any colour — red suits an alarm), salvaged or new</li>
-  <li>1 × 330 Ω resistor (orange-orange-brown-gold) for the LED</li>
-  <li>1 × active buzzer (the kind that just needs on/off — salvaged from a toy is ideal)</li>
-  <li>1 × breadboard</li>
-  <li>Female-to-male jumper wires (about 7) and a couple of male-to-male wires</li>
-</ul>
+<p>That last one is the tell: <code>dig</code> talks straight to a DNS server, but <code>getent hosts</code> goes through the exact same nsswitch path your applications use — so when <code>dig</code> and <code>getent</code> disagree, you have just proved the difference matters.</p>
 
-<div class="jargon"><strong>In plain words:</strong> An <strong>active buzzer</strong> has its own tone-generating circuit inside, so you only have to switch it on and off — perfect for gpiozero's <code>Buzzer</code> object. (A <em>passive</em> buzzer needs you to feed it a tone; that is a different object, <code>TonalBuzzer</code>.) A small buzzer draws little enough current to drive straight from a GPIO pin. A real loudspeaker would not — that needs a transistor — but a buzzer is fine.</div>
+<h2 id="how-ssh-really-works">How SSH actually works</h2>
 
-<div class="warn"><strong>Careful:</strong> <strong>Power off and unplug your Pi before wiring anything.</strong> Shut down from the desktop (Raspberry Pi menu → Shutdown), wait for the green light to go out, then remove the power lead. Only reconnect power once you have checked every connection. Wiring a live header is the most common way to damage a GPIO pin.</div>
+<p>You SSH into your Pi all the time, but the part most people never picture is the <strong>asymmetry</strong> — there are two completely separate identity checks happening, in two directions. Four steps:</p>
 
-<h3>The key safety fact: no divider needed</h3>
-
-<p>Here is the single most important electronics point in this chapter. The HC-SR501's <strong>OUT pin already outputs 3.3 V logic</strong> when it detects motion, even though the sensor is <em>powered</em> from 5 V. That means OUT is safe to connect <strong>directly</strong> to a GPIO pin.</p>
-
-<p>Contrast this with the HC-SR04 ultrasonic sensor from Chapter 28, whose ECHO pin outputs a full <strong>5 V</strong> that <em>would</em> damage a 3.3 V GPIO — so that one needs a resistor voltage divider. The PIR does not. Two sensors, both powered from 5 V, but only one needs protection on its signal pin. Knowing the difference is exactly the kind of judgement that keeps your Pi alive.</p>
-
-<div class="warn"><strong>Careful:</strong> Power the PIR from <strong>5 V</strong> (its VCC needs 5 V to work), but never let that 5 V touch a GPIO pin directly. Only the <strong>OUT</strong> pin — which is already 3.3 V — goes to a GPIO. Double-check you have VCC on 5 V and OUT on the GPIO, and not the other way round.</div>
-
-<h3>Wiring diagram</h3>
-
-<figure class="fig">
-<svg viewBox="0 0 620 440" xmlns="http://www.w3.org/2000/svg">
-  <rect width="620" height="440" fill="#f3f0ff" rx="12"/>
-  <text x="310" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Motion Alarm — Wiring Diagram</text>
-
-  <!-- Legend -->
-  <rect x="20" y="42" width="12" height="12" fill="#dc2626" rx="2"/>
-  <text x="36" y="52" font-family="sans-serif" font-size="11" fill="#1f2933">5 V</text>
-  <rect x="80" y="42" width="12" height="12" fill="#6d28d9" rx="2"/>
-  <text x="96" y="52" font-family="sans-serif" font-size="11" fill="#1f2933">GPIO signal</text>
-  <rect x="190" y="42" width="12" height="12" fill="#374151" rx="2"/>
-  <text x="206" y="52" font-family="sans-serif" font-size="11" fill="#1f2933">GND</text>
-  <rect x="260" y="42" width="12" height="12" fill="#f97316" rx="2"/>
-  <text x="276" y="52" font-family="sans-serif" font-size="11" fill="#1f2933">LED / buzzer drive</text>
-
-  <!-- Pi header -->
-  <rect x="20" y="70" width="96" height="320" fill="#1f2933" rx="6"/>
-  <text x="68" y="384" font-family="sans-serif" font-size="11" fill="#9ca3af" text-anchor="middle">GPIO Header</text>
-  <!-- pins -->
-  <rect x="24" y="92" width="16" height="12" fill="#dc2626" rx="2"/>
-  <text x="44" y="102" font-family="sans-serif" font-size="9.5" fill="#f3f0ff">Pin 2 (5 V)</text>
-  <rect x="24" y="120" width="16" height="12" fill="#6d28d9" rx="2"/>
-  <text x="44" y="130" font-family="sans-serif" font-size="9.5" fill="#f3f0ff">Pin 7 (GPIO 4)</text>
-  <rect x="24" y="148" width="16" height="12" fill="#374151" rx="2"/>
-  <text x="44" y="158" font-family="sans-serif" font-size="9.5" fill="#9ca3af">Pin 6 (GND)</text>
-  <rect x="24" y="200" width="16" height="12" fill="#6d28d9" rx="2"/>
-  <text x="44" y="210" font-family="sans-serif" font-size="9.5" fill="#f3f0ff">Pin 11 (GPIO 17)</text>
-  <rect x="24" y="252" width="16" height="12" fill="#6d28d9" rx="2"/>
-  <text x="44" y="262" font-family="sans-serif" font-size="9.5" fill="#f3f0ff">Pin 13 (GPIO 27)</text>
-
-  <!-- PIR module -->
-  <rect x="380" y="78" width="120" height="96" fill="#e8e4d9" stroke="#c9b89a" stroke-width="2" rx="8"/>
-  <circle cx="440" cy="118" r="26" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
-  <path d="M440 92 L440 144 M414 118 L466 118 M422 100 L458 136 M458 100 L422 136" stroke="#cbd5e1" stroke-width="1.5"/>
-  <text x="440" y="166" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">HC-SR501 PIR</text>
-  <!-- PIR pins -->
-  <rect x="392" y="174" width="10" height="14" fill="#dc2626"/>
-  <text x="397" y="200" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">VCC</text>
-  <rect x="435" y="174" width="10" height="14" fill="#6d28d9"/>
-  <text x="440" y="200" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">OUT</text>
-  <rect x="478" y="174" width="10" height="14" fill="#374151"/>
-  <text x="483" y="200" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">GND</text>
-
-  <!-- PIR wires -->
-  <!-- VCC -> 5V (red) -->
-  <line x1="40" y1="98" x2="200" y2="98" stroke="#dc2626" stroke-width="3"/>
-  <line x1="200" y1="98" x2="200" y2="220" stroke="#dc2626" stroke-width="3"/>
-  <line x1="200" y1="220" x2="397" y2="220" stroke="#dc2626" stroke-width="3"/>
-  <line x1="397" y1="220" x2="397" y2="188" stroke="#dc2626" stroke-width="3"/>
-  <!-- OUT -> GPIO4 (purple) — NO DIVIDER -->
-  <line x1="40" y1="126" x2="320" y2="126" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="320" y1="126" x2="320" y2="240" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="320" y1="240" x2="440" y2="240" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="440" y1="240" x2="440" y2="188" stroke="#6d28d9" stroke-width="3"/>
-  <text x="330" y="120" font-family="sans-serif" font-size="10" fill="#059669" font-weight="bold">direct — no divider!</text>
-  <!-- GND PIR (grey) -->
-  <line x1="40" y1="154" x2="260" y2="154" stroke="#374151" stroke-width="3"/>
-  <line x1="260" y1="154" x2="260" y2="260" stroke="#374151" stroke-width="3"/>
-  <line x1="260" y1="260" x2="483" y2="260" stroke="#374151" stroke-width="3"/>
-  <line x1="483" y1="260" x2="483" y2="188" stroke="#374151" stroke-width="3"/>
-
-  <!-- LED -->
-  <line x1="40" y1="206" x2="150" y2="206" stroke="#6d28d9" stroke-width="3"/>
-  <rect x="150" y="196" width="40" height="16" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
-  <rect x="156" y="196" width="4" height="16" fill="#f97316"/>
-  <rect x="162" y="196" width="4" height="16" fill="#f97316"/>
-  <rect x="168" y="196" width="4" height="16" fill="#92400e"/>
-  <text x="170" y="190" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">330 Ω</text>
-  <line x1="190" y1="206" x2="230" y2="206" stroke="#6d28d9" stroke-width="3"/>
-  <ellipse cx="244" cy="206" rx="9" ry="11" fill="#ef4444" stroke="#1f2933" stroke-width="1.2"/>
-  <ellipse cx="270" cy="206" rx="14" ry="10" fill="#fde047" opacity="0.7"/>
-  <text x="244" y="232" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">LED (GPIO 17)</text>
-  <line x1="253" y1="206" x2="300" y2="206" stroke="#374151" stroke-width="3"/>
-  <line x1="300" y1="206" x2="300" y2="300" stroke="#374151" stroke-width="3"/>
-
-  <!-- Buzzer -->
-  <line x1="40" y1="258" x2="150" y2="258" stroke="#6d28d9" stroke-width="3"/>
-  <circle cx="172" cy="300" r="22" fill="#374151" stroke="#1f2933" stroke-width="2"/>
-  <circle cx="172" cy="300" r="5" fill="#9ca3af"/>
-  <line x1="150" y1="258" x2="150" y2="290" stroke="#6d28d9" stroke-width="3"/>
-  <line x1="150" y1="290" x2="160" y2="290" stroke="#6d28d9" stroke-width="3"/>
-  <text x="172" y="336" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">Buzzer (GPIO 27)</text>
-  <line x1="184" y1="290" x2="300" y2="290" stroke="#374151" stroke-width="3"/>
-
-  <!-- shared GND rail to header -->
-  <line x1="300" y1="300" x2="300" y2="330" stroke="#374151" stroke-width="3"/>
-  <line x1="300" y1="330" x2="32" y2="330" stroke="#374151" stroke-width="3"/>
-  <line x1="32" y1="330" x2="32" y2="160" stroke="#374151" stroke-width="3"/>
-  <text x="310" y="350" font-family="sans-serif" font-size="10" fill="#374151">LED − and buzzer − share a GND rail back to a GND pin</text>
-
-  <text x="310" y="416" font-family="sans-serif" font-size="12" fill="#dc2626" text-anchor="middle" font-weight="bold">PIR VCC → 5 V · PIR OUT → GPIO 4 directly · everything shares GND</text>
-</svg>
-<figcaption>The motion alarm wiring. The PIR's VCC takes 5 V (red), its GND joins the common ground (grey), and its OUT goes straight to GPIO 4 (purple) with no voltage divider — because OUT is already 3.3 V. The LED (through a 330 Ω resistor) sits on GPIO 17 and the buzzer on GPIO 27.</figcaption>
-</figure>
-
-<h3>Connection table</h3>
-
-<table class="tbl">
-  <thead>
-    <tr><th>From (component)</th><th>To (Pi header)</th><th>Notes</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>PIR <strong>VCC</strong></td><td>Pin 2 (5 V)</td><td>HC-SR501 needs 5 V to run</td></tr>
-    <tr><td>PIR <strong>OUT</strong></td><td>Pin 7 (GPIO 4)</td><td><strong>Directly — no divider</strong> (OUT is already 3.3 V)</td></tr>
-    <tr><td>PIR <strong>GND</strong></td><td>Pin 6 (GND)</td><td>Shared ground</td></tr>
-    <tr><td>LED long leg (+) via 330 Ω</td><td>Pin 11 (GPIO 17)</td><td>Resistor limits current</td></tr>
-    <tr><td>LED short leg (−)</td><td>GND rail → Pin 6 (GND)</td><td>Returns to ground</td></tr>
-    <tr><td>Buzzer + terminal</td><td>Pin 13 (GPIO 27)</td><td>Active buzzer, on/off</td></tr>
-    <tr><td>Buzzer − terminal</td><td>GND rail → Pin 6 (GND)</td><td>Returns to ground</td></tr>
-  </tbody>
-</table>
-
-<h3>Step-by-step wiring</h3>
-
-<div class="warn"><strong>Careful:</strong> The Pi must be fully shut down and unplugged for every step below. Do not reconnect power until the final step.</div>
-
-<ol class="steps">
-  <li><strong>Plant the breadboard ground rail.</strong> Run a male-to-male jumper from a Pi <strong>GND</strong> pin (physical pin 6) to the breadboard's blue (−) power rail. Everything's ground will return here.</li>
-  <li><strong>Wire the LED.</strong> Push the LED into the board with its <em>long</em> leg (anode, +) and <em>short</em> leg (cathode, −) in separate rows. Connect a 330 Ω resistor from the long-leg row, then a jumper from there to <strong>GPIO 17 (pin 11)</strong>. Connect the short leg to the blue (−) rail.</li>
-  <li><strong>Wire the buzzer.</strong> An active buzzer usually has a <code>+</code> marked terminal (often the longer leg). Connect <code>+</code> to <strong>GPIO 27 (pin 13)</strong> and the other terminal to the blue (−) rail.</li>
-  <li><strong>Wire the PIR power.</strong> Connect PIR <strong>VCC</strong> to a <strong>5 V</strong> pin (physical pin 2) and PIR <strong>GND</strong> to the blue (−) rail.</li>
-  <li><strong>Wire the PIR signal — the careful one.</strong> Connect PIR <strong>OUT</strong> straight to <strong>GPIO 4 (pin 7)</strong>. No resistor, no divider. Just confirm it really is the OUT pin and not VCC.</li>
-  <li><strong>Set the pots for testing.</strong> Turn the <em>time-delay</em> pot fully anticlockwise (shortest), and the <em>sensitivity</em> pot to roughly the middle. Set the jumper to repeat-trigger (<code>H</code>) if present.</li>
-  <li><strong>Inspect everything twice.</strong> Trace each wire from end to end. Confirm VCC is on 5 V and OUT is on the GPIO — swapping them is the classic mistake.</li>
-  <li><strong>Only now reconnect power</strong> and let the Pi boot to the desktop. Remember the PIR will need its 30–60 s warm-up.</li>
+<ol>
+  <li><strong>TCP connect</strong> on port 22 (by default).</li>
+  <li><strong>Key exchange.</strong> Using something like ECDH, both sides derive a <em>shared symmetric session key</em> over the open, insecure channel — without ever transmitting that key. From this point on, all traffic is symmetrically encrypted.</li>
+  <li><strong>Host key verification.</strong> The <em>server</em> proves <em>its</em> identity using its <strong>host key</strong>, and your client checks that against <code>~/.ssh/known_hosts</code>. The famous "authenticity of host can't be established" prompt is simply <em>first contact</em> — you have never seen this Pi's host key before. A <em>changed</em>-key warning later means either the Pi was rebuilt (reflashed SD card &rarr; new host key) or someone is impersonating it.</li>
+  <li><strong>Client authentication.</strong> Now <em>you</em> prove who you are. With public-key auth, the server holds your <strong>public</strong> key in <code>~/.ssh/authorized_keys</code> and challenges you to prove you possess the matching <strong>private</strong> key — which <em>never leaves your machine</em>. Password auth is the weaker fallback.</li>
 </ol>
 
-<h2 id="building-the-alarm-step-by-step">Building the Alarm Step by Step</h2>
+<p><strong>The key insight:</strong> these are two independent proofs pointing in opposite directions. The <em>host key</em> authenticates the server to you; <em>your keypair</em> authenticates you to the server. Neither secret is ever sent across the wire. And everything fancy — local/remote/dynamic tunnels, <code>ProxyJump</code>, agent forwarding — all rides on top of that one already-established encrypted channel.</p>
 
-<p>We will build the program in layers, so each new idea lands on its own. First a bare callback alarm, then we add a logbook and a counter, then we organise it into functions, and finally we split it into a reusable module and add arm/disarm control.</p>
+<pre class="code"><code>ssh-keygen -t ed25519 -C "you@host"     # a modern key (prefer ed25519 over RSA-2048)
+ssh-copy-id pi@raspberrypi.local         # install your PUBLIC key into the Pi's authorized_keys
+ssh -L 8080:localhost:3000 pi@raspberrypi  # LOCAL forward: your :8080 &rarr; the Pi's :3000
+ssh -R 8080:localhost:3000 pi@public       # REMOTE forward: expose a NAT'd local service outward
+ssh -D 1080 pi@raspberrypi                 # DYNAMIC: a SOCKS proxy tunnelled through the Pi</code></pre>
 
-<h3>Version 1: the siren callbacks</h3>
+<div class="jargon"><strong>In plain words:</strong> An SSH tunnel quietly carries some <em>other</em> connection inside your encrypted SSH session. <code>-L</code> (local) makes a port on your laptop pop out on the far side — handy for reaching a database or a dev server running on your Pi as if it were local. <code>-R</code> (remote) does the reverse, exposing something on your side out through the server. <code>-D</code> (dynamic) turns the whole thing into a general-purpose SOCKS proxy.</div>
 
-<p>Open Thonny (Raspberry Pi menu → Programming → Thonny) and type this first version:</p>
+<h2 id="namespaces-and-veth">Network namespaces &amp; veth: container networking, the primitive</h2>
 
-<pre class="code"><code>from gpiozero import MotionSensor, LED, Buzzer
-from signal import pause
+<p>Here is the idea that makes container networking stop being mysterious. A <strong>network namespace</strong> is a private copy of the entire network stack: its own interfaces, its own routing table, its own firewall rules, its own port space. Two processes can <em>both</em> bind port 8080 with no conflict at all, as long as they live in different namespaces — because to the kernel they are on different networks entirely.</p>
 
-pir = MotionSensor(4)
-led = LED(17)
-buzzer = Buzzer(27)
+<p>But an isolated namespace with only a loopback interface can't talk to anything. To connect it to the outside world, you use a <strong>veth pair</strong> — a <em>virtual ethernet cable</em>. It always comes as two linked ends: whatever goes in one end comes out the other. You put one end inside the namespace and leave the other on the host (usually plugged into a bridge), and now the two can pass packets. That is the entire trick.</p>
 
-def sound_alarm():
-    print("INTRUDER!")
-    led.on()
-    buzzer.on()
+<pre class="code"><code>sudo ip netns add ns1
+sudo ip netns exec ns1 ip addr        # inside ns1: only loopback &mdash; a totally isolated stack
+# create a veth pair, move one end into ns1, give both ends IPs, and the two can ping each other
+nsenter -t &lt;pid&gt; -n ss -tlnp          # run ss INSIDE a running container's netns, from the host</code></pre>
 
-def stop_alarm():
-    print("All clear.")
-    led.off()
-    buzzer.off()
+<p>This is the <em>exact</em> mechanism Docker and Podman use under the hood — when you run a container on your Pi, it gets a namespace and a veth pair stitched to a host bridge, and nothing more magical than that. You will assemble it by hand in the next chapter on containers, but the project below lets you wire two namespaces together today with zero containers involved.</p>
 
-pir.when_motion = sound_alarm
-pir.when_no_motion = stop_alarm
+<h2 id="nftables-firewall">Firewalling with nftables</h2>
 
-print("Arming... (give the PIR up to a minute to settle)")
-pause()</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>from gpiozero import MotionSensor, LED, Buzzer</code>:</strong> Imports all three components we need in one line: the PIR, the LED, and the active buzzer.</p>
-  <p><strong>Lines 4–6 — creating the objects:</strong> One object per piece of hardware, each tied to its GPIO number. <code>Buzzer(27)</code> drives an active buzzer with simple <code>on()</code> / <code>off()</code> control.</p>
-  <p><strong>Lines 8–11 — <code>def sound_alarm():</code>:</strong> A function that <em>is</em> the alarm going off: it prints a warning, lights the LED, and switches on the buzzer. Grouping these three actions into one named function is the first step of organising code — the name says what it does.</p>
-  <p><strong>Lines 13–16 — <code>def stop_alarm():</code>:</strong> The opposite: turns the siren off when motion stops.</p>
-  <p><strong>Lines 18–19 — registering the callbacks:</strong> We hand <code>sound_alarm</code> to <code>when_motion</code> and <code>stop_alarm</code> to <code>when_no_motion</code>. No parentheses — we are pointing at the functions, not calling them.</p>
-  <p><strong>Line 22 — <code>pause()</code>:</strong> Keeps the program alive so the sensor can fire the callbacks. Save the file as <code>alarm.py</code> and run it; after the warm-up, wave a hand and the LED and buzzer should burst into life.</p>
-</div>
+<p><code>nftables</code> replaces the whole sprawling <code>iptables</code> family with one clean framework. The most useful pattern is a <strong>default-drop</strong> input policy: deny everything by default, then explicitly allow only what you need. Here is a minimal, safe host policy for a Pi:</p>
 
-<h3>Version 2: logging the time and counting events</h3>
+<pre class="code"><code># /etc/nftables.conf &mdash; default-drop input, but never lock yourself out
+table inet filter {
+  chain input {
+    type filter hook input priority 0; policy drop;
+    ct state established,related accept     # allow replies to connections WE started
+    iif "lo" accept                          # always allow loopback
+    tcp dport 22 accept                      # SSH &mdash; KEEP THIS or you lock yourself out of the Pi
+    ip protocol icmp accept                  # allow ping
+  }
+}</code></pre>
 
-<p>An alarm that forgets everything the instant it happens is not much of an alarm. Let's stamp every trigger with the time and keep a running count of how many times the alarm has fired. To get the current time we use Python's built-in <code>datetime</code> module; to count, we use a variable.</p>
+<p>Two ideas carry this whole config. First, <strong>default-drop</strong>: the <code>policy drop</code> line means anything not explicitly accepted is silently discarded — a deny-by-default posture that is the heart of a good firewall. Second, <strong>stateful filtering</strong>: the <code>ct state established,related accept</code> line uses the kernel's connection tracker so that replies to connections <em>you</em> initiated come back in automatically. Without it, a default-drop policy would block the responses to your own outbound requests, and basic things like <code>apt update</code> would hang.</p>
 
-<pre class="code"><code>from gpiozero import MotionSensor, LED, Buzzer
-from datetime import datetime
-from signal import pause
+<div class="warn"><strong>Careful — the line that matters most:</strong> <code>tcp dport 22 accept</code> is what keeps your SSH session alive. If you load a default-drop ruleset on a headless Pi <em>without</em> an SSH-allow rule, your current session dies and you cannot reconnect — you are locked out of your own Pi. Always keep the SSH rule, test new rulesets with a keyboard and screen attached (or on a spare Pi), and have a way back in before you run <code>nft -f</code>. Friendlier front-ends like <code>ufw</code> and <code>firewalld</code> generate nftables rules underneath and make this a little harder to get wrong.</div>
 
-pir = MotionSensor(4)
-led = LED(17)
-buzzer = Buzzer(27)
-
-alarm_count = 0
-
-def log(message):
-    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    line = f"[{stamp}] {message}"
-    print(line)
-    with open("alarm_log.txt", "a") as logfile:
-        logfile.write(line + "\n")
-
-def sound_alarm():
-    global alarm_count
-    alarm_count = alarm_count + 1
-    led.on()
-    buzzer.on()
-    log(f"INTRUDER! (event #{alarm_count})")
-
-def stop_alarm():
-    led.off()
-    buzzer.off()
-    log("All clear.")
-
-pir.when_motion = sound_alarm
-pir.when_no_motion = stop_alarm
-
-log("Alarm armed.")
-pause()</code></pre>
-<div class="explain">
-  <p><strong>Line 2 — <code>from datetime import datetime</code>:</strong> Imports Python's <code>datetime</code> object, which can tell us the current date and time. It is built in — nothing to install.</p>
-  <p><strong>Line 9 — <code>alarm_count = 0</code>:</strong> Creates a counter, starting at zero. Because it sits outside any function, it is a <em>module-level</em> (global) variable that all the functions can see.</p>
-  <p><strong>Lines 11–16 — <code>def log(message):</code>:</strong> A reusable helper. <code>datetime.now()</code> grabs the moment; <code>.strftime("%Y-%m-%d %H:%M:%S")</code> formats it as a tidy timestamp like <code>2026-06-23 14:09:02</code>. We build the line with an f-string, print it, and append it to a file.</p>
-  <p><strong>Line 15 — <code>with open("alarm_log.txt", "a") as logfile:</code>:</strong> Opens a file in <strong>append</strong> mode (<code>"a"</code>), so new lines are added to the end without erasing what is already there. The <code>with</code> block closes the file automatically when it finishes.</p>
-  <p><strong>Line 19 — <code>global alarm_count</code>:</strong> Tells Python that inside this function we mean the <em>module-level</em> <code>alarm_count</code>, not a brand-new local one. Without this line, <code>alarm_count = alarm_count + 1</code> would error, because Python would treat <code>alarm_count</code> as a fresh local variable that has not yet been given a value.</p>
-  <p><strong>Line 20 — <code>alarm_count = alarm_count + 1</code>:</strong> Adds one to the counter each time the alarm fires — this is <em>counting events</em>.</p>
-  <p><strong>Line 23 — <code>log(f"INTRUDER! (event #{alarm_count})")</code>:</strong> Calls our helper to print and save a timestamped, numbered alert.</p>
-</div>
-
-<div class="jargon"><strong>In plain words:</strong> A <strong>global variable</strong> is one defined at the top level of your file, outside every function. Functions can <em>read</em> it freely, but to <em>change</em> it they must first declare <code>global name</code>. This is Python's way of making sure you don't accidentally reassign an outer variable by mistake.</div>
-
-<h2 id="organising-code-into-a-module">Organising Code into a Module</h2>
-
-<p>Our file is growing. The <code>log()</code> helper is genuinely useful — we would happily reuse it in other projects. This is the moment to learn a real software habit: moving reusable code into its own <strong>module</strong>.</p>
-
-<div class="jargon"><strong>In plain words:</strong> A <strong>module</strong> is just a Python file (a <code>.py</code>) whose functions and variables you can use from <em>another</em> file with <code>import</code>. You have been importing modules all along — <code>gpiozero</code> and <code>datetime</code> are modules. Now you will write your own.</div>
-
-<p>Create a new file called <code>alarm_tools.py</code> in the same folder, containing just the reusable helpers:</p>
-
-<pre class="code"><code># alarm_tools.py — reusable helpers for our alarm projects
-from datetime import datetime
-
-LOG_FILE = "alarm_log.txt"
-
-def now_stamp():
-    """Return the current time as a tidy string."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-def log(message):
-    """Print a timestamped message and append it to the log file."""
-    line = f"[{now_stamp()}] {message}"
-    print(line)
-    with open(LOG_FILE, "a") as logfile:
-        logfile.write(line + "\n")</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — the comment:</strong> A note for human readers. Python ignores anything after <code>#</code>.</p>
-  <p><strong>Line 4 — <code>LOG_FILE = "alarm_log.txt"</code>:</strong> A constant holding the filename in one place, so we never have to retype it. Naming it in CAPITALS is a common convention for "this is a fixed setting".</p>
-  <p><strong>Lines 6–8 — <code>def now_stamp():</code>:</strong> Returns the formatted time. The triple-quoted line just below the <code>def</code> is a <strong>docstring</strong> — a short description of what the function does, which editors can show as a hint.</p>
-  <p><strong>Lines 10–15 — <code>def log(message):</code>:</strong> The same logging helper as before, now living in its own module so any program can import it.</p>
-</div>
-
-<p>Now your main alarm file becomes shorter and clearer, because it borrows <code>log</code> from the module:</p>
-
-<pre class="code"><code># alarm.py — the main program
-from gpiozero import MotionSensor, LED, Buzzer
-from signal import pause
-from alarm_tools import log
-
-pir = MotionSensor(4)
-led = LED(17)
-buzzer = Buzzer(27)
-
-alarm_count = 0
-
-def sound_alarm():
-    global alarm_count
-    alarm_count += 1
-    led.on()
-    buzzer.on()
-    log(f"INTRUDER! (event #{alarm_count})")
-
-def stop_alarm():
-    led.off()
-    buzzer.off()
-    log("All clear.")
-
-pir.when_motion = sound_alarm
-pir.when_no_motion = stop_alarm
-
-log("Alarm armed.")
-pause()</code></pre>
-<div class="explain">
-  <p><strong>Line 4 — <code>from alarm_tools import log</code>:</strong> Imports the <code>log</code> function from <em>your own</em> module, exactly the way you import from gpiozero. The only requirement is that <code>alarm_tools.py</code> sits in the same folder.</p>
-  <p><strong>Line 14 — <code>alarm_count += 1</code>:</strong> A tidy shorthand for <code>alarm_count = alarm_count + 1</code>. The <code>+=</code> operator means "add to and store back".</p>
-  <p><strong>The rest:</strong> reads almost like plain English now, because the messy timestamp-and-file detail is tucked away in the module. That is the whole point of organising code — each file does one clear job.</p>
-</div>
-
-<div class="tip"><strong>Tip:</strong> When you import your own module, Python may create a folder called <code>__pycache__</code> next to it. That is just a cache of the compiled module to make future imports faster — it is harmless and you can ignore it.</div>
-
-<h2 id="arming-and-disarming">Arming and Disarming</h2>
-
-<p>A real alarm can be switched off — otherwise you can never walk past your own sensor. We will add an <strong>armed</strong> flag: a simple <code>True</code>/<code>False</code> variable that the callbacks check before sounding. We will also use the keyboard to toggle it, and the PIR's warm-up minute will start <em>disarmed</em> automatically.</p>
-
-<p>Because we want to type commands <em>and</em> let the sensor fire callbacks in the background, this version uses an <code>input()</code> loop in the main program instead of <code>pause()</code>. The callbacks still run in the background whenever motion happens.</p>
-
-<pre class="code"><code># alarm.py — arm/disarm version
-from gpiozero import MotionSensor, LED, Buzzer
-from alarm_tools import log
-
-pir = MotionSensor(4)
-led = LED(17)
-buzzer = Buzzer(27)
-
-armed = False
-alarm_count = 0
-
-def sound_alarm():
-    global alarm_count
-    if not armed:
-        return
-    alarm_count += 1
-    led.on()
-    buzzer.on()
-    log(f"INTRUDER! (event #{alarm_count})")
-
-def stop_alarm():
-    led.off()
-    buzzer.off()
-    if armed:
-        log("Movement stopped.")
-
-pir.when_motion = sound_alarm
-pir.when_no_motion = stop_alarm
-
-print("Commands: 'arm', 'disarm', 'count', 'quit'")
-log("System started (disarmed). PIR warming up...")
-
-while True:
-    command = input("alarm&gt; ").strip().lower()
-    if command == "arm":
-        armed = True
-        log("ARMED.")
-    elif command == "disarm":
-        armed = False
-        led.off()
-        buzzer.off()
-        log("Disarmed.")
-    elif command == "count":
-        print(f"Alarm has triggered {alarm_count} time(s).")
-    elif command == "quit":
-        log("Shutting down.")
-        break
-    else:
-        print("Unknown command. Try arm / disarm / count / quit.")</code></pre>
-<div class="explain">
-  <p><strong>Line 9 — <code>armed = False</code>:</strong> A boolean flag holding the alarm's state. Starting at <code>False</code> means the system is harmlessly disarmed while the PIR warms up.</p>
-  <p><strong>Lines 14–15 — <code>if not armed: return</code>:</strong> The first thing <code>sound_alarm</code> does is check the flag. If the alarm is disarmed, <code>return</code> leaves the function immediately, so no siren and no count. This is how one variable acts as a master switch over an event callback.</p>
-  <p><strong>Line 24 — <code>if armed:</code> inside <code>stop_alarm</code>:</strong> We only bother logging "movement stopped" when the system was actually armed, to keep the log meaningful.</p>
-  <p><strong>Line 34 — <code>command = input("alarm&gt; ")...</code>:</strong> <code>input()</code> waits for you to type a line and press Enter. <code>.strip()</code> trims stray spaces and <code>.lower()</code> makes the command case-insensitive, so <code>ARM</code> and <code>arm</code> both work.</p>
-  <p><strong>Lines 35–48 — the <code>if/elif/else</code> ladder:</strong> Each branch handles one command. <code>arm</code> and <code>disarm</code> flip the flag; <code>count</code> reports the total; <code>quit</code> uses <code>break</code> to leave the <code>while</code> loop and end the program neatly.</p>
-  <p><strong>Note on the background:</strong> while you sit at the <code>input()</code> prompt, gpiozero is still watching the sensor on a separate thread, so motion still fires <code>sound_alarm</code> — it simply does nothing unless <code>armed</code> is <code>True</code>.</p>
-</div>
-
-<div class="note"><strong>Note:</strong> Notice we did not need <code>global armed</code> inside the <code>while</code> loop, because that loop lives at the top level of the file — the same place <code>armed</code> is defined. We <em>do</em> need <code>global alarm_count</code> inside <code>sound_alarm</code>, because that assignment happens inside a function.</div>
-
-<h2 id="running-it">Running It</h2>
+<h2 id="try-it-on-your-pi">Try it on your Pi</h2>
 
 <ol class="steps">
-  <li><strong>Save both files</strong> in the same folder: <code>alarm_tools.py</code> and <code>alarm.py</code>. In Thonny, File → Save for each.</li>
-  <li><strong>Run <code>alarm.py</code></strong> with the green Run button (or press F5). The shell at the bottom shows the prompt and the start-up log line.</li>
-  <li><strong>Wait out the warm-up.</strong> Leave it disarmed for about a minute while the PIR settles. Resist the urge to wave at it yet.</li>
-  <li><strong>Arm it.</strong> Type <code>arm</code> and press Enter. Now walk into the sensor's view — the LED should light and the buzzer sound, and a timestamped <code>INTRUDER!</code> line appears.</li>
-  <li><strong>Disarm it.</strong> Type <code>disarm</code> to silence the system so you can move freely.</li>
-  <li><strong>Check the tally.</strong> Type <code>count</code> to see how many times it triggered, then <code>quit</code> to stop.</li>
-  <li><strong>Read the logbook.</strong> Open a terminal and view your records with the command below.</li>
+  <li><strong>Run a server and watch it from every angle.</strong> On your Pi, launch <code>python3 -m http.server 8000</code>. In another session, while you <code>curl localhost:8000</code> from the Pi, find the listening socket with <code>ss -tlnp</code>, map the port to the process with <code>sudo lsof -i :8000</code>, and watch the raw packets with <code>sudo tcpdump -i lo port 8000</code>. You are now seeing the same single connection from three layers at once — socket, process-and-file-descriptor, and wire.</li>
+  <li><strong>DNS resolution lab.</strong> Run <code>dig +trace example.com</code> and watch the name resolve from the root servers downward — root, then the TLD, then the authoritative server. Now add a line to <code>/etc/hosts</code> pointing some name at <code>127.0.0.1</code>, and prove with <code>getent hosts thatname</code> that your <code>/etc/hosts</code> entry beats DNS — a hands-on demonstration of nsswitch ordering. Compare <code>dig</code> (pure DNS) against <code>getent</code> (the app path) and watch them disagree.</li>
+  <li><strong>SSH key auth + hardening.</strong> Generate an <code>ed25519</code> key on your laptop, install it onto the Pi with <code>ssh-copy-id</code>, and <strong>confirm key login works before changing anything else</strong>. Then in the Pi's <code>/etc/ssh/sshd_config</code> set <code>PasswordAuthentication no</code> and <code>PermitRootLogin no</code>, restart <code>sshd</code>, and optionally add <code>fail2ban</code>. You have just turned off the weakest door while keeping your own key working.</li>
+  <li><strong>⚠️ nftables host firewall.</strong> Write the default-drop ruleset above into <code>/etc/nftables.conf</code>, keeping the <code>tcp dport 22 accept</code> line. Load it with <code>sudo nft -f /etc/nftables.conf</code>, verify with <code>sudo nft list ruleset</code>, and confirm a <em>new</em> inbound port (try the <code>python3 -m http.server 8000</code> from project 1) is now blocked from another machine while your SSH session survives. Do this with a keyboard and screen on the Pi, or on a spare Pi — a mistake here cuts SSH and there is no remote undo.</li>
 </ol>
 
-<pre class="code"><code>cat alarm_log.txt</code></pre>
-<div class="explain">
-  <p><strong><code>cat alarm_log.txt</code>:</strong> Prints the whole log file to the terminal, so you can see every timestamped event your alarm recorded. <code>cat</code> simply means "show me the contents of this file".</p>
-</div>
-
-<h2 id="troubleshooting">Troubleshooting</h2>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Symptom</th><th>Likely cause &amp; fix</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Alarm fires constantly, even with no one there</td><td>The PIR is still in its 30–60 s warm-up, or sensitivity is too high. Wait a minute; turn the sensitivity pot down. Repeat-trigger mode also holds OUT high during continued movement — that is normal.</td></tr>
-    <tr><td>Never triggers at all</td><td>Check OUT is on GPIO 4, not VCC. Confirm VCC is on a <strong>5 V</strong> pin (not 3.3 V — the HC-SR501 needs 5 V). Make sure the time-delay pot is not stuck at its longest setting.</td></tr>
-    <tr><td>Triggers, but no light or sound</td><td>LED may be backwards (swap the legs — it cannot be damaged). Check the buzzer's <code>+</code> is on GPIO 27 and the resistor is in the LED line.</td></tr>
-    <tr><td><code>ModuleNotFoundError: No module named 'alarm_tools'</code></td><td><code>alarm_tools.py</code> is not in the same folder as <code>alarm.py</code>, or has a different name. Put them side by side and re-run.</td></tr>
-    <tr><td><code>NameError: name 'alarm_count' is not defined</code> on assignment</td><td>You changed <code>alarm_count</code> inside a function without the <code>global alarm_count</code> line. Add it back.</td></tr>
-    <tr><td><code>No module named 'lgpio'</code></td><td>Install the backend: <code>sudo apt install python3-lgpio</code>, then restart Thonny.</td></tr>
-    <tr><td>Buzzer makes only a faint click, not a tone</td><td>You may have a <em>passive</em> buzzer, which needs a tone fed to it. Swap it for an active buzzer, or use gpiozero's <code>TonalBuzzer</code> instead (see Chapter 26).</td></tr>
-  </tbody>
-</table>
-
-<h2 id="make-it-your-own">Make It Your Own</h2>
-
-<p>You now have a complete, modular, event-driven alarm. Here are four ways to take it further:</p>
+<h2 id="go-deeper">Go deeper</h2>
 
 <ul>
-  <li><strong>Flash instead of glare.</strong> Replace <code>led.on()</code> with <code>led.blink()</code> in <code>sound_alarm</code> so the warning light pulses like a real alarm beacon. Remember to <code>led.off()</code> in <code>stop_alarm</code>.</li>
-  <li><strong>Add a quiet "armed" indicator.</strong> Use a second, green LED that is lit whenever <code>armed</code> is <code>True</code>, so you can tell the system's state at a glance.</li>
-  <li><strong>Count only real intrusions.</strong> Add a few seconds of "cool-down" so repeated motion within, say, five seconds counts as one event — using <code>datetime</code> to compare the time since the last trigger.</li>
-  <li><strong>Send yourself an alert.</strong> Once you are comfortable, have <code>sound_alarm</code> also write to a file your phone can read, or — in the next chapter — surface the last alarm time on a live web dashboard you can check from anywhere in the house.</li>
+  <li><a href="https://jvns.ca/">Julia Evans — networking &amp; DNS zines/blog</a> — "How DNS works," tcpdump explainers, and the friendliest networking writing anywhere.</li>
+  <li><a href="https://beej.us/guide/bgnet/">Beej's Guide to Network Programming</a> — the classic free introduction to sockets in C; the layer everything above sits on.</li>
+  <li><a href="https://wiki.archlinux.org/title/Nftables">ArchWiki — nftables</a> — accurate, current, practical reference for the firewall framework (and its neighbours for network config and dnsmasq).</li>
+  <li><a href="https://blogs.igalia.com/dpino/2016/04/10/network-namespaces/">Network namespaces tutorial (Igalia / dpino)</a> — the canonical hands-on netns + veth walkthrough.</li>
+  <li><a href="https://goteleport.com/blog/ssh-tunneling-explained/">goteleport.com — SSH tunneling explained</a> — a clear treatment of <code>-L</code> / <code>-R</code> / <code>-D</code> forwarding.</li>
 </ul>
-
-<div class="tip"><strong>Tip:</strong> The arm/disarm flag pattern you wrote here — one boolean that every callback checks first — is exactly how real software gates behaviour: feature switches, "do not disturb" modes, pause buttons. You have learned a genuinely professional idea dressed up as a fun alarm.</div>
 
 <div class="keyterms">
-<h4>Key terms</h4>
-<ul>
-  <li><strong>Event-driven programming</strong> - A style where the program waits and reacts to events (like motion) instead of running a fixed top-to-bottom list of steps.</li>
-  <li><strong>Event</strong> - Something that happens at an unpredictable time, such as motion being detected or a key being pressed.</li>
-  <li><strong>Callback</strong> - A function you hand to another object so it can call it back when an event occurs; registered by name with no parentheses (e.g. <code>pir.when_motion = sound_alarm</code>).</li>
-  <li><strong>Blocking call</strong> - A line such as <code>wait_for_motion()</code> that pauses the whole program until its condition is met.</li>
-  <li><strong>Module</strong> - A Python file whose functions and variables another file can use via <code>import</code>; you wrote your own (<code>alarm_tools.py</code>).</li>
-  <li><strong>Global variable</strong> - A variable defined at the top level of a file; to reassign it inside a function you must first declare <code>global name</code>.</li>
-  <li><strong>PIR sensor</strong> - Passive Infrared sensor; detects movement by sensing changes in the infrared (heat) glow of warm bodies.</li>
-  <li><strong>HC-SR501</strong> - The common, inexpensive PIR module with VCC/OUT/GND pins, a Fresnel lens, two adjustment pots, and a 30–60 s warm-up.</li>
-  <li><strong>Fresnel lens</strong> - The faceted white dome that splits the PIR's view into segments so movement registers more strongly.</li>
-  <li><strong>Potentiometer (pot)</strong> - An adjustable resistor; the HC-SR501 has two, for sensitivity and time delay.</li>
-  <li><strong>Active buzzer</strong> - A buzzer with its own tone circuit; you only switch it on/off, so gpiozero's <code>Buzzer</code> object drives it.</li>
-  <li><strong>Docstring</strong> - A short triple-quoted description placed just under a <code>def</code> to explain what a function does.</li>
-</ul>
-</div>
-
-<div class="summary">
-<h4>Chapter summary</h4>
-<ul>
-  <li>Event-driven programming means writing callbacks — functions that run automatically when an event happens — instead of a fixed sequence of steps.</li>
-  <li>Register a callback by name with no parentheses: <code>pir.when_motion = sound_alarm</code>. Adding parentheses runs it immediately by mistake.</li>
-  <li><code>when_motion</code> and <code>when_no_motion</code> fire on the rising and falling edges of motion; <code>wait_for_motion()</code> instead blocks until motion arrives.</li>
-  <li>The HC-SR501 PIR is powered from <strong>5 V</strong>, but its OUT pin is already <strong>3.3 V</strong>, so OUT connects <strong>directly to a GPIO with no voltage divider</strong> — unlike the HC-SR04 ultrasonic sensor, whose 5 V ECHO does need one.</li>
-  <li>The PIR needs a 30–60 s warm-up and has two pots (sensitivity and time delay) for tuning.</li>
-  <li>PIR modules are commonly salvaged from dead motion-sensor lights and alarms — but only ever open battery or low-voltage devices, never mains-powered ones.</li>
-  <li>Organising code into small named functions, then into an importable module (<code>alarm_tools.py</code>), keeps the main program short and reusable.</li>
-  <li>A <code>global</code> declaration is needed to reassign a module-level variable (like the event counter) from inside a function.</li>
-  <li>An <code>armed</code> boolean flag, checked at the top of the callback, lets the same alarm be switched on and off — the same gating pattern used throughout professional software.</li>
-</ul>
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>socket</strong> - The kernel's endpoint of a network conversation that a program reads from and writes to; demultiplexed to the right connection by the 4-tuple of source/destination IP and port.</li>
+    <li><strong>4-tuple</strong> - The <code>(src IP:port, dst IP:port)</code> address that uniquely identifies a connection, letting one server port serve thousands of clients at once.</li>
+    <li><strong>ss</strong> - The modern, faster replacement for <code>netstat</code>; <code>ss -tlnp</code> shows what is listening, on which port, owned by which process.</li>
+    <li><strong>ip (iproute2)</strong> - The maintained replacement for the deprecated <code>ifconfig</code>/<code>route</code>/<code>arp</code>; manages interfaces, addresses, routes, and the neighbour table.</li>
+    <li><strong>nsswitch.conf</strong> - The file whose <code>hosts:</code> line sets the <em>order</em> of name-resolution sources (files, mDNS, DNS); the real reason resolution behaves as it does — not <code>resolv.conf</code>.</li>
+    <li><strong>resolv.conf</strong> - The file listing DNS nameservers, read only by the <code>dns</code> backend at the end of the nsswitch order; often a symlink to systemd-resolved's generated config.</li>
+    <li><strong>SSH host key</strong> - The key with which the <em>server</em> proves its identity to your client (checked against <code>~/.ssh/known_hosts</code>); one of SSH's two independent proofs.</li>
+    <li><strong>public-key auth</strong> - How <em>you</em> prove your identity to the server: it holds your public key in <code>authorized_keys</code> and challenges you to prove you hold the matching private key, which never leaves your machine.</li>
+    <li><strong>SSH tunnel</strong> - A connection carried inside the encrypted SSH session: <code>-L</code> local forward, <code>-R</code> remote forward, <code>-D</code> dynamic SOCKS proxy.</li>
+    <li><strong>network namespace</strong> - A private copy of the whole network stack (interfaces, routes, firewall, port space); the isolation primitive containers are built on.</li>
+    <li><strong>veth pair</strong> - A virtual ethernet "cable" of two linked ends used to connect a network namespace to the host; how containers reach the outside world.</li>
+    <li><strong>nftables</strong> - The modern firewall framework replacing the iptables family; supports stateful, default-drop policies via the kernel's connection tracker (<code>ct state</code>).</li>
+  </ul>
 </div>

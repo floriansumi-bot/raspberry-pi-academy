@@ -1,0 +1,894 @@
+<p class="lead">Across the last few chapters you have salvaged a pile of dead electronics: a LEGO NXT's geared motors and encoders, a drawer phone that became a wireless camera, an ultrasonic distance sensor, a web dashboard you can open from your sofa. In this grand finale you stop building parts and start building <em>one robot</em>. It will roll on NXT legs, see through a phone's eye, think with the Pi's brain, watch ahead with an ultrasonic whisker, and obey you from a web remote in your hand &mdash; nearly all of it rescued from the e-waste pile. Along the way you will learn the Python that ties salvaged hardware into a single program: <strong>modules and imports</strong>, a simple <strong>state machine</strong>, the <strong>main control loop</strong>, and <strong>OpenCV</strong> colour tracking that turns a camera image into a steering decision.</p>
+<div class="widget-mount" data-widget="gpio"></div>
+
+
+<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+
+<p>This is the Maker Lab capstone: the lesson where every loose end ties together. You will not re-learn how to wire an H-bridge or a voltage divider &mdash; you built those already. Instead you will write the <em>software glue</em> that makes four salvaged subsystems behave as one machine: the <strong>Junkbox AI Rover</strong>.</p>
+
+<p>The finished rover has three personalities, switched from your phone: it can be <strong>driven by hand</strong> (manual), it can <strong>chase a coloured target</strong> on its own (follow), and it can <strong>wander while dodging walls</strong> (avoid). One small Python program holds all three, and a coloured marker, a web browser, or an obstacle decides what it does next.</p>
+
+<h3>Python fundamentals (named)</h3>
+<ul>
+  <li><strong>Modules &amp; imports</strong> &mdash; you will take the <code>Robot</code> class you wrote in Lesson 42, save it as its own file <code>robot.py</code>, and <code>import</code> it into every program here. Writing the hard part once and reusing it everywhere is exactly what a module is for.</li>
+  <li><strong>A simple state machine</strong> &mdash; a single variable (held in a small dictionary) remembers which mode the rover is in, and the program behaves differently in each. This is how real robots, games and appliances organise "what should I be doing right now?".</li>
+  <li><strong>The main control loop</strong> &mdash; the <code>while True:</code> heartbeat that reads the world, decides, and acts, several times a second, forever.</li>
+  <li><strong>OpenCV colour tracking</strong> &mdash; convert a camera frame to HSV, threshold a colour, find the biggest blob, and read its centre. It reinforces <strong>classes</strong> (Lesson 42) and <strong>Flask</strong> (Lesson 41).</li>
+</ul>
+
+<h3>Electronics fundamentals (named)</h3>
+<ul>
+  <li><strong>System integration</strong> &mdash; the power architecture that lets it all coexist: a separate ~9&nbsp;V motor battery, the Pi on its own supply, and one <strong>common ground</strong> tying them together. This is the single rule that makes or breaks a robot.</li>
+  <li><strong>Reusing the ultrasonic sensor</strong> &mdash; the HC-SR04 from Lesson 38, still through its 5&nbsp;V&rarr;3.3&nbsp;V divider, now used as a collision whisker that can override the brain.</li>
+  <li><strong>A wiring recap, not a re-teach</strong> &mdash; we link back to Lessons 38 and 42 for the full diagrams and only summarise the connections here.</li>
+</ul>
+
+<h3>AI / vision fundamentals (named)</h3>
+<ul>
+  <li><strong>The phone as eyes</strong> &mdash; the IP-webcam trick from Lesson 43: the phone streams its camera over Wi-Fi and the Pi reads it with OpenCV. We turn the picture into a single steering number, and we are honest about frame rate and latency on a Pi 5.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> You do not need every part to learn from this chapter. If you have no NXT motors, any cheap DC gear-motor pair works; if you have no phone to spare, the colour-tracking code still runs on a Pi Camera. We always say "your robot" rather than assume a particular kit. Where hardware is missing, the code and the ideas still teach you everything.</div>
+
+
+<h2 id="the-architecture">The Architecture</h2>
+
+<p>Before any code, picture the whole machine. Five blocks, four of them salvaged, talking to one Pi in the middle.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 660 420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="660" height="420" fill="#f3f0ff" rx="12"/>
+  <text x="330" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">The Junkbox AI Rover &mdash; system architecture</text>
+
+  <!-- Phone eyes -->
+  <rect x="30" y="70" width="110" height="80" fill="#0ea5a4" rx="10" opacity="0.9"/>
+  <text x="85" y="104" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">Phone (eyes)</text>
+  <text x="85" y="122" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">IP-webcam app</text>
+  <text x="85" y="136" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">Lesson 43</text>
+
+  <!-- Wi-Fi to Pi -->
+  <line x1="140" y1="110" x2="250" y2="150" stroke="#0ea5a4" stroke-width="3" stroke-dasharray="6,4"/>
+  <text x="185" y="120" font-family="sans-serif" font-size="10" fill="#0ea5a4" text-anchor="middle">Wi-Fi MJPEG</text>
+
+  <!-- Pi brain -->
+  <rect x="250" y="130" width="170" height="150" fill="#1f2933" rx="10"/>
+  <text x="335" y="156" font-family="sans-serif" font-size="13" fill="#f3f0ff" text-anchor="middle" font-weight="bold">Raspberry Pi 5</text>
+  <text x="335" y="178" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">OpenCV vision</text>
+  <text x="335" y="194" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">state machine</text>
+  <text x="335" y="210" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">control loop</text>
+  <text x="335" y="226" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">Flask web server</text>
+  <text x="335" y="250" font-family="sans-serif" font-size="10" fill="#6d28d9" text-anchor="middle" font-weight="bold">robot.py (Lesson 42)</text>
+
+  <!-- Ultrasonic -->
+  <rect x="30" y="250" width="110" height="70" fill="#f97316" rx="10" opacity="0.9"/>
+  <text x="85" y="278" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Ultrasonic</text>
+  <text x="85" y="294" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">HC-SR04</text>
+  <text x="85" y="308" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">Lesson 38</text>
+  <line x1="140" y1="280" x2="250" y2="240" stroke="#f97316" stroke-width="3"/>
+  <text x="195" y="270" font-family="sans-serif" font-size="9" fill="#f97316" text-anchor="middle">GPIO (via divider)</text>
+
+  <!-- H-bridge -->
+  <rect x="470" y="120" width="120" height="60" fill="#0ea5a4" rx="8"/>
+  <text x="530" y="146" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">DRV8833</text>
+  <text x="530" y="162" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">H-bridge</text>
+  <line x1="420" y1="170" x2="470" y2="155" stroke="#6d28d9" stroke-width="3"/>
+  <text x="445" y="150" font-family="sans-serif" font-size="9" fill="#6d28d9" text-anchor="middle">3.3 V logic</text>
+
+  <!-- Motors -->
+  <circle cx="510" cy="240" r="22" fill="#e2e8f0" stroke="#1f2933" stroke-width="2"/>
+  <circle cx="565" cy="240" r="22" fill="#e2e8f0" stroke="#1f2933" stroke-width="2"/>
+  <text x="537" y="285" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">NXT motors (legs)</text>
+  <text x="537" y="299" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">Lesson 42</text>
+  <line x1="530" y1="180" x2="520" y2="218" stroke="#1f2933" stroke-width="3"/>
+  <line x1="555" y1="180" x2="560" y2="218" stroke="#1f2933" stroke-width="3"/>
+
+  <!-- Motor battery -->
+  <rect x="470" y="320" width="120" height="46" fill="#dc2626" rx="6"/>
+  <text x="530" y="340" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">6&times;AA &asymp; 9 V</text>
+  <text x="530" y="356" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">separate motor pack</text>
+  <line x1="530" y1="320" x2="530" y2="182" stroke="#dc2626" stroke-width="3"/>
+
+  <!-- Browser remote -->
+  <rect x="250" y="320" width="170" height="70" fill="#ffffff" rx="10" stroke="#6d28d9" stroke-width="2"/>
+  <text x="335" y="346" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle" font-weight="bold">Phone / laptop browser</text>
+  <text x="335" y="362" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">web remote (Lesson 41)</text>
+  <text x="335" y="378" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">buttons + mode switch + video</text>
+  <line x1="335" y1="320" x2="335" y2="282" stroke="#6d28d9" stroke-width="3" stroke-dasharray="6,4"/>
+  <text x="400" y="305" font-family="sans-serif" font-size="9" fill="#6d28d9" text-anchor="middle">HTTP both ways</text>
+
+  <!-- common ground note -->
+  <text x="330" y="412" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle" font-weight="bold">One common ground joins the Pi, the DRV8833 and the motor battery.</text>
+</svg>
+<figcaption>Five blocks around one brain. The phone streams video over Wi-Fi; the ultrasonic and the H-bridge wire to the Pi's GPIO; the motors run from their own battery through the driver; a browser drives the rover over HTTP. The Pi runs the vision, the state machine and the Flask server in one program.</figcaption>
+</figure>
+
+<p>Notice how little is new. The Pi sends the same 3.3&nbsp;V logic to the DRV8833 as in Lesson 42; the ultrasonic uses the same divider as Lesson 38; the camera arrives exactly as in Lesson 43; the web server is the Flask shape from Lesson 41. Your job is the wiring <em>between programs</em>, not the wiring between pins.</p>
+
+<h3>Bill of salvaged materials</h3>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Part</th><th>What it really is</th><th>Salvaged in&hellip;</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Two drive motors + chassis</td><td>9&nbsp;V DC gear-motors with encoders, on a Technic frame</td><td>Lesson 42 (NXT)</td></tr>
+    <tr><td>DRV8833 H-bridge</td><td>A dual motor driver fed by 3.3&nbsp;V logic</td><td>Lesson 42</td></tr>
+    <tr><td>Old phone</td><td>A whole working camera streaming over Wi-Fi</td><td>Lesson 43</td></tr>
+    <tr><td>HC-SR04 ultrasonic</td><td>A distance sensor (ECHO via a divider)</td><td>Lesson 38</td></tr>
+    <tr><td>6&times;AA battery pack</td><td>A separate ~9&nbsp;V supply for the motors only</td><td>any spare holder</td></tr>
+    <tr><td>The web remote</td><td>A Flask + HTML/CSS/JS control pad</td><td>Lesson 41</td></tr>
+    <tr><td>Raspberry Pi 5</td><td>The brain that runs all the software</td><td>your bench</td></tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> Mount the Pi and the breadboard <em>on the chassis</em>, not trailing on wires beside it. A robot that drags its own brain across the floor pulls its jumper wires loose mid-drive &mdash; the commonest cause of a rover that suddenly goes dead.</div>
+
+
+<h2 id="recap-how-the-parts-connect">Recap: How the Parts Connect</h2>
+
+<p>Here is the whole rover's wiring in one table. Every row is something you have wired before in another lesson, so this is a checklist rather than a tutorial. Follow the linked lessons for the full diagrams and the why behind each connection.</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>From</th><th>To</th><th>Notes (full detail in&hellip;)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Pi GPIO 20 / 21</td><td>DRV8833 AIN1 / AIN2</td><td>Left motor inputs, 3.3&nbsp;V logic &mdash; Lesson 42</td></tr>
+    <tr><td>Pi GPIO 19 / 26</td><td>DRV8833 BIN1 / BIN2</td><td>Right motor inputs &mdash; Lesson 42</td></tr>
+    <tr><td>Left motor White / Black</td><td>DRV8833 AOUT1 / AOUT2</td><td>High-current pair, <strong>never to the Pi</strong></td></tr>
+    <tr><td>Right motor White / Black</td><td>DRV8833 BOUT1 / BOUT2</td><td>High-current pair</td></tr>
+    <tr><td>6&times;AA pack +</td><td>DRV8833 VM</td><td>Separate ~9&nbsp;V motor supply &mdash; Lesson 42</td></tr>
+    <tr><td>HC-SR04 TRIG</td><td>Pi GPIO 23</td><td>3.3&nbsp;V out is fine, no divider &mdash; Lesson 38</td></tr>
+    <tr><td>HC-SR04 ECHO</td><td>Pi GPIO 24 <strong>via 330&nbsp;&Omega;/470&nbsp;&Omega; divider</strong></td><td>5&nbsp;V ECHO must be dropped to ~2.9&nbsp;V &mdash; Lesson 38</td></tr>
+    <tr><td>HC-SR04 VCC</td><td>Pi 5&nbsp;V</td><td>The sensor is a 5&nbsp;V part</td></tr>
+    <tr><td>Battery &minus;, DRV8833 GND, Pi GND, HC-SR04 GND</td><td>One common ground rail</td><td>The shared 0&nbsp;V reference &mdash; the most important wire</td></tr>
+  </tbody>
+</table>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>common ground</strong> is a single 0&nbsp;V wire that every board shares. The Pi's 3.3&nbsp;V "HIGH" only means anything to the driver if both agree on where 0&nbsp;V is. Two batteries with no shared ground are like two people measuring height from different floors &mdash; their numbers cannot be compared.</div>
+
+<div class="warn"><strong>Careful &mdash; the power rules that protect your Pi:</strong>
+<ul>
+  <li><strong>Wheels off the ground for the first tests.</strong> Prop the chassis on a mug or box so the wheels spin freely in the air. A bug in a follow loop can otherwise drive the rover off a table.</li>
+  <li><strong>Separate motor battery.</strong> Motors run from their own ~9&nbsp;V pack at the driver's VM &mdash; never from the Pi's 5&nbsp;V pin. The Pi cannot spare the amps, and motor noise can crash it.</li>
+  <li><strong>Common ground.</strong> Join the battery &minus;, the driver GND, the sensor GND and the Pi GND at one rail.</li>
+  <li><strong>Never feed motor voltage into the Pi.</strong> The motors' white/black power wires touch only the driver outputs, never a GPIO or power pin. A 9&nbsp;V spike or a stalled motor's current would destroy the SoC.</li>
+  <li><strong>Level-shift the ECHO line.</strong> The HC-SR04's ECHO outputs 5&nbsp;V; it reaches GPIO 24 only through its 330&nbsp;&Omega;/470&nbsp;&Omega; divider.</li>
+  <li><strong>Power off to rewire.</strong> Shut down and unplug the Pi before changing wiring; re-power only after a full check.</li>
+</ul></div>
+
+
+<h2 id="step-1-the-drive-base-as-a-module">Step 1 &mdash; The Drive Base as a Module</h2>
+
+<p>The first job is to make Lesson 42's <code>Robot</code> class reusable from any program. The trick is the simplest, most useful idea in Python: put it in its own file (a <strong>module</strong>) and <code>import</code> it.</p>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>module</strong> is just a Python file you import into another. When you write <code>from robot import Robot</code>, Python finds <code>robot.py</code> beside your program and hands you the <code>Robot</code> class from inside it. You write the messy motor code once; every other file gets it for free.</div>
+
+<p>If you still have <code>robot.py</code> from Lesson 42, you are done &mdash; reuse it unchanged. If not, save exactly this as <code>robot.py</code> in your project folder. It is the same class you built before.</p>
+
+<pre class="code"><code># robot.py  --  the drive base from Lesson 42, as an importable module
+from gpiozero import Motor
+
+
+class Robot:
+    """Two salvaged motors wired to a DRV8833, wrapped as one robot."""
+
+    def __init__(self, left_pins, right_pins, speed=0.6):
+        self.left = Motor(forward=left_pins[0], backward=left_pins[1])
+        self.right = Motor(forward=right_pins[0], backward=right_pins[1])
+        self.speed = speed
+
+    def forward(self, speed=None):
+        s = speed if speed is not None else self.speed
+        self.left.forward(s)
+        self.right.forward(s)
+
+    def backward(self, speed=None):
+        s = speed if speed is not None else self.speed
+        self.left.backward(s)
+        self.right.backward(s)
+
+    def turn_left(self, speed=None):
+        s = speed if speed is not None else self.speed
+        self.left.backward(s)
+        self.right.forward(s)
+
+    def turn_right(self, speed=None):
+        s = speed if speed is not None else self.speed
+        self.left.forward(s)
+        self.right.backward(s)
+
+    def stop(self):
+        self.left.stop()
+        self.right.stop()</code></pre>
+<div class="explain">
+  <p><strong>Line 2 &mdash; <code>from gpiozero import Motor</code>:</strong> Brings in the ready-made <code>Motor</code> object that drives one two-input H-bridge channel with PWM speed control.</p>
+  <p><strong>Line 5 &mdash; <code>class Robot:</code>:</strong> Begins our own blueprint. The triple-quoted line is a <em>docstring</em> describing it; everything indented below belongs to the class.</p>
+  <p><strong>Line 8 &mdash; <code>def __init__(self, left_pins, right_pins, speed=0.6):</code>:</strong> The initialiser, run automatically when you build a <code>Robot</code>. It takes a pin pair for each side, like <code>(20, 21)</code>, plus a default speed.</p>
+  <p><strong>Lines 9&ndash;10 &mdash; <code>self.left = Motor(...)</code> / <code>self.right = Motor(...)</code>:</strong> Build one <code>Motor</code> per side and store them on this robot. <code>left_pins[0]</code> is the forward pin, <code>left_pins[1]</code> the backward pin.</p>
+  <p><strong>Line 11 &mdash; <code>self.speed = speed</code>:</strong> Remembers the default speed so the methods can fall back to it.</p>
+  <p><strong>Lines 13&ndash;16 &mdash; <code>forward</code>:</strong> The one-line <code>if</code> picks the speed (the one you passed, or the stored default), then drives both wheels forward so the robot rolls straight.</p>
+  <p><strong>Lines 18&ndash;21 &mdash; <code>backward</code>:</strong> The mirror image &mdash; both wheels reverse.</p>
+  <p><strong>Lines 23&ndash;26 &mdash; <code>turn_left</code>:</strong> Spins on the spot to the left by running the left wheel backward and the right wheel forward.</p>
+  <p><strong>Lines 28&ndash;31 &mdash; <code>turn_right</code>:</strong> The opposite &mdash; left forward, right backward.</p>
+  <p><strong>Lines 33&ndash;35 &mdash; <code>stop</code>:</strong> Stops both motors. We will call this whenever anything ends, so the robot never runs off.</p>
+</div>
+
+<p>Now a tiny program that <em>uses</em> the module to prove the drive base. Save it as <code>test_drive.py</code> in the same folder, with the wheels propped up.</p>
+
+<pre class="code"><code># test_drive.py  --  a quick shake-down using the imported module
+from robot import Robot
+from time import sleep
+
+robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
+
+print("Forward...")
+robot.forward(0.5)
+sleep(1.5)
+
+print("Turn right...")
+robot.turn_right(0.5)
+sleep(0.7)
+
+print("Forward again...")
+robot.forward(0.5)
+sleep(1.5)
+
+robot.stop()
+print("Done.")</code></pre>
+<div class="explain">
+  <p><strong>Line 2 &mdash; <code>from robot import Robot</code>:</strong> The whole point of Step 1. Python loads <code>robot.py</code> and gives us the <code>Robot</code> class. This program never mentions a single GPIO pin's wiring &mdash; the module hides it.</p>
+  <p><strong>Line 5 &mdash; <code>robot = Robot(left_pins=(20, 21), right_pins=(19, 26))</code>:</strong> Builds one robot with our pin choices from the recap table. Naming the arguments keeps the two sides from getting muddled.</p>
+  <p><strong>Lines 7&ndash;9 &mdash; forward:</strong> Drive both wheels forward at half speed for 1.5&nbsp;seconds. Half speed is gentle enough to watch.</p>
+  <p><strong>Lines 11&ndash;13 &mdash; turn:</strong> Spin right for 0.7&nbsp;seconds, then check the wheels turn the way you expect.</p>
+  <p><strong>Lines 15&ndash;19 &mdash; finish:</strong> Drive forward again, then <code>stop()</code>. Always end a robot program with a stop so the motors cannot keep running.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> If a wheel spins the wrong way, you have two easy fixes (both from Lesson 42): swap that motor's white and black wires at the driver output, or swap its <code>forward=</code> and <code>backward=</code> pins where you build the <code>Robot</code>. Pick one.</div>
+
+<div class="tip"><strong>Tip:</strong> Keep every file of this project in <em>one folder</em>. Python's <code>import</code> looks for <code>robot.py</code> beside the program that imports it, so a stray file in another folder will give a confusing <code>ModuleNotFoundError: No module named 'robot'</code>.</div>
+
+
+<h2 id="step-2-give-it-eyes">Step 2 &mdash; Give It Eyes</h2>
+
+<p>Now the camera. In Lesson 43 you turned an old phone into a Wi-Fi camera by running an IP-webcam app (IP&nbsp;Webcam, DroidCam or Iriun) and reading its stream with OpenCV. We reuse that exactly &mdash; the phone is the rover's eye, mounted facing forward on the chassis.</p>
+
+<p>OpenCV is not preinstalled on Bookworm, and the PEP&nbsp;668 rule blocks a plain <code>pip install</code>. Install it inside a virtual environment, the same habit as Flask in Lesson 41:</p>
+
+<pre class="code"><code>python3 -m venv ~/rover
+source ~/rover/bin/activate
+pip install opencv-python flask</code></pre>
+<div class="explain">
+  <p><strong>Line 1 &mdash; <code>python3 -m venv ~/rover</code>:</strong> Creates a private Python environment in a folder called <code>rover</code> in your home folder, isolated from the system Python.</p>
+  <p><strong>Line 2 &mdash; <code>source ~/rover/bin/activate</code>:</strong> Switches your terminal into it; the prompt gains a <code>(rover)</code> prefix. Now <code>pip</code> installs here, not into the protected system Python.</p>
+  <p><strong>Line 3 &mdash; <code>pip install opencv-python flask</code>:</strong> Installs both libraries we need for the rover at once &mdash; OpenCV for vision and Flask for the web remote &mdash; with no PEP&nbsp;668 error. (As a system-wide alternative, <code>sudo apt install python3-opencv python3-flask</code> also works.)</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> gpiozero lives in the <em>system</em> Python, not your venv. So either create the venv with <code>python3 -m venv --system-site-packages ~/rover</code> so it can still see gpiozero, or install it into the venv with <code>pip install gpiozero lgpio</code>. Without one of these, <code>from gpiozero import Motor</code> will fail with <code>ModuleNotFoundError</code> once the venv is active.</div>
+
+<p>Here is a robust frame-grabber. It opens the phone stream once, then loops, and &mdash; crucially for a moving robot &mdash; it survives dropped frames instead of crashing. Save it as <code>eyes_test.py</code>.</p>
+
+<pre class="code"><code># eyes_test.py  --  read the phone's Wi-Fi camera with OpenCV
+import cv2
+
+PHONE_URL = "http://PHONE-IP:8080/video"   # the address the app shows
+cap = cv2.VideoCapture(PHONE_URL)
+
+if not cap.isOpened():
+    print("Could not open the stream. Is the phone app running?")
+    raise SystemExit
+
+print("Streaming. Press q in the window to quit.")
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        print("Dropped a frame - retrying...")
+        continue                # don't crash; just try the next frame
+    cv2.imshow("Rover eyes", frame)
+    if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+        break
+
+cap.release()
+cv2.destroyAllWindows()</code></pre>
+<div class="explain">
+  <p><strong>Line 2 &mdash; <code>import cv2</code>:</strong> Imports OpenCV. The module is called <code>cv2</code> for historical reasons; it does all the heavy video and image work.</p>
+  <p><strong>Line 4 &mdash; <code>PHONE_URL = "http://PHONE-IP:8080/video"</code>:</strong> The phone's MJPEG stream. Replace <code>PHONE-IP</code> with the address the app displays (for example <code>192.168.1.42</code>); the IP&nbsp;Webcam app serves video at the <code>/video</code> path on port 8080.</p>
+  <p><strong>Line 5 &mdash; <code>cap = cv2.VideoCapture(PHONE_URL)</code>:</strong> Opens the stream. Passing an HTTP URL instead of a camera number is all it takes &mdash; OpenCV reads the MJPEG frames as if they were a video file.</p>
+  <p><strong>Lines 7&ndash;9 &mdash; <code>if not cap.isOpened()</code>:</strong> Checks the stream actually opened. If the app is not running or the IP is wrong, we say so clearly and exit rather than loop on nothing.</p>
+  <p><strong>Line 13 &mdash; <code>ret, frame = cap.read()</code>:</strong> Grabs the next frame. <code>ret</code> is True/False (did a frame arrive?) and <code>frame</code> is the image, a grid of pixels.</p>
+  <p><strong>Lines 14&ndash;16 &mdash; <code>if not ret: ... continue</code>:</strong> The robust bit. Wi-Fi cameras drop the odd frame; rather than <code>break</code> out and stop, we print a note and <code>continue</code> to the next loop pass. A rover whose eyes blink should not fall over.</p>
+  <p><strong>Line 17 &mdash; <code>cv2.imshow("Rover eyes", frame)</code>:</strong> Shows the frame in a window so you can confirm the camera is aimed correctly. On a headless rover you would skip this.</p>
+  <p><strong>Line 18 &mdash; <code>cv2.waitKey(1) &amp; 0xFF == ord("q")</code>:</strong> Waits 1&nbsp;ms for a key; pressing <kbd>q</kbd> breaks the loop. The wait also lets the window redraw.</p>
+  <p><strong>Lines 21&ndash;22 &mdash; tidy up:</strong> Release the stream and close the window. Always release the capture when you finish.</p>
+</div>
+
+<div class="note"><strong>Be honest about speed.</strong> Reading an MJPEG stream over Wi-Fi and decoding each frame costs time. On a Pi 5 expect roughly <strong>10&ndash;20 frames per second</strong> at 640&times;480, with a little latency &mdash; the picture you act on is a fraction of a second old. That is plenty for a gentle follower, but it is why we keep drive speeds low so the rover does not overshoot between decisions.</div>
+
+<div class="warn"><strong>Careful:</strong> Android often stops the camera when the screen <strong>locks or the app is backgrounded</strong>, and usually only <strong>one</strong> program can read the stream at a time. Keep the app in the foreground with the screen awake (ideally on charge), and remember the phone and Pi must be on the <strong>same Wi-Fi network</strong>.</div>
+
+
+<h2 id="step-3-see-a-target">Step 3 &mdash; See a Target (Colour Tracking)</h2>
+
+<p>A frame is just a grid of colours. To <em>follow</em> something we need one number: where, left to right, is our target? The simplest, most beginner-friendly way to get it is <strong>colour tracking</strong> &mdash; pick a bright marker (a ball, a sticky note, a painted lid), and find the biggest patch of that colour in the frame.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>HSV</strong> (Hue, Saturation, Value) is a way of describing colour that splits "what colour" (hue) from "how bright" (value). It is far easier to threshold than the usual red/green/blue, because a single hue range catches a colour across shadows and highlights. OpenCV converts to it in one call.</div>
+
+<p>The pipeline has four steps: convert the frame to HSV, make a black-and-white <strong>mask</strong> of just our colour, find the largest blob (<strong>contour</strong>) in that mask, and compute its centre and size.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 660 260" xmlns="http://www.w3.org/2000/svg">
+  <rect width="660" height="260" fill="#f3f0ff" rx="12"/>
+  <text x="330" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">The vision pipeline: frame &rarr; mask &rarr; centroid &rarr; steering error</text>
+
+  <!-- frame -->
+  <rect x="30" y="70" width="120" height="100" fill="#cbd5e1" rx="6" stroke="#1f2933"/>
+  <circle cx="105" cy="120" r="20" fill="#059669"/>
+  <text x="90" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">1. Frame (HSV)</text>
+  <text x="90" y="204" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">a green marker, off-centre</text>
+
+  <line x1="155" y1="120" x2="195" y2="120" stroke="#6d28d9" stroke-width="3"/>
+  <polygon points="195,120 184,114 184,126" fill="#6d28d9"/>
+
+  <!-- mask -->
+  <rect x="200" y="70" width="120" height="100" fill="#1f2933" rx="6"/>
+  <circle cx="275" cy="120" r="20" fill="#ffffff"/>
+  <text x="260" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">2. Mask (inRange)</text>
+  <text x="260" y="204" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">white = our colour</text>
+
+  <line x1="325" y1="120" x2="365" y2="120" stroke="#6d28d9" stroke-width="3"/>
+  <polygon points="365,120 354,114 354,126" fill="#6d28d9"/>
+
+  <!-- centroid -->
+  <rect x="370" y="70" width="120" height="100" fill="#1f2933" rx="6"/>
+  <circle cx="445" cy="120" r="20" fill="#475569"/>
+  <line x1="445" y1="90" x2="445" y2="150" stroke="#f97316" stroke-width="2"/>
+  <line x1="415" y1="120" x2="475" y2="120" stroke="#f97316" stroke-width="2"/>
+  <circle cx="445" cy="120" r="4" fill="#f97316"/>
+  <text x="430" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">3. Centroid (cx)</text>
+  <text x="430" y="204" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">biggest blob's centre</text>
+
+  <line x1="495" y1="120" x2="535" y2="120" stroke="#6d28d9" stroke-width="3"/>
+  <polygon points="535,120 524,114 524,126" fill="#6d28d9"/>
+
+  <!-- steering -->
+  <rect x="540" y="70" width="100" height="100" fill="#fde68a" rx="6" stroke="#ca8a04"/>
+  <line x1="590" y1="80" x2="590" y2="160" stroke="#1f2933" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="590" y="100" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">centre</text>
+  <circle cx="565" cy="125" r="6" fill="#059669"/>
+  <text x="590" y="138" font-family="sans-serif" font-size="9" fill="#dc2626" text-anchor="middle">error =</text>
+  <text x="590" y="150" font-family="sans-serif" font-size="9" fill="#dc2626" text-anchor="middle">cx &minus; centre</text>
+  <text x="590" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">4. Steering error</text>
+  <text x="590" y="204" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">negative = turn left</text>
+
+  <text x="330" y="240" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">One picture becomes one number: how far the target sits from the middle.</text>
+</svg>
+<figcaption>Four stages turn a colourful picture into a single steering number. Threshold the hue into a mask, find the largest white blob, take its centre x, and subtract the frame's middle. The sign of that error tells the rover which way to turn.</figcaption>
+</figure>
+
+<p>Save this as <code>vision.py</code>. It is a module too: it exposes one function, <code>find_target(frame)</code>, that the control loop and the web server will both call.</p>
+
+<pre class="code"><code># vision.py  --  find a coloured target in a frame, return its centre and size
+import cv2
+import numpy as np
+
+# HSV range for a bright GREEN marker. Tune these for your colour/lighting.
+LOWER = np.array([40, 80, 80])
+UPPER = np.array([85, 255, 255])
+MIN_AREA = 500          # ignore blobs smaller than this (noise)
+
+
+def find_target(frame):
+    """Return (cx, area) of the largest matching blob, or (None, 0)."""
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, LOWER, UPPER)
+
+    contours, _ = cv2.findContours(
+        mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None, 0
+
+    biggest = max(contours, key=cv2.contourArea)
+    area = cv2.contourArea(biggest)
+    if area &lt; MIN_AREA:
+        return None, 0
+
+    M = cv2.moments(biggest)
+    cx = int(M["m10"] / M["m00"])
+    return cx, area</code></pre>
+<div class="explain">
+  <p><strong>Lines 2&ndash;3 &mdash; imports:</strong> OpenCV for the vision, and <code>numpy</code> (imported as <code>np</code>) for the colour-bound arrays OpenCV expects.</p>
+  <p><strong>Lines 6&ndash;7 &mdash; <code>LOWER</code> / <code>UPPER</code>:</strong> The HSV range that counts as "our colour". These values catch bright green; the three numbers are hue, saturation and value. You will tune them for your marker and room (see the tip below).</p>
+  <p><strong>Line 8 &mdash; <code>MIN_AREA = 500</code>:</strong> A noise floor. Stray speckles of the right colour make tiny blobs; ignoring anything smaller than 500 pixels stops the rover chasing dust.</p>
+  <p><strong>Line 13 &mdash; <code>hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)</code>:</strong> Converts the frame from OpenCV's default BGR to HSV, the colour space that is easy to threshold.</p>
+  <p><strong>Line 14 &mdash; <code>mask = cv2.inRange(hsv, LOWER, UPPER)</code>:</strong> Builds the black-and-white mask: every pixel inside the colour range becomes white (255), everything else black (0).</p>
+  <p><strong>Lines 16&ndash;17 &mdash; <code>cv2.findContours(...)</code>:</strong> Traces the outlines of the white regions. <code>RETR_EXTERNAL</code> keeps only outer outlines (we do not care about holes); <code>CHAIN_APPROX_SIMPLE</code> stores each outline compactly. It returns a list of contours.</p>
+  <p><strong>Lines 18&ndash;19 &mdash; nothing found:</strong> If the list is empty, the colour is not in view, so return <code>(None, 0)</code> to mean "no target".</p>
+  <p><strong>Line 21 &mdash; <code>biggest = max(contours, key=cv2.contourArea)</code>:</strong> Picks the largest blob by area &mdash; almost always our marker rather than a stray fleck.</p>
+  <p><strong>Lines 22&ndash;24 &mdash; area gate:</strong> Measure the blob's area; if it is below <code>MIN_AREA</code> it is noise, so again return "no target".</p>
+  <p><strong>Line 26 &mdash; <code>M = cv2.moments(biggest)</code>:</strong> Computes the blob's <em>moments</em> &mdash; weighted pixel sums that describe its shape. <code>m00</code> is its area; <code>m10</code> is the sum of x-positions.</p>
+  <p><strong>Line 27 &mdash; <code>cx = int(M["m10"] / M["m00"])</code>:</strong> Divides those to get the horizontal centre of mass &mdash; the centroid's x in pixels. This single number is what we steer by.</p>
+  <p><strong>Line 28 &mdash; <code>return cx, area</code>:</strong> Hand back the centre and the size. The control loop uses <code>cx</code> for steering left/right and <code>area</code> for how close the target is (a bigger blob is nearer).</p>
+</div>
+
+<div class="tip"><strong>Tip &mdash; tuning the colour:</strong> Hues in OpenCV run 0&ndash;179 (not 0&ndash;359). Rough starting hues: red wraps around 0/179, green &asymp;&nbsp;40&ndash;85, blue &asymp;&nbsp;100&ndash;130. The quickest way to tune is to print the HSV value at the centre of your marker (<code>print(hsv[120, 160])</code> on a 320&times;240 frame) and set <code>LOWER</code>/<code>UPPER</code> a little either side of it. Bright, saturated colours track far more reliably than pale ones.</div>
+
+<div class="note"><strong>The upgrade path.</strong> Colour tracking is wonderfully simple but it only knows "that colour", not "that <em>thing</em>". To follow a person or a specific object regardless of colour, swap <code>find_target</code> for the TensorFlow Lite or IMX500 object detection you met in Lessons 19 and 42: it returns labelled boxes, and you steer by a box's centre exactly the same way. The control loop below does not change &mdash; only the function that produces <code>cx</code> does. That is the payoff of hiding vision behind one tidy function.</div>
+
+
+<h2 id="step-4-the-follow-behaviour">Step 4 &mdash; The Follow Behaviour and the State Machine</h2>
+
+<p>Now we make the rover act. The follow behaviour is a tiny piece of logic: turn toward the target if it is off to one side, drive forward if it is centred, and stop if there is no target. We map the centroid's horizontal offset to a turn, and the blob's area to forward/back.</p>
+
+<p>But a good rover is not <em>only</em> a follower. We want to switch between driving it by hand, letting it chase the marker, and letting it wander while dodging walls. That is a job for a <strong>state machine</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>state machine</strong> is a program that is always in exactly one <em>state</em> (here: <code>manual</code>, <code>follow</code>, or <code>avoid</code>) and behaves differently in each. An event &mdash; a button press, a too-close wall &mdash; can move it to another state. Holding the current state in one variable keeps "what should I be doing?" in a single, easy-to-read place.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 660 300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="660" height="300" fill="#f3f0ff" rx="12"/>
+  <text x="330" y="30" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">The rover's state machine: manual &middot; follow &middot; avoid</text>
+
+  <!-- manual -->
+  <rect x="60" y="120" width="130" height="70" rx="35" fill="#6d28d9"/>
+  <text x="125" y="150" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">MANUAL</text>
+  <text x="125" y="170" font-family="sans-serif" font-size="9" fill="#ddd6fe" text-anchor="middle">web buttons drive</text>
+
+  <!-- follow -->
+  <rect x="265" y="40" width="130" height="70" rx="35" fill="#059669"/>
+  <text x="330" y="70" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">FOLLOW</text>
+  <text x="330" y="90" font-family="sans-serif" font-size="9" fill="#d1fae5" text-anchor="middle">chase the colour</text>
+
+  <!-- avoid -->
+  <rect x="265" y="200" width="130" height="70" rx="35" fill="#f97316"/>
+  <text x="330" y="230" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">AVOID</text>
+  <text x="330" y="250" font-family="sans-serif" font-size="9" fill="#ffedd5" text-anchor="middle">wander, dodge walls</text>
+
+  <!-- transitions: manual <-> follow -->
+  <line x1="190" y1="140" x2="265" y2="85" stroke="#1f2933" stroke-width="2"/>
+  <polygon points="265,85 253,86 259,96" fill="#1f2933"/>
+  <line x1="265" y1="100" x2="190" y2="155" stroke="#1f2933" stroke-width="2"/>
+  <polygon points="190,155 202,154 196,144" fill="#1f2933"/>
+  <text x="220" y="110" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">mode switch</text>
+
+  <!-- manual <-> avoid -->
+  <line x1="190" y1="170" x2="265" y2="225" stroke="#1f2933" stroke-width="2"/>
+  <polygon points="265,225 253,224 259,234" fill="#1f2933"/>
+  <text x="220" y="210" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">mode switch</text>
+
+  <!-- safety override -->
+  <path d="M395 75 Q 470 140 395 235" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="5,3"/>
+  <polygon points="395,235 404,227 392,225" fill="#dc2626"/>
+  <text x="500" y="155" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">obstacle too close</text>
+  <text x="500" y="170" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">&rarr; STOP, override</text>
+
+  <text x="330" y="292" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">In every state, the ultrasonic whisker can force a stop &mdash; a reflex that beats the brain.</text>
+</svg>
+<figcaption>Three states, switched from the web remote. Whatever the state, the ultrasonic acts as a reflex: if a wall is too close, the rover stops first and thinks afterwards. A physical reflex that overrides the software is what keeps an autonomous robot safe.</figcaption>
+</figure>
+
+<p>Here is the brain. Save it as <code>brain.py</code>. It imports the drive base and the vision module, adds the ultrasonic, holds the current mode in a dictionary, and runs the main control loop. The Flask remote (next step) will flip <code>STATE["mode"]</code> from your phone.</p>
+
+<pre class="code"><code># brain.py  --  the main control loop and state machine
+import cv2
+from gpiozero import DistanceSensor
+from robot import Robot
+from vision import find_target
+
+robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
+# ECHO via a 330 Ohm / 470 Ohm divider; TRIG direct (Lesson 38)
+sonar = DistanceSensor(echo=24, trigger=23, max_distance=2)
+
+PHONE_URL = "http://PHONE-IP:8080/video"
+cap = cv2.VideoCapture(PHONE_URL)
+
+FRAME_W = 320
+CENTRE_X = FRAME_W // 2
+DEAD_ZONE = 40          # pixels either side of centre we call "centred"
+NEAR_AREA = 20000       # blob this big means the target is close enough
+STOP_CM = 20            # stop if anything is closer than this
+
+# The whole state of the rover lives in one dictionary.
+STATE = {"mode": "manual"}
+
+
+def too_close():
+    """True if the ultrasonic sees an obstacle within STOP_CM."""
+    return sonar.distance * 100 &lt; STOP_CM
+
+
+def do_follow(frame):
+    """Steer toward the coloured target, or wait if none is seen."""
+    small = cv2.resize(frame, (FRAME_W, 240))
+    cx, area = find_target(small)
+    if cx is None:
+        robot.stop()                 # nothing to follow - wait
+        return
+    offset = cx - CENTRE_X
+    if offset &lt; -DEAD_ZONE:
+        robot.turn_left(0.4)         # target is to the left
+    elif offset &gt; DEAD_ZONE:
+        robot.turn_right(0.4)        # target is to the right
+    elif area &lt; NEAR_AREA:
+        robot.forward(0.4)           # centred but far - approach
+    else:
+        robot.stop()                 # centred and close enough
+
+
+def do_avoid():
+    """Wander forward, turning away when a wall gets close."""
+    if too_close():
+        robot.turn_right(0.5)        # spin away from the obstacle
+    else:
+        robot.forward(0.4)
+
+
+print("Rover running. Ctrl+C to stop.")
+try:
+    while True:
+        # SAFETY REFLEX: in any mode, a close wall stops the wheels first.
+        if STATE["mode"] != "manual" and too_close():
+            robot.stop()
+
+        if STATE["mode"] == "follow":
+            ret, frame = cap.read()
+            if ret and not too_close():
+                do_follow(frame)
+        elif STATE["mode"] == "avoid":
+            do_avoid()
+        # in "manual" the loop does nothing; the web routes drive directly
+except KeyboardInterrupt:
+    robot.stop()
+    print("\nStopped.")</code></pre>
+<div class="explain">
+  <p><strong>Lines 2&ndash;5 &mdash; imports:</strong> OpenCV for frames, gpiozero's <code>DistanceSensor</code> for the ultrasonic, and our own two modules &mdash; <code>Robot</code> from <code>robot.py</code> and <code>find_target</code> from <code>vision.py</code>. The whole rover is assembled from imports.</p>
+  <p><strong>Line 7 &mdash; <code>robot = Robot(...)</code>:</strong> Builds the drive base on the recap-table pins.</p>
+  <p><strong>Line 9 &mdash; <code>sonar = DistanceSensor(echo=24, trigger=23, max_distance=2)</code>:</strong> The HC-SR04 from Lesson 38, ECHO still through its divider. <code>max_distance=2</code> lets it report up to two metres; <code>.distance</code> returns metres.</p>
+  <p><strong>Lines 11&ndash;12 &mdash; the camera:</strong> Open the phone stream once, before the loop, so we are not re-opening it every pass.</p>
+  <p><strong>Lines 14&ndash;18 &mdash; the tuning numbers:</strong> The frame width and its middle column; a <code>DEAD_ZONE</code> tolerance so the rover does not twitch when the target is roughly centred; <code>NEAR_AREA</code>, the blob size that means "close enough, stop approaching"; and <code>STOP_CM</code>, the collision distance.</p>
+  <p><strong>Line 21 &mdash; <code>STATE = {"mode": "manual"}</code>:</strong> The state machine in one line. A dictionary holds the current mode; everything else reads it. Starting in <code>manual</code> means the rover never bolts the instant it powers on.</p>
+  <p><strong>Lines 24&ndash;26 &mdash; <code>too_close()</code>:</strong> A small helper that turns the ultrasonic's metres into centimetres and answers a yes/no: is anything within <code>STOP_CM</code>? Naming it makes the loop read like English.</p>
+  <p><strong>Lines 29&ndash;33 &mdash; resize and detect:</strong> Shrink the frame to a fixed 320&times;240 (smaller frames are faster and keep <code>CENTRE_X</code> consistent), then ask <code>find_target</code> for the marker's centre and size.</p>
+  <p><strong>Lines 34&ndash;36 &mdash; no target:</strong> If <code>find_target</code> returned <code>None</code>, stop and wait. A follower that charges off when it loses sight of its target is a runaway.</p>
+  <p><strong>Line 37 &mdash; <code>offset = cx - CENTRE_X</code>:</strong> How far left (negative) or right (positive) of centre the target is &mdash; the whole steering decision in one number.</p>
+  <p><strong>Lines 38&ndash;45 &mdash; the follow logic:</strong> Well to the left &rarr; turn left; well to the right &rarr; turn right; centred but the blob is still small (far away) &rarr; drive forward; centred and the blob is big (close) &rarr; stop. Steering to push <code>offset</code> toward zero keeps the target in front.</p>
+  <p><strong>Lines 48&ndash;53 &mdash; <code>do_avoid()</code>:</strong> The wander behaviour. If the whisker sees a wall, spin away; otherwise roll gently forward. Crude but effective &mdash; the same idea as a robot vacuum.</p>
+  <p><strong>Line 58 &mdash; <code>while True:</code>:</strong> The main control loop &mdash; the rover's heartbeat. Each pass reads the world and acts, several times a second, forever.</p>
+  <p><strong>Lines 60&ndash;61 &mdash; the safety reflex:</strong> Before any clever behaviour, in any automatic mode, a close wall stops the wheels. This runs first on purpose: the reflex beats the brain.</p>
+  <p><strong>Lines 63&ndash;69 &mdash; dispatch on state:</strong> The state machine in action. In <code>follow</code> we grab a frame and steer (unless a wall is close); in <code>avoid</code> we wander; in <code>manual</code> the loop does nothing, because the web routes drive the robot directly. One variable, three behaviours.</p>
+  <p><strong>Lines 70&ndash;72 &mdash; clean stop:</strong> Ctrl+C stops the motors so the rover never keeps rolling after the program ends.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> As written, <code>brain.py</code> is the standalone autonomous program. In the next step we fold this same loop into the Flask app so the web remote and the autonomous brain run together &mdash; the loop in a background thread, the web routes flipping <code>STATE["mode"]</code> and driving in manual mode.</div>
+
+
+<h2 id="step-5-a-web-remote">Step 5 &mdash; A Web Remote</h2>
+
+<p>Finally, the controller. We reuse the Flask shape from Lesson 41: routes on the Pi, a styled page in the browser, and JavaScript wiring buttons to those routes. The new routes simply call your <code>Robot</code> and flip the mode. We will also add an optional live video feed.</p>
+
+<h3>The Flask server (Python)</h3>
+
+<p>Save this as <code>app.py</code>. It runs the control loop in a background thread so the rover keeps thinking while the web server answers requests. Manual-drive routes command the robot directly; the mode route switches the state machine.</p>
+
+<pre class="code"><code># app.py  --  PYTHON: the web remote + the background brain
+from flask import Flask, jsonify, render_template, Response
+from threading import Thread
+import cv2
+from gpiozero import DistanceSensor
+from robot import Robot
+from vision import find_target
+
+app = Flask(__name__)
+
+robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
+sonar = DistanceSensor(echo=24, trigger=23, max_distance=2)
+cap = cv2.VideoCapture("http://PHONE-IP:8080/video")
+
+STATE = {"mode": "manual"}
+CENTRE_X, DEAD_ZONE, NEAR_AREA, STOP_CM = 160, 40, 20000, 20
+latest = {"frame": None}      # newest frame, shared with the video feed
+
+
+def too_close():
+    return sonar.distance * 100 &lt; STOP_CM
+
+
+def control_loop():
+    """The brain, run forever in a background thread."""
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            continue
+        latest["frame"] = frame
+        if STATE["mode"] != "manual" and too_close():
+            robot.stop()
+            continue
+        if STATE["mode"] == "follow":
+            cx, area = find_target(cv2.resize(frame, (320, 240)))
+            if cx is None:
+                robot.stop()
+            elif cx - CENTRE_X &lt; -DEAD_ZONE:
+                robot.turn_left(0.4)
+            elif cx - CENTRE_X &gt; DEAD_ZONE:
+                robot.turn_right(0.4)
+            elif area &lt; NEAR_AREA:
+                robot.forward(0.4)
+            else:
+                robot.stop()
+        elif STATE["mode"] == "avoid":
+            robot.forward(0.4)
+
+
+@app.route("/")
+def index():
+    return render_template("remote.html")
+
+
+@app.route("/forward")
+def go_forward():
+    STATE["mode"] = "manual"
+    robot.forward()
+    return jsonify(ok=True)
+
+
+@app.route("/left")
+def go_left():
+    STATE["mode"] = "manual"
+    robot.turn_left()
+    return jsonify(ok=True)
+
+
+@app.route("/right")
+def go_right():
+    STATE["mode"] = "manual"
+    robot.turn_right()
+    return jsonify(ok=True)
+
+
+@app.route("/stop")
+def go_stop():
+    STATE["mode"] = "manual"
+    robot.stop()
+    return jsonify(ok=True)
+
+
+@app.route("/mode/&lt;name&gt;")
+def set_mode(name):
+    if name in ("manual", "follow", "avoid"):
+        STATE["mode"] = name
+        if name == "manual":
+            robot.stop()
+    return jsonify(mode=STATE["mode"])
+
+
+def mjpeg():
+    """Yield the latest frame over and over as an MJPEG stream."""
+    while True:
+        frame = latest["frame"]
+        if frame is None:
+            continue
+        ok, buf = cv2.imencode(".jpg", frame)
+        if not ok:
+            continue
+        yield (b"--frame\r\n"
+               b"Content-Type: image/jpeg\r\n\r\n" + buf.tobytes() + b"\r\n")
+
+
+@app.route("/video_feed")
+def video_feed():
+    return Response(mjpeg(),
+        mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+if __name__ == "__main__":
+    Thread(target=control_loop, daemon=True).start()
+    app.run(host="0.0.0.0", port=5000)</code></pre>
+<div class="explain">
+  <p><strong>Lines 2&ndash;7 &mdash; imports:</strong> Flask's tools (including <code>Response</code> for the video stream and <code>Thread</code> for the background brain), OpenCV, the ultrasonic, and our <code>robot.py</code> and <code>vision.py</code> modules.</p>
+  <p><strong>Lines 11&ndash;13 &mdash; the hardware:</strong> Build the drive base, the ultrasonic and the camera once, when the app starts.</p>
+  <p><strong>Lines 15&ndash;17 &mdash; shared state:</strong> The mode dictionary, the tuning numbers on one line, and <code>latest</code>, a tiny store holding the newest frame so the video feed and the brain can share it.</p>
+  <p><strong>Lines 24&ndash;47 &mdash; <code>control_loop()</code>:</strong> The same brain as <code>brain.py</code>, here as a function. It reads a frame, saves it to <code>latest</code>, applies the safety reflex, then dispatches on the mode. Run in a thread, it loops forever alongside the web server.</p>
+  <p><strong>Lines 50&ndash;52 &mdash; <code>/</code> route:</strong> Serves the control-pad page from <code>templates/remote.html</code>.</p>
+  <p><strong>Lines 55&ndash;81 &mdash; the drive routes:</strong> <code>/forward</code>, <code>/left</code>, <code>/right</code> and <code>/stop</code> each switch to <code>manual</code> (so the brain stops fighting you) and command the <code>Robot</code> directly, then reply with a small JSON acknowledgement.</p>
+  <p><strong>Lines 84&ndash;90 &mdash; <code>/mode/&lt;name&gt;</code>:</strong> One route handles all three modes using a URL variable. It checks the name is valid, flips <code>STATE["mode"]</code>, and stops the wheels when returning to manual. This is how the page's mode switch talks to the state machine.</p>
+  <p><strong>Lines 93&ndash;103 &mdash; <code>mjpeg()</code>:</strong> A <em>generator</em> that yields frames forever. <code>cv2.imencode(".jpg", frame)</code> compresses each frame to JPEG bytes; the <code>yield</code> wraps it in the multipart boundary markers a browser expects. This is the standard Flask MJPEG pattern.</p>
+  <p><strong>Lines 106&ndash;109 &mdash; <code>/video_feed</code>:</strong> Returns the generator as a <code>Response</code> with the mimetype <code>multipart/x-mixed-replace; boundary=frame</code> &mdash; the magic that makes the browser replace the image with each new frame, so an ordinary <code>&lt;img&gt;</code> shows live video.</p>
+  <p><strong>Lines 112&ndash;114 &mdash; start-up:</strong> Launch the control loop in a <code>daemon</code> thread (it dies with the program), then start Flask on <code>0.0.0.0:5000</code> so any device on your Wi-Fi can reach it.</p>
+</div>
+
+<div class="warn"><strong>Careful:</strong> the Flask development server is single-threaded by default, and the MJPEG feed holds a connection open. If the video makes the buttons feel sluggish, run with <code>app.run(host="0.0.0.0", port=5000, threaded=True)</code> so requests do not queue behind the stream. Keep this server on your home network only &mdash; it is not built to face the open internet.</div>
+
+<h3>The control pad (HTML + CSS)</h3>
+
+<p>Save this as <code>templates/remote.html</code> (create the <code>templates</code> folder beside <code>app.py</code>). It has direction buttons, a big stop, three mode buttons, and the live video. The CSS uses the house colours from Lesson 41.</p>
+
+<pre class="code"><code>&lt;!-- templates/remote.html  --  HTML: the control pad --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;Junkbox Rover Remote&lt;/title&gt;
+  &lt;style&gt;
+    /* CSS -- a phone-friendly control pad */
+    body { font-family: sans-serif; background: #f3f0ff;
+           color: #1f2933; text-align: center; margin: 0; padding: 16px; }
+    h1 { color: #6d28d9; }
+    img { width: 320px; max-width: 90%; border-radius: 12px;
+          border: 3px solid #6d28d9; }
+    button { font-size: 18px; padding: 14px 22px; margin: 6px;
+             border: none; border-radius: 10px; color: #fff;
+             background: #6d28d9; }
+    .stop { background: #dc2626; }
+    .mode { background: #059669; }
+    .row { margin: 8px; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Junkbox Rover&lt;/h1&gt;
+  &lt;img src="/video_feed" alt="live camera"&gt;
+
+  &lt;div class="row"&gt;
+    &lt;button onclick="send('/left')"&gt;&amp;#8592; Left&lt;/button&gt;
+    &lt;button onclick="send('/forward')"&gt;&amp;#8593; Forward&lt;/button&gt;
+    &lt;button onclick="send('/right')"&gt;Right &amp;#8594;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class="row"&gt;
+    &lt;button class="stop" onclick="send('/stop')"&gt;&amp;#9632; STOP&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class="row"&gt;
+    &lt;button class="mode" onclick="send('/mode/manual')"&gt;Manual&lt;/button&gt;
+    &lt;button class="mode" onclick="send('/mode/follow')"&gt;Follow&lt;/button&gt;
+    &lt;button class="mode" onclick="send('/mode/avoid')"&gt;Avoid&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;p id="status"&gt;mode: manual&lt;/p&gt;
+
+  &lt;script&gt;
+    // JavaScript -- send a button's URL to the Pi
+    function send(url) {
+      fetch(url)
+        .then(r =&gt; r.json())
+        .then(d =&gt; {
+          if (d.mode) {
+            document.getElementById("status").textContent = "mode: " + d.mode;
+          }
+        });
+    }
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<div class="explain">
+  <p><strong>The <code>&lt;head&gt;</code> and <code>&lt;style&gt;</code>:</strong> The viewport line makes the page scale on a phone; the CSS styles the buttons in the house purple, the stop button red, and the mode buttons green. The <code>img</code> rule frames the live video.</p>
+  <p><strong>Line with <code>&lt;img src="/video_feed"&gt;</code>:</strong> The whole live-video trick in one tag. Because <code>/video_feed</code> serves <code>multipart/x-mixed-replace</code>, the browser keeps swapping the image for each new frame &mdash; no JavaScript needed for the video itself.</p>
+  <p><strong>The direction buttons:</strong> Each calls <code>send()</code> with its route. <code>&amp;#8592;</code>, <code>&amp;#8593;</code> and <code>&amp;#8594;</code> are the left/up/right arrow characters; <code>&amp;#9632;</code> is the stop square.</p>
+  <p><strong>The mode buttons:</strong> Three buttons hit <code>/mode/manual</code>, <code>/mode/follow</code> and <code>/mode/avoid</code> &mdash; the URLs the single <code>set_mode</code> route answers, flipping the state machine.</p>
+  <p><strong>The <code>&lt;script&gt;</code> &mdash; <code>send(url)</code>:</strong> A small function that <code>fetch()</code>es the given route, reads the JSON reply, and &mdash; when the reply includes a <code>mode</code> &mdash; updates the status line so you can see the current mode. It is the same fetch/then pattern as the Lesson 41 dashboard, just sending commands rather than only reading data.</p>
+</div>
+
+<figure class="fig">
+<svg viewBox="0 0 360 470" xmlns="http://www.w3.org/2000/svg">
+  <rect width="360" height="470" fill="#f3f0ff" rx="12"/>
+  <rect x="70" y="20" width="220" height="430" rx="22" fill="#1f2933"/>
+  <rect x="82" y="44" width="196" height="386" rx="6" fill="#f3f0ff"/>
+  <text x="180" y="68" font-family="sans-serif" font-size="13" font-weight="bold" fill="#6d28d9" text-anchor="middle">Junkbox Rover</text>
+
+  <!-- video -->
+  <rect x="100" y="80" width="160" height="100" rx="8" fill="#475569" stroke="#6d28d9" stroke-width="2"/>
+  <circle cx="170" cy="130" r="16" fill="#059669"/>
+  <text x="180" y="172" font-family="sans-serif" font-size="8" fill="#e5e7eb" text-anchor="middle">live /video_feed</text>
+
+  <!-- direction buttons -->
+  <rect x="100" y="195" width="48" height="34" rx="8" fill="#6d28d9"/>
+  <text x="124" y="217" font-family="sans-serif" font-size="11" fill="#fff" text-anchor="middle">&#8592;</text>
+  <rect x="156" y="195" width="48" height="34" rx="8" fill="#6d28d9"/>
+  <text x="180" y="217" font-family="sans-serif" font-size="11" fill="#fff" text-anchor="middle">&#8593;</text>
+  <rect x="212" y="195" width="48" height="34" rx="8" fill="#6d28d9"/>
+  <text x="236" y="217" font-family="sans-serif" font-size="11" fill="#fff" text-anchor="middle">&#8594;</text>
+
+  <!-- stop -->
+  <rect x="130" y="240" width="100" height="38" rx="9" fill="#dc2626"/>
+  <text x="180" y="264" font-family="sans-serif" font-size="13" fill="#fff" text-anchor="middle" font-weight="bold">&#9632; STOP</text>
+
+  <!-- modes -->
+  <rect x="100" y="295" width="52" height="34" rx="8" fill="#059669"/>
+  <text x="126" y="316" font-family="sans-serif" font-size="9" fill="#fff" text-anchor="middle">Manual</text>
+  <rect x="156" y="295" width="48" height="34" rx="8" fill="#059669"/>
+  <text x="180" y="316" font-family="sans-serif" font-size="9" fill="#fff" text-anchor="middle">Follow</text>
+  <rect x="208" y="295" width="52" height="34" rx="8" fill="#059669"/>
+  <text x="234" y="316" font-family="sans-serif" font-size="9" fill="#fff" text-anchor="middle">Avoid</text>
+
+  <text x="180" y="360" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">mode: follow</text>
+  <text x="180" y="406" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">buttons fetch /forward, /mode/follow, ...</text>
+</svg>
+<figcaption>The control pad as it appears in a phone browser: a live camera feed on top, direction buttons and a big red STOP, then three mode buttons that flip the state machine. Every tap is a <code>fetch()</code> to a Flask route on the Pi.</figcaption>
+</figure>
+
+
+<h2 id="putting-it-all-together">Putting It All Together</h2>
+
+<p>Your project folder now holds five files:</p>
+
+<pre class="code"><code>rover/
+├── robot.py        # the drive base (Lesson 42)
+├── vision.py       # colour tracking (find_target)
+├── brain.py        # standalone autonomous loop (optional)
+├── app.py          # the web remote + background brain
+└── templates/
+    └── remote.html # the control pad</code></pre>
+
+<p>Bring it to life in this order, <strong>with the wheels off the ground</strong> for the first run:</p>
+
+<ol class="steps">
+  <li><strong>Start the phone camera.</strong> Open the IP-webcam app, keep it in the foreground with the screen awake, and note the address it shows. Put that address into <code>app.py</code>'s <code>VideoCapture</code> line.</li>
+  <li><strong>Power the rover.</strong> Switch on the separate ~9&nbsp;V motor pack and power up the Pi on its own supply. Confirm the common ground is connected.</li>
+  <li><strong>Activate the venv and run the server.</strong> <code>source ~/rover/bin/activate</code>, then <code>python app.py</code>. Flask prints <code>Running on http://0.0.0.0:5000</code>.</li>
+  <li><strong>Open the remote.</strong> On your phone (same Wi-Fi), visit <code>http://&lt;pi-ip&gt;:5000</code> (find the IP with <code>hostname -I</code>) or <code>http://raspberrypi.local:5000</code>. The live feed and buttons appear.</li>
+  <li><strong>Test manual first.</strong> Tap Forward, Left, Right, Stop and watch the propped-up wheels obey. This proves the drive base and the web link before any autonomy.</li>
+  <li><strong>Try follow.</strong> Tap Follow and wave your coloured marker in front of the camera. The wheels should turn to centre it and roll forward as it nears. Tune <code>LOWER</code>/<code>UPPER</code> in <code>vision.py</code> if it ignores your colour.</li>
+  <li><strong>Try avoid.</strong> Tap Avoid and hold your hand in front of the ultrasonic; the rover should spin away rather than into it.</li>
+  <li><strong>Only now, on the floor.</strong> Once every mode behaves with the wheels up, set it down in a clear, open space &mdash; never near stairs &mdash; and drive for real. STOP is always one tap away.</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> The three modes are deliberately layered. Manual proves the hardware, follow proves the vision, avoid proves the sensor &mdash; debug them in that order. If follow misbehaves, switch to manual (which stops the brain) before you go chasing the bug.</div>
+
+
+<h2 id="safety-checklist">Safety Checklist</h2>
+
+<p>Run down this list before every powered test. It takes ten seconds and saves Pis, fingers and furniture.</p>
+
+<ol class="steps">
+  <li><strong>Wheels off the ground first.</strong> Prop the chassis up for every new run of code, so a bug cannot send the rover off a table or down the stairs.</li>
+  <li><strong>Separate motor battery.</strong> The ~9&nbsp;V pack powers the motors at the driver's VM &mdash; never from the Pi's 5&nbsp;V pin.</li>
+  <li><strong>Common ground.</strong> Battery &minus;, driver GND, sensor GND and Pi GND all meet at one rail. No common ground, no working rover.</li>
+  <li><strong>Never feed motor voltage into the Pi.</strong> The motors' white/black wires touch only the driver outputs. A stalled motor's ~1&nbsp;A or its switch-off spike would destroy a GPIO pin.</li>
+  <li><strong>Level-shift the ECHO line.</strong> The HC-SR04's 5&nbsp;V ECHO reaches GPIO 24 only through its 330&nbsp;&Omega;/470&nbsp;&Omega; divider.</li>
+  <li><strong>Two kill switches.</strong> The web <strong>STOP</strong> button halts the wheels and returns to manual; <strong>Ctrl+C</strong> in the terminal ends the program (and the <code>except KeyboardInterrupt</code> stops the motors). Know where both are before you drive.</li>
+  <li><strong>Mind heat and current.</strong> If the driver chip gets hot or the motors stall against an obstacle, cut power &mdash; a stalled motor draws its full ~1&nbsp;A and heats the driver. The DRV8833 handles it briefly, but do not leave a rover pushing against a wall.</li>
+  <li><strong>Power off to rewire.</strong> Shut down and unplug the Pi before any wiring change; re-power only after a full check.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> the rover can move on its own in follow and avoid modes. Keep it away from stairs, ledges, pets and small children during testing, and keep your phone in hand with STOP ready. An autonomous robot that you cannot instantly stop is not ready to be on the floor.</div>
+
+
+<h2 id="make-it-your-own">Make It Your Own / Where to Go Next</h2>
+
+<p>You have fused four salvaged subsystems into one robot that sees, thinks, dodges and obeys &mdash; almost entirely from the e-waste pile. Here is where to take it next:</p>
+
+<ul>
+  <li><strong>Line following.</strong> Point the phone camera (or a swapped-in light sensor) at the floor and steer to keep a dark line centred &mdash; the very same "offset &rarr; turn" logic as follow mode, with no colour or AI model needed.</li>
+  <li><strong>Swap colour tracking for object detection.</strong> Replace <code>find_target</code> with the TensorFlow Lite or IMX500 detector from Lessons 19 and 42 to follow a <em>person</em> or a named object regardless of colour. The control loop never changes &mdash; only the function that produces <code>cx</code>.</li>
+  <li><strong>Voice control.</strong> Add the speech work from Lesson 19 so "follow me", "stop" or "explore" flip <code>STATE["mode"]</code> with your voice instead of a button.</li>
+  <li><strong>Simple mapping with the encoders.</strong> Read the NXT motors' built-in encoders (the <code>RotaryEncoder</code> from Lesson 42) to count how far each wheel has turned, so the rover can drive set distances or even sketch a rough map of where it has been.</li>
+  <li><strong>Go EV3.</strong> LEGO's newer EV3 motors and sensors use the same RJ12 plug and the same ideas; with the DIY wiring or a BrickPi3 you can reuse those too.</li>
+  <li><strong>Share your build.</strong> Post your code, your wiring photos and your tuned HSV values on the Raspberry Pi forums or your own blog. A junkbox rover is exactly the kind of project the community loves &mdash; and someone else's spare parts pile is waiting for your idea.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Keep <code>robot.py</code> and <code>vision.py</code> as your reusable foundation. Every extension above &mdash; line follower, voice rover, mapper &mdash; just imports them and gives new orders. That is the real lesson of modules and classes: write the hard part once, and reuse it forever.</div>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Module / import</strong> - a Python file you reuse from another with <code>from robot import Robot</code>; write the hard part once, import it everywhere.</li>
+  <li><strong>State machine</strong> - a program always in one state (<code>manual</code>/<code>follow</code>/<code>avoid</code>), held in a dictionary, that behaves differently in each and switches on events.</li>
+  <li><strong>Main control loop</strong> - the <code>while True:</code> heartbeat that reads the world, decides, and acts, several times a second.</li>
+  <li><strong>HSV colour tracking</strong> - convert a frame to HSV, <code>cv2.inRange</code> to a mask, <code>findContours</code> for the biggest blob, <code>moments</code> for its centre (<code>cx</code>).</li>
+  <li><strong>Centroid / steering error</strong> - the blob's centre x minus the frame's middle; its sign tells the rover which way to turn.</li>
+  <li><strong>VideoCapture(url)</strong> - OpenCV reading the phone's MJPEG Wi-Fi stream as if it were a video file.</li>
+  <li><strong>MJPEG / multipart/x-mixed-replace</strong> - the Flask streaming trick that lets a plain <code>&lt;img&gt;</code> show live video by replacing it frame by frame.</li>
+  <li><strong>Safety reflex</strong> - the ultrasonic stop that overrides every mode; a reflex that beats the brain.</li>
+  <li><strong>Separate battery + common ground</strong> - motors on their own ~9&nbsp;V pack, but its negative joined to the Pi's ground as one 0&nbsp;V reference.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>The capstone <strong>integrates</strong> four earlier builds into one rover, reusing their wiring and code rather than re-teaching it: NXT legs (Lesson 42), phone eyes (Lesson 43), an ultrasonic whisker (Lesson 38) and a Flask remote (Lesson 41).</li>
+  <li>Lesson 42's <code>Robot</code> class becomes an importable <strong>module</strong> (<code>robot.py</code>); every program here gets the drive base for free with <code>from robot import Robot</code>.</li>
+  <li>The phone streams its camera over Wi-Fi; OpenCV reads it with <code>cv2.VideoCapture(url)</code>, surviving dropped frames. Expect ~10&ndash;20&nbsp;fps with a little latency on a Pi 5.</li>
+  <li><strong>Colour tracking</strong> turns a frame into one steering number: HSV &rarr; <code>inRange</code> mask &rarr; largest contour &rarr; centroid <code>cx</code>; the offset from centre decides the turn. TFLite/IMX500 object detection is the drop-in upgrade.</li>
+  <li>A <strong>state machine</strong> in one dictionary holds the mode (<code>manual</code>/<code>follow</code>/<code>avoid</code>); the <strong>main control loop</strong> dispatches on it, and the <strong>ultrasonic reflex</strong> can stop the rover in any mode.</li>
+  <li>A Lesson-31-style <strong>Flask remote</strong> adds routes (<code>/forward</code>, <code>/left</code>, <code>/stop</code>, <code>/mode/&lt;name&gt;</code>) and an optional MJPEG <code>/video_feed</code>; an HTML/CSS/JS pad sends each tap as a <code>fetch()</code>.</li>
+  <li>The unbreakable wiring rules: a <strong>separate ~9&nbsp;V motor battery</strong>, a <strong>common ground</strong>, the ECHO line <strong>level-shifted</strong>, motor voltage <strong>never</strong> into the Pi, and <strong>wheels off the ground</strong> for the first tests.</li>
+</ul>
+</div>

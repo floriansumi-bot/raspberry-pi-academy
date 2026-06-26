@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch33",
+  "title": "Recycle an Old Smartphone into Pi Parts",
+  "questions": [
+    {
+      "q": "Why can't you simply plug a phone's camera module (or its AMOLED screen) into the Raspberry Pi and have it work?",
+      "choices": [
+        "The phone parts run at 5 V and the Pi runs at 3.3 V",
+        "They use proprietary MIPI connectors and need unpublished drivers, ISP tuning and matched power rails that the Pi doesn't have",
+        "The Pi's camera and display ports are output-only",
+        "Phone cameras and screens are always physically too large to fit"
+      ],
+      "answer": 1,
+      "explain": "A phone camera links over MIPI CSI-2 and the screen over MIPI DSI, but those are only link standards. Each needs its own kernel driver, ISP tuning or per-panel driver plus custom connectors and power rails, none of which phone makers publish. With no driver and no matching plug, they are a dead end on a Pi."
+    },
+    {
+      "q": "A guide says 'harvest the phone's GPU and add it to your Pi'. What's wrong with this?",
+      "choices": [
+        "It works, but only on the Pi 5, not earlier models",
+        "You need to install a special driver first",
+        "A phone has no removable GPU — it is a core fused permanently inside the SoC silicon with the CPU, so there is nothing to remove",
+        "The phone GPU is too powerful and would overheat the Pi"
+      ],
+      "answer": 2,
+      "explain": "Phones have no discrete or removable graphics card. The GPU (an ARM Mali or Qualcomm Adreno core) is fused permanently into the same piece of silicon as the CPU, inside the SoC. It cannot be unplugged, transplanted or added to anything — there is literally nothing to harvest."
+    },
+    {
+      "q": "Which is a correct lithium-ion safety rule when reusing a salvaged phone cell?",
+      "choices": [
+        "Never use a swollen, hot or deformed cell, and never puncture or bend a cell",
+        "Gently press a swollen cell to release the gas before charging it",
+        "Remove the cell's protection PCB so it charges faster",
+        "Charge it overnight on a soft surface so it stays warm"
+      ],
+      "answer": 0,
+      "explain": "A damaged or swollen cell can go into thermal runaway and catch fire. Never use a swollen, hot, hissing or deformed cell; never puncture, bend, crush or short one; never remove its protection PCB; and only charge attended on a non-flammable surface. A purpose-built UPS is the safer choice when in doubt."
+    },
+    {
+      "q": "How should you drive a salvaged vibration motor from the Pi?",
+      "choices": [
+        "Connect it straight between a GPIO pin and GND",
+        "Through an NPN transistor with a base resistor, with a flyback diode across the motor — never straight from a pin",
+        "Through a single resistor in series with the GPIO pin",
+        "Directly to the 5 V and GND header pins with no switch"
+      ],
+      "answer": 1,
+      "explain": "A motor pulls far more current than a GPIO pin can supply and kicks back a voltage spike when it switches off. Drive it via an NPN transistor (the pin controls the base through a ~470 Ohm resistor), power the motor from 5 V, and fit a flyback diode across it to absorb the spike. Never connect a motor straight to a pin."
+    },
+    {
+      "q": "What is the most practical way to use a phone's camera with a Pi project?",
+      "choices": [
+        "Desolder the camera module and wire it to the Pi's CSI port",
+        "Run an IP-webcam app on the phone and read its Wi-Fi stream with OpenCV, e.g. cv2.VideoCapture('http://PHONE-IP:8080/video')",
+        "Photograph the scene and email the pictures to the Pi",
+        "Connect the phone to the Pi with a USB-C cable and read the camera directly"
+      ],
+      "answer": 1,
+      "explain": "Leave the camera inside the working phone. An IP-webcam app streams the camera over Wi-Fi, and the Pi reads it with OpenCV in a couple of lines: cap = cv2.VideoCapture('http://PHONE-IP:8080/video'). This bypasses every proprietary-connector and missing-driver problem, and the frames can even feed the AI vision code from earlier chapters."
+    }
+  ]
+}

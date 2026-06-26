@@ -1,61 +1,36 @@
 {
   "chapterId": "ch29",
-  "title": "Plant Monitor & Data Logger",
+  "title": "Boot, PID 1, and the Service Manager",
   "questions": [
     {
-      "q": "Why can't a Raspberry Pi read a smoothly-varying analog sensor directly?",
-      "choices": [
-        "Its GPIO pins are too slow to keep up with analog signals",
-        "It has no ADC (Analogue-to-Digital Converter) — every GPIO pin is purely digital, reading only HIGH or LOW",
-        "Analog sensors need 5 V, which the Pi cannot supply",
-        "The gpiozero library refuses to read analog values"
-      ],
+      "q": "Why does Linux need an initramfs at boot instead of just mounting the real root filesystem directly?",
+      "choices": ["Because the root filesystem is encrypted and the password must be typed before the kernel loads.", "Because the kernel needs the driver for the disk and filesystem, but that driver lives on the very root filesystem it can't yet read - the initramfs carries those drivers in RAM to break the loop.", "Because the bootloader can only load files smaller than the real root filesystem.", "Because systemd refuses to start unless an initramfs has been mounted first."],
       "answer": 1,
-      "explain": "Unlike an Arduino, the Pi has no built-in ADC, so its GPIO pins can only distinguish HIGH from LOW. To read a true analog voltage you must add an external ADC such as the MCP3008, or use a sensor that gives a digital output."
+      "explain": "It's a chicken-and-egg problem: the kernel can't mount the real root until it has that disk/filesystem driver, but the driver lives on the root it can't yet read. The initramfs is a small RAM root that carries exactly those drivers, so the kernel boots it first, uses it to reach the real root, then pivots onto it."
     },
     {
-      "q": "For a Pi plant monitor, why is a capacitive soil sensor with a digital output a good choice?",
-      "choices": [
-        "It is the only sensor that works at 5 V",
-        "Its digital wet/dry output needs no ADC, and capacitive probes don't corrode in the soil",
-        "It measures temperature as well as moisture",
-        "It connects over SPI and is faster than other sensors"
-      ],
+      "q": "In systemd, what is the difference between a service and a target?",
+      "choices": ["A service is a config file and a target is a log file.", "A service runs a program (a .service unit); a target is a named synchronisation point or grouping of units (a .target unit), replacing SysV runlevels.", "A service runs only on boot, while a target runs only on a schedule.", "They are two names for the same thing - 'target' is just the older term for 'service'."],
       "answer": 1,
-      "explain": "A capacitive sensor's onboard chip gives a clean digital HIGH/LOW the Pi can read directly with no ADC, and capacitive probes avoid the corrosion that plagues current-passing resistive sensors."
+      "explain": "Both are units, but a .service runs an actual program with restart and sandboxing options, whereas a .target is a labelled checkpoint or grouping that other units depend on or are pulled in by. Targets replace the old SysV runlevels - multi-user.target is roughly runlevel 3, graphical.target roughly runlevel 5."
     },
     {
-      "q": "Which DHT22 approach actually works on a Raspberry Pi 5 running Bookworm?",
-      "choices": [
-        "The legacy Adafruit_DHT library installed with pip",
-        "The pigpio daemon (pigpiod) with its DHT helper",
-        "The current adafruit_dht library together with adafruit-blinka, catching occasional checksum errors",
-        "RPi.GPIO with a manual timing loop"
-      ],
-      "answer": 2,
-      "explain": "On the Pi 5, the archived Adafruit_DHT and the pigpio daemon both fail. The working combination is adafruit-circuitpython-dht plus a recent adafruit-blinka (which routes through lgpio), with a retry to handle the DHT22's occasional checksum RuntimeError."
+      "q": "Which set of advantages best explains why systemd replaced SysV init?",
+      "choices": ["It boots services one at a time in a guaranteed order, uses simple text logfiles, and avoids cgroups for speed.", "It starts services in parallel by declared dependencies, puts each service in its own cgroup so it can track and stop all of its processes, and unifies logging via journald.", "It is written in a faster language and uses less RAM, with no other structural differences.", "It removed shell scripting entirely and requires every service to be a compiled binary."],
+      "answer": 1,
+      "explain": "SysV ran serial shell scripts, lost track of double-forking daemons, had no resource control, and logged ad-hoc. systemd answers each: parallel dependency-driven startup, a per-service cgroup that captures every process (and enforces limits), and journald capturing each service's stdout/stderr as structured logs."
     },
     {
-      "q": "Which file mode should a data logger use so that new readings are added without erasing the existing history?",
-      "choices": [
-        "\"w\" (write)",
-        "\"a\" (append)",
-        "\"r\" (read)",
-        "\"x\" (exclusive)"
-      ],
+      "q": "Your nightly backup is scheduled for 4 a.m., but your Pi is often powered off overnight. Why does a systemd timer with Persistent=true succeed where a plain cron job fails?",
+      "choices": ["cron can't express a daily schedule, but a timer can.", "Persistent=true makes the timer remember a missed run and execute it at the next boot, whereas cron silently skips any job whose time passed while the machine was off.", "The timer keeps the Pi awake at 4 a.m. so the job always runs on time.", "cron only works on servers, not on Raspberry Pi OS."],
       "answer": 1,
-      "explain": "Mode \"w\" erases the file first, and \"r\" only reads. Append mode \"a\" adds each new row to the end of the file while keeping everything already logged — exactly what a logger needs."
+      "explain": "cron simply skips a job if the machine was off at its scheduled time - the run is lost. A timer with Persistent=true records that it missed the run and fires it at the next boot, so the backup actually happens even if 'nightly' sometimes lands the next morning. That catch-up behaviour is the key win on an often-off Pi."
     },
     {
-      "q": "After logging readings to a CSV, what is a clean way to find the warmest temperature of the day?",
-      "choices": [
-        "Open the file in \"w\" mode and overwrite it with the maximum",
-        "Read the rows back with csv.DictReader into a list of dictionaries, pull the temperatures into a list, and use max()",
-        "It is impossible once data is written to a file",
-        "Use a voltage divider to scale the readings"
-      ],
+      "q": "Where should a service you write under systemd send its log output, and why?",
+      "choices": ["To its own logfile in /var/log, because systemd cannot read program output.", "To stdout (and stderr), because journald captures a service's stdout/stderr automatically via its cgroup - so you skip logfile paths, rotation, and permissions.", "To a syslog socket you open by hand, because journald only stores kernel messages.", "Nowhere - services should stay silent so they don't fill the SD card."],
       "answer": 1,
-      "explain": "Reading the CSV back with csv.DictReader gives a list of dictionaries; a list comprehension extracts the temperature values, and Python's built-in max() (and min()) finds the extremes. This is the standard 'read data back to find min/max' pattern."
+      "explain": "Because journald grabs each service's stdout/stderr automatically through its cgroup, the simplest and best choice is to just log to stdout. The platform then handles storage, rotation, and indexing - no logfile paths, no logrotate, no file permissions to manage. This is exactly why 12-factor apps log to stdout."
     }
   ]
 }

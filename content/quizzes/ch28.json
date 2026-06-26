@@ -1,61 +1,36 @@
 {
   "chapterId": "ch28",
-  "title": "Distance Sensor & Parking Assistant",
+  "title": "A Filename Is Not the File",
   "questions": [
     {
-      "q": "Why must you put a resistor voltage divider on the HC-SR04's ECHO pin before connecting it to the Pi?",
-      "choices": [
-        "To make the sensor measure longer distances",
-        "Because ECHO outputs 5 V, which would damage the Pi's 3.3 V GPIO pin",
-        "To limit the current so the sensor doesn't burn out",
-        "Because the Pi's GPIO pins are 5 V-tolerant and need the extra voltage"
-      ],
+      "q": "What actually stores a file's name, and what does the inode hold?",
+      "choices": ["The inode stores the name along with all the metadata; the directory just lists inodes.", "The directory stores the name (mapped to an inode number); the inode holds the metadata and data-block pointers but not the name.", "Both the inode and the directory store the name, kept in sync by the kernel.", "The name is stored in the file's first data block; the inode only holds permissions."],
       "answer": 1,
-      "explain": "The HC-SR04's ECHO pin sends out a 5 V signal, but Pi 5 GPIO pins are 3.3 V only and not 5 V-tolerant. Without a divider, the 5 V can permanently destroy the pin — there is no fuse to protect it."
+      "explain": "A directory is a table mapping names to inode numbers, so the name lives in the directory entry. The inode holds everything else - owner, permissions, timestamps, size, link count, and pointers to the data blocks - but never the name. That separation is the whole lesson: the name is a pointer, the inode is the real file."
     },
     {
-      "q": "Using the divider formula Vout = Vin × R2 ÷ (R1 + R2) with R1 = 330 Ω and R2 = 470 Ω on a 5 V ECHO signal, what voltage reaches the GPIO pin?",
-      "choices": [
-        "5.00 V",
-        "3.30 V",
-        "2.94 V",
-        "1.65 V"
-      ],
-      "answer": 2,
-      "explain": "Vout = 5 × 470 ÷ (330 + 470) = 5 × 470 ÷ 800 = 2.94 V. That is safely below the 3.3 V limit yet still high enough for the Pi to read as a clear HIGH."
-    },
-    {
-      "q": "Does the HC-SR04's TRIG pin also need a voltage divider?",
-      "choices": [
-        "Yes, both TRIG and ECHO carry 5 V and need dividers",
-        "No — the Pi sends 3.3 V out to TRIG, which the sensor reads fine, so no divider is needed",
-        "Yes, because TRIG draws too much current",
-        "No, because TRIG is connected to a 5 V power pin"
-      ],
+      "q": "You hard-link a file as 'b', then move and rename the original. What happens to a hard link versus a symlink to that file?",
+      "choices": ["Both break, because the path they stored is now invalid.", "The hard link keeps working (it points at the inode); a symlink would break, because it only stored the old path string.", "The symlink keeps working; the hard link breaks because its inode number changed.", "Both keep working, because Linux automatically updates every link when a file moves."],
       "answer": 1,
-      "explain": "TRIG is an input to the sensor: the Pi drives it with 3.3 V out, which the HC-SR04 accepts happily. Only ECHO (sensor output, 5 V) endangers the Pi, so only ECHO needs the divider."
+      "explain": "A hard link is another name for the same inode, so it doesn't care where any other name goes - it works until the link count hits 0. A symlink only remembers a path string, so moving or renaming the target leaves it pointing at nothing: a dangling link."
     },
     {
-      "q": "In the line 'led = LED(17)', what are LED and led, in object-oriented terms?",
-      "choices": [
-        "LED is the object and led is the class",
-        "Both are functions that return None",
-        "LED is the class (blueprint); led is an object built from it",
-        "LED is an attribute and led is a method"
-      ],
-      "answer": 2,
-      "explain": "A class is a blueprint and an object is a real thing made from it. LED is the class; led is one specific object representing the LED on pin 17, with its own methods like led.on()."
-    },
-    {
-      "q": "What is the purpose of the 'return' keyword in a function like read_distance_cm()?",
-      "choices": [
-        "It prints the value to the screen and then forgets it",
-        "It hands a value back to the caller so it can be stored, tested, or reused",
-        "It restarts the function from the top",
-        "It deletes the function from memory"
-      ],
+      "q": "Why is 'mv bigfile newname' instant within one filesystem, but slow when moving to a USB drive?",
+      "choices": ["Within a filesystem mv compresses the file; across filesystems it can't.", "Within a filesystem mv only rewrites a directory entry (the inode never moves); across filesystems the data must actually be copied then deleted.", "USB drives are simply slower, but the same amount of work happens both times.", "Across filesystems mv has to rebuild the journal, which takes time."],
       "answer": 1,
-      "explain": "return passes a value back into the program. Unlike print(), which only displays text, a returned value can be captured in a variable, compared in an if statement, or passed to another function."
+      "explain": "A move within one filesystem just re-points a name at the same inode - editing the phone book, not moving the person - so it's instant regardless of size. A different filesystem has its own separate inode numbers, so there's no name to re-point: the data is genuinely copied across and the original removed."
+    },
+    {
+      "q": "A service's log was rm'd, but df still shows the disk nearly full while du shows little used. What's going on?",
+      "choices": ["The disk is failing and reporting wrong numbers; run fsck to repair it.", "rm only unlinked the name; the service still has the file open, so its blocks aren't freed until that process closes the file or exits.", "du is counting the file twice; the space was actually freed by rm immediately.", "The journal hasn't been flushed yet; the space returns after the next reboot."],
+      "answer": 1,
+      "explain": "rm performs an unlink: it removes the name and drops the link count, but the inode and its data are freed only when the count hits 0 AND no process holds the file open. The still-running service keeps the deleted file alive, so df (which the filesystem reports) stays high while du (which sums visible names) can't see it. lsof +L1 finds the culprit; restarting the process reclaims the space."
+    },
+    {
+      "q": "On btrfs or ZFS, why is taking a snapshot of a 50 GB volume nearly instant and nearly free?",
+      "choices": ["The snapshot is compressed down to almost nothing before being stored.", "Copy-on-write means nothing is copied up front - the snapshot just shares the existing blocks, and a fresh block is written only when one later changes.", "The snapshot is stored in RAM (tmpfs), so it takes no disk space at all.", "The filesystem only snapshots the inodes, not the data, so it's always tiny."],
+      "answer": 1,
+      "explain": "Copy-on-write means a snapshot simply marks the current blocks as shared and is essentially free at creation. Only when a block is later modified does the filesystem write a new copy of that one block, leaving the old version for the snapshot to keep referencing. Cost grows only with what you change afterward - which is why the rsync --link-dest trick fakes the same idea on plain ext4 using hard links."
     }
   ]
 }

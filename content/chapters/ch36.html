@@ -1,0 +1,574 @@
+<p class="lead">A dead toy, a binned greeting card, a stripped-out PC — each one is hiding a tiny voice you can bring back to life. In this project you will rescue a buzzer or a small speaker from the e-waste pile and teach your Raspberry Pi 5 to sing: first a clean musical scale, then a recognisable tune. Along the way you will learn three of Python's most useful ideas — <strong>dictionaries</strong>, <strong>functions</strong>, and <strong>loops</strong> — and the electronics behind sound: <strong>PWM tone generation</strong>, the difference between an <strong>active</strong> and a <strong>passive</strong> buzzer, and the all-important rule that a real speaker must <em>never</em> be wired straight to a GPIO pin.</p>
+
+<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+
+<p>By the end of this chapter your Pi will play music through a salvaged sounder. You will build the project in three stages: a single test beep, a full eight-note scale, and finally a short melody stored as data and played back by a loop.</p>
+
+<h3>The Python fundamentals</h3>
+<ul>
+  <li><strong>Dictionaries</strong> — a way to store pairs of values, like a real dictionary maps a word to its meaning. Here we map each note name (<code>"C4"</code>, <code>"D4"</code>…) to its frequency in hertz.</li>
+  <li><strong>Functions</strong> — named, reusable blocks of code. We will write a <code>play_note()</code> function once and call it many times.</li>
+  <li><strong>Loops</strong> — repeating actions without copying and pasting. A <code>for</code> loop will step through a scale and through a melody.</li>
+  <li><strong>A list of tuples</strong> — storing a melody as an ordered list where each item is a small bundle of two values: a note name and how long to hold it.</li>
+</ul>
+
+<h3>The electronics fundamentals</h3>
+<ul>
+  <li><strong>PWM and tone generation</strong> — how the Pi makes a pitch by switching a pin on and off thousands of times a second.</li>
+  <li><strong>Active vs passive buzzers</strong> — why one type only ever makes a single fixed beep, while the other can play any note.</li>
+  <li><strong>gpiozero <code>TonalBuzzer</code> and <code>Tone</code></strong> — the friendly objects that turn a note name into a sound.</li>
+  <li><strong>Driving a speaker safely</strong> — why a small loudspeaker needs an <strong>NPN transistor</strong> driver and must never be connected directly to a GPIO pin.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> Everything here runs on a Raspberry Pi 5 with Raspberry Pi OS Bookworm. The <code>gpiozero</code> library and the Thonny editor are already installed, and on the Pi 5 gpiozero quietly uses the <code>lgpio</code> backend. There is nothing to download to get started.</div>
+
+<h2 id="how-sound-actually-works">How Sound Actually Works</h2>
+
+<p>Sound is nothing more than air being pushed and pulled very quickly. If you can make something vibrate back and forth — a speaker cone, a thin metal disc — it shoves the surrounding air into waves, and your ears hear those waves as a tone. The <strong>faster</strong> the vibration, the <strong>higher</strong> the pitch.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>Frequency</strong> is how many times something vibrates per second, measured in <strong>hertz (Hz)</strong>. A vibration of 440 times a second (440 Hz) is the musical note A above middle C — the note an orchestra tunes to. Double the frequency and you go up one octave: 880 Hz is the A one octave higher.</div>
+
+<p>So to play a tune, all the Pi has to do is make a sounder vibrate at the right frequency for each note. Here are the frequencies for one octave of natural notes, which we will use throughout the chapter:</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Note</th><th>Frequency (Hz)</th><th>Where it sits</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>C4</td><td>262</td><td>Middle C</td></tr>
+    <tr><td>D4</td><td>294</td><td>One step up</td></tr>
+    <tr><td>E4</td><td>330</td><td>&nbsp;</td></tr>
+    <tr><td>F4</td><td>349</td><td>&nbsp;</td></tr>
+    <tr><td>G4</td><td>392</td><td>&nbsp;</td></tr>
+    <tr><td>A4</td><td>440</td><td>Orchestra tuning note</td></tr>
+    <tr><td>B4</td><td>494</td><td>&nbsp;</td></tr>
+    <tr><td>C5</td><td>523</td><td>One octave above middle C</td></tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> The "4" in <code>C4</code> is the octave number. Middle C is C4. The same letter one octave higher is C5, with exactly double the frequency. You do not need to memorise the numbers — that is precisely the job we will give a Python dictionary.</div>
+
+<h2 id="active-vs-passive-buzzers">Active vs Passive Buzzers</h2>
+
+<p>Before wiring anything, you need to know which kind of buzzer you have, because they behave very differently — and the code is different for each.</p>
+
+<h3>An active buzzer</h3>
+<p>An <strong>active buzzer</strong> has its own little oscillator circuit built in. Give it power and it makes a sound at one fixed pitch — that is all it can do. You cannot play a tune on it; you can only switch its single beep on and off. It is perfect for an alarm or a "ping", useless for music.</p>
+
+<h3>A passive buzzer</h3>
+<p>A <strong>passive buzzer</strong> (also called a piezo transducer) has no oscillator inside. It is silent until <em>you</em> feed it a rapidly switching signal — and the speed at which you switch it decides the pitch. Because you control the frequency, a passive buzzer can play any note, which is exactly what we want for a melody.</p>
+
+<div class="jargon"><strong>In plain words:</strong> "Active" means the buzzer is active on its own — it generates its own tone. "Passive" means it just sits there passively until your Pi drives it with a changing signal. Counter-intuitively, the <em>passive</em> one is the clever musical one.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 560 260" xmlns="http://www.w3.org/2000/svg">
+  <rect width="560" height="260" fill="#f3f0ff" rx="12"/>
+  <text x="280" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Active buzzer vs passive buzzer</text>
+
+  <!-- Active side -->
+  <rect x="30" y="50" width="230" height="180" fill="white" rx="8" stroke="#dc2626" stroke-width="1.5" opacity="0.9"/>
+  <text x="145" y="74" font-family="sans-serif" font-size="13" font-weight="bold" fill="#dc2626" text-anchor="middle">ACTIVE buzzer</text>
+  <circle cx="145" cy="120" r="30" fill="#374151" stroke="#1f2933" stroke-width="2"/>
+  <circle cx="145" cy="120" r="8" fill="#6d28d9"/>
+  <text x="145" y="172" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Oscillator built IN</text>
+  <text x="145" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Power on &rarr; one fixed beep</text>
+  <text x="145" y="212" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle" font-weight="bold">gpiozero: Buzzer()</text>
+
+  <!-- Passive side -->
+  <rect x="300" y="50" width="230" height="180" fill="white" rx="8" stroke="#059669" stroke-width="1.5" opacity="0.9"/>
+  <text x="415" y="74" font-family="sans-serif" font-size="13" font-weight="bold" fill="#059669" text-anchor="middle">PASSIVE buzzer</text>
+  <circle cx="415" cy="120" r="30" fill="#374151" stroke="#1f2933" stroke-width="2"/>
+  <circle cx="415" cy="120" r="20" fill="none" stroke="#fde047" stroke-width="2"/>
+  <text x="415" y="172" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">No oscillator inside</text>
+  <text x="415" y="190" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">YOU set the pitch &rarr; any note</text>
+  <text x="415" y="212" font-family="sans-serif" font-size="11" fill="#059669" text-anchor="middle" font-weight="bold">gpiozero: TonalBuzzer()</text>
+</svg>
+<figcaption>An active buzzer plays one fixed beep all by itself; a passive buzzer stays silent until your Pi drives it at the frequency you choose — so only the passive one can play a tune.</figcaption>
+</figure>
+
+<h3>How to tell them apart</h3>
+<ul>
+  <li><strong>By printing on the case:</strong> some are marked. Two-leg sounders are often unmarked, though.</li>
+  <li><strong>By the legs:</strong> an active buzzer usually has one longer leg (the <strong>+</strong>) and may have a sticker over the sound hole. A passive piezo disc often has two solder pads or two thin wires (red and black) with no polarity fuss.</li>
+  <li><strong>The battery test (the reliable one):</strong> briefly touch the buzzer's two legs to a 3 V coin cell (longer leg / red wire to +). If you hear a clear, steady tone, it is <strong>active</strong>. If you hear only a faint click, or nothing, it is <strong>passive</strong> — it needs a switching signal, which the battery cannot provide.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> This chapter focuses on the passive buzzer (and, later, a salvaged speaker) because those are the ones that can make music. If all you have is an active buzzer, you can still follow along with the <code>Buzzer</code> object to make rhythmic beeps — see "Make it your own" at the end.</div>
+
+<h2 id="from-the-e-waste-pile">From the E-Waste Pile</h2>
+
+<p>You almost certainly own a dead sounder already. Here is where to find one and how to harvest it safely.</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Source</th><th>What you'll find</th><th>Type</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Musical greeting card</td><td>A thin piezo disc with two wires</td><td>Passive — ideal</td></tr>
+    <tr><td>Dead toy that bleeps</td><td>A small speaker or a piezo</td><td>Either — test it</td></tr>
+    <tr><td>Old desktop PC (motherboard)</td><td>The "PC speaker" — a small piezo or buzzer</td><td>Usually passive</td></tr>
+    <tr><td>Broken radio / headphones</td><td>A small loudspeaker (8&nbsp;&Omega; coil)</td><td>Speaker — needs a transistor (see later)</td></tr>
+    <tr><td>Smoke alarm (battery type)</td><td>A loud piezo sounder</td><td>Often active</td></tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> Only ever harvest from <strong>low-voltage, battery-powered</strong> e-waste. <strong>Never open</strong> a microwave oven, a CRT (tube) TV or monitor, or any mains adapter — these can hold a <strong>lethal charge in their capacitors even when unplugged</strong>. Never cut or crush a lithium battery; it can catch fire. If a device plugs into the wall, leave its insides alone and salvage only the obviously low-voltage parts (like a clip-on speaker) after the mains section has been removed by an adult who knows what they are doing.</div>
+
+<h3>Harvesting it</h3>
+<ol class="steps">
+  <li><strong>Free the sounder.</strong> Snip the two wires close to the old circuit board, leaving as much wire on the buzzer as you can. If it is soldered to pads, a gentle pull with pliers usually frees it.</li>
+  <li><strong>Tidy the wire ends.</strong> Strip about 5 mm of insulation off each wire. If the buzzer has bare metal legs, leave them as they are.</li>
+  <li><strong>Test it</strong> with the coin-cell test above to decide active or passive.</li>
+  <li><strong>Tin or fit a header.</strong> To plug into a breadboard, solder a stiff jumper pin onto each wire, or twist each wire around a male jumper and tape it. Stiff legs push into breadboard holes more reliably than floppy wire.</li>
+</ol>
+
+<h2 id="pwm-making-a-pitch-from-a-pin">PWM: Making a Pitch from a Pin</h2>
+
+<p>A GPIO pin can only ever be in one of two states: HIGH (3.3 V) or LOW (0 V). How can two states make a smooth musical note? The trick is <strong>speed</strong>.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>PWM</strong> stands for <strong>Pulse-Width Modulation</strong>. The pin is switched on and off very fast, over and over. The number of complete on-off cycles per second is the <strong>frequency</strong>. If the pin cycles 440 times a second, the buzzer's disc is pushed and pulled 440 times a second — and you hear the note A4.</div>
+
+<p>So "playing a note" really means "switch this pin on and off at the note's frequency". To play A4 we cycle at 440 Hz; to play C5 we cycle at 523 Hz. Happily, gpiozero hides all the timing for us: we just tell it the note and it sets the right PWM frequency.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 560 220" xmlns="http://www.w3.org/2000/svg">
+  <rect width="560" height="220" fill="#f3f0ff" rx="12"/>
+  <text x="280" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">PWM: a fast on/off square wave makes the pitch</text>
+
+  <!-- low frequency wave -->
+  <text x="60" y="70" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle">Slow switching</text>
+  <text x="60" y="86" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">= low note</text>
+  <polyline points="120,100 120,60 170,60 170,100 220,100 220,60 270,60 270,100 320,100 320,60 370,60 370,100" fill="none" stroke="#6d28d9" stroke-width="3"/>
+
+  <!-- high frequency wave -->
+  <text x="60" y="160" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle">Fast switching</text>
+  <text x="60" y="176" font-family="sans-serif" font-size="11" fill="#059669" text-anchor="middle">= high note</text>
+  <polyline points="120,190 120,150 145,150 145,190 170,190 170,150 195,150 195,190 220,190 220,150 245,150 245,190 270,190 270,150 295,150 295,190 320,190 320,150 345,150 345,190 370,190 370,150 395,150 395,190" fill="none" stroke="#059669" stroke-width="3"/>
+
+  <!-- axis labels -->
+  <text x="445" y="80" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="start">HIGH = 3.3 V</text>
+  <text x="445" y="104" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="start">LOW = 0 V</text>
+  <text x="280" y="212" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">More cycles per second &rarr; higher frequency &rarr; higher pitch</text>
+</svg>
+<figcaption>A passive buzzer plays whatever pitch the Pi switches it at. Cycling the pin slowly gives a low note; cycling it fast gives a high note. PWM is just fast, regular on/off switching.</figcaption>
+</figure>
+
+<h2 id="meet-the-tonalbuzzer-object">Meet the TonalBuzzer Object</h2>
+
+<p>gpiozero gives us two ready-made objects for sounders:</p>
+<ul>
+  <li><code>Buzzer(pin)</code> — for an <strong>active</strong> buzzer. It can only do <code>on()</code>, <code>off()</code> and <code>beep()</code>.</li>
+  <li><code>TonalBuzzer(pin)</code> — for a <strong>passive</strong> buzzer. It can <code>play()</code> a <code>Tone</code> (a musical note) and <code>stop()</code>.</li>
+</ul>
+
+<p>A <code>Tone</code> is gpiozero's way of describing a pitch. Beautifully, you can create the same tone three ways — they are all equal:</p>
+
+<pre class="code"><code>from gpiozero.tones import Tone
+
+Tone("A4")    # by note name
+Tone(440.0)   # by frequency in hertz
+Tone(69)      # by MIDI number</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero.tones import Tone</code>:</strong> The <code>Tone</code> class lives in a sub-module of gpiozero called <code>tones</code>. This line fetches it so we can describe musical notes.</p>
+  <p><strong>Line 3 — <code>Tone("A4")</code>:</strong> Creates the tone for the note A4 by its musical name. This is the friendliest form and the one we will use.</p>
+  <p><strong>Line 4 — <code>Tone(440.0)</code>:</strong> The identical tone, described instead by its frequency, 440 Hz. Note the decimal point — a float — which tells gpiozero you mean hertz, not a MIDI number.</p>
+  <p><strong>Line 5 — <code>Tone(69)</code>:</strong> The same tone again, given as a plain whole number, which gpiozero reads as a MIDI note number (69 is A4). All three lines describe exactly the same pitch.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> <code>TonalBuzzer</code> plays a limited range of octaves around a middle tone (by default one octave either side of A4). The eight notes C4&ndash;C5 we are using sit comfortably inside that range.</div>
+
+<h2 id="a-tiny-first-test">A Tiny First Test</h2>
+
+<p>Before the full build, let us prove the buzzer works with the smallest possible program. Wire the passive buzzer for a quick test (full wiring comes next): one leg to <strong>GPIO 13</strong> (physical pin 33), the other leg to a <strong>GND</strong> pin. A passive buzzer is gentle enough to drive straight from a GPIO pin — unlike a speaker, which we deal with later.</p>
+
+<pre class="code"><code>from gpiozero import TonalBuzzer
+from gpiozero.tones import Tone
+from time import sleep
+
+buzzer = TonalBuzzer(13)
+buzzer.play(Tone("A4"))
+sleep(1)
+buzzer.stop()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import TonalBuzzer</code>:</strong> Imports the object for a passive buzzer.</p>
+  <p><strong>Line 2 — <code>from gpiozero.tones import Tone</code>:</strong> Imports the <code>Tone</code> class so we can name a note.</p>
+  <p><strong>Line 3 — <code>from time import sleep</code>:</strong> <code>sleep(seconds)</code> pauses the program. We use it to hold the note for a moment.</p>
+  <p><strong>Line 5 — <code>buzzer = TonalBuzzer(13)</code>:</strong> Creates a buzzer object on GPIO 13 (physical pin 33). The number 13 is the BCM/GPIO number, as always in gpiozero.</p>
+  <p><strong>Line 6 — <code>buzzer.play(Tone("A4"))</code>:</strong> Starts playing the note A4. The buzzer keeps sounding until we tell it to stop.</p>
+  <p><strong>Line 7 — <code>sleep(1)</code>:</strong> Waits one second while the note sounds.</p>
+  <p><strong>Line 8 — <code>buzzer.stop()</code>:</strong> Silences the buzzer. Always stop a tone when you are done, or it sounds forever.</p>
+</div>
+
+<p>Save it as <code>beep_test.py</code> in Thonny and press the green <strong>Run</strong> button. You should hear a clear one-second tone. If you do, your salvaged sounder lives — congratulations. If not, jump ahead to <em>Troubleshooting</em>.</p>
+
+<h2 id="parts-list">Parts List</h2>
+
+<ul>
+  <li>A Raspberry Pi 5 running Raspberry Pi OS Bookworm.</li>
+  <li><strong>A passive buzzer</strong> — salvaged from a greeting card, toy, or PC motherboard (see "From the e-waste pile"), or a new one from a starter kit.</li>
+  <li>2 &times; female-to-male jumper wires (to reach the GPIO header from the breadboard).</li>
+  <li>1 &times; mini breadboard.</li>
+  <li><strong>Optional, for the speaker upgrade:</strong> a small salvaged 8&nbsp;&Omega; speaker, an <strong>NPN transistor</strong> (2N2222 or BC548), a <strong>1&nbsp;k&Omega; resistor</strong> (brown-black-red-gold) for the transistor base, and a jumper to 5&nbsp;V. A <strong>1N4001 diode</strong> is a nice extra for inductive protection.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> If your kit included a small breadboard-friendly buzzer, it is most likely passive (the musical kind). Test it with the coin-cell trick to be sure.</div>
+
+<h2 id="wiring-the-passive-buzzer">Wiring the Passive Buzzer</h2>
+
+<div class="warn"><strong>Careful:</strong> <strong>Power off and unplug your Pi before wiring.</strong> Shut down from the desktop menu, wait for the green light to go out, then remove the power lead. The Pi's GPIO is <strong>3.3 V logic</strong> — never feed more than 3.3 V into a pin. A small passive buzzer draws little current and is safe to drive directly; but a <strong>real loudspeaker or any motor must never be wired straight to a GPIO pin</strong> — that comes later, through a transistor. Only re-power once your wiring is checked.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="320" fill="#f3f0ff" rx="12"/>
+  <text x="300" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Passive buzzer wiring</text>
+
+  <!-- Pi header -->
+  <rect x="20" y="60" width="92" height="190" fill="#1f2933" rx="6"/>
+  <text x="66" y="52" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
+  <rect x="24" y="100" width="16" height="12" fill="#6d28d9" rx="2"/>
+  <text x="46" y="111" font-family="sans-serif" font-size="10" fill="#f3f0ff">Pin 33 (GPIO 13)</text>
+  <rect x="24" y="150" width="16" height="12" fill="#374151" rx="2"/>
+  <text x="46" y="161" font-family="sans-serif" font-size="10" fill="#9ca3af">Pin 39 (GND)</text>
+
+  <!-- Breadboard -->
+  <rect x="200" y="70" width="260" height="170" fill="#e8e4d9" stroke="#c9b89a" stroke-width="1.5" rx="8" opacity="0.5"/>
+  <text x="330" y="252" font-family="sans-serif" font-size="11" fill="#92400e" text-anchor="middle">Breadboard</text>
+
+  <!-- Buzzer body -->
+  <circle cx="330" cy="140" r="38" fill="#374151" stroke="#1f2933" stroke-width="2"/>
+  <circle cx="330" cy="140" r="22" fill="none" stroke="#fde047" stroke-width="2"/>
+  <text x="330" y="144" font-family="sans-serif" font-size="11" fill="#fde047" text-anchor="middle">PASSIVE</text>
+  <!-- legs -->
+  <line x1="312" y1="172" x2="312" y2="200" stroke="#1f2933" stroke-width="2"/>
+  <line x1="348" y1="172" x2="348" y2="200" stroke="#1f2933" stroke-width="2"/>
+  <text x="300" y="190" font-family="sans-serif" font-size="10" fill="#6d28d9" text-anchor="end">signal</text>
+  <text x="360" y="190" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="start">GND</text>
+
+  <!-- signal wire GPIO13 -->
+  <line x1="40" y1="106" x2="312" y2="106" stroke="#6d28d9" stroke-width="3"/>
+  <line x1="312" y1="106" x2="312" y2="172" stroke="#6d28d9" stroke-width="3"/>
+  <!-- GND wire -->
+  <line x1="40" y1="156" x2="348" y2="156" stroke="#374151" stroke-width="3"/>
+  <line x1="348" y1="156" x2="348" y2="172" stroke="#374151" stroke-width="3"/>
+
+  <text x="300" y="288" font-family="sans-serif" font-size="12" fill="#dc2626" text-anchor="middle" font-weight="bold">Current path: GPIO 13 &rarr; buzzer &rarr; GND</text>
+  <text x="300" y="306" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">Purple = GPIO 13 signal &middot; Grey = GND</text>
+</svg>
+<figcaption>The passive buzzer needs just two wires: one leg to GPIO 13 (the switching signal) and the other to a GND pin. A passive buzzer draws little current, so this direct connection is safe.</figcaption>
+</figure>
+
+<h3>Connection table</h3>
+<table class="tbl">
+  <thead>
+    <tr><th>From</th><th>To</th><th>Wire colour</th><th>Why</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GPIO 13 (physical pin 33)</td><td>Buzzer leg 1 (signal)</td><td>Purple</td><td>Carries the PWM switching signal that sets the pitch</td></tr>
+    <tr><td>Buzzer leg 2</td><td>GND (physical pin 39)</td><td>Grey</td><td>Completes the circuit back to ground</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> A passive buzzer has no polarity that matters for sound — you can swap the two legs and it still plays. (An active buzzer <em>does</em> care which leg is +.) GPIO 13 is one of the Pi's hardware-PWM-capable pins, which makes for a clean tone, but gpiozero works on any GPIO pin.</div>
+
+<h3>Wiring steps</h3>
+<ol class="steps">
+  <li><strong>Shut down and unplug the Pi.</strong> Wait for the green activity light to go out before touching any wiring.</li>
+  <li><strong>Seat the buzzer.</strong> Push the buzzer's two legs into two <em>different</em> rows of the breadboard so the legs are not shorted together.</li>
+  <li><strong>Run the signal wire.</strong> Female end of a jumper onto <strong>physical pin 33</strong> (GPIO 13); male end into the breadboard row holding buzzer leg 1.</li>
+  <li><strong>Run the GND wire.</strong> Female end of a second jumper onto <strong>physical pin 39</strong> (a GND pin); male end into the row holding buzzer leg 2.</li>
+  <li><strong>Double-check</strong> that the two buzzer legs are in separate rows and no metal is touching. Then reconnect power and boot up.</li>
+</ol>
+
+<h2 id="python-fundamentals-dictionaries-functions-loops">Python Fundamentals: Dictionaries, Functions, Loops</h2>
+
+<p>Let us learn the three Python ideas with tiny examples before the big program.</p>
+
+<h3>Dictionaries — pairing keys with values</h3>
+<p>A <strong>list</strong> stores items in order, fetched by position. A <strong>dictionary</strong> stores items as <em>key &rarr; value</em> pairs, fetched by name. That is perfect for "note name &rarr; frequency".</p>
+
+<pre class="code"><code>notes = {"C4": 262, "D4": 294, "E4": 330}
+print(notes["D4"])   # 294</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>notes = {…}</code>:</strong> The curly braces <code>{ }</code> create a dictionary. Each entry is a key (the note name, in quotes) then a colon then its value (the frequency). Commas separate the entries.</p>
+  <p><strong>Line 2 — <code>notes["D4"]</code>:</strong> Look up a value by its key inside square brackets. Asking for <code>"D4"</code> hands back <code>294</code>. No need to remember any position — you ask by name.</p>
+</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>dictionary</strong> is like a real dictionary: you look up a word (the <em>key</em>) to get its definition (the <em>value</em>). Keys must be unique. Here the keys are note names and the values are frequencies in hertz.</div>
+
+<h3>Functions — name a job once, reuse it</h3>
+<p>A <strong>function</strong> wraps up a few lines under a name so you can run them again and again without repeating yourself.</p>
+
+<pre class="code"><code>def greet(name):
+    print("Hello, " + name)
+
+greet("Ada")
+greet("Linus")</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>def greet(name):</code>:</strong> <code>def</code> defines a function called <code>greet</code>. The word in brackets, <code>name</code>, is a <strong>parameter</strong> — a placeholder for a value you pass in when you call it.</p>
+  <p><strong>Line 2 — <code>print("Hello, " + name)</code>:</strong> The indented body. Whatever <code>name</code> holds gets joined onto the greeting and printed.</p>
+  <p><strong>Lines 4&ndash;5 — <code>greet("Ada")</code> / <code>greet("Linus")</code>:</strong> Two <em>calls</em>. Each runs the same function body with a different value for <code>name</code>. One definition, many uses.</p>
+</div>
+
+<h3>Loops — repeat without copy-paste</h3>
+<p>A <code>for</code> loop walks through a collection one item at a time.</p>
+
+<pre class="code"><code>for note in ["C4", "E4", "G4"]:
+    print("Playing", note)</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>for note in […]:</code>:</strong> Take each item of the list in turn and put it in the variable <code>note</code>. The loop body runs once per item.</p>
+  <p><strong>Line 2 — <code>print("Playing", note)</code>:</strong> The indented body runs three times — once with <code>note</code> equal to <code>"C4"</code>, then <code>"E4"</code>, then <code>"G4"</code>.</p>
+</div>
+
+<h3>A list of tuples — storing a melody</h3>
+<p>A <strong>tuple</strong> is a small fixed bundle of values written in round brackets, like <code>("C4", 0.5)</code>. We store a melody as a <em>list</em> of these tuples: each one is a note plus how long to hold it.</p>
+
+<pre class="code"><code>melody = [("C4", 0.5), ("E4", 0.5), ("G4", 1.0)]
+for note, length in melody:
+    print(note, "for", length, "seconds")</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>melody = [ (…), (…) ]</code>:</strong> A list (square brackets) whose items are tuples (round brackets). Each tuple pairs a note name with a duration in seconds.</p>
+  <p><strong>Line 2 — <code>for note, length in melody:</code>:</strong> As the loop takes each tuple, it <strong>unpacks</strong> the two values into <code>note</code> and <code>length</code> in one step. This is why tuples are so handy for paired data.</p>
+  <p><strong>Line 3 — <code>print(...)</code>:</strong> Runs once per tuple, with the note and its length already separated out for us.</p>
+</div>
+
+<h2 id="the-full-program">The Full Program</h2>
+
+<p>Now we combine everything: a dictionary of notes, a <code>play_note()</code> function, a loop to play a scale, and a melody stored as a list of tuples. Open a new file in Thonny and type it in.</p>
+
+<pre class="code"><code>from gpiozero import TonalBuzzer
+from gpiozero.tones import Tone
+from time import sleep
+
+# Map each note name to its frequency in hertz
+NOTES = {
+    "C4": 262, "D4": 294, "E4": 330, "F4": 349,
+    "G4": 392, "A4": 440, "B4": 494, "C5": 523,
+    "REST": None,
+}
+
+buzzer = TonalBuzzer(13)
+
+
+def play_note(name, length):
+    """Play one note for a number of seconds, then fall silent."""
+    if name == "REST":
+        buzzer.stop()
+    else:
+        frequency = NOTES[name]
+        buzzer.play(Tone(frequency))
+    sleep(length)
+    buzzer.stop()
+
+
+def play_scale():
+    """Play the eight notes of a C major scale, low to high."""
+    for name in ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]:
+        print("Scale:", name)
+        play_note(name, 0.4)
+
+
+def play_melody(melody):
+    """Play a melody given as a list of (note, length) tuples."""
+    for name, length in melody:
+        print("Melody:", name)
+        play_note(name, length)
+
+
+# "Twinkle, Twinkle, Little Star" as a list of (note, length) tuples
+TWINKLE = [
+    ("C4", 0.5), ("C4", 0.5), ("G4", 0.5), ("G4", 0.5),
+    ("A4", 0.5), ("A4", 0.5), ("G4", 1.0),
+    ("F4", 0.5), ("F4", 0.5), ("E4", 0.5), ("E4", 0.5),
+    ("D4", 0.5), ("D4", 0.5), ("C4", 1.0),
+]
+
+print("Playing a scale...")
+play_scale()
+sleep(0.5)
+
+print("Now a tune...")
+play_melody(TWINKLE)
+
+buzzer.stop()
+print("Done!")</code></pre>
+
+<div class="explain">
+  <p><strong>Lines 1&ndash;3 — the imports:</strong> <code>TonalBuzzer</code> drives the passive buzzer, <code>Tone</code> describes a pitch, and <code>sleep</code> times each note.</p>
+  <p><strong>Lines 6&ndash;10 — <code>NOTES = {…}</code>:</strong> Our dictionary mapping note names to frequencies. The special key <code>"REST"</code> maps to <code>None</code> (Python's "nothing"), which we will treat as a silent gap.</p>
+  <p><strong>Line 12 — <code>buzzer = TonalBuzzer(13)</code>:</strong> Creates the buzzer object on GPIO 13. We make it once, near the top, so every function can use it.</p>
+  <p><strong>Line 15 — <code>def play_note(name, length):</code>:</strong> Defines our key function. It takes two parameters: the note <code>name</code> and how long (<code>length</code>) to hold it.</p>
+  <p><strong>Line 16 — the docstring:</strong> The triple-quoted text just under <code>def</code> describes what the function does. It is documentation, not code.</p>
+  <p><strong>Lines 17&ndash;18 — <code>if name == "REST": buzzer.stop()</code>:</strong> If the note is a rest, keep the buzzer silent.</p>
+  <p><strong>Lines 19&ndash;21 — the <code>else</code> branch:</strong> Otherwise, look up the frequency for that name in the <code>NOTES</code> dictionary and start playing it with <code>buzzer.play(Tone(frequency))</code>.</p>
+  <p><strong>Line 22 — <code>sleep(length)</code>:</strong> Hold the note (or the silence) for the requested number of seconds.</p>
+  <p><strong>Line 23 — <code>buzzer.stop()</code>:</strong> Silence the buzzer before the next note, giving each note a clean, separate sound.</p>
+  <p><strong>Lines 26&ndash;30 — <code>def play_scale():</code>:</strong> A function with no parameters. It loops over a list of eight note names and calls <code>play_note()</code> for each at 0.4 seconds. This is loops + functions + dictionary working together.</p>
+  <p><strong>Lines 33&ndash;37 — <code>def play_melody(melody):</code>:</strong> Takes a melody (a list of tuples). The <code>for name, length in melody:</code> line unpacks each tuple into its two parts, then plays it. The same function can play <em>any</em> melody you pass it.</p>
+  <p><strong>Lines 41&ndash;46 — <code>TWINKLE = [...]</code>:</strong> The tune stored as data — a list of <code>(note, length)</code> tuples. Storing music as data means the playing code never changes; only the data does.</p>
+  <p><strong>Lines 48&ndash;55 — the main part:</strong> Print a message, play the scale, pause half a second, then play the tune by handing <code>TWINKLE</code> to <code>play_melody()</code>.</p>
+  <p><strong>Lines 57&ndash;58 — <code>buzzer.stop()</code> / <code>print("Done!")</code>:</strong> A final tidy-up to make sure the buzzer is silent, and a friendly message.</p>
+</div>
+
+<h2 id="running-it">Running It</h2>
+
+<ol class="steps">
+  <li>In Thonny, choose <strong>File &rarr; Save</strong> and save the file as <code>sound_machine.py</code> in your home folder.</li>
+  <li>Click the green <strong>Run</strong> button (the triangle &#9654;) or press <strong>F5</strong>.</li>
+  <li>Listen: you should hear a rising eight-note scale, a short pause, then the opening of "Twinkle, Twinkle, Little Star". The Thonny console prints each note as it plays.</li>
+  <li>To stop early, click the red <strong>Stop</strong> button (the square &#9632;).</li>
+</ol>
+
+<div class="tip"><strong>Tip:</strong> If the tune sounds too fast or too slow, change the <code>length</code> values in the <code>TWINKLE</code> list. Bigger numbers mean longer notes. You can also slow the scale by raising the <code>0.4</code> in <code>play_scale()</code>.</div>
+
+<h2 id="why-a-speaker-needs-a-transistor">Why a Speaker Needs a Transistor</h2>
+
+<p>A passive buzzer is happy on a GPIO pin because it sips only a milliamp or two. A proper <strong>loudspeaker</strong> — the kind in a radio or headphones — is a different beast. To be loud it needs much more current than a GPIO pin can safely give.</p>
+
+<div class="warn"><strong>Careful:</strong> A GPIO pin can supply only about <strong>16 mA</strong>, and the whole header together only around 50 mA. A small 8&nbsp;&Omega; speaker can try to pull <strong>hundreds</strong> of milliamps. Wiring a speaker (or any motor) straight to a GPIO pin will overload the pin and can <strong>permanently damage your Pi</strong>. Speakers and motors are also <em>inductive</em>: when the current switches off they kick back a brief high-voltage spike that can punch through a GPIO pin. Always drive them through a transistor.</div>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>transistor</strong> is an electronic switch with no moving parts. A tiny current from the GPIO pin (into the transistor's <em>base</em>) controls a much bigger current flowing from the 5 V supply through the speaker. The Pi sends a small, safe signal; the transistor does the heavy lifting and the Pi is protected.</div>
+
+<p>We use a common, cheap <strong>NPN transistor</strong> — a 2N2222 or BC548. It has three legs: <strong>base</strong>, <strong>collector</strong>, and <strong>emitter</strong>. The GPIO pin feeds the base through a <strong>1&nbsp;k&Omega; resistor</strong> (which limits the small base current and protects the pin). The speaker connects between the <strong>5 V</strong> supply and the transistor's <strong>collector</strong>; the <strong>emitter</strong> goes to GND. When the GPIO pin pulses, the transistor switches the speaker current on and off in time — and the speaker plays the note.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 620 360" xmlns="http://www.w3.org/2000/svg">
+  <rect width="620" height="360" fill="#f3f0ff" rx="12"/>
+  <text x="310" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Driving a salvaged speaker with an NPN transistor</text>
+
+  <!-- Pi header -->
+  <rect x="20" y="70" width="92" height="210" fill="#1f2933" rx="6"/>
+  <text x="66" y="62" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
+  <rect x="24" y="110" width="16" height="12" fill="#6d28d9" rx="2"/>
+  <text x="46" y="121" font-family="sans-serif" font-size="10" fill="#f3f0ff">Pin 33 (GPIO 13)</text>
+  <rect x="24" y="160" width="16" height="12" fill="#dc2626" rx="2"/>
+  <text x="46" y="171" font-family="sans-serif" font-size="10" fill="#fca5a5">Pin 4 (5 V)</text>
+  <rect x="24" y="210" width="16" height="12" fill="#374151" rx="2"/>
+  <text x="46" y="221" font-family="sans-serif" font-size="10" fill="#9ca3af">Pin 6 (GND)</text>
+
+  <!-- base resistor 1k -->
+  <line x1="40" y1="116" x2="180" y2="116" stroke="#6d28d9" stroke-width="3"/>
+  <rect x="180" y="106" width="50" height="20" fill="#d4a372" stroke="#1f2933" stroke-width="1.5" rx="4"/>
+  <rect x="187" y="106" width="5" height="20" fill="#92400e"/>
+  <rect x="195" y="106" width="5" height="20" fill="#1f2933"/>
+  <rect x="203" y="106" width="5" height="20" fill="#dc2626"/>
+  <text x="205" y="100" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">1 k&Omega;</text>
+  <line x1="230" y1="116" x2="300" y2="116" stroke="#6d28d9" stroke-width="3"/>
+
+  <!-- transistor -->
+  <circle cx="330" cy="200" r="40" fill="white" stroke="#1f2933" stroke-width="2"/>
+  <text x="330" y="255" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">NPN (2N2222)</text>
+  <!-- base lead from resistor -->
+  <line x1="300" y1="116" x2="300" y2="200" stroke="#6d28d9" stroke-width="3"/>
+  <line x1="300" y1="200" x2="305" y2="200" stroke="#6d28d9" stroke-width="3"/>
+  <text x="290" y="196" font-family="sans-serif" font-size="10" fill="#6d28d9" text-anchor="end">base</text>
+  <!-- collector top -->
+  <line x1="345" y1="172" x2="345" y2="120" stroke="#1f2933" stroke-width="3"/>
+  <text x="360" y="150" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="start">collector</text>
+  <!-- emitter bottom -->
+  <line x1="345" y1="228" x2="345" y2="300" stroke="#374151" stroke-width="3"/>
+  <line x1="345" y1="300" x2="40" y2="300" stroke="#374151" stroke-width="3"/>
+  <line x1="40" y1="300" x2="40" y2="216" stroke="#374151" stroke-width="3"/>
+  <text x="360" y="265" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="start">emitter &rarr; GND</text>
+
+  <!-- speaker -->
+  <rect x="420" y="90" width="70" height="60" fill="#374151" rx="6" stroke="#1f2933" stroke-width="2"/>
+  <circle cx="455" cy="120" r="18" fill="#6b7280" stroke="#1f2933" stroke-width="1.5"/>
+  <text x="455" y="170" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Speaker 8 &Omega;</text>
+  <!-- 5V to speaker -->
+  <line x1="40" y1="166" x2="455" y2="166" stroke="#dc2626" stroke-width="3"/>
+  <line x1="455" y1="166" x2="455" y2="150" stroke="#dc2626" stroke-width="3"/>
+  <!-- speaker to collector -->
+  <line x1="420" y1="120" x2="345" y2="120" stroke="#1f2933" stroke-width="3"/>
+
+  <!-- flyback diode across speaker -->
+  <line x1="490" y1="120" x2="520" y2="120" stroke="#0ea5a4" stroke-width="2"/>
+  <line x1="520" y1="120" x2="520" y2="166" stroke="#0ea5a4" stroke-width="2"/>
+  <polygon points="513,116 527,116 520,128" fill="#0ea5a4"/>
+  <text x="540" y="124" font-family="sans-serif" font-size="10" fill="#0ea5a4" text-anchor="start">flyback diode</text>
+
+  <text x="310" y="335" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle" font-weight="bold">Pin only drives the base; 5 V does the heavy lifting through the speaker.</text>
+</svg>
+<figcaption>The GPIO pin pulses the transistor's base through a 1&nbsp;k&Omega; resistor; the transistor switches the bigger 5&nbsp;V speaker current on and off. A flyback diode across the speaker absorbs the inductive kick. The Pi never carries the speaker's current.</figcaption>
+</figure>
+
+<h3>Speaker connection table</h3>
+<table class="tbl">
+  <thead>
+    <tr><th>From</th><th>To</th><th>Wire / part</th><th>Why</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GPIO 13 (pin 33)</td><td>1 k&Omega; resistor &rarr; transistor base</td><td>Purple via resistor</td><td>Small, safe control signal; resistor limits base current and protects the pin</td></tr>
+    <tr><td>5 V (pin 4)</td><td>Speaker terminal 1</td><td>Red</td><td>Supplies the heavy current the speaker needs</td></tr>
+    <tr><td>Speaker terminal 2</td><td>Transistor collector</td><td>Black</td><td>Transistor switches this current on and off</td></tr>
+    <tr><td>Transistor emitter</td><td>GND (pin 6)</td><td>Grey</td><td>Return path to ground</td></tr>
+    <tr><td>Diode across speaker (band to 5 V)</td><td>—</td><td>1N4001 (optional)</td><td>Soaks up the inductive voltage spike when the current switches off</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> The 2N2222 and BC548 have their three legs in different orders, so always check the part's datasheet pinout (looking at the flat face, legs are typically Emitter&ndash;Base&ndash;Collector or Collector&ndash;Base&ndash;Emitter). Wiring the legs in the wrong order is the most common reason a transistor circuit stays silent.</div>
+
+<p>The lovely part: <strong>the code does not change at all.</strong> Your Pi still runs the exact same <code>sound_machine.py</code> with <code>TonalBuzzer(13)</code>. From the pin's point of view it is still just switching a single GPIO line on and off — the transistor and 5 V supply quietly turn that into a loud speaker note. That is the whole point of a transistor driver: it lets a tiny, safe signal control a big load.</p>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Symptom</th><th>Likely cause &amp; fix</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>No sound at all from the buzzer</td><td>It may be an <em>active</em> buzzer (only beeps, cannot play tones) — try the <code>Buzzer</code> object instead. Or a wire is loose; reseat both jumpers. Check both buzzer legs are in <em>separate</em> rows.</td></tr>
+    <tr><td>A faint click, no tone</td><td>Likely a passive buzzer on too low a volume, or it is an active buzzer being driven by <code>TonalBuzzer</code>. Confirm the type with the coin-cell test.</td></tr>
+    <tr><td><code>No module named 'lgpio'</code></td><td>Install the backend: <code>sudo apt install python3-lgpio</code>, then restart Thonny.</td></tr>
+    <tr><td>Tone plays but never stops</td><td>You forgot a <code>buzzer.stop()</code>. Every <code>play()</code> needs a matching <code>stop()</code> eventually.</td></tr>
+    <tr><td>"OutputDeviceBadValue" or out-of-range error</td><td>The note is outside the buzzer's range. Keep notes within C4&ndash;C5, or raise <code>octaves=</code> when creating the <code>TonalBuzzer</code>.</td></tr>
+    <tr><td>Speaker is silent (transistor build)</td><td>Almost always the transistor legs are in the wrong order — recheck base/collector/emitter against the datasheet. Confirm 5 V and GND are connected.</td></tr>
+    <tr><td>Speaker buzzes weakly even when the program stops</td><td>Check the emitter really goes to GND and the base resistor is 1&nbsp;k&Omega;, not a much smaller value.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="make-it-your-own">Make It Your Own</h2>
+
+<p>You have a working instrument. Here are four ways to take it further.</p>
+
+<ul>
+  <li><strong>Add more notes.</strong> Extend the <code>NOTES</code> dictionary with sharps and flats (e.g. <code>"F#4": 370</code>) and a lower octave, then write a tune that uses them.</li>
+  <li><strong>Store songs in a file.</strong> Keep each melody as its own list of tuples and add a menu: print the song names, ask the user to type a number, then play the chosen one.</li>
+  <li><strong>Two-part rhythm with an active buzzer.</strong> If you also salvaged an active buzzer, wire it to another pin as a <code>Buzzer</code> and <code>beep()</code> it on the beat for a simple drum.</li>
+  <li><strong>Build a one-key keyboard.</strong> Add a push button (from Chapter 12) so each press plays the next note of a scale — a tiny playable instrument from pure e-waste.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Because the melody is stored as <em>data</em> (a list of tuples) and the playing is done by a <em>function</em>, you can add a whole new song without touching the playback code at all. That separation of data from behaviour is one of the most powerful ideas in all of programming — you have just used it for real.</div>
+
+<p>You started with something destined for the bin and ended with a programmable instrument that plays whatever you teach it. The official gpiozero documentation at <a href="https://gpiozero.readthedocs.io/">gpiozero.readthedocs.io</a> lists every sound object if you want to dig deeper. Badge earned: <strong>Now It Sings</strong>.</p>
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>Frequency</strong> - How many times per second something vibrates, measured in hertz (Hz); it determines the pitch of a note.</li>
+  <li><strong>PWM (Pulse-Width Modulation)</strong> - Switching a GPIO pin on and off very fast; the number of cycles per second sets the tone's frequency.</li>
+  <li><strong>Active buzzer</strong> - A buzzer with a built-in oscillator that plays one fixed beep; controlled with gpiozero's <code>Buzzer</code> object.</li>
+  <li><strong>Passive buzzer</strong> - A buzzer with no oscillator that plays whatever pitch you drive it at; controlled with gpiozero's <code>TonalBuzzer</code> object.</li>
+  <li><strong>TonalBuzzer</strong> - The gpiozero object that plays musical notes on a passive buzzer using <code>play()</code> and <code>stop()</code>.</li>
+  <li><strong>Tone</strong> - gpiozero's way of describing a pitch, by note name (<code>"A4"</code>), frequency (<code>440.0</code>), or MIDI number (<code>69</code>).</li>
+  <li><strong>Dictionary</strong> - A Python collection of key&rarr;value pairs, looked up by key; here it maps note names to frequencies.</li>
+  <li><strong>Function</strong> - A named, reusable block of code that can take parameters and be called many times.</li>
+  <li><strong>Tuple</strong> - A small fixed bundle of values in round brackets, e.g. <code>("C4", 0.5)</code>; ideal for paired data like note-and-length.</li>
+  <li><strong>NPN transistor</strong> - An electronic switch (e.g. 2N2222, BC548) that lets a small GPIO signal control a much larger current for a speaker or motor.</li>
+  <li><strong>Flyback diode</strong> - A diode placed across an inductive load (speaker/motor) to absorb the voltage spike produced when its current switches off.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>Sound is air vibrating; the frequency of vibration (in hertz) sets the pitch — 440 Hz is the note A4.</li>
+  <li>A GPIO pin makes a pitch using PWM: switching on and off at the note's frequency.</li>
+  <li>An <strong>active</strong> buzzer makes one fixed beep (use <code>Buzzer</code>); a <strong>passive</strong> buzzer can play any note (use <code>TonalBuzzer</code> with <code>Tone</code>).</li>
+  <li>A passive buzzer is gentle enough to wire straight to a GPIO pin (one leg to the pin, one to GND).</li>
+  <li>A Python <strong>dictionary</strong> neatly maps note names to frequencies; <strong>functions</strong> let us name and reuse the "play a note" job; <strong>loops</strong> step through a scale or a melody.</li>
+  <li>A melody is stored as a <strong>list of tuples</strong> — each tuple a (note, length) pair — keeping the music data separate from the playback code.</li>
+  <li>A real loudspeaker draws far too much current for a GPIO pin and must be driven through an <strong>NPN transistor</strong> (2N2222/BC548) with a ~1&nbsp;k&Omega; base resistor; a flyback diode protects against inductive spikes.</li>
+  <li>Never wire a speaker or motor directly to a GPIO pin — it can permanently damage the Pi.</li>
+  <li>Sounders are easy, safe e-waste to salvage from greeting cards, toys, and old PCs — but never open mains, microwave, or CRT equipment.</li>
+</ul>
+</div>

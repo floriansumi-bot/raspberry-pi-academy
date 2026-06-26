@@ -1,519 +1,184 @@
-<p class="lead">Welcome to the Maker Lab — the part of the course where you stop reading <em>about</em> electronics and start building real things you can hold, switch on, and show off. Over the next nine lessons you will build a traffic light, a reaction game, a singing sound machine, a glowing mood lamp, a parking sensor, a plant logger, a motion alarm, and finally a web dashboard you can open on your phone. Every build teaches a <strong>named</strong> Python idea and a named electronics idea, and a thread running through all of them is one of the most satisfying skills in the maker world: bringing dead electronics back to life by salvaging their parts. This first lesson is your kit-out and safety briefing — no complex wiring yet, just the toolkit, the languages on your Pi, and the rules that will keep you (and your Pi) safe.</p>
+<p class="lead">You already know how to type commands into the terminal on your Pi. This lesson pulls back the curtain on what really happens in the split second after you press <kbd>Enter</kbd> — because the shell isn't just a command launcher, it's a full programming language that rewrites your line before any program ever runs. Once you see that hidden "rewrite" step, a whole class of confusing bash bugs turns into simple mechanics.</p>
 
-<h2 id="how-the-maker-lab-works">How the Maker Lab Works</h2>
+<p><strong>The key insight:</strong> before a single program starts, bash transforms your command line through a fixed, multi-stage <em>expansion pipeline</em>. Nearly every "weird shell bug" is really you not knowing what the shell did to your line <em>before</em> it handed it off. Learn the pipeline, and the magic becomes mechanics.</p>
 
-<p>Every chapter in this Part is a complete, working project. You will not just copy code — each build introduces a fundamental and teaches it properly with a tiny example first, then puts it to work in the project. By the end you will have written real programs that:</p>
+<div class="warn"><strong>Careful:</strong> This lesson has you deliberately break things to learn how they work — including running <code>rm</code> on oddly named files. Do your experiments in a throwaway folder, and if you want to be extra safe, do the destructive parts on a spare microSD card you can re-flash, not the Pi you care about. Everything here runs on the full 64-bit Debian Linux your Pi 5 boots into, with the same bash you use every day.</p></div>
+
+<h2 id="the-expansion-pipeline">The Expansion Pipeline Nobody Teaches You</h2>
+
+<p>When you press <kbd>Enter</kbd>, bash doesn't just run what you typed. It first rewrites the line through a series of steps, <em>in this exact order, every single time</em>:</p>
+
+<pre class="code"><code>brace expansion   {a,b}      → a b
+tilde expansion   ~          → /home/you
+parameter/var     $x ${x}    → the value
+command subst     $(cmd)     → cmd's stdout
+arithmetic        $((1+1))   → 2
+WORD SPLITTING    on $IFS    → splits unquoted results into separate words
+GLOBBING          * ? [..]   → expands to matching filenames
+quote removal                → strips the quotes themselves</code></pre>
+
+<p>By the time your program actually starts, it just receives a finished list of strings (its <code>argv</code>). It has <strong>no idea</strong> you typed <code>*</code> or <code>$x</code>. The shell already resolved all of it and handed over the final words.</p>
+
+<div class="jargon"><strong>In plain words:</strong> Think of the shell as an editor that reads your sentence, swaps in all the placeholders, splits it into words, and only <em>then</em> calls the program — passing it the finished sentence. The program never sees your shorthand.</div>
+
+<p>Open a terminal on your Pi and try this:</p>
+
+<pre class="code"><code>echo *</code></pre>
+
+<p>It prints the names of the files in your current folder. Why? Because the shell expanded <code>*</code> into that file list before <code>echo</code> ever ran. <code>echo</code> just dutifully printed the words it was handed.</p>
+
+<p>The same thing happens with <code>ls *.txt</code>: <code>ls</code> never sees the <code>*</code>. The <em>shell</em> expands <code>*.txt</code> into the matching filenames and passes <code>ls</code> the final list. If nothing matches, bash (by default) hands over the literal string <code>*.txt</code> — which is why you sometimes see <code>ls: cannot access '*.txt'</code>. That error is the shell's doing, not <code>ls</code>'s.</p>
+
+<p><strong>The key insight:</strong> globbing is done by the <em>shell</em>, for <em>every</em> command. <code>rm *</code>, <code>git add *</code>, <code>cp * dir/</code> — the program always receives an already-expanded file list. The program is not "smart about wildcards." The shell is.</p>
+
+<h2 id="word-splitting-and-quoting">Word Splitting: The Number One Source of Real Bugs</h2>
+
+<p>Look back at the pipeline. After your variables are expanded, any <strong>unquoted</strong> result is split into separate words on <code>$IFS</code> (the "internal field separator," which by default is space, tab, and newline). Then each of those words is glob-expanded. This single behavior causes more broken scripts than anything else in shell.</p>
+
+<pre class="code"><code>file="my report.txt"
+rm $file          # BUG: becomes  rm my report.txt  → two arguments
+rm "$file"        # CORRECT: one argument, the actual filename</code></pre>
+
+<div class="explain">
+<strong>The unquoted line</strong> — bash expands <code>$file</code> to <code>my report.txt</code>, then splits on the space into two words. <code>rm</code> is told to delete a file called <code>my</code> and a file called <code>report.txt</code> — neither of which exists.<br>
+<strong>The quoted line</strong> — the double quotes suppress word splitting, so <code>rm</code> receives one argument: the real filename, space and all.
+</div>
+
+<p><strong>The rule you will never break again: quote your variables.</strong> Use <code>"$var"</code> and <code>"$@"</code> (not <code>$*</code>) essentially always. The only time you actually <em>want</em> splitting is a rare, deliberate case — and then you do it on purpose, with your eyes open.</p>
+
+<p>This one habit eliminates a huge class of failures all at once: spaces in filenames, empty variables silently vanishing, and stray glob characters in your data getting expanded by surprise. There's even a free tool, <strong>ShellCheck</strong>, that exists largely to nag you about exactly this — run it on every script you write.</p>
+
+<p>Two settings let you control what happens when a glob matches nothing:</p>
+
+<pre class="code"><code>shopt -s nullglob   # no match → expands to nothing (instead of the literal pattern)
+shopt -s failglob   # no match → error out loudly</code></pre>
+
+<h3>Three Quoting Tools — Pick Deliberately</h3>
+
+<table>
+  <thead>
+    <tr><th>Quote</th><th>Expands $var, $()?</th><th>Splits / globs?</th><th>Use it for</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>'single'</code></td><td>No — fully literal</td><td>No</td><td>exact literal text, regexes, <code>sed</code>/<code>awk</code> programs</td></tr>
+    <tr><td><code>"double"</code></td><td>Yes</td><td>No (suppressed)</td><td><strong>variables</strong> — the everyday sweet spot</td></tr>
+    <tr><td><code>\</code> (backslash)</td><td>escapes one char</td><td>—</td><td>a single special character</td></tr>
+  </tbody>
+</table>
+
+<p>A single-quoted string can't contain a single quote at all. And <code>"$var"</code> is what you want about 95% of the time. When in doubt, reach for double quotes.</p>
+
+<h2 id="subshells-substitution-heredocs">Subshells, Command Substitution and Here-Docs</h2>
+
+<p>These three tools come up constantly once you start writing real scripts on your Pi.</p>
+
+<p>A <strong>subshell</strong> <code>( ... )</code> runs in a forked child process. Any variable changes or <code>cd</code> done inside it <em>do not</em> affect the parent. So <code>(cd /tmp &amp;&amp; do_stuff)</code> leaves you in exactly the directory you started in — handy when you want to pop somewhere, do a job, and come back without thinking about it.</p>
+
+<p><strong>Command substitution</strong> <code>$(cmd)</code> runs <code>cmd</code> in a subshell, captures its standard output, strips trailing newlines, and (if you leave it unquoted) word-splits the result. Prefer <code>$(...)</code> over the older backtick form <code>`cmd`</code> — it nests cleanly and reads far better.</p>
+
+<pre class="code"><code>now=$(date +%H:%M)
+echo "It is $now on your Pi"</code></pre>
+
+<p>A <strong>here-doc</strong> feeds a whole block of text into a command's standard input:</p>
+
+<pre class="code"><code>cat &lt;&lt;EOF          # expands $vars inside
+Hello $USER
+EOF
+
+cat &lt;&lt;'EOF'        # quoted delimiter → NO expansion (literal)
+Costs $100 and $PATH stays literal
+EOF
+
+cat &lt;&lt;-EOF         # the dash strips leading TABS (for indenting in scripts)
+	indented in source, flush in output
+EOF</code></pre>
+
+<div class="explain">
+<strong>Unquoted <code>EOF</code></strong> — variables like <code>$USER</code> get expanded inside the block.<br>
+<strong>Quoted <code>'EOF'</code></strong> — nothing is expanded; <code>$100</code> and <code>$PATH</code> stay literal. Perfect for writing out a config file that contains dollar signs.<br>
+<strong>The <code>&lt;&lt;-</code> dash</strong> — strips leading tab characters so you can indent the here-doc neatly inside a function or loop.
+</div>
+
+<p>And a <strong>here-string</strong> feeds a command just one string: <code>grep foo &lt;&lt;&lt; "$line"</code>.</p>
+
+<h2 id="exit-codes-and-the-safe-header">Exit Codes and the Defensive Script Header</h2>
+
+<p>Every command returns a whole number from <strong>0 to 255</strong>. <strong>0 means success</strong>; anything non-zero means some kind of failure. The special variable <code>$?</code> holds the last command's code. <code>&amp;&amp;</code> runs the next command only on success; <code>||</code> runs it only on failure.</p>
+
+<pre class="code"><code>mkdir build &amp;&amp; cd build       # cd only if mkdir worked
+command -v jq || echo "jq not installed"</code></pre>
+
+<p>Here is the header worth putting at the top of every non-trivial script you write on your Pi:</p>
+
+<pre class="code"><code>#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'</code></pre>
+
+<div class="explain">
+<strong>set -e</strong> — exit on any unhandled non-zero command. (Caveats: it's ignored inside <code>if</code>/<code>&amp;&amp;</code>/<code>||</code> conditions and has some historical surprises — treat it as a safety net, not a replacement for real error handling.)<br>
+<strong>set -u</strong> — error on <em>unset</em> variables. Catches typos like <code>$flie</code> instantly instead of silently using an empty value.<br>
+<strong>set -o pipefail</strong> — a pipeline's exit code becomes the last non-zero stage, not just the final command's. Without it, <code>false | true</code> "succeeds" and you silently miss the failure.<br>
+<strong>IFS=$'\n\t'</strong> — drops the space from the field separator, so word-splitting only happens on newlines and tabs. Much safer around filenames with spaces.
+</div>
+
+<h2 id="builtins-vs-externals">Builtins vs Externals: Why cd Can't Be a Program</h2>
+
+<p>When you type a command with no slash in it, bash searches <code>$PATH</code> from left to right and runs the first matching file it finds. But some commands don't live in a file at all — they run <em>inside</em> the shell process itself. These are called <strong>builtins</strong>.</p>
+
+<p><strong>The key insight:</strong> <code>cd</code> <em>must</em> be a builtin. A normal program runs in a <em>child</em> process, and a child can't change its <em>parent's</em> working directory. So if <code>cd</code> were an external program, it would change directory in the child, then the child would exit — and you'd be exactly where you started. For that reason <code>cd</code>, <code>export</code>, <code>read</code>, <code>[</code>, and <code>pwd</code> are builtins by necessity. A few commands exist as <em>both</em> a builtin and an external file (<code>echo</code>, <code>test</code>, <code>printf</code>, <code>kill</code>), with subtly different behavior.</p>
+
+<pre class="code"><code>type -a echo      # builtin, alias, function, or file? AND where
+command -v ls     # what would actually run
+hash -r           # clear bash's PATH cache (fixes "command not found" after moving a binary)</code></pre>
+
+<div class="warn"><strong>Myth vs reality:</strong> The myth is "use <code>which</code> to find a command." The reality is that <code>which</code> is an <em>external</em> program that knows nothing about builtins, shell functions, or aliases — so it lies about <code>cd</code>, your custom <code>ll</code> alias, and more. Use <strong><code>type -a</code></strong> instead. It's shell-aware and tells you the truth about what will actually run.</div>
+
+<h2 id="login-vs-interactive-shells">Login vs Interactive: Why PATH Works in the Terminal but Not in Cron</h2>
+
+<p>Two <em>independent</em> questions decide which startup files bash reads when it launches — and getting this wrong is behind one of the most common "it works for me but not in the script" head-scratchers.</p>
 
 <ul>
-  <li>switch lights on and off in sequences (loops and lists);</li>
-  <li>read buttons and time your reactions (conditionals, randomness, timing);</li>
-  <li>play tunes through a salvaged speaker (dictionaries, tone generation);</li>
-  <li>fade colours on a recycled-jar lamp (functions, PWM brightness);</li>
-  <li>measure distance and log data to a file (classes, files, timestamps);</li>
-  <li>detect motion and raise an alarm (event-driven callbacks);</li>
-  <li>and serve all of it as a live web page from your Pi (a little HTML, CSS and JavaScript).</li>
+  <li><strong>Login shell</strong> (SSH into your Pi, a console login, or <code>bash -l</code>): reads <code>/etc/profile</code>, then the <em>first</em> of <code>~/.bash_profile</code>, <code>~/.bash_login</code>, or <code>~/.profile</code>.</li>
+  <li><strong>Interactive non-login</strong> (opening a new terminal tab on the Pi desktop): reads <code>~/.bashrc</code>.</li>
+  <li><strong>Non-interactive</strong> (a script, or a cron job): reads <em>neither</em> by default — only <code>$BASH_ENV</code> if that's set.</li>
 </ul>
 
-<div class="jargon"><strong>In plain words:</strong> a <strong>fundamental</strong> is a core idea you will reuse forever. A <em>for loop</em>, a <em>function</em>, a <em>resistor</em>, <em>LED polarity</em> — learn each one once, properly, and it pays off in every project after. We will always name the fundamental out loud so you know exactly what you are learning.</div>
+<p><strong>The key insight:</strong> "My alias / PATH / custom tool works in my terminal but the cron job can't find it" is almost always this. Cron runs non-interactive and non-login, with a bare-bones environment — none of your <code>~/.bashrc</code> customizations exist there. The classic fix is to source <code>~/.bashrc</code> from <code>~/.bash_profile</code>, and to never assume your comfy interactive environment exists inside a script.</p>
 
-<p>You do not need a fortune in parts. A modest beginner starter kit — a breadboard, a handful of jumper wires, some LEDs, resistors, a couple of buttons, and a cheap multimeter — covers most of the Part. The rest you can <strong>salvage from broken electronics destined for the bin</strong>, which is exactly what the recycling thread is about. By the end of this lesson you will know how to tell a treasure-filled gadget from a genuinely dangerous one.</p>
+<h2 id="try-it-on-your-pi">Try It on Your Pi</h2>
 
-<h2 id="what-youll-learn">What You'll Learn</h2>
-
-<p>This is a kit-and-safety lesson, so the fundamentals are foundations rather than a single build. Here is what you will walk away knowing:</p>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Area</th><th>Fundamentals (named)</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Python recap</td><td><code>variables</code>, <code>print()</code>, <strong>f-strings</strong>, <strong>functions</strong>, <code>import</code>; running code in Thonny and with <code>python3 file.py</code>; the Bookworm <strong>PEP 668</strong> rule for installing packages with <code>pip</code></td></tr>
-    <tr><td>A second language</td><td><strong>Bash</strong> scripting basics: the shebang <code>#!/bin/bash</code>, <code>chmod +x</code>, running <code>./script.sh</code>; which languages live on the Pi and when to use each</td></tr>
-    <tr><td>Electronics toolkit</td><td>the breadboard, jumper-wire types, resistors, LEDs, buttons, the multimeter; <strong>reading resistor colour bands</strong>; <strong>LED polarity</strong></td></tr>
-    <tr><td>Testing parts</td><td>using a multimeter for <strong>continuity</strong>, <strong>resistance (Ω)</strong>, the <strong>diode test</strong>, and <strong>DC volts</strong> to check salvaged components</td></tr>
-    <tr><td>Recycling (core)</td><td>what is <strong>safe</strong> to open and harvest vs what is <strong>dangerous — never open</strong>; how to harvest a component and test it</td></tr>
-  </tbody>
-</table>
-
-<h2 id="the-maker-toolkit">The Maker Toolkit</h2>
-
-<p>Let us meet the tools and parts you will use again and again. None of them is expensive, and most come in a starter kit. The figure below labels the essentials.</p>
-
-<figure class="fig">
-<svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg">
-  <rect width="640" height="360" fill="#f3f0ff" rx="12"/>
-  <text x="320" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">Your Maker Lab Toolkit</text>
-
-  <!-- Breadboard -->
-  <rect x="30" y="55" width="180" height="80" fill="#e8e4d9" stroke="#c9b89a" stroke-width="2" rx="6"/>
-  <rect x="40" y="62" width="160" height="8" fill="#fecaca" rx="2"/>
-  <rect x="40" y="120" width="160" height="8" fill="#bfdbfe" rx="2"/>
-  <line x1="120" y1="80" x2="120" y2="112" stroke="#1f2933" stroke-width="6" opacity="0.12"/>
-  <text x="120" y="150" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">Breadboard</text>
-
-  <!-- Jumper wires -->
-  <path d="M250 70 C 300 55, 330 120, 390 100" stroke="#6d28d9" stroke-width="4" fill="none"/>
-  <path d="M250 90 C 305 80, 330 130, 390 120" stroke="#dc2626" stroke-width="4" fill="none"/>
-  <path d="M250 110 C 300 110, 335 150, 390 140" stroke="#0ea5a4" stroke-width="4" fill="none"/>
-  <text x="320" y="165" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">Jumper wires</text>
-
-  <!-- Resistors -->
-  <line x1="430" y1="80" x2="610" y2="80" stroke="#888" stroke-width="3"/>
-  <rect x="490" y="70" width="60" height="20" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="4"/>
-  <rect x="498" y="70" width="5" height="20" fill="#f97316"/>
-  <rect x="507" y="70" width="5" height="20" fill="#f97316"/>
-  <rect x="516" y="70" width="5" height="20" fill="#92400e"/>
-  <rect x="538" y="70" width="5" height="20" fill="#ca8a04"/>
-  <text x="520" y="110" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">Resistors</text>
-
-  <!-- LED -->
-  <ellipse cx="80" cy="210" rx="14" ry="9" fill="#ef4444" stroke="#1f2933" stroke-width="1.5"/>
-  <rect x="66" y="210" width="28" height="22" fill="#ef4444" stroke="#1f2933" stroke-width="1.5"/>
-  <line x1="73" y1="232" x2="73" y2="270" stroke="#1f2933" stroke-width="2"/>
-  <line x1="87" y1="232" x2="87" y2="258" stroke="#1f2933" stroke-width="2"/>
-  <ellipse cx="80" cy="200" rx="22" ry="14" fill="#fde047" opacity="0.5"/>
-  <text x="55" y="266" font-family="sans-serif" font-size="9" fill="#6d28d9" text-anchor="end">long +</text>
-  <text x="100" y="252" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="start">short −</text>
-  <text x="80" y="288" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">LED</text>
-
-  <!-- Button -->
-  <rect x="170" y="195" width="46" height="46" fill="#374151" rx="5" stroke="#1f2933" stroke-width="2"/>
-  <circle cx="193" cy="218" r="9" fill="#6d28d9"/>
-  <text x="193" y="288" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">Push button</text>
-
-  <!-- Multimeter -->
-  <rect x="290" y="185" width="120" height="130" fill="#fbbf24" rx="8" stroke="#1f2933" stroke-width="2"/>
-  <rect x="305" y="200" width="90" height="40" fill="#1f2933" rx="4"/>
-  <text x="350" y="227" font-family="monospace" font-size="16" fill="#34d399" text-anchor="middle">330&#937;</text>
-  <circle cx="350" cy="270" r="22" fill="#f3f0ff" stroke="#1f2933" stroke-width="2"/>
-  <line x1="350" y1="270" x2="350" y2="252" stroke="#dc2626" stroke-width="3"/>
-  <text x="350" y="328" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">Multimeter</text>
-
-  <!-- Probes -->
-  <path d="M412 250 C 470 240, 500 250, 560 235" stroke="#dc2626" stroke-width="3" fill="none"/>
-  <path d="M412 285 C 470 295, 500 285, 560 300" stroke="#374151" stroke-width="3" fill="none"/>
-  <rect x="558" y="228" width="40" height="10" fill="#dc2626" rx="2"/>
-  <rect x="558" y="296" width="40" height="10" fill="#374151" rx="2"/>
-  <text x="520" y="330" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">red &amp; black probes</text>
-</svg>
-<figcaption>The core toolkit: a solderless breadboard, jumper wires, resistors, LEDs, push buttons, and a digital multimeter with its red and black probes.</figcaption>
-</figure>
-
-<h3>The breadboard</h3>
-
-<div class="jargon"><strong>In plain words:</strong> a <strong>breadboard</strong> is a plastic board full of holes with hidden metal strips inside. You push wires and component legs into the holes and the metal connects them — no soldering, no glue, and you can pull everything out and start again. It is the workbench for every build in this Part.</div>
-
-<p>Inside, the holes are connected in groups. The two long rails down each edge (marked <strong>+</strong> and <strong>−</strong>) are the <em>power rails</em> — every hole along a rail is joined. In the central area, each short numbered half-row is joined across (e.g. holes <code>10a</code>–<code>10e</code>), but a gap down the middle separates the left half from the right half. You will use this layout in every wiring project from the next chapter onward; for now, just know that pushing two legs into the same half-row connects them.</p>
-
-<h3>Jumper wires</h3>
-
-<p>Jumper wires are short flexible wires with rigid connectors on each end. They come in three flavours, named by what is on each end:</p>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Type</th><th>Ends</th><th>Typical use</th></tr>
-  </thead>
-  <tbody>
-    <tr><td><strong>Male-to-male</strong> (M–M)</td><td>a pin on both ends</td><td>breadboard hole → breadboard hole</td></tr>
-    <tr><td><strong>Female-to-male</strong> (F–M)</td><td>a socket on one end, a pin on the other</td><td>Pi GPIO pin (needs the socket) → breadboard hole</td></tr>
-    <tr><td><strong>Female-to-female</strong> (F–F)</td><td>a socket on both ends</td><td>module header pin → Pi GPIO pin directly</td></tr>
-  </tbody>
-</table>
-
-<div class="tip"><strong>Tip:</strong> the Pi's GPIO header is a row of <em>pins</em>, so any wire going to the Pi needs a <em>female</em> (socket) end there. For connecting the Pi to a breadboard, female-to-male wires are what you want. A small bundle of each type will see you through the whole Part.</div>
-
-<h3>Resistors, LEDs and buttons</h3>
-
-<p>A <strong>resistor</strong> slows electricity down. Its job in nearly every project here is to protect an LED (and the GPIO pin) by limiting current. The standard beginner value is <strong>330&nbsp;&#937;</strong> for an LED on a 3.3&nbsp;V pin; you will also meet <strong>1&nbsp;k&#937;</strong> as a base resistor for transistors later.</p>
-
-<div class="jargon"><strong>In plain words:</strong> an <strong>LED</strong> (Light-Emitting Diode) is a tiny lamp that only lets current flow one way. It has a <strong>longer leg (the anode, +)</strong> and a <strong>shorter leg with a flat edge on the plastic rim (the cathode, −)</strong>. Current must enter the long leg and leave the short leg, or it will not light.</div>
-
-<p>A <strong>push button</strong> (a tactile switch) is just a momentary connection: press it and two sides join; release and they part. You will wire your first one in the reaction-timer game two chapters from now.</p>
-
-<h2 id="reading-resistor-colour-bands">Reading Resistor Colour Bands</h2>
-
-<p>Resistors are tiny, so their value is printed as coloured bands rather than numbers. A standard <strong>4-band</strong> resistor reads: <em>digit, digit, multiplier, tolerance</em>. The first two bands are digits, the third tells you how many zeros (the multiplier), and the last (set slightly apart, usually gold) is the manufacturing tolerance.</p>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Colour</th><th>Digit</th><th>Multiplier</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Black</td><td>0</td><td>×1</td></tr>
-    <tr><td>Brown</td><td>1</td><td>×10</td></tr>
-    <tr><td>Red</td><td>2</td><td>×100</td></tr>
-    <tr><td>Orange</td><td>3</td><td>×1,000</td></tr>
-    <tr><td>Yellow</td><td>4</td><td>×10,000</td></tr>
-    <tr><td>Green</td><td>5</td><td>×100,000</td></tr>
-    <tr><td>Blue</td><td>6</td><td>×1,000,000</td></tr>
-    <tr><td>Violet</td><td>7</td><td>—</td></tr>
-    <tr><td>Grey</td><td>8</td><td>—</td></tr>
-    <tr><td>White</td><td>9</td><td>—</td></tr>
-    <tr><td>Gold</td><td>—</td><td>tolerance ±5%</td></tr>
-  </tbody>
-</table>
-
-<p>Let us read the two values you will use most. A <strong>330&nbsp;&#937;</strong> resistor is <strong>orange–orange–brown–gold</strong>: orange (3), orange (3), brown (×10) → 33 × 10 = 330&nbsp;&#937;, ±5%. A <strong>1&nbsp;k&#937;</strong> resistor is <strong>brown–black–red–gold</strong>: brown (1), black (0), red (×100) → 10 × 100 = 1,000&nbsp;&#937; = 1&nbsp;k&#937;, ±5%.</p>
-
-<figure class="fig">
-<svg viewBox="0 0 560 260" xmlns="http://www.w3.org/2000/svg">
-  <rect width="560" height="260" fill="#f3f0ff" rx="10"/>
-  <text x="280" y="26" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Resistor-band reader</text>
-
-  <!-- 330 ohm resistor -->
-  <text x="60" y="62" font-family="sans-serif" font-size="12" font-weight="bold" fill="#1f2933">330 &#937;</text>
-  <line x1="60" y1="100" x2="130" y2="100" stroke="#888" stroke-width="3"/>
-  <rect x="130" y="83" width="160" height="34" fill="#d4a372" rx="8" stroke="#1f2933" stroke-width="1.5"/>
-  <rect x="145" y="83" width="18" height="34" fill="#f97316" rx="3"/>
-  <rect x="172" y="83" width="18" height="34" fill="#f97316" rx="3"/>
-  <rect x="199" y="83" width="18" height="34" fill="#92400e" rx="3"/>
-  <rect x="254" y="83" width="18" height="34" fill="#ca8a04" rx="3"/>
-  <line x1="290" y1="100" x2="360" y2="100" stroke="#888" stroke-width="3"/>
-  <text x="154" y="135" font-family="sans-serif" font-size="10" fill="#f97316" text-anchor="middle" font-weight="bold">Orange</text>
-  <text x="154" y="147" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">3</text>
-  <text x="181" y="135" font-family="sans-serif" font-size="10" fill="#f97316" text-anchor="middle" font-weight="bold">Orange</text>
-  <text x="181" y="147" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">3</text>
-  <text x="208" y="135" font-family="sans-serif" font-size="10" fill="#92400e" text-anchor="middle" font-weight="bold">Brown</text>
-  <text x="208" y="147" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">×10</text>
-  <text x="263" y="135" font-family="sans-serif" font-size="10" fill="#ca8a04" text-anchor="middle" font-weight="bold">Gold</text>
-  <text x="263" y="147" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">±5%</text>
-  <text x="430" y="98" font-family="sans-serif" font-size="14" font-weight="bold" fill="#6d28d9" text-anchor="middle">= 330 &#937;</text>
-  <text x="430" y="114" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">3 3 × 10</text>
-
-  <!-- 1k ohm resistor -->
-  <text x="60" y="192" font-family="sans-serif" font-size="12" font-weight="bold" fill="#1f2933">1 k&#937;</text>
-  <line x1="60" y1="220" x2="130" y2="220" stroke="#888" stroke-width="3"/>
-  <rect x="130" y="203" width="160" height="34" fill="#d4a372" rx="8" stroke="#1f2933" stroke-width="1.5"/>
-  <rect x="145" y="203" width="18" height="34" fill="#92400e" rx="3"/>
-  <rect x="172" y="203" width="18" height="34" fill="#1f2933" rx="3"/>
-  <rect x="199" y="203" width="18" height="34" fill="#dc2626" rx="3"/>
-  <rect x="254" y="203" width="18" height="34" fill="#ca8a04" rx="3"/>
-  <line x1="290" y1="220" x2="360" y2="220" stroke="#888" stroke-width="3"/>
-  <text x="154" y="255" font-family="sans-serif" font-size="10" fill="#92400e" text-anchor="middle" font-weight="bold">Brown</text>
-  <text x="181" y="255" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle" font-weight="bold">Black</text>
-  <text x="208" y="255" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle" font-weight="bold">Red</text>
-  <text x="263" y="255" font-family="sans-serif" font-size="10" fill="#ca8a04" text-anchor="middle" font-weight="bold">Gold</text>
-  <text x="430" y="218" font-family="sans-serif" font-size="14" font-weight="bold" fill="#6d28d9" text-anchor="middle">= 1,000 &#937;</text>
-  <text x="430" y="234" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">1 0 × 100</text>
-</svg>
-<figcaption>Reading the two resistors you will use most. 330&nbsp;&#937; = orange–orange–brown–gold; 1&nbsp;k&#937; = brown–black–red–gold. The first two bands are digits, the third is the multiplier, the gold band is ±5% tolerance.</figcaption>
-</figure>
-
-<div class="tip"><strong>Tip:</strong> if the bands are ambiguous (some colours are hard to tell apart in poor light), do not guess — set your multimeter to the ohms (&#937;) range and measure the resistor directly. We will do exactly that below. Reading the bag label from a starter kit is the fastest method of all.</div>
-
-<h2 id="led-polarity">LED Polarity</h2>
-
-<p>An LED is a one-way street. Get the direction right and it lights; get it backwards and it simply stays dark (no harm done — an LED will not be damaged by being put in the wrong way round at these low voltages). There are three ways to spot which leg is which:</p>
-
-<ul>
-  <li><strong>Leg length:</strong> the <em>longer</em> leg is the <strong>anode (+)</strong>; the <em>shorter</em> leg is the <strong>cathode (−)</strong>.</li>
-  <li><strong>The flat edge:</strong> the plastic rim has a tiny <em>flat</em> on the cathode (−) side.</li>
-  <li><strong>Inside the dome:</strong> the larger metal piece (the anvil) inside the plastic is the cathode (−).</li>
-</ul>
-
-<div class="note"><strong>Note:</strong> in every wiring project in this Part, current flows from a GPIO pin, through a 330&nbsp;&#937; resistor, into the LED's <strong>long leg (anode)</strong>, out of the <strong>short leg (cathode)</strong>, and back to GND. Memorise "long leg to the positive side" and you will rarely wire an LED backwards.</div>
-
-<h2 id="using-a-multimeter">Using a Multimeter</h2>
-
-<p>A multimeter is the single most useful tool for testing parts — especially salvaged ones, where you cannot trust a label. It is a dial (or buttons) surrounded by settings, with a red probe and a black probe. Four settings cover almost everything you will do in this Part.</p>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Setting</th><th>Symbol</th><th>What it does</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Continuity</td><td>sound-wave / 🔊</td><td>beeps if the two probes are joined by an unbroken wire — tests cables, switches, solder joints</td></tr>
-    <tr><td>Resistance</td><td>&#937; (omega)</td><td>measures resistance in ohms — reads a resistor's value, or checks a coil/speaker</td></tr>
-    <tr><td>Diode test</td><td>▷&#8739; (arrow + bar)</td><td>checks diodes and LEDs for direction; lights an LED dimly when probes are the right way round</td></tr>
-    <tr><td>DC volts</td><td>V&#8230; (V with straight lines)</td><td>measures direct-current voltage — battery level, a sensor's output, the Pi's 3.3&nbsp;V/5&nbsp;V pins</td></tr>
-  </tbody>
-</table>
-
-<h3>Continuity — is this wire alive?</h3>
-
-<p>Set the dial to continuity (the speaker/sound-wave symbol). Touch the two probes together first — it should beep, confirming the meter works. Now touch one probe to each end of a wire or each side of a switch: a beep means an unbroken connection; silence means a break. This is how you test a salvaged USB cable, a jumper wire, or whether a button actually closes when pressed.</p>
-
-<h3>Resistance — what value is this resistor?</h3>
-
-<p>Set the dial to a resistance range above your expected value (e.g. the 2&nbsp;k&#937; range for a 330&nbsp;&#937; resistor). Touch one probe to each leg — resistors have no polarity, so direction does not matter. The display shows the value; a 330&nbsp;&#937; resistor will read somewhere around 314–347&nbsp;&#937; (within the ±5% tolerance). This is the foolproof way to confirm bands you cannot quite read.</p>
-
-<h3>Diode test — which way round is this LED?</h3>
-
-<p>Set the dial to the diode symbol (▷ with a bar). Touch the <strong>red probe to the LED's long leg (anode)</strong> and the <strong>black probe to the short leg (cathode)</strong>: the LED should glow faintly and the meter shows a forward voltage (roughly 1.5–3.5&nbsp;V depending on colour). Swap the probes and it stays dark with no reading. This both proves the LED works and confirms its polarity — invaluable when a salvaged LED's legs have been trimmed to the same length.</p>
-
-<h3>DC volts — how much is this supplying?</h3>
-
-<p>Set the dial to DC volts (V with a solid and dashed line) on a range above what you expect (e.g. the 20&nbsp;V range for a 9&nbsp;V battery). Touch the red probe to the positive terminal and black to negative. A 1.5&nbsp;V cell reading 0.9&nbsp;V is nearly flat; a salvaged battery reading near 0&nbsp;V is dead. You will also use this to confirm a Pi pin really is at 3.3&nbsp;V before trusting it.</p>
-
-<div class="warn"><strong>Careful:</strong> only ever measure <strong>low-voltage DC</strong> (batteries, sensor outputs, the Pi's pins) with a hobby multimeter. <strong>Never put the probes into a mains socket or onto mains wiring</strong> — household mains is lethal and well beyond what beginner gear and beginner skills should touch. If a part is connected to mains, it is off-limits (see the recycling section).</div>
-
-<h2 id="a-quick-python-refresher">A Quick Python Refresher</h2>
-
-<p>Python is the main language of this whole course, so let us make sure the foundations are solid before the builds begin. If you have done the earlier chapters this will be a recap; if you are jumping in here, it is everything you need to follow along.</p>
-
-<h3>Two ways to run a program</h3>
-
-<p>You will run Python in two ways throughout this Part:</p>
-
-<ol>
-  <li><strong>In Thonny</strong> — the friendly editor preinstalled on Raspberry Pi OS. Open it from the Raspberry Pi menu → Programming → Thonny, type your code in the top pane, and click the green <strong>Run</strong> button (▶) or press <strong>F5</strong>. Output appears in the <em>Shell</em> at the bottom. Thonny is best while writing and debugging because you can run a line at a time and inspect variables.</li>
-  <li><strong>From the terminal</strong> with <code>python3 file.py</code> — this is how a "real" program is launched, and how your projects will eventually run on their own. Open a terminal, move to the folder holding your file, and run it.</li>
-</ol>
-
-<pre class="code"><code>python3 hello.py</code></pre>
-<div class="explain">
-  <p><strong><code>python3</code>:</strong> the command that starts the Python 3 interpreter. On Raspberry Pi OS always use <code>python3</code> (and <code>pip3</code>), never bare <code>python</code>, to be sure you are on Python 3.</p>
-  <p><strong><code>hello.py</code>:</strong> the file to run. Python reads it top to bottom and executes each line. The file must be in your current folder, or you give its full path.</p>
-</div>
-
-<h3>Variables, print() and f-strings</h3>
-
-<p>A <strong>variable</strong> is a named box that holds a value. <code>print()</code> displays things in the console. An <strong>f-string</strong> (a string prefixed with <code>f</code>) lets you drop variables straight into text inside <code>{curly braces}</code>.</p>
-
-<pre class="code"><code>name = "Maker"
-leds = 3
-print("Hello, " + name)
-print(f"You have {leds} LEDs and {leds * 2} legs to wire.")</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>name = "Maker"</code>:</strong> creates a variable called <code>name</code> holding the text (a <em>string</em>) "Maker".</p>
-  <p><strong>Line 2 — <code>leds = 3</code>:</strong> creates a variable holding the whole number (an <em>integer</em>) 3.</p>
-  <p><strong>Line 3 — <code>print("Hello, " + name)</code>:</strong> joins two strings with <code>+</code> and prints <code>Hello, Maker</code>.</p>
-  <p><strong>Line 4 — the f-string:</strong> the <code>f</code> before the quotes lets you insert variables and even do maths inside the braces. <code>{leds}</code> becomes <code>3</code> and <code>{leds * 2}</code> is calculated to <code>6</code>, printing <code>You have 3 LEDs and 6 legs to wire.</code> f-strings are the tidiest way to build messages, and you will use them constantly.</p>
-</div>
-
-<h3>Functions</h3>
-
-<p>A <strong>function</strong> is a named, reusable block of code. You <em>define</em> it once with <code>def</code> and <em>call</em> it as often as you like. Functions can take inputs (called <em>parameters</em>) and hand back a result with <code>return</code>.</p>
-
-<pre class="code"><code>def greet(who):
-    print(f"Welcome to the Maker Lab, {who}!")
-
-def add(a, b):
-    return a + b
-
-greet("everyone")
-total = add(2, 3)
-print(total)</code></pre>
-<div class="explain">
-  <p><strong>Lines 1–2 — <code>def greet(who):</code>:</strong> defines a function named <code>greet</code> that takes one parameter, <code>who</code>. The indented line is its body; it runs only when the function is called.</p>
-  <p><strong>Lines 4–5 — <code>def add(a, b): return a + b</code>:</strong> defines <code>add</code>, which takes two parameters and <code>return</code>s their sum back to whoever called it.</p>
-  <p><strong>Line 7 — <code>greet("everyone")</code>:</strong> calls <code>greet</code>, passing "everyone" in as <code>who</code>; it prints the welcome.</p>
-  <p><strong>Line 8 — <code>total = add(2, 3)</code>:</strong> calls <code>add</code> and stores the returned value (5) in <code>total</code>.</p>
-  <p><strong>Line 9 — <code>print(total)</code>:</strong> displays <code>5</code>. Wrapping repeated steps in functions keeps your project programs short and readable.</p>
-</div>
-
-<h3>import — borrowing other people's code</h3>
-
-<p>The <code>import</code> keyword pulls in a <strong>module</strong> or <strong>library</strong> — a bundle of ready-written code — so you do not have to write everything yourself. You will start nearly every project with imports.</p>
-
-<pre class="code"><code>import random
-from gpiozero import LED
-
-print(random.randint(1, 6))
-led = LED(17)</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>import random</code>:</strong> brings in Python's built-in <code>random</code> module; you then use its tools with the <code>random.</code> prefix.</p>
-  <p><strong>Line 2 — <code>from gpiozero import LED</code>:</strong> imports just the <code>LED</code> object from the <code>gpiozero</code> library, so you can write <code>LED(17)</code> directly without a prefix. <code>gpiozero</code> is preinstalled on Bookworm and is the library you will use for every electronics build.</p>
-  <p><strong>Line 4 — <code>random.randint(1, 6)</code>:</strong> rolls a whole number from 1 to 6, like a die.</p>
-  <p><strong>Line 5 — <code>led = LED(17)</code>:</strong> creates an LED object on GPIO 17 — a taste of what is coming next chapter.</p>
-</div>
-
-<h2 id="installing-packages-the-bookworm-rule">Installing Packages: the Bookworm Rule (PEP 668)</h2>
-
-<p>Most of the time you will <code>import</code> libraries that are already installed (<code>gpiozero</code>, <code>random</code>, <code>time</code>). Occasionally a project needs an extra one. On older systems you might have typed <code>pip install something</code> straight away — but on Raspberry Pi OS <strong>Bookworm</strong> that is deliberately blocked.</p>
-
-<div class="jargon"><strong>In plain words:</strong> <strong>PEP 668</strong> is a Python rule that marks the system Python as "externally managed". It means: do <em>not</em> let <code>pip</code> scribble over the Python that the operating system itself depends on, because that can break your whole desktop. If you try a plain system-wide <code>pip install</code> on Bookworm, you will get an <code>error: externally-managed-environment</code> message — that is the rule protecting you, not a bug.</div>
-
-<p>There are two correct ways to install a package on Bookworm:</p>
-
-<p><strong>Option 1 — use apt (simplest when a Pi package exists):</strong></p>
-
-<pre class="code"><code>sudo apt install python3-gpiozero</code></pre>
-<div class="explain">
-  <p><strong><code>sudo apt install python3-&lt;name&gt;</code>:</strong> installs a Debian-packaged Python library system-wide, the operating-system-approved way. Many common libraries are available as <code>python3-…</code> packages (e.g. <code>python3-gpiozero</code>, <code>python3-flask</code>). This sidesteps PEP 668 entirely because apt, not pip, manages it.</p>
-</div>
-
-<p><strong>Option 2 — make a virtual environment (a venv) and pip-install inside it:</strong></p>
-
-<pre class="code"><code>python3 -m venv myenv
-source myenv/bin/activate
-pip install some-library</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>python3 -m venv myenv</code>:</strong> creates a private, self-contained Python environment in a folder called <code>myenv</code>. Anything you install here is kept apart from the system Python, so it cannot break your desktop.</p>
-  <p><strong>Line 2 — <code>source myenv/bin/activate</code>:</strong> switches your terminal into that environment. Your prompt gains a <code>(myenv)</code> prefix to remind you. Now <code>python</code> and <code>pip</code> point inside the venv.</p>
-  <p><strong>Line 3 — <code>pip install some-library</code>:</strong> installs into the venv freely — no PEP 668 error, because you are no longer touching the system Python. Type <code>deactivate</code> to leave the venv later.</p>
-</div>
-
-<div class="warn"><strong>Careful:</strong> you may see advice online to "just add <code>--break-system-packages</code>" to force a system-wide pip install. The flag's own name is the warning: it can break the tools your Pi relies on. Prefer <code>apt</code> or a venv. We will use a venv properly in the final capstone chapter when we install Flask.</div>
-
-<h2 id="a-first-taste-of-bash">A First Taste of Bash</h2>
-
-<p>Python is not the only language living on your Pi. The black <strong>terminal</strong> window you type commands into is itself running a language called <strong>Bash</strong>. Every <code>ls</code>, <code>cd</code> or <code>sudo apt install</code> you type is a Bash command — and you can save a list of those commands into a file to run them all at once. That file is a <em>Bash script</em>.</p>
-
-<div class="jargon"><strong>In plain words:</strong> <strong>Bash</strong> is the language of the command line. A <strong>Bash script</strong> is a plain text file full of terminal commands that run top to bottom. It is perfect for gluing together jobs you would otherwise type by hand — backups, updates, launching your Python program at boot.</div>
-
-<p>Here is a tiny script. Open Thonny or any text editor, type this, and save it as <code>hello.sh</code>:</p>
-
-<pre class="code"><code>#!/bin/bash
-echo "Hello from Bash!"
-echo "Today the Pi says:"
-date</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>#!/bin/bash</code>:</strong> the <strong>shebang</strong>. This special first line tells the system "run this file with the Bash program". Without it, the system would not know which language the file is written in.</p>
-  <p><strong>Line 2 — <code>echo "Hello from Bash!"</code>:</strong> <code>echo</code> is Bash's version of <code>print()</code> — it prints text to the terminal.</p>
-  <p><strong>Line 3 — another <code>echo</code>:</strong> prints a second line of text.</p>
-  <p><strong>Line 4 — <code>date</code>:</strong> runs the built-in <code>date</code> command, printing the current date and time. A Bash script is mostly just commands you could have typed yourself.</p>
-</div>
-
-<p>Before you can run a script with <code>./</code>, you must mark the file as <em>executable</em> — give it permission to run as a program:</p>
-
-<pre class="code"><code>chmod +x hello.sh
-./hello.sh</code></pre>
-<div class="explain">
-  <p><strong>Line 1 — <code>chmod +x hello.sh</code>:</strong> <code>chmod</code> ("change mode") sets file permissions; <code>+x</code> adds the "executable" permission. You only need to do this once per script.</p>
-  <p><strong>Line 2 — <code>./hello.sh</code>:</strong> runs the script. The <code>./</code> means "the file in this current folder" — without it, the shell would search the system folders for a command called <code>hello.sh</code> and not find your file. The shebang then makes Bash interpret it.</p>
-</div>
-
-<div class="tip"><strong>Tip:</strong> a quick rule of thumb — reach for <strong>Bash</strong> when the job is mostly running other programs and shuffling files; reach for <strong>Python</strong> when the job involves real logic, maths, data, or talking to hardware. You will use both in this Part: Python for the projects, and the occasional Bash command to install or launch them.</div>
-
-<h3>Which languages live on the Pi?</h3>
-
-<p>Your Pi can run several programming languages out of the box. Here are the four you are most likely to meet, and when each shines:</p>
-
-<table class="tbl">
-  <thead>
-    <tr><th>Language</th><th>Best at</th><th>Where you'll see it in this course</th></tr>
-  </thead>
-  <tbody>
-    <tr><td><strong>Python</strong></td><td>readable, beginner-friendly logic; hardware control via <code>gpiozero</code>; data, files, the web</td><td>every project in this Part</td></tr>
-    <tr><td><strong>Bash</strong></td><td>running commands, automating the terminal, installing and launching things</td><td>installs, scripts, running your programs</td></tr>
-    <tr><td><strong>C</strong></td><td>maximum speed and tiny memory; the language the Linux kernel and many Pi libraries are written in</td><td>under the hood; not written directly here</td></tr>
-    <tr><td><strong>JavaScript</strong></td><td>making web pages interactive in the browser</td><td>the capstone web dashboard (ch31)</td></tr>
-  </tbody>
-</table>
-
-<div class="note"><strong>Note:</strong> you do not need to learn all four. Python carries the whole Part; Bash gives you a handful of handy commands; you will taste a little JavaScript right at the end to build a web dashboard; and C runs quietly beneath everything without you writing a line of it.</div>
-
-<h2 id="the-e-waste-pile">The E-Waste Pile: Salvaging Safely</h2>
-
-<p>Here is the maker's open secret: a huge amount of the gear you need is sitting in cupboards, charity-shop "spares or repair" bins, and recycling skips. A dead printer is a bag of motors and rods. An old mouse is a tidy micro-switch and an LED. A broken toy is a speaker and a gearbox. Learning to harvest and test these parts is good for your wallet <em>and</em> the planet — but it comes with one absolutely firm rule.</p>
-
-<div class="warn"><strong>Careful — read this before opening anything:</strong> the danger in old electronics is not the little 3.3&nbsp;V and 5&nbsp;V parts we play with. It is <strong>mains electricity</strong> and the <strong>large capacitors</strong> that store it. A capacitor can hold a <strong>lethal charge for a long time after the device is unplugged</strong>. Some devices must <em>never</em> be opened, full stop. The two-column figure below is your rule of thumb.</div>
-
-<figure class="fig">
-<svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg">
-  <rect width="640" height="400" fill="#f3f0ff" rx="12"/>
-  <text x="320" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">Safe to harvest  vs  Dangerous — never open</text>
-
-  <!-- SAFE column -->
-  <rect x="20" y="50" width="290" height="330" fill="#d1fae5" rx="10" stroke="#059669" stroke-width="2"/>
-  <text x="165" y="78" font-family="sans-serif" font-size="15" font-weight="bold" fill="#065f46" text-anchor="middle">✓ SAFE (low voltage)</text>
-  <text x="165" y="98" font-family="sans-serif" font-size="11" fill="#065f46" text-anchor="middle">unplug first · battery-/USB-powered</text>
-
-  <text x="40" y="128" font-family="sans-serif" font-size="12" fill="#1f2933">• Broken printers — stepper &amp; DC motors,</text>
-  <text x="52" y="144" font-family="sans-serif" font-size="12" fill="#1f2933">rods, gears, optical/limit switches</text>
-  <text x="40" y="168" font-family="sans-serif" font-size="12" fill="#1f2933">• Mice &amp; keyboards — micro-switches,</text>
-  <text x="52" y="184" font-family="sans-serif" font-size="12" fill="#1f2933">LEDs, USB cable</text>
-  <text x="40" y="208" font-family="sans-serif" font-size="12" fill="#1f2933">• Old toys — small motors, speakers, gears</text>
-  <text x="40" y="232" font-family="sans-serif" font-size="12" fill="#1f2933">• Dead routers/modems — LEDs, buttons,</text>
-  <text x="52" y="248" font-family="sans-serif" font-size="12" fill="#1f2933">connectors, heatsinks</text>
-  <text x="40" y="272" font-family="sans-serif" font-size="12" fill="#1f2933">• TV remotes — IR LEDs, rubber buttons</text>
-  <text x="40" y="296" font-family="sans-serif" font-size="12" fill="#1f2933">• Broken speakers/headphones — drivers,</text>
-  <text x="52" y="312" font-family="sans-serif" font-size="12" fill="#1f2933">wire</text>
-  <text x="40" y="336" font-family="sans-serif" font-size="12" fill="#1f2933">• Old USB cables — for 5 V power leads</text>
-  <text x="165" y="368" font-family="sans-serif" font-size="11" fill="#065f46" text-anchor="middle" font-weight="bold">Always unplug &amp; remove batteries first.</text>
-
-  <!-- DANGER column -->
-  <rect x="330" y="50" width="290" height="330" fill="#fee2e2" rx="10" stroke="#dc2626" stroke-width="2"/>
-  <text x="475" y="78" font-family="sans-serif" font-size="15" font-weight="bold" fill="#991b1b" text-anchor="middle">✗ DANGEROUS — NEVER OPEN</text>
-  <text x="475" y="98" font-family="sans-serif" font-size="11" fill="#991b1b" text-anchor="middle">mains voltage · stored lethal charge</text>
-
-  <text x="350" y="128" font-family="sans-serif" font-size="12" fill="#1f2933">• CRT TVs &amp; monitors — 20,000–30,000 V</text>
-  <text x="362" y="144" font-family="sans-serif" font-size="12" fill="#1f2933">anode; the tube can implode</text>
-  <text x="350" y="172" font-family="sans-serif" font-size="12" fill="#1f2933">• Microwave ovens — capacitor holds a</text>
-  <text x="362" y="188" font-family="sans-serif" font-size="12" fill="#1f2933">lethal 4,000+ V even when unplugged</text>
-  <text x="350" y="216" font-family="sans-serif" font-size="12" fill="#1f2933">• Mains PSUs &amp; adapters — big filter</text>
-  <text x="362" y="232" font-family="sans-serif" font-size="12" fill="#1f2933">caps store dangerous charge</text>
-  <text x="350" y="260" font-family="sans-serif" font-size="12" fill="#1f2933">• Anything with large capacitors inside</text>
-  <text x="350" y="288" font-family="sans-serif" font-size="12" fill="#1f2933">• Lithium-ion batteries — fire/explosion</text>
-  <text x="362" y="304" font-family="sans-serif" font-size="12" fill="#1f2933">if punctured, crushed or shorted</text>
-  <text x="475" y="344" font-family="sans-serif" font-size="12" fill="#991b1b" text-anchor="middle" font-weight="bold">Recycle these whole, at a proper</text>
-  <text x="475" y="360" font-family="sans-serif" font-size="12" fill="#991b1b" text-anchor="middle">e-waste / WEEE collection point.</text>
-</svg>
-<figcaption>Your salvage rule of thumb. The left column is low-voltage and safe to open once unplugged. The right column can hold a lethal charge — never open these; take them whole to an e-waste recycling point.</figcaption>
-</figure>
-
-<h3>Dangerous — never open these</h3>
-
-<div class="warn"><strong>Careful — CRT TVs and monitors.</strong> The old, deep, glass-tubed sets. The picture tube runs at an <strong>anode voltage of 20,000–30,000&nbsp;V</strong>, and internal capacitors can <strong>hold that charge for a long time after unplugging</strong>. The glass tube is also under vacuum and can <strong>implode</strong> into flying shards if cracked. Never open one. Recycle it whole.</div>
-
-<div class="warn"><strong>Careful — microwave ovens.</strong> A microwave's high-voltage capacitor can store a <strong>lethal 4,000&nbsp;V or more even when the oven is unplugged</strong>. People have been killed by them. Always treat that capacitor as charged. <strong>Never open a microwave oven</strong> — recycle it whole.</div>
-
-<div class="warn"><strong>Careful — mains power supplies and adapters.</strong> Anything that plugs into the wall and converts mains down (PC power supplies, laptop bricks, plug-in chargers) contains <strong>large filter capacitors that store a dangerous charge</strong> on the mains side. Discard the whole adapter rather than opening it. The neat low-voltage USB <em>cable</em> hanging off a charger is fine to keep — just cut it free of the brick and never open the brick itself.</div>
-
-<div class="warn"><strong>Careful — lithium-ion batteries.</strong> The rechargeable cells in phones, laptops and power banks will <strong>catch fire or explode if punctured, crushed, bent or short-circuited</strong>. Never cut into one, never deform a swollen one, and never throw them in normal bin or fire. Take them to a battery recycling point.</div>
-
-<div class="note"><strong>Note:</strong> the safe rule is simple — <strong>if it plugs into the mains wall socket, or has a big can-shaped capacitor, or a lithium battery, do not open it.</strong> Take it whole to a WEEE (Waste Electrical and Electronic Equipment) recycling point. Everything we build in this Part runs from the Pi's gentle 3.3&nbsp;V/5&nbsp;V or small batteries — there is no reason to ever go near mains.</div>
-
-<h3>Safe to harvest — the treasure list</h3>
-
-<p>Now the fun part. These devices are low-voltage, battery- or USB-powered, and full of useful parts. Always <strong>unplug them and remove any batteries first</strong>, but once that is done they are safe to open and explore:</p>
-
-<ul>
-  <li><strong>Broken printers</strong> — a goldmine: stepper motors, DC motors, metal rods, gears, and optical/limit switches.</li>
-  <li><strong>Mice and keyboards</strong> — tactile micro-switches (great buttons), LEDs, and a USB cable.</li>
-  <li><strong>Old toys</strong> — small DC motors, speakers, gearboxes, and sometimes LEDs.</li>
-  <li><strong>Dead routers and modems</strong> — indicator LEDs, buttons, connectors, and small heatsinks.</li>
-  <li><strong>TV remotes</strong> — infrared (IR) LEDs and lovely rubber buttons.</li>
-  <li><strong>Broken speakers and headphones</strong> — speaker drivers and thin wire.</li>
-  <li><strong>Old USB cables</strong> — ready-made 5&nbsp;V power leads.</li>
-</ul>
-
-<h3>How to harvest a component and test it</h3>
-
-<p>Most parts are either plugged in, screwed in, or soldered to a circuit board. Here is the routine:</p>
+<p>The best way to lock this in is to make the shell misbehave on purpose, in a safe folder, then fix it. Pick a couple of these.</p>
 
 <ol class="steps">
-  <li><strong>Make it safe.</strong> Unplug the device from any power and remove all batteries. Confirm there is no mains adapter still attached. Only safe-list devices, please.</li>
-  <li><strong>Open it up.</strong> Undo the screws (some hide under rubber feet or labels) and gently prise the case apart. Take a photo first so you remember how it goes together.</li>
-  <li><strong>Free the part.</strong> If it is held by a plug or screws, simply remove it. If it is soldered, you will need to <strong>desolder</strong> it: heat the joint with a soldering iron and lift the leg free, or use a solder sucker/braid to remove the molten solder. Work in a ventilated space and never touch the hot tip.</li>
-  <li><strong>Test it with your multimeter.</strong> Now prove the part actually works before you build with it:
-    <ul>
-      <li>a <strong>salvaged LED</strong> → use the <strong>diode test</strong>; red probe on the long leg should make it glow.</li>
-      <li>a <strong>switch or button</strong> → use <strong>continuity</strong>; it should beep only when pressed.</li>
-      <li>a <strong>resistor</strong> → use the <strong>resistance (&#937;)</strong> range to read its value.</li>
-      <li>a <strong>speaker or motor coil</strong> → <strong>resistance</strong> should read a few ohms, not "open" (infinite) or "0" (a dead short).</li>
-      <li>a <strong>salvaged cable</strong> → <strong>continuity</strong> end-to-end to find which wire is which and that none is broken.</li>
-    </ul>
-  </li>
-  <li><strong>Label and store it.</strong> A little box of tested, labelled parts is worth more than a drawer of mystery junk.</li>
+  <li><strong>Break it on purpose (easiest — do this today).</strong> In a throwaway folder, create files literally named <code>my file.txt</code>, <code>-rf</code>, <code>$HOME</code>, and <code>*.txt</code>. Then write a loop that processes them and watch unquoted variables and globs detonate. Fix every case with proper quoting. Nothing teaches word-splitting like watching <code>rm $file</code> go wrong in a sandbox. <em>Teaches: word splitting, globbing, and why you quote.</em></li>
+  <li><strong>A prompt that tells you things (easy).</strong> Build a custom <code>PS1</code> in <code>~/.bashrc</code> that shows your current git branch, the previous command's exit code (colored red on failure), and the working directory. The catch: you must capture <code>$?</code> <em>first</em>, before any other command clobbers it. <em>Teaches: the shell environment, exit codes, prompt expansion.</em></li>
+  <li><strong>A dotfiles repo with an install script (intermediate).</strong> Put your <code>.bashrc</code>, <code>.vimrc</code> and friends in a git repo, and write an installer that symlinks them into <code>$HOME</code>. Running it twice must be safe (idempotent). <em>Teaches: symlinks, idempotency, and quoting paths correctly.</em></li>
+  <li><strong>A CLI tool with real argument parsing (intermediate).</strong> Write a bash tool with <code>-h</code>/<code>--help</code>, short flags via <code>getopts</code>, and git-style subcommands dispatched by a <code>case</code> statement. Make it pass ShellCheck with zero warnings. <em>Teaches: <code>getopts</code>, <code>OPTARG</code>/<code>OPTIND</code>, and the standard usage convention.</em></li>
 </ol>
 
-<div class="warn"><strong>Careful:</strong> a soldering iron runs at around 350&nbsp;°C — hot enough for a serious burn and to start a fire. Use a stand, keep it away from cables and skin, solder in a ventilated room, and let parts cool before handling. If you are under 16 or new to it, do desoldering with an adult nearby.</div>
-
-<h2 id="make-it-your-own">Make It Your Own</h2>
-
-<p>You have not wired anything yet, but you can already practise the skills that make every later build easier. Try these:</p>
+<h2 id="go-deeper">Go Deeper</h2>
 
 <ul>
-  <li><strong>Sort your kit.</strong> Open your starter kit and identify every part using this chapter: name each resistor by its colour bands, find the long leg on each LED, and test which jumper-wire types you have.</li>
-  <li><strong>Meter practice.</strong> Measure three resistors with the &#937; range and check they match their bands. Diode-test an LED both ways round. Continuity-test a USB cable.</li>
-  <li><strong>Write and run a Bash script.</strong> Make a <code>hello.sh</code> that prints a greeting and the date, <code>chmod +x</code> it, and run it with <code>./hello.sh</code>.</li>
-  <li><strong>Practise f-strings.</strong> Write a short Python program that stores your name and the number of parts in your kit, then prints a tidy summary line with an f-string.</li>
-  <li><strong>Start a salvage box.</strong> Find one <em>safe-list</em> dead gadget (an old mouse is perfect), open it, harvest the micro-switch and any LED, test them, and label them. You have just earned your first salvaged parts.</li>
+  <li><a href="https://linuxcommand.org/tlcl.php">The Linux Command Line — Part IV (Shell Scripting)</a> — the canonical free book; chapters 24–36 are pure scripting. (Free PDF.)</li>
+  <li><a href="https://mywiki.wooledge.org/BashFAQ">Greg's Wiki / BashFAQ</a> — the single best correct reference for bash gotchas: quoting, <code>while read</code> subshells, process management. (Free.)</li>
+  <li><a href="https://www.shellcheck.net/">ShellCheck</a> — paste any script and it explains every bug with a linked wiki page. Run it on everything. (Free.)</li>
+  <li><a href="https://www.gnu.org/software/bash/manual/">The Bash Hackers Wiki / GNU Bash manual</a> — the authoritative spec for when you need the exact rule. (Free.)</li>
 </ul>
 
-<h2 id="what-youve-learned">What You've Learned</h2>
-
-<p>This was your kit-out and safety briefing — the foundation for the whole Maker Lab. You now know:</p>
-
-<ul>
-  <li>the <strong>toolkit</strong>: breadboard, the three jumper-wire types, resistors, LEDs, buttons, and a multimeter;</li>
-  <li>how to <strong>read resistor colour bands</strong> (330&nbsp;&#937; = orange-orange-brown-gold; 1&nbsp;k&#937; = brown-black-red-gold) and how to spot <strong>LED polarity</strong>;</li>
-  <li>how to use a multimeter for <strong>continuity</strong>, <strong>resistance</strong>, the <strong>diode test</strong> and <strong>DC volts</strong> to test parts;</li>
-  <li>a Python refresher — <strong>variables, print(), f-strings, functions, import</strong>, running code in Thonny and with <code>python3 file.py</code>, and the Bookworm <strong>PEP 668</strong> rule (use <code>apt</code> or a venv, not a system-wide pip);</li>
-  <li>a first taste of <strong>Bash</strong> — the shebang <code>#!/bin/bash</code>, <code>chmod +x</code>, running <code>./script.sh</code> — and which languages live on the Pi;</li>
-  <li>and the most important lesson of all: <strong>what is safe to salvage and what to never open</strong>.</li>
-</ul>
-
-<p>Next chapter the building begins in earnest: you will wire three LEDs and a breadboard into a working UK traffic-light controller, and learn lists and <code>for</code> loops along the way. Grab your kit — you have earned your <strong>Salvage Scout</strong> badge.</p>
+<div class="keyterms">
+  <h4>Key terms</h4>
+  <ul>
+    <li><strong>Expansion pipeline</strong> — the fixed sequence of rewrites (brace, tilde, variable, command substitution, arithmetic, word splitting, globbing, quote removal) that bash applies to every command line before running it.</li>
+    <li><strong>Globbing</strong> — the shell expanding wildcard patterns like <code>*</code>, <code>?</code>, and <code>[..]</code> into matching filenames. Done by the shell, not by the program you're running.</li>
+    <li><strong>Word splitting</strong> — bash breaking an unquoted expansion into separate words on <code>$IFS</code> (space, tab, newline by default). The top cause of scripts breaking on filenames with spaces.</li>
+    <li><strong>IFS</strong> — the Internal Field Separator: the set of characters bash splits unquoted words on. Default is space, tab, and newline.</li>
+    <li><strong>Quoting</strong> — wrapping text in single quotes (fully literal), double quotes (expand variables but no splitting), or backslash (escape one character) to control what the shell does to it.</li>
+    <li><strong>Command substitution</strong> — <code>$(cmd)</code>, which runs a command, captures its output, and substitutes it into the line. Preferred over backticks.</li>
+    <li><strong>Subshell</strong> — a forked child shell created by <code>( ... )</code>; changes to variables or directory inside it don't affect the parent.</li>
+    <li><strong>Here-doc</strong> — <code>&lt;&lt;EOF ... EOF</code>, a way to feed a multi-line block of text into a command's standard input.</li>
+    <li><strong>Exit code</strong> — the 0–255 number a command returns; 0 is success, non-zero is failure. Stored in <code>$?</code>.</li>
+    <li><strong>Builtin</strong> — a command that runs inside the shell process itself (like <code>cd</code>, <code>export</code>, <code>pwd</code>) rather than as a separate program file.</li>
+    <li><strong>pipefail</strong> — the <code>set -o pipefail</code> option that makes a pipeline report failure if any stage fails, not just the last one.</li>
+    <li><strong>Login vs interactive shell</strong> — the two independent axes that determine which startup files bash reads; the reason a tool can work in your terminal but not in a cron job.</li>
+  </ul>
+</div>
