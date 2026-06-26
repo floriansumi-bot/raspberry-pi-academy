@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch47",
+  "title": "Talk to Your Robot: Offline Voice Control",
+  "questions": [
+    {
+      "q": "Why do we run speech-to-text offline with Vosk on the Pi, rather than sending the audio to a cloud service?",
+      "choices": [
+        "Because cloud speech recognition is always less accurate than offline recognition",
+        "Because it needs no internet connection, adds no round-trip delay, and your voice never leaves the Pi",
+        "Because the Pi 5 is not powerful enough to send audio over the internet",
+        "Because offline recognition is the only way to control GPIO pins"
+      ],
+      "answer": 1,
+      "explain": "A cloud route records your voice, sends it across the internet to a company server and waits for the text to come back — so it needs a live connection, adds delay, and means your voice leaves your home. Running Vosk on the Pi keeps the whole job on-device: it works with the Wi-Fi off, reacts near-instantly, and is private."
+    },
+    {
+      "q": "Why must you plug a USB microphone into the Raspberry Pi 5 for this project?",
+      "choices": [
+        "Because USB microphones are more accurate than the Pi's built-in microphone",
+        "Because Vosk only accepts audio from USB devices",
+        "Because the Pi 5 has no analogue audio input and no on-board microphone, so there is nothing to record with otherwise",
+        "Because the 3.5 mm jack on the Pi 5 is for output only and needs a USB adapter"
+      ],
+      "answer": 2,
+      "explain": "The Pi 5 has no analogue audio input and no built-in microphone — there is no mic socket at all. Software cannot conjure a microphone that does not exist, so you add a USB mic, which is plug-and-play on Bookworm. Verify it with arecord -l before writing any code."
+    },
+    {
+      "q": "Why is Vosk's small model the right choice for live robot commands on a Pi 5, rather than Whisper from Lesson 19?",
+      "choices": [
+        "Whisper cannot run offline, but Vosk can",
+        "Vosk streams words as you speak and its small model (~40–50 MB) is light enough to run live, whereas Whisper is batch-style and heavier — better for transcribing recordings",
+        "Whisper does not support English, so it cannot recognise the commands",
+        "Vosk is more accurate than Whisper on every kind of audio"
+      ],
+      "answer": 1,
+      "explain": "Whisper (Lesson 19) is excellent but batch-style: you hand it a whole recording and wait. Vosk is a streaming recogniser that reports words as you speak, and its small ~40–50 MB model runs comfortably and continuously on a Pi 5. For a robot that must react to a spoken \"stop\", Vosk's live, lightweight style is what you need — both are offline."
+    },
+    {
+      "q": "When creating the virtual environment for vosk and sounddevice, why use 'python3 -m venv --system-site-packages ~/voice'?",
+      "choices": [
+        "The flag makes pip downloads faster",
+        "Without it, Vosk cannot find its language model",
+        "It lets the venv also see the system's packages — including gpiozero — so 'from gpiozero import Motor' still works",
+        "It is required by PEP 668 to install any package at all"
+      ],
+      "answer": 2,
+      "explain": "Bookworm's PEP 668 rule blocks a plain pip install, so you install into a venv. But gpiozero lives in the system Python, and a sealed venv cannot see it — 'from gpiozero import Motor' would fail. The --system-site-packages flag lets the venv see the system packages too, so the robot's gpiozero import works alongside your freshly installed vosk and sounddevice."
+    },
+    {
+      "q": "After Vosk transcribes a phrase like \"go forward please\", how does the program turn it into a motor action?",
+      "choices": [
+        "It sends the whole phrase to the motors, which understand English directly",
+        "It splits the text into words, finds the first one that is a known command, and looks it up in a dispatch dictionary to call the matching Robot method",
+        "It measures the length of the phrase and picks an action based on how many words it contains",
+        "It asks Vosk a second time which motor to turn on"
+      ],
+      "answer": 1,
+      "explain": "This is keyword matching: split the recognised text into words and check each against the set of known commands, returning the first match (so \"forward\" is pulled out of \"go forward please\"). That command word is then a key in the dispatch dictionary, whose value is the Robot method to run — ACTIONS[command]() looks it up and calls it, replacing a long if/elif ladder."
+    }
+  ]
+}

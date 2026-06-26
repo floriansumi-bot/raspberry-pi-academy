@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch34",
+  "title": "Capstone: The Junkbox AI Rover",
+  "questions": [
+    {
+      "q": "You saved Lesson 32's Robot class as its own file, robot.py, in your project folder. How does brain.py get to use it?",
+      "choices": [
+        "It copies the whole class into brain.py again so both files have their own copy",
+        "With 'from robot import Robot' — Python finds robot.py beside it and hands over the class",
+        "By running 'pip install robot' inside the virtual environment first",
+        "It cannot; a class can only ever be used in the file where it was written"
+      ],
+      "answer": 1,
+      "explain": "A module is just a Python file you import into another. 'from robot import Robot' makes Python load robot.py from the same folder and give you the Robot class, so every program reuses the drive base without repeating the motor code. Keeping the files in one folder is what lets the import find robot.py."
+    },
+    {
+      "q": "The rover holds its current behaviour in STATE = {\"mode\": \"manual\"} and the main loop checks STATE[\"mode\"] each pass. What is this design called, and why use it?",
+      "choices": [
+        "A pull-up resistor — it keeps the GPIO pin from floating between modes",
+        "A voltage divider — it shares the work between the three behaviours",
+        "A state machine — the rover is always in exactly one mode and behaves differently in each, switched by events",
+        "A decorator — it labels each function with the mode it belongs to"
+      ],
+      "answer": 2,
+      "explain": "A state machine is a program that is always in exactly one state (here manual, follow or avoid) and behaves differently in each, moving between states on events like a button press. Holding the mode in one dictionary keeps 'what should I be doing?' in a single, easy-to-read place that the web routes can flip."
+    },
+    {
+      "q": "In follow mode the rover reads the phone camera and steers from a coloured target. How does the code decide which way to turn?",
+      "choices": [
+        "It opens the stream with cv2.VideoCapture(url), finds the blob's centre x, and turns toward whichever side of the frame's middle it sits on",
+        "It measures the target's temperature with the ultrasonic sensor",
+        "It reads the encoder steps and turns until they reach a fixed target",
+        "It asks the Flask server which direction the user last pressed"
+      ],
+      "answer": 0,
+      "explain": "OpenCV reads the phone's MJPEG stream with cv2.VideoCapture(url). After thresholding the colour to a mask and finding the largest contour, cv2.moments gives the centroid's x (cx). The offset cx - CENTRE_X is the steering error: negative means the target is left (turn left), positive means right (turn right), near zero means drive forward."
+    },
+    {
+      "q": "The rover's NXT motors run from a 6xAA (~9 V) pack, not from the Pi. What single connection must still join the motor battery, the DRV8833 driver and the Pi?",
+      "choices": [
+        "Their 5 V power lines, so they share the same supply voltage",
+        "A common ground — the battery −, driver GND and Pi GND all meet at one shared 0 V rail",
+        "Their GPIO 20 pins, so the motors and Pi stay in step",
+        "Nothing; keeping all three completely separate is what makes it safe"
+      ],
+      "answer": 1,
+      "explain": "The motors get their own ~9 V battery because the Pi cannot spare the current and motor noise can crash it — but the battery −, the driver GND and the Pi GND must all join at one common ground. That shared 0 V reference is what lets the Pi's 3.3 V logic signals mean anything to the driver. Without it, nothing works reliably."
+    },
+    {
+      "q": "Why is the ultrasonic check written to run first in the loop, stopping the wheels before any follow or avoid logic, rather than relying on the camera alone?",
+      "choices": [
+        "Because the camera cannot see colours that are too close to the lens",
+        "Because the ultrasonic is faster than the GPIO pins driving the motors",
+        "It gives the rover a reflex that overrides the brain: a wall within STOP_CM stops it even if the vision says 'keep going', preventing a collision",
+        "Because Flask requires every loop to begin with a sensor reading"
+      ],
+      "answer": 2,
+      "explain": "Vision is slow and can be fooled — it reacts only a few times a second and might still see a target beyond an obstacle. Checking the ultrasonic first, in every automatic mode, gives the rover a physical reflex that beats its brain: if anything is closer than STOP_CM it stops the wheels immediately. A good autonomous robot always has a safety reflex that can override its higher-level logic."
+    }
+  ]
+}

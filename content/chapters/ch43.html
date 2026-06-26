@@ -1,0 +1,661 @@
+<p class="lead">There is a dead smartphone in a drawer in almost every home — a cracked-screen Galaxy, a swollen-battery iPhone, a hand-me-down that simply stopped charging. The internet is full of breathless promises that you can rip out its camera, its screen, even its "graphics card", and plug them straight into a Raspberry Pi. The honest truth is that <em>most of a modern phone cannot be reused that way at all</em> — and this chapter will explain plainly why. But a handful of parts genuinely can be given a second life, and there is one brilliant trick that turns the <em>whole phone</em> into a wireless camera for your Pi. Along the way you will name and practise some real Python (functions, loops, and using external libraries like <code>gpiozero</code> and OpenCV) and real electronics (lithium-ion safety, a transistor motor driver, a class-D audio amp, and a boost converter) — with safety, always, coming first.</p>
+
+<h2 id="the-honest-truth-about-phone-parts">The Honest Truth About Phone Parts</h2>
+
+<p>Before we salvage a single screw, let us set expectations honestly. A modern smartphone is one of the most tightly <strong>integrated</strong> pieces of electronics ever made for the home. Tiny, proprietary, glued, and soldered — it is built to be a sealed unit, not a parts bin. That is exactly the opposite of the friendly, modular world of breadboards and jumper wires you met earlier in this Part.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>integrated</strong> means many separate jobs have been squeezed onto one chip or one tiny board. The more integrated a device is, the harder it is to pull one job back out and reuse it on its own — there are no neat, documented connectors, and no spare drivers to make it work elsewhere.</div>
+
+<p>So the realistic picture is: a few parts are reusable, most are not, and being clear about which is which will save you hours of frustration (and protect your wallet and your Pi). Here is the honest map.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 640 430" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="430" fill="#f3f0ff" rx="12"/>
+  <text x="320" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">A phone&rsquo;s parts: reusable vs not</text>
+
+  <!-- NOT reusable column -->
+  <rect x="20" y="50" width="300" height="360" fill="#fee2e2" rx="10" stroke="#dc2626" stroke-width="2"/>
+  <text x="170" y="78" font-family="sans-serif" font-size="15" font-weight="bold" fill="#991b1b" text-anchor="middle">&#10007; NOT practically reusable</text>
+  <text x="170" y="98" font-family="sans-serif" font-size="11" fill="#991b1b" text-anchor="middle">proprietary, fused, no drivers</text>
+  <text x="40" y="128" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; Camera module &mdash; proprietary MIPI</text>
+  <text x="52" y="144" font-family="sans-serif" font-size="12" fill="#1f2933">CSI-2 link, no published driver</text>
+  <text x="40" y="172" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; AMOLED screen &mdash; proprietary MIPI</text>
+  <text x="52" y="188" font-family="sans-serif" font-size="12" fill="#1f2933">DSI, custom power rails</text>
+  <text x="40" y="216" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; The &ldquo;GPU&rdquo; &mdash; there is none to</text>
+  <text x="52" y="232" font-family="sans-serif" font-size="12" fill="#1f2933">remove; it is fused inside the SoC</text>
+  <text x="40" y="260" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; SoC, RAM &mdash; soldered silicon</text>
+  <text x="40" y="288" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; UFS storage &mdash; soldered BGA chip</text>
+  <text x="40" y="316" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; Modem / radios &mdash; proprietary</text>
+  <text x="40" y="344" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; Tiny MEMS microphone &mdash; skip it</text>
+  <text x="170" y="384" font-family="sans-serif" font-size="11" fill="#991b1b" text-anchor="middle" font-weight="bold">No connector, no driver,</text>
+  <text x="170" y="400" font-family="sans-serif" font-size="11" fill="#991b1b" text-anchor="middle">no realistic path to a Pi.</text>
+
+  <!-- Reusable column -->
+  <rect x="335" y="50" width="285" height="360" fill="#d1fae5" rx="10" stroke="#059669" stroke-width="2"/>
+  <text x="477" y="78" font-family="sans-serif" font-size="15" font-weight="bold" fill="#065f46" text-anchor="middle">&#10003; Genuinely reusable</text>
+  <text x="477" y="98" font-family="sans-serif" font-size="11" fill="#065f46" text-anchor="middle">simple, standard, or whole-device</text>
+  <text x="352" y="128" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; microSD card (if it has a slot)</text>
+  <text x="352" y="156" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; Li-ion battery (carefully!)</text>
+  <text x="352" y="184" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; Loudspeaker (with an amp)</text>
+  <text x="352" y="212" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; Vibration motor (with a driver)</text>
+  <text x="352" y="240" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; Buttons (as GPIO inputs)</text>
+  <text x="352" y="268" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; USB-C port &amp; cables</text>
+  <text x="352" y="296" font-family="sans-serif" font-size="12" fill="#1f2933">&bull; Glass back / frame as enclosure</text>
+  <text x="352" y="332" font-family="sans-serif" font-size="13" fill="#065f46" font-weight="bold">&bull; THE WHOLE PHONE as a</text>
+  <text x="364" y="349" font-family="sans-serif" font-size="13" fill="#065f46" font-weight="bold">wireless camera / sensor</text>
+  <text x="477" y="384" font-family="sans-serif" font-size="11" fill="#065f46" text-anchor="middle" font-weight="bold">These have standard interfaces</text>
+  <text x="477" y="400" font-family="sans-serif" font-size="11" fill="#065f46" text-anchor="middle">&mdash; or skip the wiring entirely.</text>
+</svg>
+<figcaption>The honest map. The red column lists parts that are proprietary, fused or undocumented and so cannot realistically reach a Pi. The green column lists what genuinely works &mdash; ending with the best trick of all: reuse the whole phone over Wi-Fi.</figcaption>
+</figure>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Part</th><th>Reusable on a Pi?</th><th>Why</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Camera module</td><td>No</td><td>Connects over proprietary MIPI CSI-2 with no published driver, ISP tuning or matching connector</td></tr>
+    <tr><td>AMOLED screen</td><td>No</td><td>Proprietary MIPI DSI, custom power/backlight rails, per-panel driver — not a beginner job</td></tr>
+    <tr><td>"Graphics card" / GPU</td><td>No (does not exist)</td><td>There is no removable GPU; it is fused permanently inside the SoC silicon</td></tr>
+    <tr><td>SoC, RAM, UFS storage, modem</td><td>No</td><td>Soldered, proprietary silicon — nothing to plug in elsewhere</td></tr>
+    <tr><td>microSD card</td><td>Yes</td><td>A standard removable card — slots straight into the Pi</td></tr>
+    <tr><td>Li-ion battery</td><td>Yes, with great care</td><td>A standard lithium cell — but dangerous; needs a protected charger and a boost converter</td></tr>
+    <tr><td>Loudspeaker</td><td>Yes, with an amp</td><td>A small 8&nbsp;&Omega; driver; the Pi 5 has no analog jack, so it needs an I&sup2;S amplifier</td></tr>
+    <tr><td>Vibration motor</td><td>Yes, with a driver</td><td>A tiny DC motor; never driven from a pin directly — needs a transistor</td></tr>
+    <tr><td>Buttons, USB-C, cables, frame</td><td>Yes</td><td>Simple switches, standard connectors, and a ready-made enclosure</td></tr>
+    <tr><td>The whole phone</td><td>Yes — best of all</td><td>Run an app and stream over Wi-Fi; the Pi reads it with OpenCV</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><strong>Note:</strong> this is not pessimism — it is the path of least frustration. By skipping the impossible reuses, you spend your energy on the four that genuinely pay off: three small hardware builds, and one pure-software trick that is the most powerful of the lot.</div>
+
+<h2 id="name-the-fundamentals">Name the Fundamentals</h2>
+
+<p>As always in the Maker Lab, we name out loud exactly what you are learning so that the skills stick and carry into your next project. This chapter is a little different from a single build — it is four mini-builds — so it touches several fundamentals, each taught with a small example before it is used.</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Area</th><th>Fundamentals (named)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Python</td><td><strong>functions</strong> and <strong>loops</strong>; <strong>using external libraries</strong> (<code>gpiozero</code> for hardware, <strong>OpenCV</strong> for vision); a <strong>frame-capture loop</strong> that reads images one after another; a quick recap of <strong>PWM</strong> for motor intensity</td></tr>
+    <tr><td>Electronics</td><td><strong>lithium-ion battery safety &amp; charging</strong> (a protected TP4056 charger + a 5&nbsp;V boost converter); the <strong>transistor motor driver + flyback diode</strong> (the same rule you met for the speaker); a <strong>class-D I&sup2;S audio amplifier</strong> (MAX98357A); and the idea of a <strong>boost converter</strong> that lifts a low voltage up to 5&nbsp;V</td></tr>
+  </tbody>
+</table>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>library</strong> is a bundle of ready-written code someone else has tested, so you do not have to solve the hard parts yourself. <code>gpiozero</code> hides the fiddly details of GPIO pins; <strong>OpenCV</strong> (the "Open Computer Vision" library) hides the fiddly details of reading and showing video. You <code>import</code> them and call simple commands.</div>
+
+<p>Two of these — <strong>functions</strong> and <strong>loops</strong> — you will use everywhere. Let us warm up with a tiny isolated example before any hardware, so the camera code later feels familiar.</p>
+
+<pre class="code"><code>def buzz_pattern(times):
+    for i in range(times):
+        print(f"buzz {i + 1} of {times}")
+
+buzz_pattern(3)</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>def buzz_pattern(times):</code>:</strong> defines a <strong>function</strong> named <code>buzz_pattern</code> that takes one input (a <em>parameter</em>) called <code>times</code>. The indented lines below are its body and only run when the function is called.</p>
+  <p><strong>Line 2 — <code>for i in range(times):</code>:</strong> a <strong>loop</strong>. <code>range(times)</code> produces the numbers 0, 1, 2&hellip; up to (but not including) <code>times</code>, and the body runs once for each, with <code>i</code> holding the current number.</p>
+  <p><strong>Line 3 — <code>print(f"buzz {i + 1} of {times}")</code>:</strong> an f-string prints a tidy message; we add 1 to <code>i</code> so it counts from 1 for a human reader.</p>
+  <p><strong>Line 5 — <code>buzz_pattern(3)</code>:</strong> <em>calls</em> the function with the value 3, so the loop runs three times. Wrapping repeated steps in a function like this is exactly how we will drive the vibration motor in buzz patterns later.</p>
+</div>
+
+<h2 id="safety-first-the-lithium-ion-talk">Safety First: the Lithium-Ion Talk</h2>
+
+<p>Of everything in a phone, the lithium-ion battery is both the most tempting reuse and by far the most dangerous part. This section is firm on purpose. Read it fully before you so much as pick a cell up. The same iron rule you met in the e-waste lesson applies here, only closer up: <strong>never deform a lithium-ion cell.</strong></p>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>lithium-ion cell</strong> stores a lot of energy in a very small space, separated by a microscopically thin membrane. Damage that membrane &mdash; by a puncture, a bend, a crush, or a short circuit &mdash; and the two sides touch internally. That causes a runaway chemical reaction called <strong>thermal runaway</strong>: the cell heats itself, vents flammable gas, and can catch fire or explode. Swelling (the cell puffing up with gas) is often the warning sign that comes first.</div>
+
+<div class="warn"><strong>Careful &mdash; never use a damaged cell.</strong> If a phone battery is <strong>swollen, bulging, puffy, hot, hissing, leaking, or deformed in any way</strong>, do not use it, do not charge it, and never try to "deflate" it by pressing or piercing it. Put it somewhere non-flammable and take it to a battery recycling point. A swollen cell is a fire that has not happened yet.</div>
+
+<div class="warn"><strong>Careful &mdash; never puncture, bend, crush or short a cell.</strong> Do not cut into it, drop it, drill it, or let its two terminals touch a piece of metal (or each other). Any of these can trigger thermal runaway in seconds. Treat a bare cell with the same respect you would a small petrol container.</div>
+
+<div class="warn"><strong>Careful &mdash; never remove the protection PCB, and always charge attended.</strong> Many phone cells have a small <strong>protection circuit board (PCM)</strong> on their tab that stops dangerous over-charge, over-discharge and short circuit. Never peel it off. When charging a salvaged cell, do it <strong>attended</strong>, on a <strong>non-flammable surface</strong> (a ceramic tile or metal tin, never on a sofa or carpet), and <strong>never overnight or unattended</strong>.</div>
+
+<div class="tip"><strong>Tip &mdash; the responsible default:</strong> for most learners, the genuinely sensible choice is <em>not</em> a bare harvested cell at all, but a <strong>purpose-built Raspberry&nbsp;Pi UPS HAT or an 18650 power-bank UPS module</strong>. These are designed and certified for the job, include proper protection, and are matched to the Pi's power needs. Reuse the harvested cell only if it is in perfect condition and you understand every warning above. There is no shame in choosing the safe, ready-made option &mdash; it is the grown-up move.</div>
+
+<h2 id="reuse-1-the-battery-as-backup-power">Reuse 1 — the Battery as Backup Power</h2>
+
+<p>The dream is simple: power your Pi from a salvaged phone cell, or at least keep it running for a few minutes when the mains drops out. It can be done, but only through the correct chain of parts — and with an honest understanding of its limits.</p>
+
+<p>A single phone cell sits between about <strong>3.0&nbsp;V (empty)</strong> and <strong>4.2&nbsp;V (full)</strong>. The Pi wants a steady <strong>5&nbsp;V</strong>. So we need two helper boards between the cell and the Pi.</p>
+
+<h3>The two boards you need</h3>
+
+<ul>
+  <li>A <strong>TP4056 charging module <em>with protection</em></strong> (the variant with a DW01 + FS8205 protection chip, usually with a USB-C input). It safely charges the cell to 4.2&nbsp;V using a constant-current then constant-voltage profile, and &mdash; crucially &mdash; cuts the load off if the cell is over-discharged or shorted. A <em>plain</em> TP4056 with no protection chip must never be used on a bare cell.</li>
+  <li>A <strong>5&nbsp;V boost converter</strong> (a "step-up" converter). The cell's 3.0&ndash;4.2&nbsp;V is <em>below</em> 5&nbsp;V, so we cannot simply use it; a boost converter lifts the lower voltage up to a steady 5&nbsp;V output.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>boost converter</strong> is a small board that takes a lower input voltage and raises it to a higher, steady output voltage. Think of it as a tiny pump that lifts the pressure up to where the Pi needs it. (Its sibling, a <em>buck</em> converter, lowers voltage instead.)</div>
+
+<figure class="fig">
+<svg viewBox="0 0 660 280" xmlns="http://www.w3.org/2000/svg">
+  <rect width="660" height="280" fill="#f3f0ff" rx="12"/>
+  <text x="330" y="30" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">The battery power path: cell &rarr; TP4056 &rarr; boost &rarr; Pi 5 V</text>
+
+  <!-- Cell -->
+  <rect x="30" y="90" width="110" height="80" fill="#fde68a" stroke="#1f2933" stroke-width="2" rx="8"/>
+  <text x="85" y="124" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">Li-ion cell</text>
+  <text x="85" y="142" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">3.0&ndash;4.2 V</text>
+  <text x="85" y="160" font-family="sans-serif" font-size="10" fill="#991b1b" text-anchor="middle">(keep PCM on)</text>
+
+  <!-- TP4056 -->
+  <rect x="200" y="80" width="120" height="100" fill="#bfdbfe" stroke="#1f2933" stroke-width="2" rx="8"/>
+  <text x="260" y="112" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">TP4056</text>
+  <text x="260" y="130" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">+ protection</text>
+  <text x="260" y="148" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">charge &amp; protect</text>
+  <text x="260" y="166" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">USB-C in</text>
+
+  <!-- Boost -->
+  <rect x="380" y="80" width="120" height="100" fill="#ddd6fe" stroke="#1f2933" stroke-width="2" rx="8"/>
+  <text x="440" y="116" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">5 V boost</text>
+  <text x="440" y="134" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">step-up</text>
+  <text x="440" y="152" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">to steady 5 V</text>
+
+  <!-- Pi -->
+  <rect x="560" y="90" width="80" height="80" fill="#1f2933" rx="8"/>
+  <text x="600" y="126" font-family="sans-serif" font-size="12" fill="#f3f0ff" text-anchor="middle" font-weight="bold">Pi 5</text>
+  <text x="600" y="144" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">5 V in</text>
+
+  <!-- Arrows (red = 5V-ish power path) -->
+  <line x1="140" y1="130" x2="200" y2="130" stroke="#dc2626" stroke-width="3"/>
+  <polygon points="200,130 191,125 191,135" fill="#dc2626"/>
+  <line x1="320" y1="130" x2="380" y2="130" stroke="#dc2626" stroke-width="3"/>
+  <polygon points="380,130 371,125 371,135" fill="#dc2626"/>
+  <line x1="500" y1="130" x2="560" y2="130" stroke="#dc2626" stroke-width="3"/>
+  <polygon points="560,130 551,125 551,135" fill="#dc2626"/>
+
+  <!-- Common ground rail -->
+  <line x1="85" y1="200" x2="600" y2="200" stroke="#374151" stroke-width="3"/>
+  <line x1="85" y1="170" x2="85" y2="200" stroke="#374151" stroke-width="3"/>
+  <line x1="260" y1="180" x2="260" y2="200" stroke="#374151" stroke-width="3"/>
+  <line x1="440" y1="180" x2="440" y2="200" stroke="#374151" stroke-width="3"/>
+  <line x1="600" y1="170" x2="600" y2="200" stroke="#374151" stroke-width="3"/>
+  <text x="330" y="222" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle" font-weight="bold">Common ground (GND) shared by every board</text>
+
+  <text x="330" y="255" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle">Power flows left &rarr; right; the boost makes a steady 5 V for the Pi.</text>
+</svg>
+<figcaption>The only safe power path. The cell charges and is protected by the TP4056, the boost converter lifts its voltage to a steady 5&nbsp;V, and every board shares one common ground. Never connect the bare cell straight to the Pi.</figcaption>
+</figure>
+
+<table class="tbl">
+  <thead>
+    <tr><th>From</th><th>To</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Li-ion cell + tab</td><td>TP4056 <code>B+</code></td><td>The cell's positive terminal (keep its protection PCM attached)</td></tr>
+    <tr><td>Li-ion cell &minus; tab</td><td>TP4056 <code>B-</code></td><td>The cell's negative terminal</td></tr>
+    <tr><td>TP4056 <code>OUT+</code></td><td>Boost converter <code>IN+</code></td><td>Protected output feeds the step-up board</td></tr>
+    <tr><td>TP4056 <code>OUT-</code></td><td>Boost converter <code>IN-</code></td><td>Shared negative (ground)</td></tr>
+    <tr><td>Boost <code>OUT+</code> (set to 5.0&nbsp;V)</td><td>Pi 5&nbsp;V (header pin 2 or a USB-C lead)</td><td>Adjust the boost to 5.0&nbsp;V <em>with a multimeter before</em> connecting the Pi</td></tr>
+    <tr><td>Boost <code>OUT-</code></td><td>Pi GND (e.g. header pin 6)</td><td>Common ground — essential</td></tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> set the boost converter's output to exactly <strong>5.0&nbsp;V using a multimeter on its output terminals <em>before</em> you ever connect it to the Pi</strong>. Many boost boards ship set higher; feeding more than 5&nbsp;V into the Pi can damage it. Also confirm <strong>common ground</strong> across the cell, charger, boost and Pi — without a shared ground the circuit will behave erratically or not at all. And as always: charge attended, on a non-flammable surface.</div>
+
+<div class="warn"><strong>Careful &mdash; the honest Pi-5 caveat.</strong> The Raspberry&nbsp;Pi 5 wants up to <strong>5&nbsp;V at around 5&nbsp;A (25&nbsp;W)</strong> at its busiest, and if it does not detect a proper 5&nbsp;V/5&nbsp;A supply it limits its own USB ports to 600&nbsp;mA. A single salvaged phone cell (only a few watt-hours) feeding a cheap boost converter <strong>simply cannot deliver that peak current</strong> &mdash; under load the voltage sags and the Pi browns out or reboots. This makes a harvested cell suitable only for <strong>light, headless use</strong> (a sensor node with nothing plugged in) or a <strong>short backup</strong> for a graceful shutdown. For anything more, use a <strong>purpose-built Pi 5 UPS HAT</strong> matched to your load. That is the responsible recommendation.</div>
+
+<p>Notice there is no Python code in this reuse: it is pure power wiring, with no GPIO involved. The cell does not talk to your code — it just keeps the lights on. The next two reuses, by contrast, are real GPIO builds with code.</p>
+
+<h2 id="reuse-2-the-vibration-motor">Reuse 2 — the Vibration Motor (Haptics)</h2>
+
+<p>Inside the phone is a tiny <strong>vibration motor</strong> &mdash; the part that makes your phone buzz silently in your pocket. Salvaging it is easy and safe, and it is a lovely way to add <strong>haptics</strong> (touch feedback) to a Pi project: a buzz when a sensor trips, a pattern to signal a notification, a pulse when a button is pressed.</p>
+
+<div class="jargon"><strong>In plain words:</strong> a phone's <strong>vibration motor</strong> is a small DC motor with an off-centre weight on its shaft (an <em>ERM</em>, eccentric rotating mass) or a flat coin-shaped version. When it spins, the lopsided weight throws the whole motor side to side &mdash; that wobble is the buzz you feel.</div>
+
+<p>It is still a motor, and that means the same firm rule you met when driving a speaker applies here: <strong>never connect a motor straight to a GPIO pin.</strong> A motor pulls far more current than a pin can safely give, and worse, when its coil switches off it kicks back a sharp voltage spike that can destroy the pin. We protect the Pi with three cheap parts.</p>
+
+<ul>
+  <li>An <strong>NPN transistor</strong> (a 2N2222/PN2222A or a BC548) acting as a low-side switch &mdash; the tiny GPIO signal controls a much bigger current.</li>
+  <li>A <strong>base resistor</strong> (about 470&nbsp;&Omega;, anything from 330&nbsp;&Omega; to 1&nbsp;k&Omega; is fine) between the GPIO pin and the transistor's base, to limit the small control current.</li>
+  <li>A <strong>flyback diode</strong> (a 1N4001) across the motor &mdash; mandatory &mdash; to soak up that switch-off voltage spike.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words:</strong> a <strong>transistor</strong> is an electronic switch with no moving parts: a small current into its <em>base</em> lets a much larger current flow through it. A <strong>flyback diode</strong> is a one-way valve placed across a motor (or any coil) that gives the switch-off voltage spike a safe loop to die away in, instead of blasting back into your circuit.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 620 320" xmlns="http://www.w3.org/2000/svg">
+  <rect width="620" height="320" fill="#f3f0ff" rx="12"/>
+  <text x="310" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">Driving a salvaged vibration motor with an NPN transistor</text>
+
+  <!-- Pi header -->
+  <rect x="20" y="70" width="90" height="170" fill="#1f2933" rx="6"/>
+  <text x="65" y="62" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
+  <rect x="24" y="100" width="16" height="12" fill="#6d28d9" rx="2"/>
+  <text x="44" y="111" font-family="sans-serif" font-size="10" fill="#f3f0ff">GPIO 17 (pin 11)</text>
+  <rect x="24" y="150" width="16" height="12" fill="#dc2626" rx="2"/>
+  <text x="44" y="161" font-family="sans-serif" font-size="10" fill="#f3f0ff">5 V (pin 2)</text>
+  <rect x="24" y="200" width="16" height="12" fill="#374151" rx="2"/>
+  <text x="44" y="211" font-family="sans-serif" font-size="10" fill="#9ca3af">GND (pin 6)</text>
+
+  <!-- base resistor -->
+  <line x1="40" y1="106" x2="180" y2="106" stroke="#6d28d9" stroke-width="3"/>
+  <rect x="180" y="98" width="44" height="16" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
+  <text x="202" y="90" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">470 &Omega;</text>
+  <line x1="224" y1="106" x2="300" y2="106" stroke="#6d28d9" stroke-width="3"/>
+
+  <!-- transistor -->
+  <circle cx="320" cy="180" r="34" fill="#e8e4d9" stroke="#1f2933" stroke-width="2"/>
+  <text x="320" y="184" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">NPN</text>
+  <text x="320" y="232" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">2N2222</text>
+  <!-- base wire to transistor -->
+  <line x1="300" y1="106" x2="300" y2="180" stroke="#6d28d9" stroke-width="3"/>
+  <line x1="300" y1="180" x2="290" y2="180" stroke="#6d28d9" stroke-width="3"/>
+  <text x="286" y="174" font-family="sans-serif" font-size="9" fill="#6d28d9" text-anchor="end">base</text>
+  <!-- collector up to motor -->
+  <line x1="335" y1="155" x2="335" y2="120" stroke="#374151" stroke-width="3"/>
+  <text x="352" y="150" font-family="sans-serif" font-size="9" fill="#374151">collector</text>
+  <!-- emitter to GND -->
+  <line x1="320" y1="214" x2="320" y2="250" stroke="#374151" stroke-width="3"/>
+  <line x1="320" y1="250" x2="40" y2="250" stroke="#374151" stroke-width="3"/>
+  <line x1="40" y1="250" x2="40" y2="206" stroke="#374151" stroke-width="3"/>
+  <text x="338" y="240" font-family="sans-serif" font-size="9" fill="#374151">emitter</text>
+
+  <!-- motor -->
+  <circle cx="430" cy="110" r="28" fill="#fca5a5" stroke="#1f2933" stroke-width="2"/>
+  <text x="430" y="106" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">M</text>
+  <text x="430" y="122" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">motor</text>
+  <!-- motor top to 5V -->
+  <line x1="430" y1="82" x2="430" y2="62" stroke="#dc2626" stroke-width="3"/>
+  <line x1="430" y1="62" x2="40" y2="62" stroke="#dc2626" stroke-width="3"/>
+  <line x1="40" y1="62" x2="40" y2="156" stroke="#dc2626" stroke-width="3"/>
+  <!-- motor bottom to collector node -->
+  <line x1="430" y1="138" x2="430" y2="160" stroke="#374151" stroke-width="3"/>
+  <line x1="430" y1="160" x2="335" y2="160" stroke="#374151" stroke-width="3"/>
+  <line x1="335" y1="160" x2="335" y2="120" stroke="#374151" stroke-width="3"/>
+
+  <!-- flyback diode across motor -->
+  <line x1="500" y1="62" x2="500" y2="160" stroke="#0ea5a4" stroke-width="3"/>
+  <line x1="500" y1="62" x2="430" y2="62" stroke="#0ea5a4" stroke-width="3"/>
+  <line x1="500" y1="160" x2="430" y2="160" stroke="#0ea5a4" stroke-width="3"/>
+  <polygon points="494,118 506,118 500,106" fill="#0ea5a4"/>
+  <line x1="492" y1="106" x2="508" y2="106" stroke="#0ea5a4" stroke-width="2"/>
+  <text x="558" y="114" font-family="sans-serif" font-size="10" fill="#0ea5a4" text-anchor="middle">flyback</text>
+  <text x="558" y="127" font-family="sans-serif" font-size="10" fill="#0ea5a4" text-anchor="middle">1N4001</text>
+</svg>
+<figcaption>The GPIO pin pulses the transistor's base through a 470&nbsp;&Omega; resistor; the transistor switches the bigger 5&nbsp;V motor current on and off. The flyback diode (band toward 5&nbsp;V) absorbs the switch-off spike. The Pi never carries the motor's current.</figcaption>
+</figure>
+
+<table class="tbl">
+  <thead>
+    <tr><th>From</th><th>To</th><th>Wire / part</th><th>Why</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GPIO 17 (pin 11)</td><td>470&nbsp;&Omega; resistor &rarr; transistor base</td><td>Purple via resistor</td><td>Small, safe control signal; the resistor limits base current and protects the pin</td></tr>
+    <tr><td>Transistor emitter</td><td>GND (pin 6)</td><td>Grey</td><td>The return path; this is a "low-side" switch</td></tr>
+    <tr><td>Transistor collector</td><td>Motor &minus; terminal</td><td>Grey</td><td>The transistor sinks the motor's current to ground</td></tr>
+    <tr><td>Motor + terminal</td><td>5&nbsp;V (pin 2)</td><td>Red</td><td>The motor is powered from 5&nbsp;V, not from the pin</td></tr>
+    <tr><td>Diode across motor (band &rarr; 5&nbsp;V side)</td><td>—</td><td>1N4001</td><td>Soaks up the inductive spike when the motor switches off — mandatory</td></tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> power off and unplug the Pi before wiring, and only re-power once you have double-checked every connection. Get the <strong>diode the right way round</strong> — its silver band must point toward the 5&nbsp;V side; backwards it shorts your supply. And check the transistor's leg order against its datasheet: the 2N2222 and BC548 number their emitter, base and collector legs differently, and a swapped leg is the commonest reason the motor stays still.</div>
+
+<h3>The code: buzz patterns</h3>
+
+<p>From the Pi's point of view, this is just one GPIO line going on and off — exactly like blinking an LED. The transistor and 5&nbsp;V supply quietly turn that into a buzzing motor. We will use <code>gpiozero</code>'s <code>DigitalOutputDevice</code> for simple on/off buzzes, then upgrade to <code>PWMOutputDevice</code> for adjustable intensity.</p>
+
+<pre class="code"><code>from gpiozero import DigitalOutputDevice
+from time import sleep
+
+motor = DigitalOutputDevice(17)
+
+def buzz(times, length=0.2, gap=0.15):
+    for i in range(times):
+        motor.on()
+        sleep(length)
+        motor.off()
+        sleep(gap)
+
+buzz(3)          # three short buzzes
+sleep(0.6)
+buzz(1, length=0.8)   # one long buzz</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import DigitalOutputDevice</code>:</strong> imports a simple on/off output object from the preinstalled <code>gpiozero</code> library. Unlike <code>LED</code>, the name <code>DigitalOutputDevice</code> makes clear this is a general output, here switching a transistor.</p>
+  <p><strong>Line 2 — <code>from time import sleep</code>:</strong> brings in <code>sleep()</code>, which pauses the program for a given number of seconds — how we set the length of each buzz.</p>
+  <p><strong>Line 4 — <code>motor = DigitalOutputDevice(17)</code>:</strong> creates the output object on GPIO 17 (physical pin 11). Setting it HIGH sends the small base current that switches the transistor — and the motor — on.</p>
+  <p><strong>Line 6 — <code>def buzz(times, length=0.2, gap=0.15):</code>:</strong> defines a <strong>function</strong> for a buzz pattern. <code>times</code> is how many buzzes; <code>length</code> and <code>gap</code> have <em>default values</em>, so you can call <code>buzz(3)</code> and still get sensible timing, or override them.</p>
+  <p><strong>Line 7 — <code>for i in range(times):</code>:</strong> a <strong>loop</strong> that repeats the buzz the requested number of times.</p>
+  <p><strong>Lines 8&ndash;11 — <code>motor.on()</code> / <code>sleep(length)</code> / <code>motor.off()</code> / <code>sleep(gap)</code>:</strong> turn the motor on, hold it for <code>length</code> seconds, turn it off, then pause for <code>gap</code> seconds before the next buzz.</p>
+  <p><strong>Lines 13&ndash;15 — the calls:</strong> <code>buzz(3)</code> gives three short buzzes; after a pause, <code>buzz(1, length=0.8)</code> gives one long one — by passing a different <code>length</code> we reuse the same function for a new pattern. That is the payoff of writing a function.</p>
+</div>
+
+<p>To control the <em>strength</em> of the buzz rather than just on/off, swap to PWM. <strong>PWM</strong> (pulse-width modulation) switches the pin on and off thousands of times a second; the fraction of time it is on (the "duty cycle", 0 to 1) sets the average power, and so the motor's speed.</p>
+
+<pre class="code"><code>from gpiozero import PWMOutputDevice
+from time import sleep
+
+motor = PWMOutputDevice(17)
+
+for level in (0.4, 0.7, 1.0):
+    motor.value = level
+    sleep(0.5)
+
+motor.off()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import PWMOutputDevice</code>:</strong> imports the PWM-capable output object, which can hold any level between fully off and fully on.</p>
+  <p><strong>Line 4 — <code>motor = PWMOutputDevice(17)</code>:</strong> creates the PWM object on the same GPIO 17 driving the transistor.</p>
+  <p><strong>Line 6 — <code>for level in (0.4, 0.7, 1.0):</code>:</strong> loops over three intensity levels — a gentle 40%, a firmer 70%, then full power.</p>
+  <p><strong>Line 7 — <code>motor.value = level</code>:</strong> sets the duty cycle. At <code>0.4</code> the pin is on 40% of the time, so the motor gets roughly 40% of full power and buzzes more softly.</p>
+  <p><strong>Line 8 — <code>sleep(0.5)</code>:</strong> holds each level for half a second so you can feel the difference.</p>
+  <p><strong>Line 10 — <code>motor.off()</code>:</strong> stops the motor cleanly at the end.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> a very small ERM motor may not turn at all below a certain level (say 0.3) because there is not enough power to overcome friction. Experiment to find the lowest level that reliably starts <em>your</em> salvaged motor, and start each pattern at or above it.</div>
+
+<h2 id="reuse-3-the-loudspeaker">Reuse 3 — the Loudspeaker</h2>
+
+<p>The phone's tiny loudspeaker is genuinely reusable — but with an important catch you must know about the Pi 5. <strong>The Raspberry&nbsp;Pi 5 has no analog headphone jack.</strong> Earlier Pis had a 3.5&nbsp;mm socket; the Pi 5 removed it. Audio now comes only over <strong>HDMI</strong>, <strong>USB</strong>, <strong>Bluetooth</strong>, or the <strong>I&sup2;S</strong> digital audio pins on the GPIO header. So you cannot simply solder a speaker to an audio jack — there is not one.</p>
+
+<div class="warn"><strong>Careful &mdash; a common myth.</strong> Any tutorial that tells you to wire a speaker to the Pi 5's "audio jack" is out of date: the Pi 5 has none. Ignore that advice. We will use the modern, clean route instead: a small digital amplifier on the I&sup2;S pins.</div>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>I&sup2;S</strong> (Inter-IC Sound) is a digital audio "language" spoken over a few GPIO pins. The Pi sends the sound as numbers; a small amplifier board turns those numbers into the analog waveform a speaker needs. A <strong>class-D amplifier</strong> does this very efficiently by rapidly switching, so it stays cool and sips power.</div>
+
+<p>The recommended board is the <strong>MAX98357A</strong> — a tiny, cheap I&sup2;S class-D mono amplifier that connects directly to the GPIO header and drives a small 8&nbsp;&Omega; speaker at up to about 1.8&nbsp;W from 5&nbsp;V. It needs only four signal connections plus power.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 620 300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="620" height="300" fill="#f3f0ff" rx="12"/>
+  <text x="310" y="28" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">MAX98357A I&sup2;S amplifier &rarr; salvaged 8 &Omega; speaker</text>
+
+  <!-- Pi header -->
+  <rect x="20" y="60" width="100" height="200" fill="#1f2933" rx="6"/>
+  <text x="70" y="52" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">GPIO Header</text>
+  <rect x="24" y="80" width="14" height="11" fill="#dc2626" rx="2"/>
+  <text x="42" y="89" font-family="sans-serif" font-size="9" fill="#f3f0ff">5 V (pin 2)</text>
+  <rect x="24" y="104" width="14" height="11" fill="#374151" rx="2"/>
+  <text x="42" y="113" font-family="sans-serif" font-size="9" fill="#9ca3af">GND (pin 6)</text>
+  <rect x="24" y="128" width="14" height="11" fill="#0ea5a4" rx="2"/>
+  <text x="42" y="137" font-family="sans-serif" font-size="9" fill="#f3f0ff">GPIO 18 (BCLK)</text>
+  <rect x="24" y="152" width="14" height="11" fill="#0ea5a4" rx="2"/>
+  <text x="42" y="161" font-family="sans-serif" font-size="9" fill="#f3f0ff">GPIO 19 (LRC)</text>
+  <rect x="24" y="176" width="14" height="11" fill="#0ea5a4" rx="2"/>
+  <text x="42" y="185" font-family="sans-serif" font-size="9" fill="#f3f0ff">GPIO 21 (DIN)</text>
+
+  <!-- Amp board -->
+  <rect x="300" y="70" width="150" height="170" fill="#bbf7d0" stroke="#1f2933" stroke-width="2" rx="8"/>
+  <text x="375" y="98" font-family="sans-serif" font-size="12" fill="#1f2933" text-anchor="middle" font-weight="bold">MAX98357A</text>
+  <text x="312" y="124" font-family="sans-serif" font-size="10" fill="#1f2933">VIN</text>
+  <text x="312" y="146" font-family="sans-serif" font-size="10" fill="#1f2933">GND</text>
+  <text x="312" y="168" font-family="sans-serif" font-size="10" fill="#1f2933">BCLK</text>
+  <text x="312" y="190" font-family="sans-serif" font-size="10" fill="#1f2933">LRC</text>
+  <text x="312" y="212" font-family="sans-serif" font-size="10" fill="#1f2933">DIN</text>
+  <text x="438" y="124" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="end">SD</text>
+  <text x="438" y="190" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="end">+</text>
+  <text x="438" y="212" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="end">&minus;</text>
+
+  <!-- wires Pi -> amp -->
+  <line x1="38" y1="85" x2="300" y2="120" stroke="#dc2626" stroke-width="2.5"/>
+  <line x1="38" y1="109" x2="300" y2="142" stroke="#374151" stroke-width="2.5"/>
+  <line x1="38" y1="133" x2="300" y2="164" stroke="#0ea5a4" stroke-width="2.5"/>
+  <line x1="38" y1="157" x2="300" y2="186" stroke="#0ea5a4" stroke-width="2.5"/>
+  <line x1="38" y1="181" x2="300" y2="208" stroke="#0ea5a4" stroke-width="2.5"/>
+  <!-- SD to 5V -->
+  <line x1="450" y1="120" x2="490" y2="120" stroke="#dc2626" stroke-width="2.5"/>
+  <line x1="490" y1="120" x2="490" y2="55" stroke="#dc2626" stroke-width="2.5"/>
+  <line x1="490" y1="55" x2="31" y2="55" stroke="#dc2626" stroke-width="2.5"/>
+  <line x1="31" y1="55" x2="31" y2="80" stroke="#dc2626" stroke-width="2.5"/>
+  <text x="470" y="48" font-family="sans-serif" font-size="9" fill="#dc2626">SD &rarr; 5 V (un-mute)</text>
+
+  <!-- speaker -->
+  <rect x="520" y="150" width="80" height="80" fill="#374151" rx="8" stroke="#1f2933" stroke-width="2"/>
+  <circle cx="560" cy="190" r="26" fill="#9ca3af" stroke="#1f2933" stroke-width="2"/>
+  <circle cx="560" cy="190" r="10" fill="#374151"/>
+  <text x="560" y="246" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">8 &Omega; speaker</text>
+  <!-- amp -> speaker -->
+  <line x1="450" y1="186" x2="520" y2="178" stroke="#1f2933" stroke-width="2.5"/>
+  <line x1="450" y1="208" x2="520" y2="205" stroke="#1f2933" stroke-width="2.5"/>
+</svg>
+<figcaption>The MAX98357A takes I&sup2;S audio from GPIO 18/19/21, powers from 5&nbsp;V and GND, and drives the salvaged 8&nbsp;&Omega; speaker from its + and &minus; outputs. Tying SD to 5&nbsp;V keeps the amp un-muted.</figcaption>
+</figure>
+
+<table class="tbl">
+  <thead>
+    <tr><th>MAX98357A pin</th><th>Pi connection</th><th>Why</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>VIN</code></td><td>5&nbsp;V (pin 2)</td><td>Powers the amplifier</td></tr>
+    <tr><td><code>GND</code></td><td>GND (pin 6)</td><td>Common ground with the Pi</td></tr>
+    <tr><td><code>BCLK</code></td><td>GPIO 18 (pin 12)</td><td>Bit clock — the I&sup2;S timing signal</td></tr>
+    <tr><td><code>LRC</code></td><td>GPIO 19 (pin 35)</td><td>Left/right word-select clock</td></tr>
+    <tr><td><code>DIN</code></td><td>GPIO 21 (pin 40)</td><td>The audio data itself</td></tr>
+    <tr><td><code>SD</code></td><td>5&nbsp;V (or a GPIO to mute)</td><td>Shutdown pin; high = the amp is on. Tie to 5&nbsp;V to keep it playing</td></tr>
+    <tr><td>Speaker + / &minus;</td><td>Salvaged 8&nbsp;&Omega; speaker</td><td>The amplified mono output</td></tr>
+  </tbody>
+</table>
+
+<h3>Enable I&sup2;S, then play a sound</h3>
+
+<p>The MAX98357A needs the Pi's I&sup2;S audio output switched on with a small device-tree overlay. On Raspberry&nbsp;Pi OS Bookworm, edit the firmware config and reboot:</p>
+
+<pre class="code"><code>sudo nano /boot/firmware/config.txt</code></pre>
+<div class="explain">
+  <p><strong><code>sudo nano /boot/firmware/config.txt</code>:</strong> opens the Pi's firmware configuration file in the <code>nano</code> text editor with administrator rights (<code>sudo</code>). On Bookworm this file lives at <code>/boot/firmware/config.txt</code> (older guides may say <code>/boot/config.txt</code>).</p>
+</div>
+
+<p>Find the line <code>dtparam=audio=on</code> and put a <code>#</code> in front of it to disable the old analog audio, then add the I&sup2;S overlay on a new line at the end of the file:</p>
+
+<pre class="code"><code>#dtparam=audio=on
+dtoverlay=hifiberry-dac</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>#dtparam=audio=on</code>:</strong> the leading <code>#</code> comments out (disables) the built-in audio so it does not clash with our I&sup2;S amplifier.</p>
+  <p><strong>Line 2 — <code>dtoverlay=hifiberry-dac</code>:</strong> loads a generic I&sup2;S DAC overlay. The MAX98357A is electrically compatible with this widely-used overlay, so the Pi presents it as a normal sound card after a reboot. Save with <kbd>Ctrl+O</kbd>, exit with <kbd>Ctrl+X</kbd>, then run <code>sudo reboot</code>.</p>
+</div>
+
+<p>After rebooting, the amplifier appears as a normal audio device, so you can play sounds the ordinary way. Here is a tiny Python program that plays a WAV file by calling the system's <code>aplay</code> tool:</p>
+
+<pre class="code"><code>import subprocess
+
+def play(path):
+    subprocess.run(["aplay", path])
+
+play("/usr/share/sounds/alsa/Front_Center.wav")</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>import subprocess</code>:</strong> imports Python's <code>subprocess</code> module, which lets your program run other command-line programs and wait for them to finish.</p>
+  <p><strong>Line 3 — <code>def play(path):</code>:</strong> wraps the playback in a <strong>function</strong> so you can reuse it for any file by name.</p>
+  <p><strong>Line 4 — <code>subprocess.run(["aplay", path])</code>:</strong> runs the <code>aplay</code> command (the ALSA WAV player that ships with Raspberry&nbsp;Pi OS), passing the file path as its argument. Giving the command as a list of separate strings is the safe way to call external programs.</p>
+  <p><strong>Line 6 — <code>play(...)</code>:</strong> calls the function with a test sound that comes preinstalled, so you can confirm the amp works before supplying your own audio.</p>
+</div>
+
+<div class="note"><strong>Note &mdash; be honest about the speaker.</strong> A salvaged phone speaker is a tiny driver: it is usually <strong>8&nbsp;&Omega;</strong> but rated only a fraction of a watt, with little bass and a modest maximum volume. The MAX98357A can output up to about 1.8&nbsp;W, so do not drive it hard or you will hear distortion (and may damage the little driver). It is perfect for beeps, spoken alerts and gentle tunes — not for filling a room.</div>
+
+<div class="tip"><strong>Tip:</strong> if you would rather use an <strong>analog</strong> amplifier such as a <strong>PAM8302</strong>, feed it from a cheap USB sound card (the Pi 5 has no analog line-out of its own). Analog amps are simple but can "pop" at start-up and pick up more noise; the I&sup2;S route above is cleaner for most projects.</div>
+
+<h2 id="reuse-4-the-whole-phone-as-a-wireless-camera">Reuse 4 — the Whole Phone as a Wireless Camera</h2>
+
+<p>This is the big one — the reuse that makes the whole chapter worthwhile. You cannot harvest the phone's <em>camera module</em>, but you absolutely can use the phone's camera by leaving it exactly where it is, inside the working phone, and reading its video <strong>over Wi-Fi</strong>. This sidesteps every proprietary connector and missing-driver problem in one stroke.</p>
+
+<p>The trick: install a free <strong>IP-webcam app</strong> on the phone (popular ones are <em>IP Webcam</em>, <em>DroidCam</em>, or <em>Iriun</em>). The app turns the phone into a little web server that streams its camera over your home network. Your Pi then reads that stream with <strong>OpenCV</strong>, the standard computer-vision library, in just a couple of lines.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="250" fill="#f3f0ff" rx="12"/>
+  <text x="320" y="30" font-family="sans-serif" font-size="15" font-weight="bold" fill="#1f2933" text-anchor="middle">The whole phone as a wireless camera</text>
+
+  <!-- Phone -->
+  <rect x="40" y="70" width="90" height="150" fill="#1f2933" rx="12"/>
+  <rect x="50" y="86" width="70" height="110" fill="#60a5fa" rx="4"/>
+  <circle cx="85" cy="208" r="6" fill="#9ca3af"/>
+  <circle cx="60" cy="80" r="3" fill="#9ca3af"/>
+  <text x="85" y="146" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">IP Webcam</text>
+  <text x="85" y="240" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Phone (camera on)</text>
+
+  <!-- Wi-Fi router -->
+  <rect x="270" y="110" width="100" height="60" fill="#ddd6fe" stroke="#1f2933" stroke-width="2" rx="8"/>
+  <text x="320" y="138" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">Wi-Fi</text>
+  <text x="320" y="156" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">router</text>
+  <line x1="310" y1="110" x2="310" y2="92" stroke="#1f2933" stroke-width="2"/>
+  <line x1="330" y1="110" x2="330" y2="92" stroke="#1f2933" stroke-width="2"/>
+
+  <!-- Pi -->
+  <rect x="500" y="90" width="110" height="100" fill="#1f2933" rx="10"/>
+  <text x="555" y="130" font-family="sans-serif" font-size="13" fill="#f3f0ff" text-anchor="middle" font-weight="bold">Pi 5</text>
+  <text x="555" y="150" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">OpenCV reads</text>
+  <text x="555" y="164" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">the stream</text>
+
+  <!-- Wi-Fi waves phone->router -->
+  <path d="M150 120 q 25 -20 50 0" stroke="#0ea5a4" stroke-width="2.5" fill="none"/>
+  <path d="M155 132 q 30 -26 60 0" stroke="#0ea5a4" stroke-width="2.5" fill="none"/>
+  <text x="200" y="170" font-family="sans-serif" font-size="10" fill="#0ea5a4" text-anchor="middle">MJPEG stream</text>
+
+  <!-- Wi-Fi waves router->pi -->
+  <path d="M390 120 q 25 -20 50 0" stroke="#0ea5a4" stroke-width="2.5" fill="none"/>
+  <path d="M395 132 q 30 -26 60 0" stroke="#0ea5a4" stroke-width="2.5" fill="none"/>
+  <text x="455" y="200" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">http://PHONE-IP:8080/video</text>
+</svg>
+<figcaption>The phone runs an IP-webcam app and streams its camera over Wi-Fi; the Pi reads the stream with OpenCV at a URL like <code>http://PHONE-IP:8080/video</code>. No connectors, no drivers — just the network.</figcaption>
+</figure>
+
+<h3>Install OpenCV the Bookworm way</h3>
+
+<p>OpenCV is not preinstalled. Because Bookworm protects the system Python (the PEP&nbsp;668 rule you met earlier), install it inside a <strong>virtual environment</strong>:</p>
+
+<pre class="code"><code>python3 -m venv ~/cvenv
+source ~/cvenv/bin/activate
+pip install opencv-python</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>python3 -m venv ~/cvenv</code>:</strong> creates a private, self-contained Python environment in a folder called <code>cvenv</code> in your home folder, so anything you install stays separate from the system Python.</p>
+  <p><strong>Line 2 — <code>source ~/cvenv/bin/activate</code>:</strong> switches your terminal into that environment; your prompt gains a <code>(cvenv)</code> prefix. Now <code>pip</code> installs inside the venv.</p>
+  <p><strong>Line 3 — <code>pip install opencv-python</code>:</strong> downloads and installs OpenCV into the venv, with no PEP&nbsp;668 error because you are no longer touching the system Python. (As a quicker alternative you can run <code>sudo apt install python3-opencv</code> system-wide.)</p>
+</div>
+
+<h3>The frame-capture loop</h3>
+
+<p>Now the heart of computer vision: a <strong>frame-capture loop</strong>. Video is just a fast sequence of still images called <em>frames</em>. We open the stream once, then loop forever, reading one frame at a time and doing something with it (here, showing it in a window).</p>
+
+<pre class="code"><code>import cv2
+
+cap = cv2.VideoCapture("http://PHONE-IP:8080/video")
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        print("No frame - is the phone app running?")
+        break
+    cv2.imshow("Phone camera", frame)
+    if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+        break
+
+cap.release()
+cv2.destroyAllWindows()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>import cv2</code>:</strong> imports OpenCV. The module is named <code>cv2</code> for historical reasons; it is the external <strong>library</strong> that does all the heavy video work for us.</p>
+  <p><strong>Line 3 — <code>cap = cv2.VideoCapture("http://PHONE-IP:8080/video")</code>:</strong> opens the phone's video stream. Replace <code>PHONE-IP</code> with the address the app shows (for example <code>192.168.1.42</code>); the IP&nbsp;Webcam app serves its MJPEG stream at the <code>/video</code> path on port 8080.</p>
+  <p><strong>Line 5 — <code>while True:</code>:</strong> the <strong>frame-capture loop</strong> — it repeats forever until we deliberately <code>break</code> out of it.</p>
+  <p><strong>Line 6 — <code>ret, frame = cap.read()</code>:</strong> grabs the next frame. <code>read()</code> hands back two things: <code>ret</code>, a True/False saying whether a frame arrived, and <code>frame</code>, the image itself (a grid of pixels).</p>
+  <p><strong>Lines 7&ndash;9 — <code>if not ret:</code>:</strong> if no frame came through (the app stopped, the phone locked, or the network dropped), print a friendly message and leave the loop instead of crashing.</p>
+  <p><strong>Line 10 — <code>cv2.imshow("Phone camera", frame)</code>:</strong> shows the frame in a window titled "Phone camera". Each pass of the loop replaces it, so the stills blur into smooth video.</p>
+  <p><strong>Line 11 — <code>if cv2.waitKey(1) &amp; 0xFF == ord("q"):</code>:</strong> waits 1&nbsp;millisecond for a key press; if you press <kbd>q</kbd>, it breaks the loop. This also gives the window time to redraw — without a <code>waitKey</code> the image never appears.</p>
+  <p><strong>Lines 14&ndash;15 — <code>cap.release()</code> / <code>cv2.destroyAllWindows()</code>:</strong> tidy up after the loop: free the stream and close the window. Always release the capture when you are done.</p>
+</div>
+
+<p>Once you have frames flowing, you can do far more than display them. A small tweak saves a snapshot to disk instead of showing it:</p>
+
+<pre class="code"><code>import cv2
+
+cap = cv2.VideoCapture("http://PHONE-IP:8080/video")
+ret, frame = cap.read()
+if ret:
+    cv2.imwrite("snapshot.jpg", frame)
+    print("Saved snapshot.jpg")
+cap.release()</code></pre>
+<div class="explain">
+  <p><strong>Line 4 — <code>ret, frame = cap.read()</code>:</strong> grabs a single frame (no loop this time).</p>
+  <p><strong>Lines 5&ndash;7 — <code>if ret: cv2.imwrite("snapshot.jpg", frame)</code>:</strong> if a frame arrived, <code>cv2.imwrite</code> writes it to disk as a JPEG image, and we print a confirmation. This is the basis of a time-lapse or a doorbell snapshot.</p>
+  <p><strong>Line 8 — <code>cap.release()</code>:</strong> frees the stream straight away, since we only needed one frame.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> these very same <code>frame</code> images can be fed to the AI vision and object-detection code from the earlier chapters &mdash; the phone simply becomes the eyes. Wherever those chapters used a Pi camera, you can hand them frames from this stream instead.</div>
+
+<div class="warn"><strong>Careful &mdash; the real-world gotchas.</strong> Free app tiers often cap the resolution (commonly 640&times;480). Android may stop the camera when the screen <strong>locks or the app goes to the background</strong>, so keep the app in the foreground and the screen awake (and ideally the phone on charge). Usually only <strong>one</strong> program can read the stream at a time. And of course the phone and Pi must be on the <strong>same Wi-Fi network</strong>.</div>
+
+<h2 id="other-useful-bits">Other Useful Bits</h2>
+
+<p>Beyond the four headline reuses, a phone yields a few smaller treasures worth pocketing.</p>
+
+<ul>
+  <li><strong>The microSD card</strong> — if the phone has a card slot, that card is a completely standard removable card. Pop it into the Pi's slot (after backing up anything you want to keep). It is the one piece of phone "storage" that genuinely transfers.</li>
+  <li><strong>The buttons</strong> — the volume and power buttons are simple momentary switches. Desoldered (carefully), each can become a <code>Button</code> GPIO input with gpiozero's internal pull-up, exactly like the push button you wired earlier.</li>
+  <li><strong>The USB-C port and cables</strong> — ready-made 5&nbsp;V power leads and data cables. A phone charger cable is perfect for powering a project (just never open the charger <em>brick</em> — that is mains-side and dangerous, as the e-waste lesson warned).</li>
+  <li><strong>The glass back and metal frame</strong> — surprisingly handsome raw material for a project enclosure. A salvaged frame makes a slim, sturdy case for a small Pi build.</li>
+</ul>
+
+<p>Here is the button reuse in code &mdash; identical to wiring any tactile switch, because electrically that is all a phone button is:</p>
+
+<pre class="code"><code>from gpiozero import Button
+from signal import pause
+
+button = Button(27)
+
+def pressed():
+    print("Salvaged button pressed!")
+
+button.when_pressed = pressed
+pause()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import Button</code>:</strong> imports the <code>Button</code> object, which automatically enables the Pi's internal pull-up resistor so you need no external parts.</p>
+  <p><strong>Line 4 — <code>button = Button(27)</code>:</strong> creates a button on GPIO 27 (physical pin 13). Wire one side of the salvaged switch to this pin and the other to GND.</p>
+  <p><strong>Line 6 — <code>def pressed():</code>:</strong> defines a <strong>function</strong> to run each time the button is pressed.</p>
+  <p><strong>Line 9 — <code>button.when_pressed = pressed</code>:</strong> tells gpiozero to call your <code>pressed</code> function whenever the switch closes. Note there are no parentheses — you hand over the function itself, not its result.</p>
+  <p><strong>Line 10 — <code>pause()</code>:</strong> keeps the program alive and listening for presses.</p>
+</div>
+
+<h2 id="what-you-genuinely-cant-do-and-why">What You Genuinely Can't Do — and Why</h2>
+
+<p>Let us close the loop on the myths, plainly, so you can confidently ignore the misleading tutorials.</p>
+
+<h3>You can't plug the phone camera into the Pi's camera port</h3>
+
+<p>The phone's camera connects over <strong>MIPI CSI-2</strong>, and the Pi's camera port also uses CSI-2 — so it <em>looks</em> like they should mate. They do not. CSI-2 is only the <em>link</em> standard (how the bits travel); it says nothing about the sensor's registers, its image-signal-processor (ISP) tuning, or its physical connector. Phone makers never publish the driver or tuning, and the board-to-board connectors are custom. With no driver and no matching plug, the camera is a dead end on a Pi.</p>
+
+<h3>You can't wire the AMOLED screen to the Pi's display port</h3>
+
+<p>Same story for the screen, which uses <strong>MIPI DSI</strong>. It needs precise power and backlight rails, a per-panel driver, and a tiny high-density connector that does not match the Pi's. Bringing one to life would need a rare, expensive matched driver board — firmly not a beginner project.</p>
+
+<h3>There is no "graphics card" to add to your Pi</h3>
+
+<div class="warn"><strong>Careful &mdash; a popular myth.</strong> You will see claims like "harvest the phone's GPU and add it to your Pi". This is simply impossible. A phone has <strong>no discrete or removable GPU</strong>. The graphics processor is a licensed design (an ARM Mali or Qualcomm Adreno core) <strong>fused permanently into the same piece of silicon as the CPU</strong>, inside the SoC. It cannot be unplugged, transplanted, or "added" to anything. There is literally nothing to remove.</div>
+
+<p>And the soldered <strong>UFS storage</strong>, <strong>RAM</strong> and <strong>modem</strong> are proprietary BGA chips welded to the board — not reusable either. The one storage exception, remember, is a removable <strong>microSD card</strong>.</p>
+
+<h2 id="safety-and-disposal-checklist">Safety &amp; Disposal Checklist</h2>
+
+<p>Run through this list every single time you work with phone parts.</p>
+
+<ol class="steps">
+  <li><strong>Inspect the cell first.</strong> If the battery is swollen, hot, hissing, leaking or deformed, stop — do not use or charge it. Set it aside on a non-flammable surface for recycling.</li>
+  <li><strong>Never deform a cell.</strong> No puncturing, bending, crushing, drilling or shorting, ever. Keep the protection PCB attached.</li>
+  <li><strong>Charge attended.</strong> Salvaged cells charge only while you are present, on a ceramic tile or metal tin, never overnight, never on soft furnishings.</li>
+  <li><strong>Power off before wiring.</strong> Shut down and unplug the Pi before connecting the motor, amplifier or buttons; only re-power after a careful check.</li>
+  <li><strong>Mind static.</strong> Touch a metal surface to discharge yourself before handling bare boards and salvaged parts — static can quietly kill electronics. (This is "ESD", electrostatic discharge.)</li>
+  <li><strong>Never open mains chargers.</strong> Keep the USB-C <em>cable</em>, recycle the <em>brick</em> whole — its mains-side capacitors hold a dangerous charge.</li>
+  <li><strong>Recycle responsibly.</strong> Everything you cannot use — the board, screen, cameras, and especially any damaged battery — goes to a proper WEEE / battery recycling point, never the household bin.</li>
+</ol>
+
+<div class="warn"><strong>Careful:</strong> a damaged lithium cell is the single biggest hazard in this whole chapter. If in any doubt about a battery's condition, do not use it. A purpose-built UPS module is always the safer choice, and there is no project worth a fire.</div>
+
+<h2 id="make-it-your-own">Make It Your Own / Where Next</h2>
+
+<p>You now have four genuine reuses and a clear-eyed view of the rest. Here are concrete ways to combine them into something bigger:</p>
+
+<ul>
+  <li><strong>Give the robot eyes.</strong> Mount the phone on the Pi robot from the earlier chapter and feed its Wi-Fi stream into the navigation code — the phone becomes the robot's high-quality camera, no Pi camera needed.</li>
+  <li><strong>A battery-backed headless server.</strong> Pair a (perfect-condition) cell or, better, a UPS HAT with a headless Pi running a small home server, so a brief power cut triggers a clean, safe shutdown instead of a corrupted card.</li>
+  <li><strong>A doorbell camera.</strong> Combine the snapshot code with the salvaged button and a buzz from the vibration motor: press the button, the Pi grabs a frame from the phone-camera at the door and buzzes you a haptic alert.</li>
+  <li><strong>A talking sensor node.</strong> Use the I&sup2;S speaker to have your Pi announce sensor readings aloud, and the vibration motor as a silent backup alert.</li>
+</ul>
+
+<h2 id="what-youve-learned">What You've Learned</h2>
+
+<p>This was an honest, safety-first salvage lesson. You now know:</p>
+
+<ul>
+  <li>the <strong>honest map</strong> of a phone — that the camera (proprietary MIPI CSI-2), AMOLED screen (MIPI DSI), the non-existent removable "GPU" (fused in the SoC), and the soldered SoC/RAM/UFS/modem are <strong>not practically reusable</strong>, and exactly why;</li>
+  <li>the genuine reuses — the <strong>microSD card</strong>, the <strong>Li-ion battery</strong> (via a protected TP4056 charger and a 5&nbsp;V boost converter, with the honest Pi-5 peak-current caveat), the <strong>vibration motor</strong> (NPN transistor + base resistor + flyback diode), the <strong>loudspeaker</strong> (I&sup2;S MAX98357A, because the Pi 5 has no analog jack), the <strong>buttons</strong>, and the best of all, <strong>the whole phone as a Wi-Fi camera</strong> read with OpenCV;</li>
+  <li>the Python fundamentals — <strong>functions</strong>, <strong>loops</strong>, <strong>using external libraries</strong> (<code>gpiozero</code> and OpenCV), and a <strong>frame-capture loop</strong>;</li>
+  <li>the electronics fundamentals — <strong>lithium-ion safety &amp; charging</strong>, the <strong>transistor motor driver with a flyback diode</strong>, a <strong>class-D I&sup2;S amplifier</strong>, and a <strong>boost converter</strong>;</li>
+  <li>and the rule that outranks them all: <strong>never deform a lithium-ion cell</strong>, charge attended, and choose a purpose-built UPS when in doubt.</li>
+</ul>
+
+<p>That dead phone in the drawer was never a parts bin you could plug straight into a Pi — but with the right respect and the right helper boards, a few of its parts, and the whole device as a camera, can genuinely live again.</p>

@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch26",
+  "title": "The Salvaged Sound Machine",
+  "questions": [
+    {
+      "q": "Why can a passive buzzer play a tune, but an active buzzer cannot?",
+      "choices": [
+        "A passive buzzer is louder, so its notes are easier to hear",
+        "An active buzzer has its own oscillator and only makes one fixed beep, while a passive buzzer plays whatever frequency you drive it at",
+        "An active buzzer needs 5 V, which carries more musical information",
+        "A passive buzzer contains a tiny pre-recorded song chip"
+      ],
+      "answer": 1,
+      "explain": "An active buzzer generates its own single fixed pitch and can only be switched on and off. A passive buzzer has no oscillator, so the Pi controls the frequency directly with PWM — which is what lets it play any note."
+    },
+    {
+      "q": "In the dictionary NOTES = {\"C4\": 262, \"A4\": 440}, what does NOTES[\"A4\"] return?",
+      "choices": [
+        "The position 1, because A4 is the second item",
+        "Both 262 and 440 as a list",
+        "440, the frequency mapped to the key \"A4\"",
+        "An error, because dictionaries cannot be looked up by name"
+      ],
+      "answer": 2,
+      "explain": "A dictionary maps each key to a value, and you look up a value by its key. NOTES[\"A4\"] hands back 440 — the frequency paired with the note name \"A4\" — no position counting needed."
+    },
+    {
+      "q": "What does PWM (Pulse-Width Modulation) do to make a passive buzzer play a note?",
+      "choices": [
+        "It raises the GPIO voltage above 3.3 V to push the buzzer harder",
+        "It switches the pin on and off very fast; the number of cycles per second sets the pitch",
+        "It sends an audio file down the wire as data",
+        "It slowly fades the pin from 0 V up to 3.3 V"
+      ],
+      "answer": 1,
+      "explain": "A GPIO pin is only ever HIGH or LOW. PWM switches it on and off rapidly; the frequency (cycles per second) of that switching is exactly the pitch the buzzer vibrates at — 440 cycles per second gives the note A4."
+    },
+    {
+      "q": "Why must a salvaged loudspeaker NOT be wired straight to a GPIO pin?",
+      "choices": [
+        "Speakers only work with 3.3 V, which a GPIO pin cannot supply",
+        "A speaker can draw far more current than a pin's ~16 mA limit and its inductive kickback can damage the pin, so it needs a transistor driver",
+        "GPIO pins cannot switch fast enough to make a speaker move",
+        "The speaker would play the tune backwards"
+      ],
+      "answer": 1,
+      "explain": "A GPIO pin can supply only about 16 mA, but a small speaker can demand hundreds of milliamps, and switching its current off produces a damaging voltage spike. An NPN transistor lets the small pin signal control the larger 5 V current safely."
+    },
+    {
+      "q": "When driving a speaker through a 2N2222 transistor, what is the job of the ~1 kΩ resistor on the base?",
+      "choices": [
+        "It makes the speaker louder by boosting the current",
+        "It limits the small base current and protects the GPIO pin",
+        "It converts the 5 V supply down to 3.3 V",
+        "It stores charge so the note keeps playing after the program stops"
+      ],
+      "answer": 1,
+      "explain": "The base resistor limits the tiny control current flowing from the GPIO pin into the transistor's base, keeping it within the pin's safe range. The transistor then switches the much larger speaker current coming from the 5 V supply."
+    }
+  ]
+}

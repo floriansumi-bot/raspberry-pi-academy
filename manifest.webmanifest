@@ -13,7 +13,7 @@
   "theme_color": "#C7152A",
   "categories": ["education", "productivity"],
   "shortcuts": [
-    { "name": "Learning path", "url": "./#/", "description": "Your 24-lesson trail" },
+    { "name": "Learning path", "url": "./#/", "description": "Your 49-lesson trail" },
     { "name": "Pi terminal", "url": "./#/tools", "description": "Try real commands" },
     { "name": "Glossary", "url": "./#/glossary", "description": "Every term, plain English" }
   ],

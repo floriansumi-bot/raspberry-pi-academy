@@ -1,0 +1,888 @@
+<p class="lead">In Lesson 42 you gave a dusty LEGO MINDSTORMS NXT a Raspberry Pi brain. Now meet its bigger, slightly newer sibling: the black-and-red <strong>EV3</strong> set. Its Large and Medium motors are stronger, and — here is the lovely surprise — their encoders are designed to be <strong>3.3&nbsp;V-friendly</strong>, so they read cleanly straight onto a Pi 5 without the voltage-divider gymnastics the NXT needed. In this companion project you will reuse those EV3 motors through the same H-bridge you already know, read their quadrature encoders with gpiozero's <code>RotaryEncoder</code>, calibrate the wheels to drive a measured distance, and wire up the one EV3 sensor that is genuinely beginner-friendly: the Touch sensor. You will also learn, honestly, why the EV3's clever colour and ultrasonic sensors are <em>not</em> a bare-GPIO afternoon, and what to reach for instead.</p>
+<div class="widget-mount" data-widget="gpio"></div>
+
+
+<h2 id="what-youll-build-and-learn">What You'll Build &amp; Learn</h2>
+
+<p>This is the EV3 companion to Lesson 42's NXT robot. If you have read that lesson, almost everything here will feel familiar — and that is the point. The big ideas (drive a LEGO motor through an H-bridge, read its quadrature encoder, wrap it all in a tidy <code>Robot</code> class) carry straight over. What changes is the detail: the EV3's connector carries the same six wires to slightly different jobs, its encoders are kinder to a 3.3&nbsp;V Pi, and its smart sensors are a different beast entirely. By the end you will have a small EV3-powered rover that can drive forward a <em>measured distance</em> — say, exactly 30&nbsp;centimetres — stop, and report how far it has gone, all read from the motors' own built-in encoders. Here are the fundamentals you will name and practise.</p>
+
+<h3>Python fundamentals</h3>
+<ul>
+  <li><strong>Reusing a class</strong> — you will import the very same <code>Robot</code> class pattern from Lesson 42 (two <code>gpiozero.Motor</code> objects wrapped with <code>forward()</code>, <code>backward()</code>, <code>turn_left()</code>, <code>turn_right()</code> and <code>stop()</code>). Writing the hard part once and reusing it is the whole reward of classes.</li>
+  <li><strong>gpiozero <code>RotaryEncoder</code></strong> — the ready-made object that watches two pins (channels A and B) and keeps a live count of how far, and which way, a shaft has turned, through its <code>.steps</code> attribute and <code>when_rotated</code> event.</li>
+  <li><strong>A short calibration routine</strong> — a few lines that turn raw encoder counts into real-world centimetres, so you can command "drive 30&nbsp;cm" and have it mean something.</li>
+  <li><strong>An event callback</strong> — handing gpiozero a function to run each time the wheel moves, so the robot can stop itself the instant it has gone far enough.</li>
+</ul>
+
+<h3>Electronics fundamentals</h3>
+<ul>
+  <li><strong>The EV3 RJ12 6P6C pinout</strong> — the same plug as the NXT, but with its six wires mapped to different jobs. You will learn exactly which pin does what on an EV3 motor, and how it differs from the NXT.</li>
+  <li><strong>Why EV3 encoders are 3.3&nbsp;V-compatible</strong> — the single biggest practical advantage of EV3 motors over NXT ones on a Pi: their tacho outputs are designed to sit in a 3.3&nbsp;V world, so you can read them directly (with just a small protective series resistor) instead of building a divider per channel.</li>
+  <li><strong>Driving a DC motor through an H-bridge</strong> — exactly as in Lesson 42: the EV3 motor is a plain DC motor that must be driven by a DRV8833 (or TB6612) from a separate ~9&nbsp;V battery, never from a GPIO pin.</li>
+  <li><strong>Separate battery + common ground</strong> — the non-negotiable wiring rule: the motors get their own supply, but every ground must meet at one shared 0&nbsp;V.</li>
+  <li><strong>The EV3 Touch sensor as an analogue read</strong> — wired differently from the NXT's touch sensor, and a gentle introduction to reading a switch that sits across two specific pins.</li>
+</ul>
+
+<div class="note"><strong>Note:</strong> You do not need a complete EV3 set, and you certainly do not need to read Lesson 42 first — but if you have, treat this as the "what's different" lesson. If you only have one EV3 motor, build the single-motor parts; the wiring and code still teach everything. We always say "your EV3 motor" rather than assume a particular kit.</div>
+
+<div class="tip"><strong>Tip:</strong> NXT and EV3 cables are mechanically identical — the same RJ12 6P6C plug with the same right-offset latch — so they plug into each other's sockets and into the same breakout boards. What differs is what some of the wires <em>do</em>. Never assume an NXT pinout for an EV3 part, or vice versa.</div>
+
+
+<h2 id="nxt-vs-ev3-same-and-different">NXT vs EV3: Same and Different</h2>
+
+<p>Because this lesson is a companion to the NXT one, let's lay the two side by side before we wire anything. Most of what you learned transfers; a few crucial things do not.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Aspect</th>
+      <th>NXT (Lesson 42)</th>
+      <th>EV3 (this lesson)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Connector</strong></td>
+      <td>RJ12 6P6C, right-offset latch</td>
+      <td><strong>Same</strong> RJ12 6P6C, right-offset latch — cables interchange mechanically</td>
+    </tr>
+    <tr>
+      <td><strong>Motor type</strong></td>
+      <td>DC motor + built-in optical quadrature encoder</td>
+      <td><strong>Same</strong> — DC motor + built-in optical quadrature encoder (Large and Medium)</td>
+    </tr>
+    <tr>
+      <td><strong>How you drive the motor</strong></td>
+      <td>DRV8833 / TB6612 H-bridge, separate ~9&nbsp;V battery, common ground</td>
+      <td><strong>Same</strong> — identical H-bridge approach</td>
+    </tr>
+    <tr>
+      <td><strong>Encoder logic level</strong></td>
+      <td>Not 3.3&nbsp;V-friendly — needs a voltage divider on each channel</td>
+      <td><strong>Different (better):</strong> 3.3&nbsp;V-compatible — read directly with a small series resistor</td>
+    </tr>
+    <tr>
+      <td><strong>Encoder resolution</strong></td>
+      <td>~1 count per degree (~360 / revolution)</td>
+      <td><strong>Same</strong> — ~1 count per degree (~360 / revolution)</td>
+    </tr>
+    <tr>
+      <td><strong>Touch sensor wiring</strong></td>
+      <td>Switch across <strong>pin 1 ↔ pin 2</strong></td>
+      <td><strong>Different:</strong> switch across <strong>pin 6 ↔ pin 4</strong> (with an ID resistor on pin 1) — NOT pin-compatible</td>
+    </tr>
+    <tr>
+      <td><strong>Other sensors</strong></td>
+      <td>Ultrasonic over I²C (fiddly); colour sensor a custom protocol</td>
+      <td><strong>Different (harder):</strong> Colour / Ultrasonic / Gyro / Infrared all use the EV3 <strong>UART auto-ID</strong> protocol — not a bare-GPIO project</td>
+    </tr>
+    <tr>
+      <td><strong>Read the encoder with</strong></td>
+      <td>gpiozero <code>RotaryEncoder(a, b)</code></td>
+      <td><strong>Same</strong> — gpiozero <code>RotaryEncoder(a, b)</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The headline: <strong>motors are the easy win on the EV3, and even easier than on the NXT</strong> thanks to those 3.3&nbsp;V-friendly encoders. Sensors are a more honest, mixed story, which we will get to. Let's start with the connector.</p>
+
+
+<h2 id="the-ev3-connector-decoded">The EV3 Connector, Decoded</h2>
+
+<p>Every EV3 motor and sensor ends in the same six-position, six-conductor modular plug — written <strong>6P6C</strong> — that the NXT used. As in Lesson 42, LEGO offset the locking latch to the right so an ordinary centred phone or RJ12 lead pushes in but never seats reliably.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>6P6C</strong> means "6 positions, 6 conductors" — a clear plastic plug with six gold contacts in a row, held by a springy latch. <strong>RJ12</strong> is the common name for the standard that uses this plug; LEGO's version moves the latch off-centre so you can't plug random phone leads into a robot.</div>
+
+<p>You reach the six inner wires the same two ways as before: either an <strong>NXT/EV3-compatible RJ12 breakout socket</strong> (search "NXT/EV3 RJ12 jack breakout" — it brings the six contacts out to terminals or headers, and because EV3 and NXT cables are mechanically identical, the same socket fits both), or <strong>cut a spare cable open</strong> and strip back the sheath to expose the six inner wires (the salvage route we assume here).</p>
+
+<div class="warn"><strong>Careful:</strong> Only ever cut a cable that is <em>not</em> plugged into anything, and never the lead of a sensor you cannot replace. Strip the sheath gently so you do not nick the thin inner wires. The six wires follow a fixed order, but remember their <em>functions</em> differ from the NXT — go by the EV3 table below, not by memory of Lesson 42.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 620 360" xmlns="http://www.w3.org/2000/svg">
+  <rect width="620" height="360" fill="#f3f0ff" rx="12"/>
+  <text x="310" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">The EV3 motor RJ12 6P6C pinout</text>
+
+  <!-- Plug body -->
+  <rect x="50" y="70" width="150" height="110" fill="#cbd5e1" stroke="#1f2933" stroke-width="2" rx="8"/>
+  <!-- right-offset latch -->
+  <rect x="160" y="55" width="26" height="20" fill="#94a3b8" stroke="#1f2933" stroke-width="2" rx="3"/>
+  <text x="173" y="48" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle" font-weight="bold">latch (offset right)</text>
+
+  <!-- six gold contacts -->
+  <rect x="68" y="150" width="10" height="22" fill="#ca8a04"/>
+  <rect x="88" y="150" width="10" height="22" fill="#ca8a04"/>
+  <rect x="108" y="150" width="10" height="22" fill="#ca8a04"/>
+  <rect x="128" y="150" width="10" height="22" fill="#ca8a04"/>
+  <rect x="148" y="150" width="10" height="22" fill="#ca8a04"/>
+  <rect x="168" y="150" width="10" height="22" fill="#ca8a04"/>
+  <text x="73" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">1</text>
+  <text x="93" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">2</text>
+  <text x="113" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">3</text>
+  <text x="133" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">4</text>
+  <text x="153" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">5</text>
+  <text x="173" y="192" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">6</text>
+  <text x="123" y="210" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle">pins 1–6, latch facing away from you</text>
+
+  <!-- pin labels with colour swatches -->
+  <rect x="330" y="62" width="14" height="14" fill="#dc2626" rx="2"/>
+  <text x="352" y="74" font-family="sans-serif" font-size="12" fill="#1f2933">Pin 1 — Motor power A</text>
+  <rect x="330" y="86" width="14" height="14" fill="#1f2933" rx="2"/>
+  <text x="352" y="98" font-family="sans-serif" font-size="12" fill="#1f2933">Pin 2 — Motor power B</text>
+  <rect x="330" y="110" width="14" height="14" fill="#374151" rx="2"/>
+  <text x="352" y="122" font-family="sans-serif" font-size="12" fill="#1f2933">Pin 3 — Encoder GND (0 V)</text>
+  <rect x="330" y="134" width="14" height="14" fill="#dc2626" rx="2"/>
+  <text x="352" y="146" font-family="sans-serif" font-size="12" fill="#1f2933">Pin 4 — +5 V encoder supply</text>
+  <rect x="330" y="158" width="14" height="14" fill="#6d28d9" rx="2"/>
+  <text x="352" y="170" font-family="sans-serif" font-size="12" fill="#1f2933">Pin 5 — Tacho channel A</text>
+  <rect x="330" y="182" width="14" height="14" fill="#0ea5a4" rx="2"/>
+  <text x="352" y="194" font-family="sans-serif" font-size="12" fill="#1f2933">Pin 6 — Tacho channel B</text>
+
+  <!-- grouping brackets -->
+  <rect x="324" y="58" width="280" height="44" fill="#fde68a" stroke="#ca8a04" stroke-width="1.5" rx="6" opacity="0.4"/>
+  <text x="464" y="50" font-family="sans-serif" font-size="10" fill="#92400e" text-anchor="middle">heavy current → H-bridge only</text>
+  <rect x="324" y="106" width="280" height="92" fill="#d1fae5" stroke="#059669" stroke-width="1.5" rx="6" opacity="0.35"/>
+  <text x="464" y="220" font-family="sans-serif" font-size="10" fill="#065f46" text-anchor="middle">encoder group → Pi GPIO + 5 V supply</text>
+
+  <text x="310" y="265" font-family="sans-serif" font-size="12" fill="#059669" text-anchor="middle" font-weight="bold">KEY: pins 5 &amp; 6 (tacho A/B) are 3.3 V-compatible on EV3 — read them straight on a Pi 5.</text>
+  <text x="310" y="290" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Differs from NXT, whose encoder lines need a voltage divider per channel.</text>
+  <text x="310" y="314" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle" font-weight="bold">Still feed pin 4 its ~5 V, and join every ground.</text>
+  <text x="310" y="338" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">A small series resistor (~3.3 kΩ) on each tacho line is still wise as protection.</text>
+</svg>
+<figcaption>The EV3 motor's six wires: a high-current power pair (pins 1, 2) that goes only to the H-bridge, and a four-wire encoder group (pin 3 GND, pin 4 +5 V supply, pins 5/6 tacho A and B). On the EV3 the two tacho channels are 3.3 V-compatible, so they read directly on a Pi 5.</figcaption>
+</figure>
+
+<div class="note"><strong>Note on wire colours:</strong> Unlike the NXT, EV3 cables do not always follow a single tidy colour code, and salvaged cables vary. <strong>Always go by pin number, not wire colour.</strong> The safe way to map a cut cable is with a multimeter continuity test against a breakout socket, or simply use the breakout socket and skip the guessing. The pin <em>functions</em> in the table below are what matter.</div>
+
+
+<h2 id="inside-the-ev3-motor">Inside the EV3 Motor</h2>
+
+<p>An EV3 Large or Medium motor is, electrically, the same two things in one housing as an NXT motor: a <strong>plain DC motor</strong> with a gearbox, and a built-in <strong>optical quadrature encoder</strong> that reports how far the shaft has turned. The EV3 brick acts as the tachometer; the motor itself just outputs the raw A/B quadrature signals.</p>
+
+<div class="jargon"><strong>In plain words:</strong> A <strong>DC motor</strong> spins when you put a voltage across its two terminals; swap the wires and it spins the other way — no notion of "position", it just turns while powered. A <strong>quadrature encoder</strong> counts how far the shaft has rotated by watching a striped disc pass two light sensors set a quarter-step apart, so by seeing which changes first you learn <em>both</em> how far <em>and</em> which way it turned.</div>
+
+<p>Like the NXT, the EV3 encoder gives roughly <strong>one count per degree</strong> — about <strong>360 counts per full revolution</strong> of the output shaft. That is plenty to drive a precise distance or keep two wheels matched so the robot rolls straight.</p>
+
+<h3>The motor's six-wire pinout</h3>
+
+<p>Here is the exact mapping for an EV3 <strong>motor</strong> cable. Pin 1 is on the left when you look into the plug with the latch facing away from you.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Pin</th>
+      <th>Function</th>
+      <th>Goes to…</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Motor power A</td><td>One output of the H-bridge</td></tr>
+    <tr><td>2</td><td>Motor power B</td><td>The other output of the H-bridge</td></tr>
+    <tr><td>3</td><td>Encoder ground (0&nbsp;V)</td><td>Common GND</td></tr>
+    <tr><td>4</td><td>Encoder supply (+5&nbsp;V)</td><td>Pi 5&nbsp;V pin (powers the encoder)</td></tr>
+    <tr><td>5</td><td>Tacho / encoder channel A</td><td>GPIO input (via a small series resistor)</td></tr>
+    <tr><td>6</td><td>Tacho / encoder channel B</td><td>GPIO input (via a small series resistor)</td></tr>
+  </tbody>
+</table>
+
+<p>The two <strong>power</strong> wires (pins 1 and 2) carry the heavy current that spins the motor — these never go near the Pi, only the driver. The other four belong to the <strong>encoder</strong>: a power pair (pins 3 and 4) and the two signal channels (pins 5 and 6) we read.</p>
+
+<div class="jargon"><strong>In plain words — the EV3's 3.3&nbsp;V advantage:</strong> On an NXT motor, the encoder's tacho signals can swing up towards 5&nbsp;V, which is dangerous for a 3.3&nbsp;V Pi pin — so Lesson 42 built a <em>voltage divider</em> on each channel. The EV3 motors were designed to be <strong>3.3&nbsp;V-compatible</strong>: their tacho outputs already behave in a 3.3&nbsp;V world, so you can wire pins 5 and 6 (almost) straight to GPIO inputs. We still add a small series resistor as cheap insurance, but there is no divider to balance — a real simplification.</div>
+
+<h3>Electrical specs you must respect</h3>
+
+<ul>
+  <li><strong>Motor voltage:</strong> nominally about <strong>9&nbsp;V</strong> (a fresh 6×AA pack). It will run more gently at 6&nbsp;V.</li>
+  <li><strong>Continuous current:</strong> LEGO rates the EV3 motors at up to roughly <strong>500&nbsp;mA continuous</strong> when working.</li>
+  <li><strong>Stall peaks:</strong> when the motor is jammed and cannot turn, the current peaks well above that. LEGO does not publish an exact stall figure, so <em>design with margin</em> — choose a driver rated comfortably above 1&nbsp;A.</li>
+  <li><strong>Encoder supply:</strong> pin 4 wants about <strong>5&nbsp;V</strong>; feed it from the Pi's 5&nbsp;V pin. The encoder's <em>outputs</em> (pins 5/6) are still 3.3&nbsp;V-friendly even though it is powered at 5&nbsp;V — that is the clever part of the EV3 design.</li>
+</ul>
+
+<div class="warn"><strong>Careful:</strong> Never connect the motor's pin 1/pin 2 power wires to a GPIO pin or to the 3.3&nbsp;V/5&nbsp;V pins. A motor drawing half an amp or more would overload the Pi, and when a spinning motor is switched off it generates a sharp reverse voltage spike (inductive kickback) that can destroy a GPIO pin. Power wires go to the H-bridge, full stop.</div>
+
+
+<h2 id="driving-ev3-motors-the-h-bridge">Driving EV3 Motors Safely — the H-bridge</h2>
+
+<p>This part is identical to Lesson 42, so we will keep it brief: <strong>never drive a LEGO motor straight from a GPIO pin.</strong> A pin can safely source only about 16&nbsp;mA; an EV3 motor wants hundreds of milliamps and spikes higher when it stalls, and a switched-off motor coil throws a sharp reverse-voltage spike (inductive kickback) that can destroy a GPIO pin.</p>
+
+<div class="jargon"><strong>In plain words:</strong> An <strong>H-bridge</strong> is four electronic switches arranged in an "H" around the motor. Close one diagonal pair and current flows one way (forwards); close the other pair and it flows the other way (backwards). The Pi sends gentle 3.3&nbsp;V logic to the chip; the chip switches the motor's heavy current and reverses its direction, and its protection diodes swallow the kickback so it never reaches the Pi.</div>
+
+<h3>Which driver to use</h3>
+
+<p>Exactly as for the NXT, a small <strong>dual H-bridge</strong> (two motors on one board) is ideal for a two-motor EV3 rover.</p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Driver</th>
+      <th>Motor voltage</th>
+      <th>Current per motor</th>
+      <th>Verdict for EV3 motors</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>DRV8833</strong> (recommended)</td>
+      <td>2.7–10.8&nbsp;V</td>
+      <td>~1.5&nbsp;A continuous, 2&nbsp;A peak</td>
+      <td>Perfect. Handles a 9&nbsp;V pack and the EV3's stall peaks with margin to spare. Small, cheap, efficient.</td>
+    </tr>
+    <tr>
+      <td><strong>TB6612FNG</strong></td>
+      <td>2.5–13.5&nbsp;V</td>
+      <td>~1.2&nbsp;A continuous, 3&nbsp;A peak</td>
+      <td>Also excellent and very efficient. A great alternative if you have one to hand.</td>
+    </tr>
+    <tr>
+      <td><strong>L298N</strong> (the cheap classic)</td>
+      <td>up to ~35&nbsp;V</td>
+      <td>~2&nbsp;A</td>
+      <td>Works, but it is bulky, wastes ~2&nbsp;V as heat, and needs a heatsink. Use only if it is what you already own.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>We will use the <strong>DRV8833</strong>. Each of its two channels has two inputs (<code>AIN1</code>, <code>AIN2</code>) and two outputs (<code>AOUT1</code>, <code>AOUT2</code>). The Pi drives the inputs; the outputs go to one motor's pin 1/pin 2 power pair. gpiozero's <code>Motor(forward=AIN1, backward=AIN2)</code> drives those inputs for you, pulsing them rapidly (PWM) to control speed.</p>
+
+<div class="jargon"><strong>In plain words:</strong> <strong>PWM</strong> (pulse-width modulation) means switching a pin on and off very fast. If it is on 30% of the time the motor behaves as though it is getting 30% of full power, so it turns slowly. gpiozero does this automatically when you call <code>motor.forward(0.3)</code>.</div>
+
+<h3>The separate-battery and common-ground rule</h3>
+
+<p>This is the most important wiring idea in the chapter. <strong>Give the motors their own ~9&nbsp;V battery</strong> (six AA cells) wired to the driver's motor-power input (labelled <code>VM</code> or <code>VMOT</code>) — the Pi's 5&nbsp;V cannot spare the amps, and motor noise can crash the Pi. <strong>But join every ground:</strong> the battery negative, the driver's GND and the Pi's GND must all meet at <em>one shared 0&nbsp;V</em>, which is what lets the Pi's 3.3&nbsp;V logic mean anything to the driver. Without a common ground, nothing works.</p>
+
+<div class="warn"><strong>Careful — the safety rules for this build:</strong>
+<ul>
+  <li><strong>Power off and unplug the Pi</strong> before wiring anything. Only re-power after a full check.</li>
+  <li><strong>Use a separate battery for the motors</strong> — never try to spin them from the Pi's 5&nbsp;V pin.</li>
+  <li><strong>Share a common ground</strong> between the motor battery, the driver, and the Pi.</li>
+  <li><strong>Never feed motor voltage back into the Pi.</strong> The motor's power pair (pins 1/2) touches only the driver's outputs.</li>
+  <li><strong>Never drive a motor from a GPIO pin.</strong> A pin can source ~16&nbsp;mA; the motor wants far more. The H-bridge does the heavy lifting.</li>
+</ul></div>
+
+<figure class="fig">
+<svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="400" fill="#f3f0ff" rx="12"/>
+  <text x="320" y="28" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">DRV8833 H-bridge wiring for an EV3 motor (one channel)</text>
+
+  <!-- Pi -->
+  <rect x="20" y="70" width="110" height="200" fill="#1f2933" rx="6"/>
+  <text x="75" y="62" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">Raspberry Pi 5</text>
+  <rect x="24" y="95"  width="14" height="11" fill="#6d28d9" rx="2"/><text x="42" y="104" font-family="sans-serif" font-size="9" fill="#f3f0ff">GPIO 20 → AIN1</text>
+  <rect x="24" y="123" width="14" height="11" fill="#6d28d9" rx="2"/><text x="42" y="132" font-family="sans-serif" font-size="9" fill="#f3f0ff">GPIO 21 → AIN2</text>
+  <rect x="24" y="240" width="14" height="11" fill="#374151" rx="2"/><text x="42" y="249" font-family="sans-serif" font-size="9" fill="#9ca3af">GND</text>
+
+  <!-- driver -->
+  <rect x="260" y="80" width="130" height="180" fill="#0ea5a4" rx="8" opacity="0.85"/>
+  <text x="325" y="100" font-family="sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">DRV8833</text>
+  <text x="262" y="124" font-family="sans-serif" font-size="9" fill="white">AIN1</text>
+  <text x="262" y="150" font-family="sans-serif" font-size="9" fill="white">AIN2</text>
+  <text x="350" y="124" font-family="sans-serif" font-size="9" fill="white" text-anchor="end">AOUT1</text>
+  <text x="350" y="150" font-family="sans-serif" font-size="9" fill="white" text-anchor="end">AOUT2</text>
+  <text x="262" y="200" font-family="sans-serif" font-size="9" fill="white">VM</text>
+  <text x="262" y="232" font-family="sans-serif" font-size="9" fill="white">GND</text>
+
+  <!-- Pi logic to driver inputs -->
+  <line x1="38" y1="100" x2="258" y2="120" stroke="#6d28d9" stroke-width="3"/>
+  <line x1="38" y1="128" x2="258" y2="146" stroke="#6d28d9" stroke-width="3"/>
+
+  <!-- motor -->
+  <circle cx="520" cy="135" r="40" fill="#e2e8f0" stroke="#1f2933" stroke-width="2"/>
+  <text x="520" y="131" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">EV3</text>
+  <text x="520" y="146" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">motor</text>
+  <line x1="392" y1="120" x2="490" y2="120" stroke="#dc2626" stroke-width="4"/>
+  <line x1="392" y1="146" x2="490" y2="155" stroke="#1f2933" stroke-width="4"/>
+  <text x="445" y="112" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">Pin 1 (power A)</text>
+  <text x="445" y="172" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">Pin 2 (power B)</text>
+
+  <!-- battery -->
+  <rect x="260" y="300" width="120" height="50" fill="#dc2626" rx="6"/>
+  <text x="320" y="322" font-family="sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">6×AA ≈ 9 V</text>
+  <text x="320" y="338" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle">separate motor battery</text>
+  <!-- battery + to VM -->
+  <line x1="320" y1="300" x2="320" y2="205" stroke="#dc2626" stroke-width="3"/>
+  <line x1="320" y1="205" x2="258" y2="196" stroke="#dc2626" stroke-width="3"/>
+  <text x="360" y="250" font-family="sans-serif" font-size="9" fill="#dc2626">+9 V → VM</text>
+
+  <!-- common ground rail -->
+  <line x1="38" y1="245" x2="100" y2="340" stroke="#374151" stroke-width="3"/>
+  <line x1="100" y1="340" x2="258" y2="340" stroke="#374151" stroke-width="3"/>
+  <line x1="258" y1="228" x2="220" y2="340" stroke="#374151" stroke-width="3"/>
+  <line x1="320" y1="350" x2="320" y2="365" stroke="#374151" stroke-width="3"/>
+  <line x1="100" y1="340" x2="320" y2="365" stroke="#374151" stroke-width="3"/>
+  <text x="200" y="385" font-family="sans-serif" font-size="11" fill="#374151" text-anchor="middle" font-weight="bold">COMMON GROUND: Pi GND + driver GND + battery − all joined</text>
+</svg>
+<figcaption>One motor channel of the DRV8833 driving an EV3 motor. The Pi's 3.3 V logic drives AIN1/AIN2; a separate ~9 V battery feeds VM; the motor's power pair (pins 1, 2) connects to AOUT1/AOUT2. The Pi's ground, the driver's ground and the battery's negative all meet at one common ground.</figcaption>
+</figure>
+
+<h3>Connection table — both motors</h3>
+
+<table class="tbl">
+  <thead>
+    <tr><th>From</th><th>To</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Pi GPIO 20</td><td>DRV8833 AIN1</td><td>Left motor forward input (3.3 V logic)</td></tr>
+    <tr><td>Pi GPIO 21</td><td>DRV8833 AIN2</td><td>Left motor backward input</td></tr>
+    <tr><td>Pi GPIO 19</td><td>DRV8833 BIN1</td><td>Right motor forward input</td></tr>
+    <tr><td>Pi GPIO 26</td><td>DRV8833 BIN2</td><td>Right motor backward input</td></tr>
+    <tr><td>Left motor pin 1 / pin 2</td><td>AOUT1 / AOUT2</td><td>High-current pair — <strong>never to the Pi</strong></td></tr>
+    <tr><td>Right motor pin 1 / pin 2</td><td>BOUT1 / BOUT2</td><td>High-current pair</td></tr>
+    <tr><td>6×AA pack +</td><td>DRV8833 VM</td><td>Separate ~9 V motor supply</td></tr>
+    <tr><td>6×AA pack −</td><td>Common ground rail</td><td>Joins Pi GND and driver GND</td></tr>
+    <tr><td>DRV8833 GND</td><td>Common ground rail</td><td>Same 0 V as the Pi</td></tr>
+    <tr><td>Pi GND (e.g. pin 6)</td><td>Common ground rail</td><td>The shared reference</td></tr>
+  </tbody>
+</table>
+
+<div class="tip"><strong>Tip:</strong> If your DRV8833 board has a pin marked <code>EEP</code>, <code>SLP</code> or <code>STBY</code> ("sleep"/"standby"), tie it to 3.3&nbsp;V to keep the chip awake. Many breakout boards already pull it high for you — check your board's markings.</div>
+
+
+<h2 id="a-robot-class-you-can-drive">A Robot Class You Can Drive</h2>
+
+<p>The Python here is the same <code>Robot</code> class you met in Lesson 42, reused without change — that is the payoff of writing it as a class. We will start with one motor to prove the wiring, then wrap both motors so the rest of the program can say <code>robot.forward()</code> without caring about pins.</p>
+
+<h3>First, one motor</h3>
+
+<p>Open <strong>Thonny</strong> and type this short test. It assumes the left motor's inputs are on GPIO 20 and 21 (physical pins 38 and 40).</p>
+
+<pre class="code"><code>from gpiozero import Motor
+from time import sleep
+
+left = Motor(forward=20, backward=21)
+
+left.forward(0.5)     # half speed forwards
+sleep(2)
+left.backward(0.5)    # half speed backwards
+sleep(2)
+left.stop()</code></pre>
+<div class="explain">
+  <p><strong>Line 4 — <code>left = Motor(forward=20, backward=21)</code>:</strong> Creates a motor object. <code>forward=20</code> is the GPIO that drives AIN1; <code>backward=21</code> drives AIN2. Naming the arguments stops us mixing them up.</p>
+  <p><strong>Line 6 — <code>left.forward(0.5)</code>:</strong> Spins the motor forwards at half speed. The 0.5 is a fraction from 0 (stopped) to 1 (full speed); gpiozero turns it into PWM on the input pin for you.</p>
+  <p><strong>Lines 7–8 — <code>sleep(2)</code> then <code>left.backward(0.5)</code>:</strong> Runs for two seconds, then reverses by driving the other input.</p>
+  <p><strong>Line 10 — <code>left.stop()</code>:</strong> Switches both inputs off, letting the motor coast to a halt.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> If "forward" spins the wheel backwards, you have two easy fixes: swap the motor's pin 1 / pin 2 wires at the driver output, or swap <code>forward=</code> and <code>backward=</code> in the code. Either is fine — pick one.</div>
+
+<h3>Now the Robot class</h3>
+
+<p>A wheeled robot's two motors must do coordinated things: both forward, both backward, or one each way to spin on the spot. Rather than repeat motor commands everywhere, we bundle the pair into a <code>Robot</code> class. Save this as <code>robot.py</code> — it is the same class as Lesson 42, so if you already have that file, you can reuse it as-is.</p>
+
+<pre class="code"><code>from gpiozero import Motor
+
+
+class Robot:
+    """Two LEGO motors wired to a DRV8833, wrapped as one robot."""
+
+    def __init__(self, left_pins, right_pins, speed=0.6):
+        self.left = Motor(forward=left_pins[0], backward=left_pins[1])
+        self.right = Motor(forward=right_pins[0], backward=right_pins[1])
+        self.speed = speed
+
+    def forward(self, speed=None):
+        s = speed if speed is not None else self.speed
+        self.left.forward(s)
+        self.right.forward(s)
+
+    def backward(self, speed=None):
+        s = speed if speed is not None else self.speed
+        self.left.backward(s)
+        self.right.backward(s)
+
+    def turn_left(self, speed=None):
+        s = speed if speed is not None else self.speed
+        self.left.backward(s)
+        self.right.forward(s)
+
+    def turn_right(self, speed=None):
+        s = speed if speed is not None else self.speed
+        self.left.forward(s)
+        self.right.backward(s)
+
+    def stop(self):
+        self.left.stop()
+        self.right.stop()
+
+
+# A quick demo when you run this file directly
+if __name__ == "__main__":
+    from time import sleep
+    robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
+    robot.forward(); sleep(1.5)
+    robot.turn_right(); sleep(0.7)
+    robot.forward(); sleep(1.5)
+    robot.stop()</code></pre>
+<div class="explain">
+  <p><strong>Line 4 — <code>class Robot:</code>:</strong> Starts our own blueprint; everything indented under it belongs to the class. The triple-quoted line is a <em>docstring</em> describing it.</p>
+  <p><strong>Line 7 — <code>def __init__(self, left_pins, right_pins, speed=0.6):</code>:</strong> The initialiser, run automatically when you build a <code>Robot</code>. It takes the two pins for each side (as a pair like <code>(20, 21)</code>) and a default speed.</p>
+  <p><strong>Lines 8–10 — store the motors and speed:</strong> Build one <code>Motor</code> per side (forward pin is <code>left_pins[0]</code>, backward is <code>left_pins[1]</code>) and remember the default speed.</p>
+  <p><strong>Lines 12–13 — <code>forward(self, speed=None)</code>:</strong> A method whose <code>speed=None</code> means "use my default if you don't pass one"; the one-line <code>if</code> then picks the speed to use.</p>
+  <p><strong>Lines 14–20 — <code>forward</code> / <code>backward</code>:</strong> Drive both wheels the same way, so the robot rolls straight ahead or straight back.</p>
+  <p><strong>Lines 22–30 — <code>turn_left</code> / <code>turn_right</code>:</strong> Spin on the spot by running one wheel forward and the other backward.</p>
+  <p><strong>Lines 32–34 — <code>stop</code>:</strong> Stops both motors. Call this whenever the program ends so the robot never runs off.</p>
+  <p><strong>Line 38 onward — <code>if __name__ == "__main__":</code>:</strong> This block runs only when you launch <code>robot.py</code> directly, not when another file imports the class — a tidy built-in self-test that drives forward, turns, drives again, and stops.</p>
+</div>
+
+<h3>Run steps</h3>
+
+<ol class="steps">
+  <li><strong>Lift the wheels off the ground.</strong> Rest the chassis on a mug or box so the wheels spin freely in the air. Never test-drive a new robot on the floor.</li>
+  <li><strong>Fit fresh batteries</strong> in the motor pack and switch it on. Power up the Pi separately.</li>
+  <li><strong>Open <code>robot.py</code> in Thonny</strong> and press the green Run button (F5).</li>
+  <li><strong>Watch the wheels:</strong> both should spin forward, then the right side reverses briefly for the turn, then both forward again, then stop. If a wheel goes the wrong way, swap that motor's pin 1 / pin 2 wires.</li>
+  <li><strong>Press the red Stop button</strong> in Thonny if anything misbehaves — it cuts the program and the motors.</li>
+</ol>
+
+
+<h2 id="reading-the-ev3-encoder">Reading the EV3 Encoder</h2>
+
+<p>Driving blind is fine for a demo, but a real robot wants to know how far it has gone. That is the job of the motor's built-in <strong>quadrature encoder</strong>, read via its two channels (pins 5 and 6) with gpiozero's <code>RotaryEncoder</code> object — exactly as in Lesson 42, but with the wiring made simpler by the EV3's 3.3&nbsp;V-friendly outputs.</p>
+
+<h3>Wiring the encoder — the easy EV3 way</h3>
+
+<p>Here is the EV3's gift: because its tacho outputs are 3.3&nbsp;V-compatible, you do not need a voltage divider on each channel. You connect:</p>
+
+<ul>
+  <li><strong>Pin 4 (encoder +supply)</strong> → Pi <strong>5&nbsp;V</strong> pin. The encoder wants ~5&nbsp;V to run.</li>
+  <li><strong>Pin 3 (encoder GND)</strong> → common ground.</li>
+  <li><strong>Pin 5 (channel A)</strong> → GPIO input, through a small <strong>~3.3&nbsp;kΩ series resistor</strong>.</li>
+  <li><strong>Pin 6 (channel B)</strong> → GPIO input, through a second <strong>~3.3&nbsp;kΩ series resistor</strong>.</li>
+</ul>
+
+<div class="jargon"><strong>In plain words — series resistor vs voltage divider:</strong> A <strong>voltage divider</strong> uses <em>two</em> resistors to scale a voltage down (Lesson 42 needed one per NXT channel). A <strong>series resistor</strong> is just <em>one</em> resistor in line with the signal: it does not change the logic level — the EV3 already sits at a safe level — it simply limits current as cheap protection against the odd spike or a wiring slip. Far less fiddly, and it is all the EV3 needs.</div>
+
+<div class="warn"><strong>Careful:</strong> "3.3 V-compatible" means the EV3's <em>tacho outputs</em> are safe for a Pi GPIO — it does <strong>not</strong> mean you can feed pin 4's 5&nbsp;V supply into a GPIO pin, and it does not mean you can skip the common ground. Keep pin 4 on the Pi's 5&nbsp;V <em>power</em> pin only, share the ground, and keep a small series resistor on each tacho line.</div>
+
+<figure class="fig">
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="300" fill="#f3f0ff" rx="12"/>
+  <text x="320" y="28" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">EV3 encoder → Pi 5 (no divider needed)</text>
+
+  <!-- motor -->
+  <circle cx="90" cy="150" r="45" fill="#e2e8f0" stroke="#1f2933" stroke-width="2"/>
+  <text x="90" y="146" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle" font-weight="bold">EV3</text>
+  <text x="90" y="162" font-family="sans-serif" font-size="11" fill="#1f2933" text-anchor="middle">encoder</text>
+
+  <!-- pin 4 +5V -->
+  <line x1="135" y1="118" x2="470" y2="80" stroke="#dc2626" stroke-width="3"/>
+  <text x="300" y="72" font-family="sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Pin 4 → Pi 5 V pin</text>
+  <rect x="470" y="68" width="120" height="24" fill="#dc2626" rx="4"/>
+  <text x="530" y="84" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">Pi 5 V (power)</text>
+
+  <!-- pin 3 GND -->
+  <line x1="135" y1="135" x2="470" y2="120" stroke="#374151" stroke-width="3"/>
+  <text x="300" y="112" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">Pin 3 → common GND</text>
+  <rect x="470" y="108" width="120" height="24" fill="#374151" rx="4"/>
+  <text x="530" y="124" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">common GND</text>
+
+  <!-- pin 5 chA through resistor -->
+  <line x1="135" y1="165" x2="250" y2="180" stroke="#6d28d9" stroke-width="3"/>
+  <rect x="250" y="170" width="44" height="16" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
+  <text x="272" y="164" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">3.3 kΩ</text>
+  <line x1="294" y1="178" x2="470" y2="170" stroke="#6d28d9" stroke-width="3"/>
+  <text x="380" y="162" font-family="sans-serif" font-size="10" fill="#6d28d9" text-anchor="middle">Pin 5 (chan A)</text>
+  <rect x="470" y="158" width="120" height="24" fill="#6d28d9" rx="4"/>
+  <text x="530" y="174" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">GPIO 16</text>
+
+  <!-- pin 6 chB through resistor -->
+  <line x1="135" y1="185" x2="250" y2="225" stroke="#0ea5a4" stroke-width="3"/>
+  <rect x="250" y="217" width="44" height="16" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="3"/>
+  <text x="272" y="246" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">3.3 kΩ</text>
+  <line x1="294" y1="225" x2="470" y2="210" stroke="#0ea5a4" stroke-width="3"/>
+  <text x="380" y="204" font-family="sans-serif" font-size="10" fill="#0ea5a4" text-anchor="middle">Pin 6 (chan B)</text>
+  <rect x="470" y="198" width="120" height="24" fill="#0ea5a4" rx="4"/>
+  <text x="530" y="214" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">GPIO 12</text>
+
+  <text x="320" y="270" font-family="sans-serif" font-size="11" fill="#059669" text-anchor="middle" font-weight="bold">One series resistor per channel — not a two-resistor divider. That is the EV3 advantage.</text>
+</svg>
+<figcaption>Wiring the EV3 encoder to a Pi 5: pin 4 → 5 V power, pin 3 → common ground, and the two tacho channels (pins 5 and 6) to GPIO 16 and 12 through a single ~3.3 kΩ series resistor each. No voltage divider is needed because the EV3 outputs are already 3.3 V-compatible.</figcaption>
+</figure>
+
+<h3>Counting one wheel</h3>
+
+<p>Here is a short program that counts one wheel and prints how far it has turned. Save it as <code>encoder_test.py</code>.</p>
+
+<pre class="code"><code>from gpiozero import RotaryEncoder
+from time import sleep
+
+# EV3 tacho channel A on GPIO 16, channel B on GPIO 12
+enc = RotaryEncoder(a=16, b=12, max_steps=0)
+
+print("Turn the wheel by hand. Ctrl+C to stop.")
+try:
+    while True:
+        steps = enc.steps
+        degrees = steps          # ~1 count per degree on an EV3 motor
+        print(f"steps={steps:6d}   ~{degrees}deg")
+        sleep(0.3)
+except KeyboardInterrupt:
+    print("\nDone.")</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import RotaryEncoder</code>:</strong> Imports the object that watches two pins and keeps a running count of how far, and which way, the shaft has turned.</p>
+  <p><strong>Line 5 — <code>enc = RotaryEncoder(a=16, b=12, max_steps=0)</code>:</strong> Builds the encoder object. <code>a</code> and <code>b</code> are the two GPIO pins reading channels A and B (each via its small series resistor). <code>max_steps=0</code> tells gpiozero not to wrap or clamp the count, so it can grow as large as we like.</p>
+  <p><strong>Line 10 — <code>steps = enc.steps</code>:</strong> Reads the live count. It rises as the wheel turns one way and falls as it turns the other. That sign is the "quadrature" magic: the object compares which channel changed first to know the direction.</p>
+  <p><strong>Line 11 — <code>degrees = steps</code>:</strong> Because an EV3 encoder gives roughly one count per degree, the step count is already an approximate angle. For real distance we calibrate this against the wheel next.</p>
+  <p><strong>Line 12 — <code>print(...)</code>:</strong> Shows the count and approximate angle.</p>
+  <p><strong>Lines 14–15 — <code>except KeyboardInterrupt</code>:</strong> Lets Ctrl+C end the loop cleanly.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> Run this and turn the wheel a full revolution by hand — you should see the count change by roughly 360. If it jumps around wildly or never moves, check the pin 4 supply, the common ground, and that both channels reach their GPIO pins through their resistors.</div>
+
+
+<h2 id="calibrate-and-drive-a-set-distance">Calibrate and Drive a Set Distance</h2>
+
+<p>Now we turn raw counts into centimetres. The plan has two short steps: <strong>calibrate</strong> (work out how many counts equal one centimetre for <em>your</em> wheel), then <strong>drive</strong> until the encoder says we have reached the target — stopping ourselves with a callback.</p>
+
+<h3>Step 1 — work out counts-per-centimetre</h3>
+
+<p>You could measure the wheel and do trigonometry, but the honest, robust way is to let the robot measure itself.</p>
+
+<ol class="steps">
+  <li><strong>Mark a start line</strong> on the floor and place the robot's wheel against it.</li>
+  <li><strong>Reset the count, then push the robot forward by hand</strong> a measured distance — say exactly 20&nbsp;cm — keeping the wheel rolling, not sliding.</li>
+  <li><strong>Read the encoder count</strong> at the end. Divide by the distance to get <em>counts per centimetre</em>. For example, 720 counts over 20&nbsp;cm is 36 counts/cm.</li>
+  <li><strong>Write that number down.</strong> It is the one figure that makes "drive 30&nbsp;cm" mean something real.</li>
+</ol>
+
+<p>This tiny calibration program prints the count so you can do the division:</p>
+
+<pre class="code"><code>from gpiozero import RotaryEncoder
+
+enc = RotaryEncoder(a=16, b=12, max_steps=0)
+
+input("Place the wheel on the start line, then press Enter.")
+start = enc.steps
+input("Now roll the robot forward EXACTLY 20 cm, then press Enter.")
+moved = abs(enc.steps - start)
+
+print(f"Counts over 20 cm: {moved}")
+print(f"Counts per cm:     {moved / 20:.1f}")</code></pre>
+<div class="explain">
+  <p><strong>Line 3 — <code>enc = RotaryEncoder(a=16, b=12, max_steps=0)</code>:</strong> The same encoder object, on the same two pins.</p>
+  <p><strong>Line 5 — <code>input(...)</code>:</strong> Pauses until you press Enter, so you can line the wheel up first. The text is the prompt shown in Thonny's shell.</p>
+  <p><strong>Line 6 — <code>start = enc.steps</code>:</strong> Records the count at the start line, so we measure the <em>change</em>, not the absolute number.</p>
+  <p><strong>Line 7 — <code>input(...)</code>:</strong> Waits while you roll the robot forward exactly 20&nbsp;cm by hand.</p>
+  <p><strong>Line 8 — <code>moved = abs(enc.steps - start)</code>:</strong> The number of counts that happened over those 20&nbsp;cm. <code>abs()</code> ignores the sign so it works whichever way the count runs.</p>
+  <p><strong>Lines 10–11 — <code>print(...)</code>:</strong> Shows the raw counts and the all-important counts-per-centimetre figure. The <code>:.1f</code> formats it to one decimal place.</p>
+</div>
+
+<h3>Step 2 — drive a target distance and stop yourself</h3>
+
+<p>Now we use that calibration to drive a measured distance. Instead of polling in a loop, we hand the encoder a function with <code>when_rotated</code>, so it calls us each time the wheel moves and we can stop the instant we have gone far enough. Save this as <code>drive_distance.py</code>.</p>
+
+<pre class="code"><code>from gpiozero import RotaryEncoder
+from robot import Robot
+from signal import pause
+
+robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
+left_enc = RotaryEncoder(a=16, b=12, max_steps=0)
+
+COUNTS_PER_CM = 36          # from your own calibration!
+DISTANCE_CM   = 30          # how far we want to go
+TARGET = COUNTS_PER_CM * DISTANCE_CM
+
+start = left_enc.steps
+
+def check_progress():
+    travelled = abs(left_enc.steps - start)
+    if travelled &gt;= TARGET:
+        robot.stop()
+        cm = travelled / COUNTS_PER_CM
+        print(f"Arrived: {cm:.1f} cm ({travelled} counts).")
+
+left_enc.when_rotated = check_progress
+
+print(f"Driving {DISTANCE_CM} cm...")
+robot.forward(0.4)
+pause()</code></pre>
+<div class="explain">
+  <p><strong>Line 2 — <code>from robot import Robot</code>:</strong> Reuses the <code>Robot</code> class from <code>robot.py</code> — the same one as Lesson 42. One tidy object, used everywhere.</p>
+  <p><strong>Line 6 — <code>left_enc = RotaryEncoder(a=16, b=12, max_steps=0)</code>:</strong> The encoder for the left wheel, on the same two pins.</p>
+  <p><strong>Line 8 — <code>COUNTS_PER_CM = 36</code>:</strong> <em>Your</em> calibration result from Step 1. Change this to whatever your own wheel measured.</p>
+  <p><strong>Line 9 — <code>DISTANCE_CM = 30</code>:</strong> The distance we are asking for, in centimetres.</p>
+  <p><strong>Line 10 — <code>TARGET = COUNTS_PER_CM * DISTANCE_CM</code>:</strong> Converts the requested distance into a number of encoder counts — the only unit the encoder actually understands.</p>
+  <p><strong>Line 12 — <code>start = left_enc.steps</code>:</strong> The count when we begin, so we measure the change from here.</p>
+  <p><strong>Lines 14–19 — <code>check_progress()</code>:</strong> Asks "have we gone far enough?" each time it is called. It compares counts travelled against the target and, when reached, stops the robot and prints the distance covered.</p>
+  <p><strong>Line 21 — <code>left_enc.when_rotated = check_progress</code>:</strong> Hands our function to the encoder as a <em>callback</em>. From now on, every time the wheel moves, gpiozero calls <code>check_progress</code> — no busy loop needed.</p>
+  <p><strong>Line 24 — <code>robot.forward(0.4)</code>:</strong> Starts both wheels rolling gently.</p>
+  <p><strong>Line 25 — <code>pause()</code>:</strong> Keeps the program alive so the callback can keep firing until the target is hit.</p>
+</div>
+
+<div class="tip"><strong>Tip:</strong> To drive <em>straight</em>, read both wheels' encoders and nudge the faster wheel's speed down a little until the two counts match. Real robots wobble because no two motors are identical; the encoder is how you correct for it. With two <code>RotaryEncoder</code> objects (one per wheel) this is only a few extra lines.</div>
+
+
+<h2 id="the-ev3-touch-sensor">The EV3 Touch Sensor — the One Easy Sensor</h2>
+
+<p>Of all the EV3 sensors, only the <strong>Touch sensor</strong> is genuinely beginner-friendly on bare Pi GPIO — and even it is wired <em>differently</em> from the NXT's touch sensor, so do not assume the Lesson 42 wiring. Under the plastic the EV3 Touch sensor is still essentially a switch, but LEGO reads it as an <strong>analogue voltage</strong> rather than a plain on/off.</p>
+
+<h3>How the EV3 Touch sensor is wired internally</h3>
+
+<p>Inside an EV3 Touch sensor, the push switch sits across <strong>pin 6 and pin 4 (the +5&nbsp;V line) through a 2.2&nbsp;kΩ resistor</strong>, and there is a <strong>910&nbsp;Ω identification resistor on pin 1 to ground</strong>. The EV3 brick reads the analogue voltage on pin 6 to decide whether the button is pressed. Compare that with the NXT, whose touch sensor simply closes <strong>pin 1 ↔ pin 2</strong> — a completely different pair of pins. That is why an EV3 touch sensor is <em>not</em> pin-compatible with NXT touch wiring.</p>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Touch sensor</th><th>Switch is across…</th><th>How the host reads it</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>NXT</strong> (Lesson 42)</td><td>Pin 1 ↔ Pin 2</td><td>Plain digital: a simple closed/open switch</td></tr>
+    <tr><td><strong>EV3</strong> (this lesson)</td><td>Pin 6 ↔ Pin 4 (+5 V) via 2.2 kΩ, with a 910 Ω ID resistor on pin 1</td><td>Analogue voltage measured on pin 6</td></tr>
+  </tbody>
+</table>
+
+<figure class="fig">
+<svg viewBox="0 0 620 280" xmlns="http://www.w3.org/2000/svg">
+  <rect width="620" height="280" fill="#f3f0ff" rx="12"/>
+  <text x="310" y="28" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1f2933" text-anchor="middle">Touch sensor wiring: NXT vs EV3</text>
+
+  <!-- NXT side -->
+  <text x="160" y="58" font-family="sans-serif" font-size="13" fill="#6d28d9" text-anchor="middle" font-weight="bold">NXT</text>
+  <rect x="60" y="70" width="200" height="150" fill="#ede9fe" stroke="#6d28d9" stroke-width="1.5" rx="8"/>
+  <text x="90" y="100" font-family="sans-serif" font-size="11" fill="#1f2933">Pin 1</text>
+  <text x="90" y="130" font-family="sans-serif" font-size="11" fill="#1f2933">Pin 2</text>
+  <!-- switch between pin1 and pin2 -->
+  <line x1="130" y1="96" x2="180" y2="96" stroke="#1f2933" stroke-width="2"/>
+  <line x1="130" y1="126" x2="160" y2="126" stroke="#1f2933" stroke-width="2"/>
+  <line x1="180" y1="96" x2="200" y2="80" stroke="#1f2933" stroke-width="2"/>
+  <circle cx="180" cy="96" r="3" fill="#1f2933"/>
+  <circle cx="160" cy="126" r="3" fill="#1f2933"/>
+  <line x1="160" y1="126" x2="200" y2="126" stroke="#1f2933" stroke-width="2"/>
+  <line x1="200" y1="80" x2="200" y2="126" stroke="#dc2626" stroke-width="2" stroke-dasharray="3,2"/>
+  <text x="160" y="160" font-family="sans-serif" font-size="11" fill="#6d28d9" text-anchor="middle">switch: pin 1 ↔ pin 2</text>
+  <text x="160" y="180" font-family="sans-serif" font-size="10" fill="#374151" text-anchor="middle">plain digital on/off</text>
+  <text x="160" y="202" font-family="sans-serif" font-size="10" fill="#1f2933" text-anchor="middle">→ read as a gpiozero Button</text>
+
+  <!-- EV3 side -->
+  <text x="455" y="58" font-family="sans-serif" font-size="13" fill="#0ea5a4" text-anchor="middle" font-weight="bold">EV3</text>
+  <rect x="355" y="70" width="210" height="150" fill="#ccfbf1" stroke="#0ea5a4" stroke-width="1.5" rx="8"/>
+  <text x="375" y="100" font-family="sans-serif" font-size="11" fill="#1f2933">Pin 4 (+5 V)</text>
+  <text x="375" y="135" font-family="sans-serif" font-size="11" fill="#1f2933">Pin 6 (read)</text>
+  <text x="375" y="170" font-family="sans-serif" font-size="11" fill="#1f2933">Pin 1 (ID)</text>
+  <!-- 2k2 between pin4 and pin6 with switch -->
+  <rect x="455" y="92" width="34" height="12" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="2"/>
+  <text x="472" y="88" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">2.2 kΩ</text>
+  <line x1="445" y1="98" x2="455" y2="98" stroke="#dc2626" stroke-width="2"/>
+  <line x1="489" y1="98" x2="510" y2="98" stroke="#1f2933" stroke-width="2"/>
+  <line x1="510" y1="98" x2="510" y2="131" stroke="#1f2933" stroke-width="2"/>
+  <line x1="445" y1="131" x2="510" y2="131" stroke="#0ea5a4" stroke-width="2"/>
+  <!-- 910 on pin1 to gnd -->
+  <rect x="455" y="160" width="34" height="12" fill="#d4a372" stroke="#1f2933" stroke-width="1" rx="2"/>
+  <text x="472" y="184" font-family="sans-serif" font-size="9" fill="#1f2933" text-anchor="middle">910 Ω</text>
+  <line x1="445" y1="166" x2="455" y2="166" stroke="#374151" stroke-width="2"/>
+  <line x1="489" y1="166" x2="520" y2="166" stroke="#374151" stroke-width="2"/>
+  <text x="460" y="205" font-family="sans-serif" font-size="10" fill="#0ea5a4" text-anchor="middle">switch across pin 6 ↔ pin 4</text>
+  <text x="460" y="218" font-family="sans-serif" font-size="9" fill="#374151" text-anchor="middle">analogue voltage read on pin 6</text>
+
+  <text x="310" y="255" font-family="sans-serif" font-size="11" fill="#dc2626" text-anchor="middle" font-weight="bold">Different pins entirely — an EV3 touch sensor is NOT wired like an NXT one.</text>
+</svg>
+<figcaption>The NXT touch sensor closes pin 1 to pin 2 (a plain switch). The EV3 touch sensor puts its switch across pin 6 and pin 4 (+5 V) through a 2.2 kΩ resistor, with a 910 Ω identification resistor on pin 1 to ground, and is read as an analogue voltage on pin 6.</figcaption>
+</figure>
+
+<h3>The pragmatic way to use it on a Pi</h3>
+
+<p>Because the EV3 Touch sensor is read as an analogue voltage, the textbook approach would be an analogue-to-digital converter (ADC) chip such as an MCP3008 (the Pi has no analogue input of its own). But for a robot you usually only care about <em>pressed vs not pressed</em>, and there is a much simpler route: treat it as a switch.</p>
+
+<ol class="steps">
+  <li><strong>Set your multimeter to continuity</strong> (the mode that beeps when two probes connect) and expose the six wires, or use a breakout socket.</li>
+  <li><strong>Probe pin 6 against pin 4</strong> while pressing the button — on the EV3 sensor this is the pair whose resistance changes as the 2.2&nbsp;kΩ path closes. That change is what you detect.</li>
+  <li><strong>Mark those wires:</strong> one becomes "signal", the other your reference. A plain <code>Button</code> with its internal pull works for a simple "is it pressed?" read in most setups; if it is unreliable, fall back to an ADC.</li>
+</ol>
+
+<p>Wired as a simple switch, gpiozero's <code>Button</code> reads it just as it read the NXT bumper. Save this as <code>bumper.py</code>.</p>
+
+<pre class="code"><code>from gpiozero import Button
+from robot import Robot
+from signal import pause
+
+robot = Robot(left_pins=(20, 21), right_pins=(19, 26))
+bumper = Button(17)            # EV3 touch sensor, wired as a switch: GPIO 17 + GND
+
+def on_bump():
+    robot.stop()
+    print("Bump! Stopped.")
+
+bumper.when_pressed = on_bump
+
+robot.forward(0.4)
+print("Rolling forward until the bumper is hit. Ctrl+C to quit.")
+pause()</code></pre>
+<div class="explain">
+  <p><strong>Line 1 — <code>from gpiozero import Button</code>:</strong> Brings in the <code>Button</code> object, perfect for any simple on/off switch — including a salvaged EV3 touch sensor used as a bumper.</p>
+  <p><strong>Line 6 — <code>bumper = Button(17)</code>:</strong> Creates the button on GPIO 17 (physical pin 11). The sensor's other switch wire goes to a GND pin. gpiozero handles the pull internally, so no external resistor is needed for the read itself.</p>
+  <p><strong>Lines 8–10 — <code>on_bump()</code>:</strong> What to do when the bumper is hit: stop the robot and say so.</p>
+  <p><strong>Line 12 — <code>bumper.when_pressed = on_bump</code>:</strong> Registers our function as the press callback, so a bump instantly halts the wheels.</p>
+  <p><strong>Line 14 — <code>robot.forward(0.4)</code>:</strong> Rolls gently forward; the robot keeps going until something presses the bumper.</p>
+  <p><strong>Line 16 — <code>pause()</code>:</strong> Keeps the program running so the callback stays armed.</p>
+</div>
+
+<div class="note"><strong>Note:</strong> If a plain <code>Button</code> read is flaky on your particular sensor (because of that internal resistor network), the fully reliable method is to read pin 6's analogue voltage through an MCP3008 ADC and threshold it in code. For a beginner bumper, though, the switch approach is usually fine — try it first.</div>
+
+
+<h2 id="the-smart-sensors-be-honest">The Smart Sensors — Be Honest</h2>
+
+<p>Here is where we must be straight with you, exactly as Lesson 42 was about the NXT colour sensor. The EV3 <strong>Colour</strong>, <strong>Ultrasonic</strong>, <strong>Gyro</strong> and <strong>Infrared</strong> sensors are <em>not</em> simple analogue parts you can read off a GPIO pin. They are <strong>EV3 UART auto-ID sensors</strong>, and the protocol they speak is genuinely hard.</p>
+
+<div class="jargon"><strong>In plain words — the EV3 UART protocol:</strong> When an EV3 smart sensor is plugged in, it and the host carry out a fast serial conversation: it starts at <strong>2400 baud</strong>, announces its TYPE, its MODES and its preferred SPEED, sends INFO messages describing each mode, then both sides <em>auto-negotiate up</em> to a higher speed and the host must ACK to keep the link alive. Every frame carries an <strong>XOR checksum</strong>, and the timing windows are tight (think ~10&nbsp;ms / ~100&nbsp;ms). Some sensors even bend the spec, so the host has to forgive their quirks.</div>
+
+<p>The reference implementation of all this is a <strong>kernel line-discipline driver</strong> in the <em>ev3dev</em> project — software that lives inside the operating system kernel precisely because the timing is too strict to manage comfortably from ordinary Python. So let us say it plainly:</p>
+
+<div class="warn"><strong>Careful — manage your expectations:</strong> Bit-banging the EV3 UART sensor protocol from bare GPIO pins is <strong>not a beginner project</strong>, and not really a sensible one even for experts when good libraries already exist. If you want an EV3 colour, ultrasonic, gyro or infrared sensor on your Pi, use a board or driver that already implements the protocol — do not try to decode it on raw pins.</div>
+
+<h3>The right tools for the smart sensors</h3>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Option</th><th>What it does</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>BrickPi3</strong> (Dexter / Modular Robotics)</td>
+      <td>A HAT with four proper NXT/EV3 sockets that drives <em>both</em> EV3 motors and EV3 sensors from a Python library</td>
+      <td>The friendliest route. On a Pi 5, <strong>power the Pi from its own supply</strong> (powering the Pi 5 through the BrickPi3 caused random power-downs), and note there is no room for a Pi 5 fan under the board. You assign each sensor's type in code (no auto-detect).</td>
+    </tr>
+    <tr>
+      <td><strong>ev3dev</strong></td>
+      <td>A Debian-based OS with the kernel drivers for these protocols built in</td>
+      <td>Runs on the EV3 brick itself and on add-on boards like BrickPi and PiStorms. This is where the reference UART driver lives.</td>
+    </tr>
+    <tr>
+      <td><strong>mindsensors PiStorms</strong></td>
+      <td>Another Pi daughterboard with LEGO sockets</td>
+      <td>An alternative to BrickPi3 — verify current (2026) stock and Pi 5 support before buying.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn"><strong>Careful:</strong> The official Raspberry Pi <strong>Build HAT</strong> does <em>not</em> accept EV3 (or NXT) sensors and motors — it uses LEGO's newer <strong>LPF2</strong> connector from the SPIKE Prime / Robot Inventor sets, which is a different plug entirely. For EV3 parts it is DIY-with-an-H-bridge (for motors), the Touch sensor (as above), or a BrickPi3 / ev3dev board for the smart sensors. Do not buy a Build HAT for this.</div>
+
+<div class="note"><strong>Why teach the DIY route first, then?</strong> Because driving the motors yourself teaches you H-bridges, encoders, PWM and common grounds — real, transferable electronics. The BrickPi3 hides all of that. Build the motors the hard way to learn; reach for a board when you specifically need the EV3's clever sensors.</div>
+
+
+<h2 id="from-the-e-waste-pile">From the E-Waste Pile</h2>
+
+<p>EV3 sets turn up second-hand and in school cupboards all the time, often "broken" only because the brick's firmware or battery has died. The brain may be dead, but the limbs are perfectly good.</p>
+
+<ul>
+  <li><strong>The motors are the prize.</strong> A Large or Medium EV3 motor is a sturdy geared DC motor with a built-in encoder — exactly what you would otherwise buy. Salvage these first.</li>
+  <li><strong>Keep the Technic mechanics.</strong> Beams, wheels, axles and gears build a far better chassis than you could improvise. Mount the Pi on the frame and you are halfway to a rover.</li>
+  <li><strong>The Touch sensor is reusable</strong> as shown above. The colour/ultrasonic/gyro/infrared sensors are reusable too, but only via a BrickPi3 or ev3dev — keep them for that.</li>
+  <li><strong>Salvage cables safely.</strong> Only cut cables that are unplugged, and keep at least one intact lead per sensor type so you can use a breakout socket later.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Test a salvaged motor before building it in: wire it to your DRV8833, run the one-motor test, then the encoder test. A motor that spins both ways and counts cleanly is good to go; one that spins but never counts has a dead encoder (still usable where you do not need feedback).</div>
+
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<table class="tbl">
+  <thead>
+    <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Motors do nothing at all</td>
+      <td>No common ground, or driver in standby</td>
+      <td>Join the motor battery −, driver GND and Pi GND. Tie any SLP/STBY pin to 3.3 V. Check the battery is switched on.</td>
+    </tr>
+    <tr>
+      <td>One wheel spins backwards</td>
+      <td>That motor's power pair (pins 1/2) is reversed</td>
+      <td>Swap its pin 1 and pin 2 wires at the driver output, or swap <code>forward=</code>/<code>backward=</code> in code.</td>
+    </tr>
+    <tr>
+      <td>Pi reboots when motors start</td>
+      <td>Motors drawing from the Pi, or grounds bouncing</td>
+      <td>Confirm motor power comes from the <em>separate</em> battery's VM, not the Pi's 5 V. Use fresh cells. Keep motor wires short.</td>
+    </tr>
+    <tr>
+      <td>Encoder count never changes</td>
+      <td>No encoder power, wrong pins, or no common ground</td>
+      <td>Pin 4 → Pi 5 V, pin 3 → GND, pins 5/6 → GPIO via their series resistors. Confirm the grounds are shared.</td>
+    </tr>
+    <tr>
+      <td>Encoder count jumps erratically</td>
+      <td>Floating input or noisy wiring</td>
+      <td>Keep the ~3.3 kΩ series resistors in place, shorten the tacho wires, and make sure the encoder shares the common ground.</td>
+    </tr>
+    <tr>
+      <td>"Drive 30 cm" goes the wrong distance</td>
+      <td><code>COUNTS_PER_CM</code> not calibrated for your wheel</td>
+      <td>Re-run the calibration program with <em>your</em> wheel and update the constant. Different wheels give very different figures.</td>
+    </tr>
+    <tr>
+      <td>Touch bumper never triggers</td>
+      <td>Wrong pins (assumed NXT wiring) or flaky switch read</td>
+      <td>The EV3 switch is across pin 6 ↔ pin 4, not 1 ↔ 2. Re-probe with a multimeter; if still flaky, read pin 6 via an MCP3008 ADC.</td>
+    </tr>
+    <tr>
+      <td>Colour / ultrasonic / gyro sensor won't read</td>
+      <td>It is a UART auto-ID sensor, not analogue</td>
+      <td>You cannot read it from bare GPIO. Use a BrickPi3 or ev3dev, or stick to the Touch sensor.</td>
+    </tr>
+    <tr>
+      <td><code>No module named 'lgpio'</code></td>
+      <td>The lgpio backend is missing</td>
+      <td>Run <code>sudo apt install python3-lgpio</code>, then restart Thonny.</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<h2 id="safety-checklist">Safety Checklist</h2>
+
+<p>Before every powered test, run down this list. It takes ten seconds and saves Pis.</p>
+
+<ol class="steps">
+  <li><strong>Separate motor battery.</strong> Motors are powered by their own ~9&nbsp;V pack at the driver's VM — never from the Pi.</li>
+  <li><strong>Common ground.</strong> Battery −, driver GND and Pi GND all meet at one shared 0&nbsp;V rail.</li>
+  <li><strong>Motor isolation.</strong> The motors' pin 1 / pin 2 power wires touch only the driver outputs — never a GPIO or power pin.</li>
+  <li><strong>Encoder supply on 5&nbsp;V <em>power</em> only.</strong> Pin 4 goes to the Pi's 5&nbsp;V pin, never to a GPIO input. The 3.3&nbsp;V-friendly tacho lines (pins 5/6) still get a small series resistor each.</li>
+  <li><strong>Current within limits.</strong> The driver is rated above the EV3's stall peaks (the DRV8833 is, comfortably).</li>
+  <li><strong>Wheels off the ground first.</strong> Test new code with the chassis propped up so a bug cannot send it off a table.</li>
+  <li><strong>Power off to rewire.</strong> Shut down and unplug the Pi before changing any wiring; re-power only after a full check.</li>
+</ol>
+
+
+<h2 id="make-it-your-own">Make It Your Own / Where to Go Next</h2>
+
+<p>You have reanimated "obsolete" EV3 hardware with a real Pi brain. Here is where to take it:</p>
+
+<ul>
+  <li><strong>Closed-loop straight driving.</strong> Read both wheels' encoders and trim the faster wheel's speed so the two counts stay matched — the robot will roll dead straight instead of drifting.</li>
+  <li><strong>A square dance.</strong> Use your calibrated distance drive plus a calibrated 90° turn (count encoder steps for a quarter-spin) to make the robot trace a perfect square and return to its start.</li>
+  <li><strong>Add AI eyes.</strong> Bolt on the Pi Camera and the see → think → act follower from Lesson 42 — the <code>Robot</code> class is identical, so the vision code drops straight on top.</li>
+  <li><strong>Go full BrickPi3.</strong> If you want the EV3 colour or ultrasonic sensors, fit a BrickPi3 (power the Pi 5 separately) and add real obstacle avoidance or line following with the proper sensors.</li>
+  <li><strong>A web joystick.</strong> Wrap the <code>Robot</code> class in a small Flask app so you can drive it from your phone — a manual override for when an autonomous program misbehaves.</li>
+</ul>
+
+<div class="tip"><strong>Tip:</strong> Keep your <code>Robot</code> class as the foundation for all of these — it is byte-for-byte the same class as Lesson 42. Because the messy hardware lives inside one tidy object, an NXT rover and an EV3 rover run the <em>same</em> driving code. That is the real lesson of classes: write the hard part once, reuse it forever, across whole different robots.</div>
+
+
+<div class="keyterms">
+<h4>Key terms</h4>
+<ul>
+  <li><strong>RJ12 6P6C</strong> - the six-contact modular plug LEGO used for both NXT and EV3; the right-offset latch means the cables interchange mechanically.</li>
+  <li><strong>EV3 motor pinout</strong> - pins 1/2 motor power, pin 3 encoder GND, pin 4 +5 V encoder supply, pins 5/6 tacho channels A/B.</li>
+  <li><strong>3.3 V-compatible encoder</strong> - the EV3's key advantage: its tacho outputs are safe for a Pi 5 GPIO, so they read directly (with a small series resistor) and need no voltage divider, unlike the NXT.</li>
+  <li><strong>Quadrature encoder</strong> - a two-channel sensor reporting how far <em>and which way</em> a shaft turned; the EV3 motor gives ~1 count per degree.</li>
+  <li><strong>H-bridge / DRV8833</strong> - the driver chip that switches a motor's heavy current and reverses direction from 3.3 V logic; the EV3 motors use the same approach as the NXT.</li>
+  <li><strong>Separate battery + common ground</strong> - motors get their own ~9 V supply, but its negative must join the Pi's ground as a shared 0 V reference.</li>
+  <li><strong>RotaryEncoder</strong> - the gpiozero object that reads the tacho channels (<code>.steps</code>, <code>when_rotated</code>).</li>
+  <li><strong>Calibration (counts per cm)</strong> - the measured ratio that turns raw encoder counts into real distance, so "drive 30 cm" works.</li>
+  <li><strong>EV3 Touch sensor</strong> - the one easy sensor to reuse; its switch is across pin 6 ↔ pin 4 (with a 910 Ω ID on pin 1), NOT pin 1 ↔ pin 2 like the NXT.</li>
+  <li><strong>EV3 UART auto-ID sensors</strong> - the Colour/Ultrasonic/Gyro/Infrared sensors, which use a 2400-baud auto-bauding protocol with checksums and tight timing — a kernel driver job, not a bare-GPIO project.</li>
+  <li><strong>BrickPi3 / ev3dev / PiStorms</strong> - boards and software that implement the EV3 protocols for you, driving EV3 motors <em>and</em> smart sensors from Python.</li>
+  <li><strong>Build HAT (not for EV3)</strong> - the official LEGO HAT uses the newer LPF2 connector, so it does not accept EV3/NXT parts.</li>
+</ul>
+</div>
+
+<div class="summary">
+<h4>Chapter summary</h4>
+<ul>
+  <li>EV3 motors are, like NXT motors, plain DC motors with a built-in <strong>quadrature encoder</strong> (~1 count/degree), driven through an <strong>H-bridge</strong> (DRV8833) from a <strong>separate ~9 V battery with a common ground</strong> — exactly the Lesson 42 approach.</li>
+  <li>The EV3 RJ12 pinout is <strong>pins 1/2 motor power, pin 3 encoder GND, pin 4 +5 V supply, pins 5/6 tacho A/B</strong>.</li>
+  <li>The headline advantage: EV3 <strong>encoder outputs are 3.3 V-compatible</strong>, so they read straight onto a Pi 5 with just a small series resistor — no voltage divider, unlike the NXT.</li>
+  <li>You reused the same <code>Robot</code> class, read the encoder with gpiozero <code>RotaryEncoder</code>, and added a short <strong>calibration</strong> so the robot can drive a measured distance and stop itself with a <code>when_rotated</code> callback.</li>
+  <li>Only the EV3 <strong>Touch sensor</strong> is a simple GPIO reuse, and it is wired <strong>differently from the NXT</strong> (switch across pin 6 ↔ pin 4, with a 910 Ω ID on pin 1 — not pin 1 ↔ pin 2).</li>
+  <li>The EV3 <strong>Colour/Ultrasonic/Gyro/Infrared</strong> sensors use the complex <strong>UART auto-ID protocol</strong> (2400-baud auto-bauding, checksums, tight timing, kernel driver) — not a beginner bare-GPIO project; use a <strong>BrickPi3</strong> or <strong>ev3dev</strong> instead.</li>
+  <li>The Raspberry Pi <strong>Build HAT</strong> does not fit EV3/NXT parts (it uses LPF2), so it is not an option here.</li>
+</ul>
+</div>

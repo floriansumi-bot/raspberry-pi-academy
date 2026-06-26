@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch28",
+  "title": "Distance Sensor & Parking Assistant",
+  "questions": [
+    {
+      "q": "Why must you put a resistor voltage divider on the HC-SR04's ECHO pin before connecting it to the Pi?",
+      "choices": [
+        "To make the sensor measure longer distances",
+        "Because ECHO outputs 5 V, which would damage the Pi's 3.3 V GPIO pin",
+        "To limit the current so the sensor doesn't burn out",
+        "Because the Pi's GPIO pins are 5 V-tolerant and need the extra voltage"
+      ],
+      "answer": 1,
+      "explain": "The HC-SR04's ECHO pin sends out a 5 V signal, but Pi 5 GPIO pins are 3.3 V only and not 5 V-tolerant. Without a divider, the 5 V can permanently destroy the pin — there is no fuse to protect it."
+    },
+    {
+      "q": "Using the divider formula Vout = Vin × R2 ÷ (R1 + R2) with R1 = 330 Ω and R2 = 470 Ω on a 5 V ECHO signal, what voltage reaches the GPIO pin?",
+      "choices": [
+        "5.00 V",
+        "3.30 V",
+        "2.94 V",
+        "1.65 V"
+      ],
+      "answer": 2,
+      "explain": "Vout = 5 × 470 ÷ (330 + 470) = 5 × 470 ÷ 800 = 2.94 V. That is safely below the 3.3 V limit yet still high enough for the Pi to read as a clear HIGH."
+    },
+    {
+      "q": "Does the HC-SR04's TRIG pin also need a voltage divider?",
+      "choices": [
+        "Yes, both TRIG and ECHO carry 5 V and need dividers",
+        "No — the Pi sends 3.3 V out to TRIG, which the sensor reads fine, so no divider is needed",
+        "Yes, because TRIG draws too much current",
+        "No, because TRIG is connected to a 5 V power pin"
+      ],
+      "answer": 1,
+      "explain": "TRIG is an input to the sensor: the Pi drives it with 3.3 V out, which the HC-SR04 accepts happily. Only ECHO (sensor output, 5 V) endangers the Pi, so only ECHO needs the divider."
+    },
+    {
+      "q": "In the line 'led = LED(17)', what are LED and led, in object-oriented terms?",
+      "choices": [
+        "LED is the object and led is the class",
+        "Both are functions that return None",
+        "LED is the class (blueprint); led is an object built from it",
+        "LED is an attribute and led is a method"
+      ],
+      "answer": 2,
+      "explain": "A class is a blueprint and an object is a real thing made from it. LED is the class; led is one specific object representing the LED on pin 17, with its own methods like led.on()."
+    },
+    {
+      "q": "What is the purpose of the 'return' keyword in a function like read_distance_cm()?",
+      "choices": [
+        "It prints the value to the screen and then forgets it",
+        "It hands a value back to the caller so it can be stored, tested, or reused",
+        "It restarts the function from the top",
+        "It deletes the function from memory"
+      ],
+      "answer": 1,
+      "explain": "return passes a value back into the program. Unlike print(), which only displays text, a returned value can be captured in a variable, compared in an if statement, or passed to another function."
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch25",
+  "title": "Reaction-Timer Game",
+  "questions": [
+    {
+      "q": "Why does the game use random.uniform(2, 5) for the delay before the LED lights?",
+      "choices": [
+        "To make the program run faster",
+        "To pick an unpredictable decimal delay so the player cannot anticipate the light",
+        "To limit the current flowing to the LED",
+        "Because the LED needs at least 2 seconds to warm up"
+      ],
+      "answer": 1,
+      "explain": "random.uniform(2, 5) returns a random decimal between 2 and 5 seconds, with every value equally likely. The unpredictability stops the player from counting and pressing too early."
+    },
+    {
+      "q": "How does the program measure your reaction time using the time module?",
+      "choices": [
+        "It counts how many times the while loop runs",
+        "It reads time.time() when the LED lights and again when you press, then subtracts and multiplies by 1000",
+        "It uses random.uniform to estimate the time",
+        "It asks the GPU for a frame counter"
+      ],
+      "answer": 1,
+      "explain": "time.time() gives the current moment in seconds. Recording it at the light (start) and at the press (end), then computing (end - start) * 1000, gives the reaction time in milliseconds."
+    },
+    {
+      "q": "With gpiozero's default Button, where does the button's other leg connect, and why is no external resistor needed?",
+      "choices": [
+        "To 5 V, because the Pi runs from a 5 V supply",
+        "To GND, because the default pull_up=True uses the Pi's internal pull-up resistor",
+        "To another GPIO pin, which acts as the resistor",
+        "To 3.3 V through a 330 Ω resistor you must add"
+      ],
+      "answer": 1,
+      "explain": "Button defaults to pull_up=True, holding the pin HIGH via the Pi's internal pull-up. You wire the other leg to GND so pressing pulls the pin LOW. No external resistor is required for the button."
+    },
+    {
+      "q": "What is switch bounce, and how does bounce_time fix it?",
+      "choices": [
+        "The LED flickering; bounce_time dims it",
+        "The button's contacts rapidly make and break on one press, looking like several presses; bounce_time ignores changes for a short window",
+        "The Pi rebooting when a button is pressed; bounce_time delays the reboot",
+        "Static electricity damaging the pin; bounce_time grounds it"
+      ],
+      "answer": 1,
+      "explain": "When a switch closes, its metal contacts bounce, producing several rapid edges that the Pi may read as multiple presses. Setting bounce_time (e.g. 0.05 s) tells gpiozero to ignore further changes for that window, so one press counts once."
+    },
+    {
+      "q": "In the score check 'if best is None or reaction_ms < best:', why include 'best is None'?",
+      "choices": [
+        "To make the LED brighter on the first round",
+        "Because on the very first round there is no best yet, so any score should be recorded as the best",
+        "To convert the time into milliseconds",
+        "To stop the while loop after one round"
+      ],
+      "answer": 1,
+      "explain": "best starts as None (no score recorded). 'best is None' is true on the first round, so the first time is stored as the best; after that, 'reaction_ms < best' records any faster time. This is a conditional handling the empty starting state."
+    }
+  ]
+}

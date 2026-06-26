@@ -82,6 +82,29 @@
    ]
   },
   {
+   "id": "maker-lab",
+   "label": "The Maker Lab",
+   "short": "Learn to code by building",
+   "blurb": "A series of fun builds where every project teaches a named Python or electronics fundamental — including bringing old electronics, LEGO robots and phones back to life.",
+   "chapters": [
+    "ch33",
+    "ch34",
+    "ch35",
+    "ch36",
+    "ch37",
+    "ch38",
+    "ch39",
+    "ch40",
+    "ch41",
+    "ch42",
+    "ch43",
+    "ch44",
+    "ch45",
+    "ch46",
+    "ch47"
+   ]
+  },
+  {
    "id": "reference",
    "label": "Reference",
    "short": "Cheat-sheet & glossary",
@@ -1314,7 +1337,7 @@
   },
   "apxA": {
    "id": "apxA",
-   "n": 33,
+   "n": 48,
    "title": "Command Quick-Reference",
    "kind": "appendix",
    "part": "reference",
@@ -1378,12 +1401,12 @@
   },
   "glos": {
    "id": "glos",
-   "n": 34,
+   "n": 49,
    "title": "Glossary of Terms",
    "kind": "glossary",
    "part": "reference",
-   "words": 6304,
-   "read_min": 32,
+   "words": 7770,
+   "read_min": 39,
    "sections": [
     {
      "id": "how-to-use-this-glossary",
@@ -1943,6 +1966,940 @@
     }
    ],
    "widgets": []
+  },
+  "ch33": {
+   "id": "ch33",
+   "n": 33,
+   "title": "Welcome to the Maker Lab: Your Toolkit & Salvaging E-Waste",
+   "kind": "chapter",
+   "part": "maker-lab",
+   "words": 5125,
+   "read_min": 26,
+   "sections": [
+    {
+     "id": "how-the-maker-lab-works",
+     "title": "How the Maker Lab Works"
+    },
+    {
+     "id": "what-youll-learn",
+     "title": "What You'll Learn"
+    },
+    {
+     "id": "the-maker-toolkit",
+     "title": "The Maker Toolkit"
+    },
+    {
+     "id": "reading-resistor-colour-bands",
+     "title": "Reading Resistor Colour Bands"
+    },
+    {
+     "id": "led-polarity",
+     "title": "LED Polarity"
+    },
+    {
+     "id": "using-a-multimeter",
+     "title": "Using a Multimeter"
+    },
+    {
+     "id": "a-quick-python-refresher",
+     "title": "A Quick Python Refresher"
+    },
+    {
+     "id": "installing-packages-the-bookworm-rule",
+     "title": "Installing Packages: the Bookworm Rule (PEP 668)"
+    },
+    {
+     "id": "a-first-taste-of-bash",
+     "title": "A First Taste of Bash"
+    },
+    {
+     "id": "the-e-waste-pile",
+     "title": "The E-Waste Pile: Salvaging Safely"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    },
+    {
+     "id": "what-youve-learned",
+     "title": "What You've Learned"
+    }
+   ],
+   "widgets": []
+  },
+  "ch34": {
+   "id": "ch34",
+   "n": 34,
+   "title": "Traffic-Light Controller",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 4409,
+   "read_min": 22,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "parts-list",
+     "title": "Parts List"
+    },
+    {
+     "id": "the-current-budget",
+     "title": "The Current Budget: Why Three LEDs Is Fine"
+    },
+    {
+     "id": "the-circuit-common-cathode",
+     "title": "The Circuit: Common-Cathode Layout"
+    },
+    {
+     "id": "meet-the-list",
+     "title": "Fundamental 1: Meet the List"
+    },
+    {
+     "id": "loop-over-the-list",
+     "title": "Fundamental 2: The for Loop"
+    },
+    {
+     "id": "wrap-it-in-a-function",
+     "title": "Fundamental 3: Functions with Parameters"
+    },
+    {
+     "id": "the-uk-traffic-light-sequence",
+     "title": "The UK Traffic-Light Sequence"
+    },
+    {
+     "id": "the-full-program",
+     "title": "The Full Program"
+    },
+    {
+     "id": "the-elegant-version-trafficlights",
+     "title": "The Elegant Version: TrafficLights"
+    },
+    {
+     "id": "pedestrian-crossing-variant",
+     "title": "The Pedestrian-Crossing Variant"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "from-the-e-waste-pile",
+     "title": "From the E-Waste Pile"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch35": {
+   "id": "ch35",
+   "n": 35,
+   "title": "Reaction-Timer Game",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 4134,
+   "read_min": 21,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "parts-list",
+     "title": "Parts List"
+    },
+    {
+     "id": "how-a-button-talks-to-the-pi",
+     "title": "How a Button Talks to the Pi"
+    },
+    {
+     "id": "the-circuit",
+     "title": "The Circuit"
+    },
+    {
+     "id": "variables-and-fstrings",
+     "title": "Fundamental 1: Variables and f-strings"
+    },
+    {
+     "id": "random-delays",
+     "title": "Fundamental 2: Random Delays"
+    },
+    {
+     "id": "timing-with-the-time-module",
+     "title": "Fundamental 3: Timing with the time Module"
+    },
+    {
+     "id": "conditionals-and-while-loops",
+     "title": "Fundamental 4: Conditionals and while Loops"
+    },
+    {
+     "id": "the-full-game",
+     "title": "The Full Game"
+    },
+    {
+     "id": "understanding-your-numbers",
+     "title": "Understanding Your Numbers"
+    },
+    {
+     "id": "tracking-scores-across-rounds",
+     "title": "Tracking Scores Across Rounds"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "from-the-e-waste-pile",
+     "title": "From the E-Waste Pile"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": []
+  },
+  "ch36": {
+   "id": "ch36",
+   "n": 36,
+   "title": "The Salvaged Sound Machine",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 5251,
+   "read_min": 26,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "how-sound-actually-works",
+     "title": "How Sound Actually Works"
+    },
+    {
+     "id": "active-vs-passive-buzzers",
+     "title": "Active vs Passive Buzzers"
+    },
+    {
+     "id": "from-the-e-waste-pile",
+     "title": "From the E-Waste Pile"
+    },
+    {
+     "id": "pwm-making-a-pitch-from-a-pin",
+     "title": "PWM: Making a Pitch from a Pin"
+    },
+    {
+     "id": "meet-the-tonalbuzzer-object",
+     "title": "Meet the TonalBuzzer Object"
+    },
+    {
+     "id": "a-tiny-first-test",
+     "title": "A Tiny First Test"
+    },
+    {
+     "id": "parts-list",
+     "title": "Parts List"
+    },
+    {
+     "id": "wiring-the-passive-buzzer",
+     "title": "Wiring the Passive Buzzer"
+    },
+    {
+     "id": "python-fundamentals-dictionaries-functions-loops",
+     "title": "Python Fundamentals: Dictionaries, Functions, Loops"
+    },
+    {
+     "id": "the-full-program",
+     "title": "The Full Program"
+    },
+    {
+     "id": "running-it",
+     "title": "Running It"
+    },
+    {
+     "id": "why-a-speaker-needs-a-transistor",
+     "title": "Why a Speaker Needs a Transistor"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": []
+  },
+  "ch37": {
+   "id": "ch37",
+   "n": 37,
+   "title": "Mood Lamp from a Recycled Jar",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 4354,
+   "read_min": 22,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "how-an-rgb-led-makes-colour",
+     "title": "How an RGB LED Makes Colour"
+    },
+    {
+     "id": "pwm-duty-cycle-as-brightness",
+     "title": "PWM Duty Cycle as Brightness"
+    },
+    {
+     "id": "common-cathode-vs-common-anode",
+     "title": "Common-Cathode vs Common-Anode"
+    },
+    {
+     "id": "one-resistor-per-channel",
+     "title": "One Resistor Per Channel"
+    },
+    {
+     "id": "from-the-e-waste-pile",
+     "title": "From the E-Waste Pile"
+    },
+    {
+     "id": "parts-list",
+     "title": "Parts List"
+    },
+    {
+     "id": "wiring-the-rgb-led",
+     "title": "Wiring the RGB LED"
+    },
+    {
+     "id": "python-fundamentals-parameters-return-while-random",
+     "title": "Python Fundamentals: Parameters, Return, while True, random"
+    },
+    {
+     "id": "meet-the-rgbled-object",
+     "title": "Meet the RGBLED Object"
+    },
+    {
+     "id": "the-full-program",
+     "title": "The Full Program"
+    },
+    {
+     "id": "running-it",
+     "title": "Running It"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": []
+  },
+  "ch38": {
+   "id": "ch38",
+   "n": 38,
+   "title": "Distance Sensor & Parking Assistant",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 5180,
+   "read_min": 26,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "meet-classes-and-objects",
+     "title": "Meet Classes & Objects"
+    },
+    {
+     "id": "functions-that-return-values",
+     "title": "Functions That Return Values"
+    },
+    {
+     "id": "how-the-ultrasonic-sensor-works",
+     "title": "How the Ultrasonic Sensor Works"
+    },
+    {
+     "id": "the-critical-voltage-divider",
+     "title": "The Critical Voltage Divider (Read This!)"
+    },
+    {
+     "id": "parts-and-wiring",
+     "title": "Parts & Wiring"
+    },
+    {
+     "id": "building-the-parking-assistant",
+     "title": "Building the Parking Assistant"
+    },
+    {
+     "id": "running-it",
+     "title": "Running It"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch39": {
+   "id": "ch39",
+   "n": 39,
+   "title": "Plant Monitor & Data Logger",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 5090,
+   "read_min": 25,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "digital-vs-analog-and-the-missing-adc",
+     "title": "Digital vs Analog & the Missing ADC"
+    },
+    {
+     "id": "choosing-the-sensors",
+     "title": "Choosing the Sensors"
+    },
+    {
+     "id": "files-csv-and-lists-of-dicts",
+     "title": "Files, CSV & Lists of Dictionaries"
+    },
+    {
+     "id": "parts-and-wiring",
+     "title": "Parts & Wiring"
+    },
+    {
+     "id": "building-the-data-logger",
+     "title": "Building the Data Logger"
+    },
+    {
+     "id": "running-it",
+     "title": "Running It"
+    },
+    {
+     "id": "a-look-at-true-analog-the-mcp3008",
+     "title": "A Look at True Analog: the MCP3008"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": []
+  },
+  "ch40": {
+   "id": "ch40",
+   "n": 40,
+   "title": "Motion-Activated Alarm from E-Waste",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 5536,
+   "read_min": 28,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "what-is-event-driven-programming",
+     "title": "What Is Event-Driven Programming?"
+    },
+    {
+     "id": "from-the-e-waste-pile-salvaging-a-pir",
+     "title": "From the E-Waste Pile: Salvaging a PIR"
+    },
+    {
+     "id": "meet-the-hc-sr501",
+     "title": "Meet the HC-SR501"
+    },
+    {
+     "id": "parts-and-wiring",
+     "title": "Parts & Wiring"
+    },
+    {
+     "id": "building-the-alarm-step-by-step",
+     "title": "Building the Alarm Step by Step"
+    },
+    {
+     "id": "organising-code-into-a-module",
+     "title": "Organising Code into a Module"
+    },
+    {
+     "id": "arming-and-disarming",
+     "title": "Arming and Disarming"
+    },
+    {
+     "id": "running-it",
+     "title": "Running It"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": []
+  },
+  "ch41": {
+   "id": "ch41",
+   "n": 41,
+   "title": "Capstone: Your Sensor Dashboard on the Web",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 4681,
+   "read_min": 23,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "client-and-server-the-big-idea",
+     "title": "Client and Server: The Big Idea"
+    },
+    {
+     "id": "installing-flask-the-bookworm-way",
+     "title": "Installing Flask the Bookworm Way"
+    },
+    {
+     "id": "reading-the-sensors-as-a-module",
+     "title": "Reading the Sensors as a Module"
+    },
+    {
+     "id": "the-shared-state-dictionary",
+     "title": "The Shared State Dictionary"
+    },
+    {
+     "id": "the-flask-server-appdotpy",
+     "title": "The Flask Server (app.py)"
+    },
+    {
+     "id": "the-html-page",
+     "title": "The HTML Page (templates/index.html)"
+    },
+    {
+     "id": "the-javascript-that-makes-it-live",
+     "title": "The JavaScript That Makes It Live"
+    },
+    {
+     "id": "what-the-dashboard-looks-like",
+     "title": "What the Dashboard Looks Like"
+    },
+    {
+     "id": "running-it-and-viewing-on-your-phone",
+     "title": "Running It and Viewing on Your Phone"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "where-to-go-next",
+     "title": "Where to Go Next"
+    }
+   ],
+   "widgets": []
+  },
+  "ch42": {
+   "id": "ch42",
+   "n": 42,
+   "title": "Reanimate a LEGO Mindstorms NXT Robot with AI",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 7907,
+   "read_min": 40,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "meet-the-nxt-parts-you-can-reuse",
+     "title": "Meet the NXT 2.0 Parts You Can Reuse"
+    },
+    {
+     "id": "the-nxt-connector-decoded",
+     "title": "The NXT Connector, Decoded"
+    },
+    {
+     "id": "inside-the-nxt-motor",
+     "title": "Inside the NXT Motor"
+    },
+    {
+     "id": "driving-the-motors-the-h-bridge",
+     "title": "Driving the Motors Safely — the H-bridge"
+    },
+    {
+     "id": "code-a-robot-class",
+     "title": "Code: a Robot Class You Can Drive"
+    },
+    {
+     "id": "reading-the-wheels-the-encoder",
+     "title": "Reading the Wheels — the Encoder"
+    },
+    {
+     "id": "reading-a-sensor-the-touch-bumper",
+     "title": "Reading a Sensor — the Touch Bumper"
+    },
+    {
+     "id": "giving-the-robot-ai-eyes",
+     "title": "Giving the Robot AI Eyes"
+    },
+    {
+     "id": "putting-it-all-together",
+     "title": "Putting It All Together"
+    },
+    {
+     "id": "the-easy-route-brickpi3",
+     "title": "The Easy Route: BrickPi3"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "safety-checklist",
+     "title": "Safety Checklist"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own / Where to Go Next"
+    }
+   ],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch43": {
+   "id": "ch43",
+   "n": 43,
+   "title": "Recycle an Old Smartphone into Pi Parts",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 6396,
+   "read_min": 32,
+   "sections": [
+    {
+     "id": "the-honest-truth-about-phone-parts",
+     "title": "The Honest Truth About Phone Parts"
+    },
+    {
+     "id": "name-the-fundamentals",
+     "title": "Name the Fundamentals"
+    },
+    {
+     "id": "safety-first-the-lithium-ion-talk",
+     "title": "Safety First: the Lithium-Ion Talk"
+    },
+    {
+     "id": "reuse-1-the-battery-as-backup-power",
+     "title": "Reuse 1 — the Battery as Backup Power"
+    },
+    {
+     "id": "reuse-2-the-vibration-motor",
+     "title": "Reuse 2 — the Vibration Motor (Haptics)"
+    },
+    {
+     "id": "reuse-3-the-loudspeaker",
+     "title": "Reuse 3 — the Loudspeaker"
+    },
+    {
+     "id": "reuse-4-the-whole-phone-as-a-wireless-camera",
+     "title": "Reuse 4 — the Whole Phone as a Wireless Camera"
+    },
+    {
+     "id": "other-useful-bits",
+     "title": "Other Useful Bits"
+    },
+    {
+     "id": "what-you-genuinely-cant-do-and-why",
+     "title": "What You Genuinely Can't Do — and Why"
+    },
+    {
+     "id": "safety-and-disposal-checklist",
+     "title": "Safety & Disposal Checklist"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own / Where Next"
+    },
+    {
+     "id": "what-youve-learned",
+     "title": "What You've Learned"
+    }
+   ],
+   "widgets": []
+  },
+  "ch44": {
+   "id": "ch44",
+   "n": 44,
+   "title": "Capstone: The Junkbox AI Rover",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 7531,
+   "read_min": 38,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "the-architecture",
+     "title": "The Architecture"
+    },
+    {
+     "id": "recap-how-the-parts-connect",
+     "title": "Recap: How the Parts Connect"
+    },
+    {
+     "id": "step-1-the-drive-base-as-a-module",
+     "title": "Step 1 — The Drive Base as a Module"
+    },
+    {
+     "id": "step-2-give-it-eyes",
+     "title": "Step 2 — Give It Eyes"
+    },
+    {
+     "id": "step-3-see-a-target",
+     "title": "Step 3 — See a Target (Colour Tracking)"
+    },
+    {
+     "id": "step-4-the-follow-behaviour",
+     "title": "Step 4 — The Follow Behaviour and the State Machine"
+    },
+    {
+     "id": "step-5-a-web-remote",
+     "title": "Step 5 — A Web Remote"
+    },
+    {
+     "id": "putting-it-all-together",
+     "title": "Putting It All Together"
+    },
+    {
+     "id": "safety-checklist",
+     "title": "Safety Checklist"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own / Where to Go Next"
+    }
+   ],
+   "widgets": []
+  },
+  "ch45": {
+   "id": "ch45",
+   "n": 45,
+   "title": "EV3 Edition: Bigger LEGO Motors on the Pi",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 7972,
+   "read_min": 40,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "nxt-vs-ev3-same-and-different",
+     "title": "NXT vs EV3: Same and Different"
+    },
+    {
+     "id": "the-ev3-connector-decoded",
+     "title": "The EV3 Connector, Decoded"
+    },
+    {
+     "id": "inside-the-ev3-motor",
+     "title": "Inside the EV3 Motor"
+    },
+    {
+     "id": "driving-ev3-motors-the-h-bridge",
+     "title": "Driving EV3 Motors Safely — the H-bridge"
+    },
+    {
+     "id": "a-robot-class-you-can-drive",
+     "title": "A Robot Class You Can Drive"
+    },
+    {
+     "id": "reading-the-ev3-encoder",
+     "title": "Reading the EV3 Encoder"
+    },
+    {
+     "id": "calibrate-and-drive-a-set-distance",
+     "title": "Calibrate and Drive a Set Distance"
+    },
+    {
+     "id": "the-ev3-touch-sensor",
+     "title": "The EV3 Touch Sensor — the One Easy Sensor"
+    },
+    {
+     "id": "the-smart-sensors-be-honest",
+     "title": "The Smart Sensors — Be Honest"
+    },
+    {
+     "id": "from-the-e-waste-pile",
+     "title": "From the E-Waste Pile"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "safety-checklist",
+     "title": "Safety Checklist"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own / Where to Go Next"
+    }
+   ],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch46": {
+   "id": "ch46",
+   "n": 46,
+   "title": "Build a Line-Following Robot",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 6133,
+   "read_min": 31,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "how-a-reflectance-sensor-sees-a-line",
+     "title": "How a Reflectance Sensor Sees a Line"
+    },
+    {
+     "id": "powering-the-sensor-safely",
+     "title": "Powering the Sensor Safely"
+    },
+    {
+     "id": "meet-the-linesensor-object",
+     "title": "Meet the LineSensor Object"
+    },
+    {
+     "id": "the-sensor-array-under-the-chassis",
+     "title": "The Sensor Array Under the Chassis"
+    },
+    {
+     "id": "a-first-line-follower",
+     "title": "A First Line Follower"
+    },
+    {
+     "id": "introducing-pid-control",
+     "title": "Introducing PID Control"
+    },
+    {
+     "id": "the-camera-alternative",
+     "title": "The Camera Alternative"
+    },
+    {
+     "id": "calibration-and-troubleshooting",
+     "title": "Calibration and Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": [
+    "gpio"
+   ]
+  },
+  "ch47": {
+   "id": "ch47",
+   "n": 47,
+   "title": "Talk to Your Robot: Offline Voice Control",
+   "kind": "project",
+   "part": "maker-lab",
+   "words": 6322,
+   "read_min": 32,
+   "sections": [
+    {
+     "id": "what-youll-build-and-learn",
+     "title": "What You'll Build & Learn"
+    },
+    {
+     "id": "why-offline-speech-recognition",
+     "title": "Why Offline Speech Recognition?"
+    },
+    {
+     "id": "the-pi-5-has-no-microphone",
+     "title": "The Pi 5 Has No Microphone"
+    },
+    {
+     "id": "installing-vosk-in-a-venv",
+     "title": "Installing Vosk in a Virtual Environment"
+    },
+    {
+     "id": "the-mic-to-motors-pipeline",
+     "title": "The Mic-to-Motors Pipeline"
+    },
+    {
+     "id": "capturing-the-microphone",
+     "title": "Capturing the Microphone with sounddevice"
+    },
+    {
+     "id": "matching-words-to-commands",
+     "title": "Matching Words to Commands"
+    },
+    {
+     "id": "constraining-vosk-to-our-words",
+     "title": "Constraining Vosk to Our Words"
+    },
+    {
+     "id": "putting-it-together-the-voice-rover",
+     "title": "Putting It Together: The Voice Rover"
+    },
+    {
+     "id": "commands-and-actions-reference",
+     "title": "Commands and Actions Reference"
+    },
+    {
+     "id": "optional-a-wake-word-gate",
+     "title": "Optional: A Wake Word Gate"
+    },
+    {
+     "id": "troubleshooting",
+     "title": "Troubleshooting"
+    },
+    {
+     "id": "make-it-your-own",
+     "title": "Make It Your Own"
+    }
+   ],
+   "widgets": []
   }
  },
  "order": [
@@ -1978,6 +2935,21 @@
   "ch30",
   "ch31",
   "ch32",
+  "ch33",
+  "ch34",
+  "ch35",
+  "ch36",
+  "ch37",
+  "ch38",
+  "ch39",
+  "ch40",
+  "ch41",
+  "ch42",
+  "ch43",
+  "ch44",
+  "ch45",
+  "ch46",
+  "ch47",
   "apxA",
   "glos"
  ]

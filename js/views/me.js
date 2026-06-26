@@ -94,7 +94,7 @@ function certificate() {
     el('h2', { text: 'Certificate of Completion' }),
     el('p', { class: 'cert-awarded', text: 'awarded to' }),
     el('div', { class: 'cert-name', text: store.name || 'A curious learner' }),
-    el('p', { class: 'cert-body', text: 'for finishing all 34 lessons — from first boot to building real things on a Raspberry Pi 5.' }),
+    el('p', { class: 'cert-body', text: 'for finishing every lesson — from first boot to building real things on a Raspberry Pi 5.' }),
     el('div', { class: 'cert-date', text: date })
   );
   const nameInput = el('input', { class: 'field', type: 'text', placeholder: 'Your name (for the certificate)', value: store.name || '', 'aria-label': 'Your name', style: { width: 'min(320px, 100%)' } });

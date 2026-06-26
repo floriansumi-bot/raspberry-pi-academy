@@ -1,0 +1,61 @@
+{
+  "chapterId": "ch24",
+  "title": "Traffic-Light Controller",
+  "questions": [
+    {
+      "q": "In the code 'all_lights = [red, amber, green]', what kind of Python value is being created?",
+      "choices": [
+        "A function that returns the three LEDs",
+        "A list, which holds the three LED objects in order",
+        "A loop that flashes the LEDs one after another",
+        "A single LED with three colours"
+      ],
+      "answer": 1,
+      "explain": "Square brackets create a list: one name (all_lights) that holds several values in order. all_lights[0] is the red LED, [1] is amber, [2] is green. Lists are indexed from 0."
+    },
+    {
+      "q": "Why does a 'for light in all_lights:' loop save you from repeating code?",
+      "choices": [
+        "It runs the indented block once for every item in the list automatically",
+        "It makes the program run faster on the Pi 5",
+        "It turns all the LEDs on at exactly the same instant",
+        "It only works if the list contains exactly three items"
+      ],
+      "answer": 0,
+      "explain": "A for loop repeats its indented block once per item in the list, with the loop variable (light) standing for the current item. So one short block of code can act on every LED in turn."
+    },
+    {
+      "q": "How many current-limiting resistors do you need for a three-LED traffic light, and what value?",
+      "choices": [
+        "One shared 330 Ω resistor for all three LEDs",
+        "No resistors, because 3.3 V is already safe for LEDs",
+        "Three resistors of about 330 Ω each — one per LED",
+        "One 50 Ω resistor on the shared ground wire"
+      ],
+      "answer": 2,
+      "explain": "Every LED needs its own series resistor (about 330 Ω at 3.3 V). Sharing one resistor lets the LEDs rob current from each other and can exceed the safe current; omitting them can destroy the LED and the GPIO pin."
+    },
+    {
+      "q": "What are the GPIO current limits you must respect on the Pi 5?",
+      "choices": [
+        "About 100 mA per pin and unlimited total",
+        "About 16 mA per pin and about 50 mA total across the whole header",
+        "About 5 A per pin, the same as the USB ports",
+        "There are no limits as long as you use resistors"
+      ],
+      "answer": 1,
+      "explain": "Keep each GPIO pin under roughly 16 mA, and the total drawn from the header under roughly 50 mA. Three resistor-limited LEDs draw only about 12 mA together, so they fit comfortably."
+    },
+    {
+      "q": "Which phase makes the UK traffic-light sequence different from many other countries?",
+      "choices": [
+        "A flashing green phase before red",
+        "A red-and-amber phase together, warning drivers to get ready before green",
+        "A phase with all three lights off",
+        "A blue phase for emergency vehicles"
+      ],
+      "answer": 1,
+      "explain": "The UK cycle is Red, then Red+Amber together (get ready), then Green, then Amber. The combined Red+Amber 'get ready' phase is the one that does not appear in many other countries' lights."
+    }
+  ]
+}
